@@ -32,6 +32,13 @@ async function skipClientIfAsked(page: Page): Promise<void> {
   }
 }
 
+/** Click through the pre-create confirmation card. */
+async function confirmCreate(page: Page): Promise<void> {
+  const confirm = page.getByRole("button", { name: /Confirm.*create/i });
+  await confirm.waitFor({ state: "visible", timeout: 30_000 });
+  await confirm.click();
+}
+
 test.describe("Ask AI project flow", () => {
   test.skip(!HAS_CREDS, "Set E2E_USER_EMAIL and E2E_USER_PASSWORD to run Ask AI project tests.");
 
@@ -52,6 +59,10 @@ test.describe("Ask AI project flow", () => {
 
     await expect(page.getByText("Which client is this project for?")).toBeVisible({ timeout: 30_000 });
     await page.getByRole("button", { name: "No client (internal)" }).click();
+
+    // Confirmation card before the record is created.
+    await expect(page.getByText("Create this project?")).toBeVisible({ timeout: 30_000 });
+    await confirmCreate(page);
 
     await expect(page.getByText("Project created")).toBeVisible({ timeout: 60_000 });
     await expect(page.getByText(new RegExp(`${TEST_PROJECT_NAME} is ready`, "i"))).toBeVisible();
@@ -77,6 +88,9 @@ test.describe("Ask AI project flow", () => {
     await expect(page.getByText("Which client is this project for?")).toBeVisible({ timeout: 30_000 });
     await page.getByRole("button", { name: "No client (internal)" }).click();
 
+    await expect(page.getByText("Create this project?")).toBeVisible({ timeout: 30_000 });
+    await confirmCreate(page);
+
     const result = await raceVisible(page, ["Project created", "Could not"], 60_000);
     if (result.includes("Could not")) {
       throw new Error(`Project creation failed after name prompt: "${result}"`);
@@ -94,6 +108,7 @@ test.describe("Ask AI project flow", () => {
 
     await expect(page.getByText(/Branding Refresh/i).first()).toBeVisible({ timeout: 10_000 });
     await skipClientIfAsked(page);
+    await confirmCreate(page);
 
     const result = await raceVisible(page, ["Project created", "Could not", "What should I name this project"], 60_000);
     if (result.includes("Could not")) {

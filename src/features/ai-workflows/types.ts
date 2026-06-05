@@ -129,7 +129,7 @@ export type AiIntent = AiWorkflow | "general";
  */
 export type AiFields = Record<string, string>;
 
-/** A single required field that the assistant must still ask the user for. */
+/** A single field that the assistant must still ask the user for. */
 export interface AiMissingField {
   /** Canonical field key, e.g. "clientId", "fullName", "amount". */
   field: string;
@@ -137,6 +137,12 @@ export interface AiMissingField {
   question: string;
   /** Optional short hint shown as a textarea placeholder. */
   placeholder?: string;
+  /**
+   * When true the field is not mandatory — the assistant offers it once and
+   * the user can reply "skip"/"none" to omit it. Asked only if the user has
+   * not already addressed it (the key is absent from the collected fields).
+   */
+  optional?: boolean;
 }
 
 /**
@@ -186,6 +192,22 @@ export const AI_REQUIRED_FIELDS: Record<AiWorkflow, string[]> = {
 };
 
 /**
+ * Optional fields per workflow. After the required fields are satisfied the
+ * assistant offers each of these ONCE (the user can reply "skip"). A field is
+ * considered "offered/answered" when its key is present in the collected map —
+ * so a real value or an explicit skip both stop it being re-asked.
+ */
+export const AI_OPTIONAL_FIELDS: Record<AiWorkflow, string[]> = {
+  invoice: ["discount", "dueDate"],
+  contract: [],
+  welcome_document: [],
+  client: ["contactDetails"],
+  project: [],
+  time_entry: [],
+  support: [],
+};
+
+/**
  * Explicit "no client / internal" marker. The client picker sends this when the
  * user deliberately skips choosing a client (only offered where a client is
  * optional, e.g. projects), so the missing-field loop treats the choice as
@@ -193,3 +215,14 @@ export const AI_REQUIRED_FIELDS: Record<AiWorkflow, string[]> = {
  * in the "use server" actions file, which may only export async functions.
  */
 export const NO_CLIENT_SENTINEL = "__none__";
+
+/**
+ * Explicit "skip this optional field" marker. When the user replies "skip"/
+ * "none" to an OPTIONAL prompt (e.g. discount, due date, contact details) the
+ * UI records this sentinel so the missing-field loop treats the field as
+ * deliberately addressed and never re-asks it — while still leaving the actual
+ * value empty. This distinguishes a real user skip from a value the model may
+ * have guessed, so optional prompts are offered exactly once and never silently
+ * bypassed.
+ */
+export const AI_SKIP_SENTINEL = "__skip__";

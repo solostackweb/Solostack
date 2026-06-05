@@ -37,7 +37,9 @@ import { generateInvoiceDraftAction, generateOperationalDraftAction } from "./ac
 import { generateStructuredJson } from "./groq";
 import { interpretMessage } from "./nlu";
 import {
+  AI_OPTIONAL_FIELDS,
   AI_REQUIRED_FIELDS,
+  AI_SKIP_SENTINEL,
   NO_CLIENT_SENTINEL,
   aiInterpretRequestSchema,
   type AiContractDraft,
@@ -46,6 +48,14 @@ import {
   type AiWelcomeDraft,
   type AiWorkflow,
 } from "./types";
+
+/** A field/value row shown in a pre-create confirmation summary. */
+type AiConfirmLine = [label: string, value: string];
+interface AiConfirmSummary {
+  kind: "client" | "project" | "time_entry";
+  title: string;
+  lines: AiConfirmLine[];
+}
 
 const aiInvoiceIdSchema = z.object({
   invoiceId: z.string().uuid("Invalid invoice id"),
@@ -79,6 +89,8 @@ const aiCreateSchema = z.object({
   clientId: z.string().optional().or(z.literal("")),
   projectId: z.string().optional().or(z.literal("")),
   prompt: z.string().max(6000).optional().or(z.literal("")),
+  /** Set true once the user has approved the pre-create confirmation summary. */
+  confirm: z.boolean().optional(),
 });
 
 type AiCreateInput = z.infer<typeof aiCreateSchema>;
@@ -123,10 +135,39 @@ const MISSING_FIELD_QUESTIONS: Record<string, AiMissingField> = {
     placeholder: "Example: 2h 30m, billable",
   },
   question: { field: "question", question: "What do you need help with?" },
+  // Optional prompts (offered once, user can reply "skip").
+  contactDetails: {
+    field: "contactDetails",
+    question: "Add their email, phone, and state (for GST) — or reply “skip”.",
+    placeholder: "Example: riya@acme.com, +91 98765 43210, Maharashtra",
+    optional: true,
+  },
+  discount: {
+    field: "discount",
+    question: "Any discount? Enter an amount or %, or reply “skip”.",
+    placeholder: "Example: 5000 or 10%",
+    optional: true,
+  },
+  dueDate: {
+    field: "dueDate",
+    question: "When is it due? e.g. “in 15 days”, or reply “skip”.",
+    placeholder: "Example: in 15 days",
+    optional: true,
+  },
 };
 
-/** Returns the first required field still missing for a workflow, or null. */
-function firstMissingField(
+/** Human-readable state name for a GST state code (for confirmation summaries). */
+function stateName(code: string): string {
+  return INDIAN_STATES.find((s) => s.code === code)?.name ?? "—";
+}
+
+/**
+ * Returns the next field to ask for, or null when nothing is outstanding.
+ * Required fields are checked first (by emptiness); optional fields are then
+ * offered once each — a field counts as addressed when its key is present in
+ * the collected map (a real value OR an explicit "skip" both stop the re-ask).
+ */
+function nextMissingField(
   workflow: AiWorkflow,
   fields: AiFields,
   resolved: { clientId?: string; amount?: number },
@@ -141,6 +182,21 @@ function firstMissingField(
       continue;
     }
     if (!field(fields, key)) return MISSING_FIELD_QUESTIONS[key] ?? { field: key, question: `Please provide ${key}.` };
+  }
+  for (const key of AI_OPTIONAL_FIELDS[workflow] ?? []) {
+    // An optional field is "addressed" only when the user gave a real value OR
+    // explicitly skipped it (AI_SKIP_SENTINEL). A blank, "none", or model-guessed
+    // empty value does NOT count — so optional prompts (e.g. invoice discount,
+    // due date) are always offered once and never silently bypassed.
+    const skipped = fields[key] === AI_SKIP_SENTINEL;
+    const satisfied =
+      key === "contactDetails"
+        ? skipped || !!field(fields, "contactDetails") || !!field(fields, "email") || !!field(fields, "phone")
+        : skipped || !!field(fields, key);
+    if (!satisfied) {
+      const q = MISSING_FIELD_QUESTIONS[key] ?? { field: key, question: `Add ${key}? (or reply skip)` };
+      return { ...q, optional: true };
+    }
   }
   return null;
 }
@@ -257,7 +313,8 @@ function cleanPromptTitle(prompt: string, fallback: string) {
 function cleanAiAnswer(value: string | undefined | null) {
   const cleaned = (value ?? "").trim();
   if (!cleaned) return "";
-  if (/^(skip|none|no|n\/a|na|-|—)$/i.test(cleaned)) return "";
+  if (cleaned === AI_SKIP_SENTINEL) return "";
+  if (/^(skip|none|no|n\/a|na|nope|nah|leave it|not now|-|—)$/i.test(cleaned)) return "";
   return cleaned;
 }
 
@@ -451,25 +508,49 @@ export async function createClientFromAiAction(input: AiCreateInput) {
   const fields = parsed.data.fields ?? {};
 
   const fullName = field(fields, "fullName");
-  const missing = firstMissingField("client", fields, {});
-  if (!fullName || missing) {
-    return {
-      ok: false as const,
-      error: (missing ?? MISSING_FIELD_QUESTIONS.fullName).question,
-      missing: missing ?? MISSING_FIELD_QUESTIONS.fullName,
-    };
+  const missing = nextMissingField("client", fields, {});
+  if (missing) {
+    return { ok: false as const, error: missing.question, missing };
   }
 
   const profile = await getProfile();
   const fallbackStateCode = profile?.stateCode ?? "27";
 
   const businessName = field(fields, "businessName");
+  const contactDetails = field(fields, "contactDetails");
   const billingAddress = field(fields, "billingAddress");
   const notes = field(fields, "notes");
-  const contactBlob = [field(fields, "email"), field(fields, "phone"), parsed.data.prompt ?? ""].join(" ");
+  const contactBlob = [
+    field(fields, "email"),
+    field(fields, "phone"),
+    contactDetails,
+    parsed.data.prompt ?? "",
+  ].join(" ");
   const email = extractEmail(contactBlob);
   const phone = extractPhone(contactBlob);
-  const stateCode = stateCodeFromText(billingAddress || parsed.data.prompt || "", fallbackStateCode);
+  const stateSource = contactDetails || billingAddress || parsed.data.prompt || "";
+  // Did the user actually name a state, or are we falling back to their default?
+  const detectedState = stateCodeFromText(stateSource, "");
+  const stateCode = detectedState || fallbackStateCode;
+
+  // Confirmation gate — show what will be created and wait for approval.
+  if (!parsed.data.confirm) {
+    return {
+      ok: false as const,
+      needsConfirm: true as const,
+      error: "Confirm the client details to create it.",
+      summary: {
+        kind: "client" as const,
+        title: "Create this client?",
+        lines: [
+          ["Name", fullName],
+          ["Email", email || "—"],
+          ["Phone", phone || "—"],
+          ["State", detectedState ? stateName(stateCode) : `${stateName(stateCode)} (your default)`],
+        ],
+      } satisfies AiConfirmSummary,
+    };
+  }
 
   const fd = new FormData();
   fd.set("gstRegistered", "false");
@@ -502,7 +583,7 @@ export async function createProjectFromAiAction(input: AiCreateInput) {
   const clientId = clientSkipped ? "" : rawClientId;
 
   const name = field(fields, "name");
-  const missing = firstMissingField("project", fields, {
+  const missing = nextMissingField("project", fields, {
     clientId: clientSkipped ? NO_CLIENT_SENTINEL : clientId,
   });
   if (missing) {
@@ -512,6 +593,37 @@ export async function createProjectFromAiAction(input: AiCreateInput) {
   const scope = field(fields, "scope");
   const status = projectStatusFromText(field(fields, "status") || "planning");
   const { startDate, dueDate } = parseProjectDates(field(fields, "dates"));
+
+  // Confirmation gate.
+  if (!parsed.data.confirm) {
+    let clientLabel = "Internal — no client";
+    if (clientId) {
+      const userId = await requireUserId();
+      const supabase = await getServerSupabase();
+      const { data: clientRow } = await supabase
+        .from("clients")
+        .select("full_name, business_name")
+        .eq("id", clientId)
+        .eq("user_id", userId)
+        .maybeSingle();
+      const c = clientRow as { full_name?: string | null; business_name?: string | null } | null;
+      clientLabel = c?.business_name || c?.full_name || "Selected client";
+    }
+    return {
+      ok: false as const,
+      needsConfirm: true as const,
+      error: "Confirm the project details to create it.",
+      summary: {
+        kind: "project" as const,
+        title: "Create this project?",
+        lines: [
+          ["Name", name],
+          ["Client", clientLabel],
+          ["Scope", scope || "—"],
+        ],
+      } satisfies AiConfirmSummary,
+    };
+  }
 
   const fd = new FormData();
   fd.set("name", name);
@@ -556,6 +668,26 @@ export async function createTimeEntryFromAiAction(input: AiCreateInput) {
   const billable = billableFromText(field(fields, "billable") || field(fields, "duration"));
   const hourlyRate = billable ? amountFromField(field(fields, "rate") || field(fields, "hourlyRate")) : 0;
 
+  // Confirmation gate.
+  if (!parsed.data.confirm) {
+    const h = Math.floor(durationSeconds / 3600);
+    const m = Math.round((durationSeconds % 3600) / 60);
+    return {
+      ok: false as const,
+      needsConfirm: true as const,
+      error: "Confirm the time entry to log it.",
+      summary: {
+        kind: "time_entry" as const,
+        title: "Log this time entry?",
+        lines: [
+          ["Work", description],
+          ["Duration", `${h}h ${m}m`],
+          ["Billing", billable ? "Billable" : "Non-billable"],
+        ],
+      } satisfies AiConfirmSummary,
+    };
+  }
+
   const fd = new FormData();
   fd.set("description", description);
   fd.set("projectId", parsed.data.projectId || "");
@@ -598,7 +730,7 @@ export async function createInvoiceFromAiAction(input: AiCreateInput) {
   const fallbackDueDays = profile?.invoiceDefaultDueDays ?? 15;
   const originalSubtotal = amountFromField(field(fields, "amount"));
 
-  const missing = firstMissingField("invoice", fields, { clientId, amount: originalSubtotal });
+  const missing = nextMissingField("invoice", fields, { clientId, amount: originalSubtotal });
   if (missing) {
     return { ok: false as const, error: missing.question, missing };
   }
@@ -845,7 +977,7 @@ export async function createContractFromAiAction(input: AiCreateInput) {
   const fields = parsed.data.fields ?? {};
   const clientId = parsed.data.clientId || "";
 
-  const missing = firstMissingField("contract", fields, { clientId });
+  const missing = nextMissingField("contract", fields, { clientId });
   if (missing) {
     return { ok: false as const, error: missing.question, missing };
   }
@@ -1195,7 +1327,7 @@ export async function createWelcomeDocFromAiAction(input: AiCreateInput) {
   }
   const fields = parsed.data.fields ?? {};
 
-  const missing = firstMissingField("welcome_document", fields, {});
+  const missing = nextMissingField("welcome_document", fields, {});
   if (missing) {
     return { ok: false as const, error: missing.question, missing };
   }

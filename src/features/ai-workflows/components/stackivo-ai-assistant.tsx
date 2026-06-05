@@ -49,6 +49,7 @@ import {
 } from "@/features/ai-workflows/global-actions";
 import { submitBugReportAction } from "@/features/support/actions";
 import {
+  AI_SKIP_SENTINEL,
   NO_CLIENT_SENTINEL,
   type AiFields,
   type AiInterpretation,
@@ -129,6 +130,12 @@ interface AiWelcomeDocPreview {
   clientEmail: string | null;
   clientPhone: string | null;
   projectName: string | null;
+}
+
+interface AiConfirmSummary {
+  kind: "client" | "project" | "time_entry";
+  title: string;
+  lines: Array<[label: string, value: string]>;
 }
 
 // ---------------------------------------------------------------------------
@@ -264,6 +271,28 @@ function conversationalReply(text: string): string | null {
   return null;
 }
 
+/**
+ * True when a message reads like a question to answer (from docs) rather than a
+ * command to create something — e.g. "what about billing?", "how do invoices
+ * work". Used so the home screen answers such messages instead of opening a
+ * workflow. A clear action verb ("create an invoice…") opts out.
+ */
+function isInformationalQuestion(text: string): boolean {
+  const t = text.trim().toLowerCase();
+  if (/\b(create|make|draft|add|new|start|log|raise|generate|send|prepare|build|issue|set ?up)\b/.test(t)) {
+    return false;
+  }
+  if (/\?\s*$/.test(t)) return true;
+  return /^(what|whats|what'?s|what about|how|how about|why|when|where|who|which|can i|can you|could (i|you)|should i|do (i|you)|does|did|is|are|will|would|tell me|explain)\b/.test(
+    t,
+  );
+}
+
+/** Matches a short "skip"/"none" style reply to an optional prompt. */
+function isSkipReply(text: string): boolean {
+  return /^(skip|none|no|n\/a|na|nope|nah|leave it|not now|-|—)$/i.test(text.trim());
+}
+
 // ---------------------------------------------------------------------------
 // Sub-components
 // ---------------------------------------------------------------------------
@@ -324,6 +353,39 @@ function ResultBlock({
       <Button type="button" size="sm" onClick={onAction}>
         {actionLabel}
       </Button>
+    </div>
+  );
+}
+
+// Pre-create confirmation — shows a field summary and waits for approval.
+function ConfirmBlock({
+  summary,
+  onConfirm,
+  onCancel,
+}: {
+  summary: AiConfirmSummary;
+  onConfirm: () => void;
+  onCancel: () => void;
+}) {
+  return (
+    <div className="space-y-3">
+      <p className="font-semibold">{summary.title}</p>
+      <div className="rounded-xl border bg-muted/20 p-3 text-xs space-y-1.5">
+        {summary.lines.map(([label, value]) => (
+          <div key={label} className="flex justify-between gap-3">
+            <span className="text-muted-foreground">{label}</span>
+            <span className="text-right font-medium">{value}</span>
+          </div>
+        ))}
+      </div>
+      <div className="flex flex-wrap gap-2">
+        <Button type="button" size="sm" onClick={onConfirm}>
+          Confirm &amp; create
+        </Button>
+        <Button type="button" size="sm" variant="ghost" onClick={onCancel}>
+          Cancel
+        </Button>
+      </div>
     </div>
   );
 }
@@ -667,7 +729,7 @@ function WelcomeDocDeliveryActions({
 // Main component
 // ---------------------------------------------------------------------------
 
-export function StackivoAiAssistant({ clients, projects }: StackivoAiAssistantProps) {
+export function StackivoAiAssistant({ clients }: StackivoAiAssistantProps) {
   const router = useRouter();
   const [mounted, setMounted] = React.useState(false);
   const [panelSlot, setPanelSlot] = React.useState<HTMLElement | null>(null);
@@ -709,7 +771,14 @@ export function StackivoAiAssistant({ clients, projects }: StackivoAiAssistantPr
   const scrollRef = React.useRef<HTMLDivElement>(null);
   const lastInvoicePreviewRef = React.useRef<AiInvoicePreview | null>(null);
   const runWorkflowRef = React.useRef<
-    (workflow: AiMode, fields: AiFields, cId: string, pId: string, text: string) => Promise<void>
+    (
+      workflow: AiMode,
+      fields: AiFields,
+      cId: string,
+      pId: string,
+      text: string,
+      confirm?: boolean,
+    ) => Promise<void>
   >(async () => {});
   const resizeActiveRef = React.useRef(false);
   const resizeStartXRef = React.useRef(0);
@@ -791,11 +860,6 @@ export function StackivoAiAssistant({ clients, projects }: StackivoAiAssistantPr
       document.documentElement.style.removeProperty("--stackivo-ai-width");
     };
   }, [expanded, mounted, open, panelWidth]);
-
-  const projectOptions = React.useMemo(
-    () => (clientId ? projects.filter((p) => p.clientId === clientId) : projects),
-    [clientId, projects],
-  );
 
   React.useEffect(() => {
     if (!open) return;
@@ -1002,12 +1066,43 @@ export function StackivoAiAssistant({ clients, projects }: StackivoAiAssistantPr
   // ----- Core workflow executor (structured fields → action → preview) -----
 
   const runWorkflow = React.useCallback(
-    async (workflow: AiMode, fields: AiFields, cId: string, pId: string, text: string) => {
+    async (
+      workflow: AiMode,
+      fields: AiFields,
+      cId: string,
+      pId: string,
+      text: string,
+      confirm = false,
+    ) => {
       const actionInput = {
         fields,
         clientId: cId || undefined,
         projectId: pId || undefined,
         prompt: text || undefined,
+        confirm,
+      };
+
+      // Show a pre-create summary and wait for the user to approve it.
+      const showConfirm = (summary: AiConfirmSummary) => {
+        setPendingField(null);
+        push({
+          role: "assistant",
+          content: (
+            <ConfirmBlock
+              summary={summary}
+              onConfirm={() => {
+                push({ role: "user", content: "Confirm" });
+                startTransition(async () => {
+                  await runWorkflowRef.current(workflow, fields, cId, pId, "", true);
+                });
+              }}
+              onCancel={() => {
+                finish();
+                push({ role: "assistant", content: "No problem — cancelled. What next?" });
+              }}
+            />
+          ),
+        });
       };
 
       const askMissing = (missing: AiMissingField) => {
@@ -1058,6 +1153,11 @@ export function StackivoAiAssistant({ clients, projects }: StackivoAiAssistantPr
                     {missing.placeholder}
                   </span>
                 ) : null}
+                {missing.optional ? (
+                  <span className="mt-1 block text-xs text-muted-foreground">
+                    Optional — reply “skip” to leave it out.
+                  </span>
+                ) : null}
               </>
             ),
           });
@@ -1104,6 +1204,7 @@ export function StackivoAiAssistant({ clients, projects }: StackivoAiAssistantPr
           const res = await createClientFromAiAction(actionInput);
           if (!res.ok) {
             if ("missing" in res && res.missing) askMissing(res.missing);
+            else if ("needsConfirm" in res && res.needsConfirm) showConfirm(res.summary);
             else push({ role: "assistant", content: res.error });
             return;
           }
@@ -1127,6 +1228,7 @@ export function StackivoAiAssistant({ clients, projects }: StackivoAiAssistantPr
           const res = await createProjectFromAiAction(actionInput);
           if (!res.ok) {
             if ("missing" in res && res.missing) askMissing(res.missing);
+            else if ("needsConfirm" in res && res.needsConfirm) showConfirm(res.summary);
             else push({ role: "assistant", content: res.error });
             return;
           }
@@ -1198,6 +1300,7 @@ export function StackivoAiAssistant({ clients, projects }: StackivoAiAssistantPr
           const res = await createTimeEntryFromAiAction(actionInput);
           if (!res.ok) {
             if ("missing" in res && res.missing) askMissing(res.missing);
+            else if ("needsConfirm" in res && res.needsConfirm) showConfirm(res.summary);
             else push({ role: "assistant", content: res.error });
             return;
           }
@@ -1267,13 +1370,15 @@ export function StackivoAiAssistant({ clients, projects }: StackivoAiAssistantPr
   const detectMode = React.useCallback(
     (text: string): AiMode => {
       const t = text.toLowerCase();
-      if (/invoice|bill\s|receipt|charge/.test(t)) return "invoice";
+      // Questions and help topics are answered from docs, not turned into a draft.
+      if (isInformationalQuestion(text)) return "support";
+      if (/support|bug|issue|help|how do|how to|what is|privacy|terms/.test(t)) return "support";
+      if (/invoice|bill\s|billing|receipt|charge/.test(t)) return "invoice";
       if (/contract|agreement|proposal|nda|retainer/.test(t)) return "contract";
       if (/welcome|onboard|kickoff/.test(t)) return "welcome_document";
       if (/\bproject\b/.test(t)) return "project";
       if (/\bclient\b|\bcustomer\b|\bcontact\b/.test(t)) return "client";
       if (/\btime\b|\bhours?\b|\bminutes?\b|\blog\b|\bbillable\b/.test(t)) return "time_entry";
-      if (/support|bug|issue|help|how do|what is|privacy|terms/.test(t)) return "support";
       return mode;
     },
     [mode],
@@ -1339,16 +1444,27 @@ export function StackivoAiAssistant({ clients, projects }: StackivoAiAssistantPr
         setActiveContract(null);
       }
 
-      // 2. Decide the target workflow, honouring confident context switches.
+      // 2. Decide the target workflow.
+      //    - From the home screen, an informational question ("what about
+      //      billing?", "how do invoices work?") is answered from the docs
+      //      instead of opening a workflow.
+      //    - Otherwise the home screen enters the detected workflow; mid-flow we
+      //      only switch when the NLU is confident the user changed task.
       let targetMode: AiMode = mode;
-      if (nlu) {
-        const isSwitch =
-          nlu.confident && nlu.intent !== "general" && nlu.intent !== mode;
-        if (mode === "general" || isSwitch) {
-          targetMode = nlu.intent === "general" ? mode : nlu.intent;
+      if (mode === "general" && isInformationalQuestion(text)) {
+        targetMode = "general";
+      } else if (nlu) {
+        const intent = nlu.intent;
+        const isSwitch = nlu.confident && intent !== "general" && intent !== mode;
+        if (mode === "general") {
+          // A support/question intent is answered from docs (general handler);
+          // an actionable intent opens its workflow.
+          targetMode = intent === "support" || intent === "general" ? "general" : intent;
+        } else if (isSwitch) {
+          targetMode = intent;
         }
-      }
-      if (targetMode === "general") {
+      } else if (mode === "general") {
+        // NLU unavailable — fall back to keyword routing.
         targetMode = detectMode(text);
       }
 
@@ -1360,13 +1476,16 @@ export function StackivoAiAssistant({ clients, projects }: StackivoAiAssistantPr
       const merged: AiFields = { ...baseFields, ...(nlu?.fields ?? {}) };
 
       // If we were waiting on a specific field and the NLU did not capture it,
-      // treat the whole message as that field's answer.
+      // treat the whole message as that field's answer. For an optional prompt a
+      // "skip" reply is recorded as a sentinel so it counts as addressed (and is
+      // never re-asked) without inventing a value.
       if (
         pendingField &&
         pendingField.field !== "clientId" &&
         !merged[pendingField.field]
       ) {
-        merged[pendingField.field] = text;
+        merged[pendingField.field] =
+          pendingField.optional && isSkipReply(text) ? AI_SKIP_SENTINEL : text;
       }
 
       setCollected(merged);
@@ -1559,46 +1678,6 @@ export function StackivoAiAssistant({ clients, projects }: StackivoAiAssistantPr
                   ))}
                 </div>
               </>
-            )}
-
-            {/* Workspace context selectors */}
-            {mode !== "general" && mode !== "support" && (
-              <div className="rounded-xl border bg-background p-3">
-                <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                  Workspace context
-                </p>
-                <div className="grid gap-2">
-                  <select
-                    value={clientId}
-                    onChange={(event) => {
-                      setClientId(event.target.value);
-                      setProjectId("");
-                    }}
-                    className="h-10 rounded-md border bg-background px-3 text-sm"
-                  >
-                    <option value="">No specific client</option>
-                    {clients.map((client) => (
-                      <option key={client.id} value={client.id}>
-                        {client.name}
-                      </option>
-                    ))}
-                  </select>
-                  {(mode === "invoice" || mode === "contract") && (
-                    <select
-                      value={projectId}
-                      onChange={(event) => setProjectId(event.target.value)}
-                      className="h-10 rounded-md border bg-background px-3 text-sm"
-                    >
-                      <option value="">No specific project</option>
-                      {projectOptions.map((project) => (
-                        <option key={project.id} value={project.id}>
-                          {project.name}
-                        </option>
-                      ))}
-                    </select>
-                  )}
-                </div>
-              </div>
             )}
 
             {/* Message bubbles */}

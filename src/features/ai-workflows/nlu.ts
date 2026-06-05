@@ -33,17 +33,51 @@ const CANONICAL_FIELDS: Record<string, string[]> = {
 // Deterministic fallback (used when Groq is unavailable or returns junk)
 // ---------------------------------------------------------------------------
 
+// Verbs that signal the user wants to *perform* an action (create something),
+// as opposed to merely asking about it.
+const ACTION_VERB =
+  /\b(create|make|draft|add|new|start|log|raise|generate|send|prepare|build|issue|set ?up|register|record|bill)\b/;
+
+/**
+ * A message is informational (a question to answer from docs) rather than a
+ * command when it reads like a question and carries no action verb. Examples:
+ * "what about billing", "how do invoices work?", "is my data private".
+ */
+function looksLikeQuestion(t: string): boolean {
+  if (/\?\s*$/.test(t)) return true;
+  return /^(what|whats|what'?s|what about|how|how about|why|when|where|who|which|can i|can you|could (i|you)|should i|do (i|you)|does|did|is|are|will|would|tell me|explain|i (want|need) to know|any (info|information|details))\b/.test(
+    t,
+  );
+}
+
 function detectIntentLocally(text: string): { intent: AiIntent; confident: boolean } {
-  const t = text.toLowerCase();
-  // Explicit switch phrasing makes us confident even mid-flow.
-  const explicit = /\b(create|make|draft|add|new|start|log|raise|generate)\b/.test(t);
-  if (/\binvoice|bill\b|billing|receipt|charge\b/.test(t)) return { intent: "invoice", confident: explicit };
-  if (/\bcontract|agreement|proposal|nda|retainer\b/.test(t)) return { intent: "contract", confident: explicit };
-  if (/\bwelcome|onboard|onboarding|kickoff\b/.test(t)) return { intent: "welcome_document", confident: explicit };
-  if (/\bproject\b/.test(t)) return { intent: "project", confident: explicit };
-  if (/\bclient|customer|contact\b/.test(t)) return { intent: "client", confident: explicit };
-  if (/\btime\b|\bhours?\b|\bminutes?\b|\blog time\b|\bbillable\b/.test(t)) return { intent: "time_entry", confident: explicit };
-  if (/\bsupport|bug|issue|\bhelp\b|how do|how to|what is|privacy|terms\b/.test(t)) return { intent: "support", confident: true };
+  const t = text.toLowerCase().trim();
+  const action = ACTION_VERB.test(t);
+  const question = looksLikeQuestion(t);
+
+  // 1. Explicit help/support topics and any action-free question are
+  //    informational — answer them from the docs instead of starting a
+  //    workflow. This is what makes "what about billing" return an answer
+  //    rather than silently opening the invoice flow.
+  if (/\bsupport\b|\bbug\b|\bissue\b|\bhelp\b|how do\b|how to\b|how does\b|what is\b|what are\b|what about\b|\bprivacy\b|\bterms\b|\bpricing\b|\brefund\b|\bgdpr\b/.test(t)) {
+    return { intent: "support", confident: true };
+  }
+  if (question && !action) {
+    return { intent: "support", confident: true };
+  }
+
+  // 2. Actionable workflows. "confident" (used to switch tasks mid-flow) is set
+  //    when an action verb is present or the message leads with the keyword.
+  if (/\binvoice\b|\bbill\b|\bbilling\b|\breceipt\b|\bcharge\b/.test(t))
+    return { intent: "invoice", confident: action || /^(invoice|bill|billing)\b/.test(t) };
+  if (/\bcontract\b|\bagreement\b|\bproposal\b|\bnda\b|\bretainer\b/.test(t))
+    return { intent: "contract", confident: action || /^(contract|agreement|proposal|nda|retainer)\b/.test(t) };
+  if (/\bwelcome\b|\bonboard\b|\bonboarding\b|\bkickoff\b/.test(t))
+    return { intent: "welcome_document", confident: action || /^(welcome|onboard)/.test(t) };
+  if (/\bproject\b/.test(t)) return { intent: "project", confident: action || /^project\b/.test(t) };
+  if (/\bclient\b|\bcustomer\b|\bcontact\b/.test(t)) return { intent: "client", confident: action || /^(client|customer|contact)\b/.test(t) };
+  if (/\btime\b|\bhours?\b|\bminutes?\b|\blog time\b|\bbillable\b/.test(t)) return { intent: "time_entry", confident: action };
+
   return { intent: "general", confident: false };
 }
 
@@ -60,6 +94,15 @@ function normalize(value: string) {
   return value.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
 }
 
+// Common words that must never, on their own, resolve a client/project — they
+// cause false matches like "design the homepage" → client "Acme Design".
+const ENTITY_STOPWORDS = new Set([
+  "new", "the", "and", "for", "you", "our", "your", "this", "that", "with",
+  "client", "clients", "project", "projects", "invoice", "contract", "proposal",
+  "create", "make", "add", "draft", "welcome", "document", "design", "studio",
+  "services", "solutions", "company", "pvt", "ltd", "inc", "llp",
+]);
+
 function resolveEntity<T extends { id: string }>(
   text: string,
   items: T[],
@@ -69,14 +112,24 @@ function resolveEntity<T extends { id: string }>(
   let best: { id: string; score: number } | null = null;
   for (const item of items) {
     const name = normalize(label(item));
-    if (!name) continue;
+    if (!name || name.length < 3) continue;
+    const significant = name
+      .split(" ")
+      .filter((w) => w.length >= 3 && !ENTITY_STOPWORDS.has(w));
+    // A name made up entirely of stop words can't be matched safely.
+    if (significant.length === 0) continue;
+
     let score = 0;
-    if (haystack.includes(` ${name} `)) score = name.length + 100;
-    else {
-      score = name
-        .split(" ")
-        .filter((w) => w.length >= 3 && haystack.includes(` ${w} `))
-        .reduce((s, w) => s + w.length, 0);
+    if (haystack.includes(` ${name} `)) {
+      // The full name appears verbatim — strongest signal.
+      score = name.length + 100;
+    } else {
+      // Otherwise require EVERY significant word to be present, so a single
+      // incidental word can't resolve a multi-word client/project.
+      const matched = significant.filter((w) => haystack.includes(` ${w} `));
+      if (matched.length === significant.length) {
+        score = matched.reduce((s, w) => s + w.length, 0);
+      }
     }
     if (score > 0 && (!best || score > best.score)) best = { id: item.id, score };
   }
@@ -137,7 +190,7 @@ export async function interpretMessage(ctx: InterpretContext): Promise<AiInterpr
           `Valid intents: ${[...AI_WORKFLOWS, "general"].join(", ")}.`,
           "If the user clearly asks to start or switch to a different task (e.g. 'now create a client', 'actually make an invoice'), set intent to that task and confident=true.",
           "If the message just adds detail to the current workflow, keep the current workflow as the intent.",
-          "Resolve clientName/projectName to an id from the provided lists when the message names a known client/project; otherwise leave the id fields empty.",
+          "Resolve clientId/projectId to an id from the provided lists ONLY when the message explicitly names that exact client/project. Never infer a client from generic words (e.g. 'design', 'new', 'website') and never carry over a client from a previous task — leave the id empty if unsure.",
           "Never invent ids, money totals, taxes, or private data. Extract only what the user stated.",
           "Field keys by intent — invoice: workDescription, amount, quantity, dueDate, discount, notes; contract: scope, type, commercials, clauses, amount; welcome_document: relationship, process, operations, tone; client: fullName, businessName, email, phone, billingAddress, notes; project: name, scope, status, dates; time_entry: description, duration, billable; support: question, page.",
           "amount/discount must be plain numbers as strings (no currency symbols). billable is 'true' or 'false'.",

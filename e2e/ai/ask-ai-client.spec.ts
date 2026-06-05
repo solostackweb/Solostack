@@ -10,7 +10,7 @@
  *   E2E_USER_PASSWORD   -- its password
  */
 
-import { test, expect } from "@playwright/test";
+import { test, expect, type Page } from "@playwright/test";
 import { loginUser, openAiPanel, raceVisible, aiSubmit } from "./helpers";
 
 const USER_EMAIL = process.env.E2E_USER_EMAIL;
@@ -19,6 +19,20 @@ const HAS_CREDS = Boolean(USER_EMAIL && USER_PASSWORD);
 
 const UNIQUE_SUFFIX = Date.now().toString().slice(-5);
 const TEST_CLIENT_NAME = `E2E Test Client ${UNIQUE_SUFFIX}`;
+
+/** If the optional contact-details question appears, reply "skip". */
+async function skipContactIfAsked(page: Page): Promise<void> {
+  const contactQ = page.getByText(/email, phone, and state/i);
+  if (await contactQ.isVisible().catch(() => false)) {
+    await aiSubmit(page, "skip");
+  }
+}
+
+/** Approve the pre-create confirmation card. */
+async function confirmCreate(page: Page): Promise<void> {
+  await expect(page.getByText("Create this client?")).toBeVisible({ timeout: 30_000 });
+  await page.getByRole("button", { name: /Confirm.*create/i }).click();
+}
 
 test.describe("Ask AI client flow", () => {
   test.skip(!HAS_CREDS, "Set E2E_USER_EMAIL and E2E_USER_PASSWORD to run Ask AI client tests.");
@@ -40,12 +54,15 @@ test.describe("Ask AI client flow", () => {
 
     const result = await raceVisible(
       page,
-      ["Client created", "Could not", "Tell me about the client", "What's the client's name"],
+      ["Create this client?", "Could not", "Tell me about the client", "What's the client's name"],
       60_000,
     );
     if (result.includes("Could not") || result.includes("Tell me about")) {
       throw new Error(`Client creation failed: "${result}"`);
     }
+
+    // Confirm summary shows the mapped name before the record is created.
+    await confirmCreate(page);
 
     await expect(page.getByText("Client created")).toBeVisible();
     // The core fix: the client name is mapped from the prompt, not the question text.
@@ -69,8 +86,13 @@ test.describe("Ask AI client flow", () => {
 
     await expect(page.getByText(/What's the client's name/i).first()).toBeVisible({ timeout: 30_000 });
 
-    // Answering with just the name should complete the flow with that name mapped.
+    // Answering with just the name should map it; then it offers contact details.
     await aiSubmit(page, TEST_CLIENT_NAME);
+
+    await expect(page.getByText(/email, phone, and state/i)).toBeVisible({ timeout: 30_000 });
+    await aiSubmit(page, "skip");
+
+    await confirmCreate(page);
 
     const result = await raceVisible(page, ["Client created", "Could not"], 60_000);
     if (result.includes("Could not")) {
@@ -97,12 +119,14 @@ test.describe("Ask AI client flow", () => {
 
     const result = await raceVisible(
       page,
-      ["Client created", "Could not", "What's the client's name"],
+      ["Create this client?", "Could not", "What's the client's name", "email, phone, and state"],
       60_000,
     );
     if (result.includes("Could not")) {
       throw new Error(`Free-form client creation failed: "${result}"`);
     }
+    await skipContactIfAsked(page);
+    await confirmCreate(page);
     await expect(page.getByText("Client created")).toBeVisible({ timeout: 5_000 });
     await expect(page.getByText(new RegExp(`Added ${freeFormName}`, "i"))).toBeVisible();
   });

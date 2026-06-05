@@ -32,17 +32,38 @@ async function draftInvoice(page: Page, prompt: string): Promise<void> {
 
   const draftHeading = page.getByText("Draft invoice ready for approval");
   const clientPickerTitle = page.getByText("Which client is this invoice for?");
-  await Promise.race([
-    draftHeading.waitFor({ state: "visible", timeout: 60_000 }),
-    clientPickerTitle.waitFor({ state: "visible", timeout: 60_000 }),
-  ]);
+  const discountQ = page.getByText(/Any discount/i);
+  const dueQ = page.getByText(/When is it due/i);
 
-  if (await clientPickerTitle.isVisible()) {
-    const pickerSelect = page.locator("select").filter({ hasText: "Choose a client" }).first();
-    await expect(pickerSelect).toBeVisible();
-    await pickerSelect.selectOption({ label: CLIENT_NAME! });
-    await page.getByRole("button", { name: "Use selected client" }).click();
-    await expect(draftHeading).toBeVisible({ timeout: 30_000 });
+  // The assistant may ask for a client and the optional discount / due date
+  // before the draft is ready. Resolve each as it appears.
+  for (let i = 0; i < 6; i++) {
+    if (await draftHeading.isVisible().catch(() => false)) break;
+    await Promise.race([
+      draftHeading.waitFor({ state: "visible", timeout: 60_000 }),
+      clientPickerTitle.waitFor({ state: "visible", timeout: 60_000 }),
+      discountQ.waitFor({ state: "visible", timeout: 60_000 }),
+      dueQ.waitFor({ state: "visible", timeout: 60_000 }),
+    ]).catch(() => {});
+
+    if (await draftHeading.isVisible().catch(() => false)) break;
+
+    if (await clientPickerTitle.isVisible().catch(() => false)) {
+      const pickerSelect = page.locator("select").filter({ hasText: "Choose a client" }).first();
+      await pickerSelect.selectOption({ label: CLIENT_NAME! });
+      await page.getByRole("button", { name: "Use selected client" }).click();
+      continue;
+    }
+    // Skip the optional discount / due-date questions.
+    if (
+      (await discountQ.isVisible().catch(() => false)) ||
+      (await dueQ.isVisible().catch(() => false))
+    ) {
+      const input = aiInput(page);
+      await input.fill("skip");
+      await input.press("Enter");
+      continue;
+    }
   }
 
   await expect(draftHeading).toBeVisible({ timeout: 30_000 });
@@ -102,7 +123,20 @@ test.describe("Ask AI invoice flow", () => {
     await pickerSelect.selectOption({ label: CLIENT_NAME! });
     await page.getByRole("button", { name: "Use selected client" }).click();
 
-    await expect(page.getByText("Draft invoice ready for approval")).toBeVisible({ timeout: 60_000 });
+    // Skip the optional discount prompt if it appears.
+    const discountQ = page.getByText(/Any discount/i);
+    const draftHeading = page.getByText("Draft invoice ready for approval");
+    await Promise.race([
+      discountQ.waitFor({ state: "visible", timeout: 60_000 }),
+      draftHeading.waitFor({ state: "visible", timeout: 60_000 }),
+    ]).catch(() => {});
+    if (await discountQ.isVisible().catch(() => false)) {
+      const input = aiInput(page);
+      await input.fill("skip");
+      await input.press("Enter");
+    }
+
+    await expect(draftHeading).toBeVisible({ timeout: 60_000 });
   });
 
   test("switches workflow mid-invoice when the user changes intent", async ({ page }) => {
@@ -120,9 +154,17 @@ test.describe("Ask AI invoice flow", () => {
     await promptInput.fill(`Actually, never mind — create a new client called ${switchName} instead`);
     await promptInput.press("Enter");
 
-    // The assistant should follow the client workflow, not the invoice one.
+    // The assistant should follow the client workflow, not the invoice one —
+    // it asks for contact details, the client's name, or shows the confirm card.
     await expect(
-      page.getByText(new RegExp(`Client created|What's the client's name|Added ${switchName}`, "i")).first(),
+      page
+        .getByText(
+          new RegExp(
+            `Create this client|email, phone|What's the client's name|Client created|Added ${switchName}`,
+            "i",
+          ),
+        )
+        .first(),
     ).toBeVisible({ timeout: 60_000 });
     await expect(page.getByText("Draft invoice ready for approval")).toHaveCount(0);
   });
