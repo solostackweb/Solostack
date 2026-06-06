@@ -244,4 +244,6 @@ export async function interpretMessage(ctx: InterpretContext): Promise<AiInterpr
     fields: { ...fallback.fields, ...fields },
     clientId,
     projectId,
-    provider:
+    provider: "groq",
+  };
+}

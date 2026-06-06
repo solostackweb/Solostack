@@ -227,4 +227,20 @@ export const AI_FIELD_SEQUENCE: Record<AiWorkflow, AiFieldSpec[]> = {
  */
 export const NO_CLIENT_SENTINEL = "__none__";
 
-/*
+/**
+ * Explicit "no project / internal" marker. The project picker sends this when
+ * the user deliberately logs time (or other work) against no project, so the
+ * missing-field loop treats the choice as answered instead of asking again.
+ */
+export const NO_PROJECT_SENTINEL = "__no_project__";
+
+/**
+ * Explicit "skip this optional field" marker. When the user replies "skip"/
+ * "none" to an OPTIONAL prompt (e.g. discount, due date, contact details) the
+ * UI records this sentinel so the missing-field loop treats the field as
+ * deliberately addressed and never re-asks it — while still leaving the actual
+ * value empty. This distinguishes a real user skip from a value the model may
+ * have guessed, so optional prompts are offered exactly once and never silently
+ * bypassed.
+ */
+export const AI_SKIP_SENTINEL = "__skip__";

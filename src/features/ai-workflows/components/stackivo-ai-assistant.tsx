@@ -1777,4 +1777,61 @@ export function StackivoAiAssistant({ clients, projects }: StackivoAiAssistantPr
             {/* Typing indicator */}
             {pending && (
               <div className="flex justify-start">
-                <div className="rounded-2xl border bg-backgroun
+                <div className="rounded-2xl border bg-background px-4 py-3 shadow-sm">
+                  <span className="flex items-center gap-1">
+                    {[0, 1, 2].map((item) => (
+                      <span
+                        key={item}
+                        className="h-1.5 w-1.5 animate-bounce rounded-full bg-primary/70"
+                        style={{ animationDelay: `${item * 120}ms` }}
+                      />
+                    ))}
+                  </span>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Input area */}
+          <div className="sticky bottom-0 border-t bg-background px-4 py-3">
+            <div className="rounded-2xl border bg-background p-3 focus-within:border-primary/60 focus-within:ring-4 focus-within:ring-primary/15">
+              <Textarea
+                value={input}
+                data-testid="ai-chat-input"
+                onChange={(event) => setInput(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" && !event.shiftKey) {
+                    event.preventDefault();
+                    handleSubmit();
+                  }
+                }}
+                placeholder={
+                  pendingField?.placeholder ??
+                  pendingField?.question ??
+                  MODE_PLACEHOLDERS[mode] ??
+                  (mode === "general" ? "Describe what you want to do…" : "Type your answer…")
+                }
+                rows={3}
+                className="min-h-[72px] resize-none border-0 p-0 text-sm shadow-none focus-visible:ring-0"
+              />
+              <div className="mt-3 flex items-center justify-between">
+                <span className="rounded-full border px-3 py-1 text-xs text-muted-foreground">
+                  {mode === "general" ? "Ask" : QUICK_ACTIONS.find((a) => a.mode === mode)?.title ?? "Ask"}
+                </span>
+                <Button
+                  type="button"
+                  size="icon"
+                  className="h-9 w-9 rounded-full"
+                  onClick={handleSubmit}
+                  disabled={pending || !input.trim()}
+                >
+                  <ArrowUp className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      ), isMobile ? document.body : (panelSlot ?? document.body)) : null}
+    </>
+  );
+}

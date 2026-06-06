@@ -1542,4 +1542,57 @@ const aiContractWhatsappSchema = z.object({
 export async function contractWhatsappFromAiAction(
   input: z.infer<typeof aiContractWhatsappSchema>,
 ) {
-  const parsed = aiContr
+  const parsed = aiContractWhatsappSchema.safeParse(input);
+  if (!parsed.success) return { ok: false as const, error: "Invalid contract." };
+
+  const userId = await requireUserId();
+  const supabase = await getServerSupabase();
+
+  const { data: contractRow } = await supabase
+    .from("contracts")
+    .select("id, title, kind, client_id, value_amount, currency, public_token")
+    .eq("id", parsed.data.contractId)
+    .eq("user_id", userId)
+    .maybeSingle();
+  const contract = contractRow as {
+    id: string;
+    title: string;
+    kind: string;
+    client_id?: string | null;
+    value_amount?: number | null;
+    currency: string;
+    public_token?: string | null;
+  } | null;
+  if (!contract) return { ok: false as const, error: "Contract not found." };
+
+  // Mint or reuse public token — mirrors requestSignatureAction
+  let token = contract.public_token ?? null;
+  if (!token) {
+    token = randomUUID();
+    await supabase
+      .from("contracts")
+      .update({ public_token: token, status: "sent", sent_at: new Date().toISOString() } as never)
+      .eq("id", contract.id);
+  }
+
+  const [{ data: clientRow }, { data: profileRow }] = await Promise.all([
+    contract.client_id
+      ? supabase.from("clients").select("full_name, business_name, phone").eq("id", contract.client_id).eq("user_id", userId).maybeSingle()
+      : Promise.resolve({ data: null }),
+    supabase.from("user_profiles").select("business_name, legal_name, full_name, display_name").eq("id", userId).maybeSingle(),
+  ]);
+  const client = clientRow as { full_name?: string | null; business_name?: string | null; phone?: string | null } | null;
+  const profile = profileRow as { business_name?: string | null; legal_name?: string | null; full_name?: string | null; display_name?: string | null } | null;
+
+  const shareUrl = getContractShareUrl(token);
+  const senderName = profile?.business_name || profile?.legal_name || profile?.display_name || profile?.full_name || "Stackivo";
+  const clientName = client?.business_name || client?.full_name || null;
+  const clientPhone = client?.phone ?? null;
+  const docLabel = contract.kind === "proposal" ? "proposal" : "contract";
+
+  const message = `Hi${clientName ? ` ${clientName}` : ""}! ${senderName} has shared a ${docLabel} with you. Review and sign here: ${shareUrl}`;
+  const waBase = clientPhone ? `https://wa.me/${clientPhone.replace(/\D/g, "")}` : "https://wa.me/";
+  const url = `${waBase}?text=${encodeURIComponent(message)}`;
+
+  return { ok: true as const, data: { url, shareUrl } };
+}
