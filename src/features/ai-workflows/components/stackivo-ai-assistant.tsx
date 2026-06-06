@@ -51,6 +51,7 @@ import { submitBugReportAction } from "@/features/support/actions";
 import {
   AI_SKIP_SENTINEL,
   NO_CLIENT_SENTINEL,
+  NO_PROJECT_SENTINEL,
   type AiFields,
   type AiInterpretation,
   type AiMissingField,
@@ -571,6 +572,54 @@ function ClientPicker({
   );
 }
 
+function ProjectPicker({
+  projects,
+  label,
+  allowSkip = true,
+  onSelect,
+  onSkip,
+}: {
+  projects: AiEntityOption[];
+  label: string;
+  allowSkip?: boolean;
+  onSelect: (projectId: string) => void;
+  onSkip?: () => void;
+}) {
+  const [selected, setSelected] = React.useState("");
+  return (
+    <div className="space-y-3">
+      <p className="text-sm">{label}</p>
+      <select
+        className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+        value={selected}
+        onChange={(e) => setSelected(e.target.value)}
+      >
+        <option value="">Choose a project</option>
+        {projects.map((p) => (
+          <option key={p.id} value={p.id}>
+            {p.name}
+          </option>
+        ))}
+      </select>
+      <div className="flex flex-wrap gap-2">
+        <Button
+          type="button"
+          size="sm"
+          disabled={!selected}
+          onClick={() => selected && onSelect(selected)}
+        >
+          Use selected project
+        </Button>
+        {allowSkip && onSkip && (
+          <Button type="button" size="sm" variant="ghost" onClick={onSkip}>
+            No project (internal)
+          </Button>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // Contract preview — all sections
 function ContractDraftPreview({
   preview,
@@ -729,7 +778,7 @@ function WelcomeDocDeliveryActions({
 // Main component
 // ---------------------------------------------------------------------------
 
-export function StackivoAiAssistant({ clients }: StackivoAiAssistantProps) {
+export function StackivoAiAssistant({ clients, projects }: StackivoAiAssistantProps) {
   const router = useRouter();
   const [mounted, setMounted] = React.useState(false);
   const [panelSlot, setPanelSlot] = React.useState<HTMLElement | null>(null);
@@ -1139,6 +1188,32 @@ export function StackivoAiAssistant({ clients }: StackivoAiAssistantProps) {
                   proceed(id, clients.find((c) => c.id === id)?.name ?? "Selected client")
                 }
                 onSkip={() => proceed(NO_CLIENT_SENTINEL, "No client (internal)")}
+              />
+            ),
+          });
+        } else if (missing.field === "projectId") {
+          const label = missing.question || "Which project should I log this time against?";
+          // Show projects for the chosen client when one is set, else all.
+          const options = cId ? projects.filter((p) => p.clientId === cId) : projects;
+          const proceed = (id: string, display: string) => {
+            if (id !== NO_PROJECT_SENTINEL) setProjectId(id);
+            setPendingField(null);
+            push({ role: "user", content: display });
+            startTransition(async () => {
+              await runWorkflowRef.current(workflow, fields, cId, id, "");
+            });
+          };
+          push({
+            role: "assistant",
+            content: (
+              <ProjectPicker
+                projects={options}
+                label={label}
+                allowSkip
+                onSelect={(id) =>
+                  proceed(id, projects.find((p) => p.id === id)?.name ?? "Selected project")
+                }
+                onSkip={() => proceed(NO_PROJECT_SENTINEL, "No project (internal)")}
               />
             ),
           });
@@ -1702,61 +1777,4 @@ export function StackivoAiAssistant({ clients }: StackivoAiAssistantProps) {
             {/* Typing indicator */}
             {pending && (
               <div className="flex justify-start">
-                <div className="rounded-2xl border bg-background px-4 py-3 shadow-sm">
-                  <span className="flex items-center gap-1">
-                    {[0, 1, 2].map((item) => (
-                      <span
-                        key={item}
-                        className="h-1.5 w-1.5 animate-bounce rounded-full bg-primary/70"
-                        style={{ animationDelay: `${item * 120}ms` }}
-                      />
-                    ))}
-                  </span>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Input area */}
-          <div className="sticky bottom-0 border-t bg-background px-4 py-3">
-            <div className="rounded-2xl border bg-background p-3 focus-within:border-primary/60 focus-within:ring-4 focus-within:ring-primary/15">
-              <Textarea
-                value={input}
-                data-testid="ai-chat-input"
-                onChange={(event) => setInput(event.target.value)}
-                onKeyDown={(event) => {
-                  if (event.key === "Enter" && !event.shiftKey) {
-                    event.preventDefault();
-                    handleSubmit();
-                  }
-                }}
-                placeholder={
-                  pendingField?.placeholder ??
-                  pendingField?.question ??
-                  MODE_PLACEHOLDERS[mode] ??
-                  (mode === "general" ? "Describe what you want to do…" : "Type your answer…")
-                }
-                rows={3}
-                className="min-h-[72px] resize-none border-0 p-0 text-sm shadow-none focus-visible:ring-0"
-              />
-              <div className="mt-3 flex items-center justify-between">
-                <span className="rounded-full border px-3 py-1 text-xs text-muted-foreground">
-                  {mode === "general" ? "Ask" : QUICK_ACTIONS.find((a) => a.mode === mode)?.title ?? "Ask"}
-                </span>
-                <Button
-                  type="button"
-                  size="icon"
-                  className="h-9 w-9 rounded-full"
-                  onClick={handleSubmit}
-                  disabled={pending || !input.trim()}
-                >
-                  <ArrowUp className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-          </div>
-        </div>
-      ), isMobile ? document.body : (panelSlot ?? document.body)) : null}
-    </>
-  );
-}
+                <div className="rounded-2xl border bg-backgroun

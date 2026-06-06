@@ -23,7 +23,7 @@ const CANONICAL_FIELDS: Record<string, string[]> = {
   invoice: ["workDescription", "amount", "quantity", "dueDate", "discount", "notes"],
   contract: ["scope", "type", "commercials", "clauses", "amount"],
   welcome_document: ["relationship", "process", "operations", "tone"],
-  client: ["fullName", "businessName", "email", "phone", "billingAddress", "notes"],
+  client: ["fullName", "businessName", "email", "phone", "billingAddress", "state", "notes"],
   project: ["name", "scope", "status", "dates"],
   time_entry: ["description", "duration", "billable"],
   support: ["question", "page"],
@@ -192,7 +192,7 @@ export async function interpretMessage(ctx: InterpretContext): Promise<AiInterpr
           "If the message just adds detail to the current workflow, keep the current workflow as the intent.",
           "Resolve clientId/projectId to an id from the provided lists ONLY when the message explicitly names that exact client/project. Never infer a client from generic words (e.g. 'design', 'new', 'website') and never carry over a client from a previous task — leave the id empty if unsure.",
           "Never invent ids, money totals, taxes, or private data. Extract only what the user stated.",
-          "Field keys by intent — invoice: workDescription, amount, quantity, dueDate, discount, notes; contract: scope, type, commercials, clauses, amount; welcome_document: relationship, process, operations, tone; client: fullName, businessName, email, phone, billingAddress, notes; project: name, scope, status, dates; time_entry: description, duration, billable; support: question, page.",
+          "Field keys by intent — invoice: workDescription, amount, quantity, dueDate, discount, notes; contract: scope, type, commercials, clauses, amount; welcome_document: relationship, process, operations, tone; client: fullName, businessName, email, phone, billingAddress, state, notes; project: name, scope, status, dates; time_entry: description, duration, billable; support: question, page.",
           "amount/discount must be plain numbers as strings (no currency symbols). billable is 'true' or 'false'.",
           'Return shape: {"intent":"...","confident":true,"fields":{...},"clientId":"","projectId":""}.',
         ].join(" "),
@@ -244,6 +244,4 @@ export async function interpretMessage(ctx: InterpretContext): Promise<AiInterpr
     fields: { ...fallback.fields, ...fields },
     clientId,
     projectId,
-    provider: "groq",
-  };
-}
+    provider:

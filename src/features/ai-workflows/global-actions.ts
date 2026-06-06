@@ -37,10 +37,10 @@ import { generateInvoiceDraftAction, generateOperationalDraftAction } from "./ac
 import { generateStructuredJson } from "./groq";
 import { interpretMessage } from "./nlu";
 import {
-  AI_OPTIONAL_FIELDS,
-  AI_REQUIRED_FIELDS,
+  AI_FIELD_SEQUENCE,
   AI_SKIP_SENTINEL,
   NO_CLIENT_SENTINEL,
+  NO_PROJECT_SENTINEL,
   aiInterpretRequestSchema,
   type AiContractDraft,
   type AiFields,
@@ -135,11 +135,34 @@ const MISSING_FIELD_QUESTIONS: Record<string, AiMissingField> = {
     placeholder: "Example: 2h 30m, billable",
   },
   question: { field: "question", question: "What do you need help with?" },
+  projectId: { field: "projectId", question: "Which project should I log this time against?" },
+  // Client fields — asked one at a time.
+  email: {
+    field: "email",
+    question: "What's their email address?",
+    placeholder: "Example: rupal@acme.com",
+  },
+  billingAddress: {
+    field: "billingAddress",
+    question: "What's their billing address?",
+    placeholder: "Example: 12 MG Road, Indore 452001",
+  },
+  state: {
+    field: "state",
+    question: "Which state are they in? (used for GST)",
+    placeholder: "Example: Madhya Pradesh",
+  },
   // Optional prompts (offered once, user can reply "skip").
-  contactDetails: {
-    field: "contactDetails",
-    question: "Add their email, phone, and state (for GST) — or reply “skip”.",
-    placeholder: "Example: riya@acme.com, +91 98765 43210, Maharashtra",
+  phone: {
+    field: "phone",
+    question: "What's their phone number? Or reply “skip”.",
+    placeholder: "Example: +91 98765 43210",
+    optional: true,
+  },
+  notes: {
+    field: "notes",
+    question: "Any notes to add before I create them? Or reply “skip”.",
+    placeholder: "Example: Referred by Anil; prefers email",
     optional: true,
   },
   discount: {
@@ -163,16 +186,20 @@ function stateName(code: string): string {
 
 /**
  * Returns the next field to ask for, or null when nothing is outstanding.
- * Required fields are checked first (by emptiness); optional fields are then
- * offered once each — a field counts as addressed when its key is present in
- * the collected map (a real value OR an explicit "skip" both stop the re-ask).
+ * Walks the workflow's ordered field sequence top to bottom and returns the
+ * first field still missing — so the assistant collects fields one at a time,
+ * in order. Required fields are asked until a real value is given; optional
+ * fields are offered once (a real value OR an explicit "skip" counts as
+ * addressed, so they're never silently bypassed and never re-asked forever).
  */
 function nextMissingField(
   workflow: AiWorkflow,
   fields: AiFields,
   resolved: { clientId?: string; amount?: number },
 ): AiMissingField | null {
-  for (const key of AI_REQUIRED_FIELDS[workflow]) {
+  for (const spec of AI_FIELD_SEQUENCE[workflow]) {
+    const key = spec.field;
+
     if (key === "clientId") {
       if (!resolved.clientId) return MISSING_FIELD_QUESTIONS.clientId;
       continue;
@@ -181,21 +208,27 @@ function nextMissingField(
       if (!resolved.amount || resolved.amount <= 0) return MISSING_FIELD_QUESTIONS.amount;
       continue;
     }
-    if (!field(fields, key)) return MISSING_FIELD_QUESTIONS[key] ?? { field: key, question: `Please provide ${key}.` };
-  }
-  for (const key of AI_OPTIONAL_FIELDS[workflow] ?? []) {
-    // An optional field is "addressed" only when the user gave a real value OR
-    // explicitly skipped it (AI_SKIP_SENTINEL). A blank, "none", or model-guessed
-    // empty value does NOT count — so optional prompts (e.g. invoice discount,
-    // due date) are always offered once and never silently bypassed.
-    const skipped = fields[key] === AI_SKIP_SENTINEL;
-    const satisfied =
-      key === "contactDetails"
-        ? skipped || !!field(fields, "contactDetails") || !!field(fields, "email") || !!field(fields, "phone")
-        : skipped || !!field(fields, key);
-    if (!satisfied) {
-      const q = MISSING_FIELD_QUESTIONS[key] ?? { field: key, question: `Add ${key}? (or reply skip)` };
-      return { ...q, optional: true };
+
+    if (spec.optional) {
+      const skipped = fields[key] === AI_SKIP_SENTINEL;
+      let satisfied: boolean;
+      if (key === "dueDate" && workflow === "project") {
+        // Projects can also state a due date inside a combined "dates" phrase —
+        // don't re-ask when the user already gave one there.
+        satisfied = skipped || !!field(fields, "dueDate") || !!parseProjectDates(field(fields, "dates")).dueDate;
+      } else {
+        satisfied = skipped || !!field(fields, key);
+      }
+      if (!satisfied) {
+        const q = MISSING_FIELD_QUESTIONS[key] ?? { field: key, question: `Add ${key}? (or reply skip)` };
+        return { ...q, optional: true };
+      }
+      continue;
+    }
+
+    // Required text field — ask until a real (non-skip) value is given.
+    if (!field(fields, key)) {
+      return MISSING_FIELD_QUESTIONS[key] ?? { field: key, question: `Please provide ${key}.` };
     }
   }
   return null;
@@ -517,20 +550,16 @@ export async function createClientFromAiAction(input: AiCreateInput) {
   const fallbackStateCode = profile?.stateCode ?? "27";
 
   const businessName = field(fields, "businessName");
-  const contactDetails = field(fields, "contactDetails");
   const billingAddress = field(fields, "billingAddress");
   const notes = field(fields, "notes");
-  const contactBlob = [
-    field(fields, "email"),
-    field(fields, "phone"),
-    contactDetails,
-    parsed.data.prompt ?? "",
-  ].join(" ");
-  const email = extractEmail(contactBlob);
-  const phone = extractPhone(contactBlob);
-  const stateSource = contactDetails || billingAddress || parsed.data.prompt || "";
-  // Did the user actually name a state, or are we falling back to their default?
-  const detectedState = stateCodeFromText(stateSource, "");
+  // Each contact detail is now collected in its own prompt, so pull it from its
+  // own field first (with the original prompt as a fallback for one-shot input).
+  const email = extractEmail([field(fields, "email"), parsed.data.prompt ?? ""].join(" "));
+  const phone = extractPhone([field(fields, "phone"), parsed.data.prompt ?? ""].join(" "));
+  // State is an explicit, required question now. Use the user's answer, fall back
+  // to a state named in the billing address, and only then the profile default.
+  const detectedState =
+    stateCodeFromText(field(fields, "state"), "") || stateCodeFromText(billingAddress, "");
   const stateCode = detectedState || fallbackStateCode;
 
   // Confirmation gate — show what will be created and wait for approval.
@@ -546,7 +575,9 @@ export async function createClientFromAiAction(input: AiCreateInput) {
           ["Name", fullName],
           ["Email", email || "—"],
           ["Phone", phone || "—"],
-          ["State", detectedState ? stateName(stateCode) : `${stateName(stateCode)} (your default)`],
+          ["Billing address", billingAddress || "—"],
+          ["State", detectedState ? stateName(stateCode) : `${stateName(stateCode)} (default)`],
+          ["Notes", notes || "—"],
         ],
       } satisfies AiConfirmSummary,
     };
@@ -592,7 +623,14 @@ export async function createProjectFromAiAction(input: AiCreateInput) {
 
   const scope = field(fields, "scope");
   const status = projectStatusFromText(field(fields, "status") || "planning");
-  const { startDate, dueDate } = parseProjectDates(field(fields, "dates"));
+  const baseDates = parseProjectDates(field(fields, "dates"));
+  const startDate = baseDates.startDate;
+  // Prefer an explicit answer to the due-date prompt. We phrase it as "due …"
+  // so a bare reply like "in 15 days" or "end of month" parses as a due date.
+  const dueAnswer = field(fields, "dueDate");
+  const dueDate = dueAnswer
+    ? parseProjectDates(`due ${dueAnswer}`).dueDate || baseDates.dueDate
+    : baseDates.dueDate;
 
   // Confirmation gate.
   if (!parsed.data.confirm) {
@@ -620,6 +658,7 @@ export async function createProjectFromAiAction(input: AiCreateInput) {
           ["Name", name],
           ["Client", clientLabel],
           ["Scope", scope || "—"],
+          ["Due date", dueDate || "Not set"],
         ],
       } satisfies AiConfirmSummary,
     };
@@ -665,8 +704,36 @@ export async function createTimeEntryFromAiAction(input: AiCreateInput) {
     };
   }
 
+  // Project allocation — always ask which project to log against (with an
+  // explicit "no project / internal" option) so time is never logged without
+  // a deliberate choice.
+  const rawProjectId = parsed.data.projectId || "";
+  const projectSkipped = rawProjectId === NO_PROJECT_SENTINEL;
+  const projectId = projectSkipped ? "" : rawProjectId;
+  if (!projectId && !projectSkipped) {
+    return {
+      ok: false as const,
+      error: MISSING_FIELD_QUESTIONS.projectId.question,
+      missing: MISSING_FIELD_QUESTIONS.projectId,
+    };
+  }
+
   const billable = billableFromText(field(fields, "billable") || field(fields, "duration"));
   const hourlyRate = billable ? amountFromField(field(fields, "rate") || field(fields, "hourlyRate")) : 0;
+
+  // Resolve the project name for the confirmation summary.
+  let projectName = "No project (internal)";
+  if (projectId) {
+    const userId = await requireUserId();
+    const supabase = await getServerSupabase();
+    const { data: projectRow } = await supabase
+      .from("projects")
+      .select("name")
+      .eq("id", projectId)
+      .eq("user_id", userId)
+      .maybeSingle();
+    projectName = (projectRow as { name?: string | null } | null)?.name || "Selected project";
+  }
 
   // Confirmation gate.
   if (!parsed.data.confirm) {
@@ -681,6 +748,7 @@ export async function createTimeEntryFromAiAction(input: AiCreateInput) {
         title: "Log this time entry?",
         lines: [
           ["Work", description],
+          ["Project", projectName],
           ["Duration", `${h}h ${m}m`],
           ["Billing", billable ? "Billable" : "Non-billable"],
         ],
@@ -690,7 +758,7 @@ export async function createTimeEntryFromAiAction(input: AiCreateInput) {
 
   const fd = new FormData();
   fd.set("description", description);
-  fd.set("projectId", parsed.data.projectId || "");
+  fd.set("projectId", projectId);
   fd.set("startedAt", new Date().toISOString());
   fd.set("durationSeconds", String(durationSeconds));
   fd.set("billable", billable ? "true" : "false");
@@ -1474,57 +1542,4 @@ const aiContractWhatsappSchema = z.object({
 export async function contractWhatsappFromAiAction(
   input: z.infer<typeof aiContractWhatsappSchema>,
 ) {
-  const parsed = aiContractWhatsappSchema.safeParse(input);
-  if (!parsed.success) return { ok: false as const, error: "Invalid contract." };
-
-  const userId = await requireUserId();
-  const supabase = await getServerSupabase();
-
-  const { data: contractRow } = await supabase
-    .from("contracts")
-    .select("id, title, kind, client_id, value_amount, currency, public_token")
-    .eq("id", parsed.data.contractId)
-    .eq("user_id", userId)
-    .maybeSingle();
-  const contract = contractRow as {
-    id: string;
-    title: string;
-    kind: string;
-    client_id?: string | null;
-    value_amount?: number | null;
-    currency: string;
-    public_token?: string | null;
-  } | null;
-  if (!contract) return { ok: false as const, error: "Contract not found." };
-
-  // Mint or reuse public token — mirrors requestSignatureAction
-  let token = contract.public_token ?? null;
-  if (!token) {
-    token = randomUUID();
-    await supabase
-      .from("contracts")
-      .update({ public_token: token, status: "sent", sent_at: new Date().toISOString() } as never)
-      .eq("id", contract.id);
-  }
-
-  const [{ data: clientRow }, { data: profileRow }] = await Promise.all([
-    contract.client_id
-      ? supabase.from("clients").select("full_name, business_name, phone").eq("id", contract.client_id).eq("user_id", userId).maybeSingle()
-      : Promise.resolve({ data: null }),
-    supabase.from("user_profiles").select("business_name, legal_name, full_name, display_name").eq("id", userId).maybeSingle(),
-  ]);
-  const client = clientRow as { full_name?: string | null; business_name?: string | null; phone?: string | null } | null;
-  const profile = profileRow as { business_name?: string | null; legal_name?: string | null; full_name?: string | null; display_name?: string | null } | null;
-
-  const shareUrl = getContractShareUrl(token);
-  const senderName = profile?.business_name || profile?.legal_name || profile?.display_name || profile?.full_name || "Stackivo";
-  const clientName = client?.business_name || client?.full_name || null;
-  const clientPhone = client?.phone ?? null;
-  const docLabel = contract.kind === "proposal" ? "proposal" : "contract";
-
-  const message = `Hi${clientName ? ` ${clientName}` : ""}! ${senderName} has shared a ${docLabel} with you. Review and sign here: ${shareUrl}`;
-  const waBase = clientPhone ? `https://wa.me/${clientPhone.replace(/\D/g, "")}` : "https://wa.me/";
-  const url = `${waBase}?text=${encodeURIComponent(message)}`;
-
-  return { ok: true as const, data: { url, shareUrl } };
-}
+  const parsed = aiContr

@@ -177,34 +177,45 @@ export const aiInterpretRequestSchema = z.object({
 
 export type AiInterpretRequest = z.infer<typeof aiInterpretRequestSchema>;
 
-/**
- * Required fields per workflow. Used both by the NLU layer (to know what to
- * extract) and by the create actions (to know what to ask for next).
- */
-export const AI_REQUIRED_FIELDS: Record<AiWorkflow, string[]> = {
-  invoice: ["clientId", "workDescription", "amount"],
-  contract: ["clientId", "scope"],
-  welcome_document: ["process"],
-  client: ["fullName"],
-  project: ["name", "clientId"],
-  time_entry: ["description", "duration"],
-  support: ["question"],
-};
+/** One field the assistant collects, in the order it should be asked. */
+export interface AiFieldSpec {
+  /** Canonical field key, e.g. "fullName", "email", "amount". */
+  field: string;
+  /**
+   * When true the field is offered once and the user may reply "skip"/"none".
+   * Required fields (no flag) are asked until a real value is given.
+   */
+  optional?: boolean;
+}
 
 /**
- * Optional fields per workflow. After the required fields are satisfied the
- * assistant offers each of these ONCE (the user can reply "skip"). A field is
- * considered "offered/answered" when its key is present in the collected map —
- * so a real value or an explicit skip both stop it being re-asked.
+ * Ordered field checklist per workflow. The assistant walks this list top to
+ * bottom and asks for the first field that is still outstanding — so fields are
+ * collected one at a time, in this exact order. Required fields are asked until
+ * answered; optional fields are offered once (a real value OR an explicit skip
+ * counts as addressed). Used by the create actions to know what to ask next.
  */
-export const AI_OPTIONAL_FIELDS: Record<AiWorkflow, string[]> = {
-  invoice: ["discount", "dueDate"],
-  contract: [],
-  welcome_document: [],
-  client: ["contactDetails"],
-  project: [],
-  time_entry: [],
-  support: [],
+export const AI_FIELD_SEQUENCE: Record<AiWorkflow, AiFieldSpec[]> = {
+  invoice: [
+    { field: "clientId" },
+    { field: "workDescription" },
+    { field: "amount" },
+    { field: "discount", optional: true },
+    { field: "dueDate", optional: true },
+  ],
+  contract: [{ field: "clientId" }, { field: "scope" }],
+  welcome_document: [{ field: "process" }],
+  client: [
+    { field: "fullName" },
+    { field: "email" },
+    { field: "phone", optional: true },
+    { field: "billingAddress" },
+    { field: "state" },
+    { field: "notes", optional: true },
+  ],
+  project: [{ field: "name" }, { field: "clientId" }, { field: "dueDate", optional: true }],
+  time_entry: [{ field: "description" }, { field: "duration" }],
+  support: [{ field: "question" }],
 };
 
 /**
@@ -216,13 +227,4 @@ export const AI_OPTIONAL_FIELDS: Record<AiWorkflow, string[]> = {
  */
 export const NO_CLIENT_SENTINEL = "__none__";
 
-/**
- * Explicit "skip this optional field" marker. When the user replies "skip"/
- * "none" to an OPTIONAL prompt (e.g. discount, due date, contact details) the
- * UI records this sentinel so the missing-field loop treats the field as
- * deliberately addressed and never re-asks it — while still leaving the actual
- * value empty. This distinguishes a real user skip from a value the model may
- * have guessed, so optional prompts are offered exactly once and never silently
- * bypassed.
- */
-export const AI_SKIP_SENTINEL = "__skip__";
+/*
