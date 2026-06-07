@@ -261,7 +261,7 @@ function conversationalReply(text: string): string | null {
   if (/^(hi+|hey+|hello+|yo|hiya|namaste|good (morning|afternoon|evening))\b/.test(t)) {
     return "Hey! I can create invoices, contracts, and welcome docs, add clients and projects, log time, or answer questions about Stackivo. What would you like to do?";
   }
-  if (/^(thanks|thank you|thx|ty|great|perfect|awesome|cool|nice|ok|okay|got it)\b/.test(t)) {
+  if (/^(thanks|thank you|thx|ty|great|perfect|awesome|cool|nice|ok|okay|okey|got it|cheers)( (so much|a lot|you|man|mate|buddy))?$/.test(t)) {
     return "Anytime! Tell me the next thing you'd like to do.";
   }
   if (/\b(can|could|may) i ask( you)?( a| you a)? ?(question|something|doubt)?\b|^ask you|are you (there|online|here)|you there/.test(t)) {
