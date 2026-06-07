@@ -125,7 +125,7 @@ export async function PulseDashboardView({
         </Tabs>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 [grid-template-columns:repeat(auto-fit,minmax(170px,1fr))]">
         <Kpi
           icon={CircleDollarSign}
           label={`Revenue (${RANGE_LABEL[range]})`}
@@ -271,11 +271,11 @@ function Kpi({
   return (
     <Card className="group transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/20 hover:shadow-lg hover:shadow-primary/[0.05]">
       <CardContent className="space-y-2 p-5">
-        <div className="flex items-center justify-between">
-          <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
+        <div className="flex items-center justify-between gap-2">
+          <p className="min-w-0 break-words text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
             {label}
           </p>
-          <span className={`flex h-8 w-8 items-center justify-center rounded-lg ring-1 ${iconTone}`}>
+          <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ring-1 ${iconTone}`}>
             <Icon className="h-4 w-4" />
           </span>
         </div>

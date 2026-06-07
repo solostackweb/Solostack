@@ -41,7 +41,7 @@ export function TimeSummaryCards({
   );
 
   return (
-    <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+    <div className="grid gap-3 sm:gap-4 [grid-template-columns:repeat(auto-fit,minmax(160px,1fr))]">
       <SummaryCard
         icon={Clock}
         label="Logged this week"
@@ -100,13 +100,13 @@ function SummaryCard({
       featured && "col-span-2 lg:col-span-1",
     )}>
       <CardContent className="min-h-36 space-y-3 p-4 sm:p-5">
-        <div className="flex items-center justify-between">
-          <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
+        <div className="flex items-center justify-between gap-2">
+          <p className="min-w-0 break-words text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
             {label}
           </p>
           <span
             className={cn(
-              "flex h-8 w-8 items-center justify-center rounded-lg ring-1",
+              "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ring-1",
               tone === "primary" &&
                 "bg-gradient-to-br from-primary/10 to-blue-500/10 text-primary ring-primary/15",
               tone === "success" &&

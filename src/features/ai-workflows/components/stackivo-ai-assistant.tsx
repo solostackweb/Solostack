@@ -28,6 +28,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { StackivoMark } from "@/components/brand/stackivo-logo";
 import { cn } from "@/lib/utils";
+import { INDIAN_STATES } from "@/features/gst/state-codes";
 import {
   approveInvoiceFromAiAction,
   approveWelcomeDocFromAiAction,
@@ -626,6 +627,43 @@ function ProjectPicker({
   );
 }
 
+function StatePicker({
+  label,
+  onSelect,
+}: {
+  label: string;
+  onSelect: (stateName: string) => void;
+}) {
+  const [selected, setSelected] = React.useState("");
+  return (
+    <div className="space-y-3">
+      <p className="text-sm">{label}</p>
+      <select
+        className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+        value={selected}
+        onChange={(e) => setSelected(e.target.value)}
+      >
+        <option value="">Choose a state</option>
+        {INDIAN_STATES.map((s) => (
+          <option key={s.code} value={s.name}>
+            {s.name}
+          </option>
+        ))}
+      </select>
+      <div className="flex flex-wrap gap-2">
+        <Button
+          type="button"
+          size="sm"
+          disabled={!selected}
+          onClick={() => selected && onSelect(selected)}
+        >
+          Use this state
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 // Contract preview — all sections
 function ContractDraftPreview({
   preview,
@@ -1176,7 +1214,9 @@ export function StackivoAiAssistant({ clients, projects }: StackivoAiAssistantPr
           const label = subject ? `Which client is this ${subject} for?` : "Which client is this for?";
           const allowSkip = workflow === "project";
           const proceed = (id: string, display: string) => {
-            if (id !== NO_CLIENT_SENTINEL) setClientId(id);
+            // Persist the choice — including the "no client" sentinel — so the
+            // next message keeps it and the workflow doesn't re-ask.
+            setClientId(id);
             setPendingField(null);
             push({ role: "user", content: display });
             startTransition(async () => {
@@ -1202,7 +1242,9 @@ export function StackivoAiAssistant({ clients, projects }: StackivoAiAssistantPr
           // Show projects for the chosen client when one is set, else all.
           const options = cId ? projects.filter((p) => p.clientId === cId) : projects;
           const proceed = (id: string, display: string) => {
-            if (id !== NO_PROJECT_SENTINEL) setProjectId(id);
+            // Persist the choice — including the "no project" sentinel — so the
+            // next message keeps it and the workflow doesn't re-ask.
+            setProjectId(id);
             setPendingField(null);
             push({ role: "user", content: display });
             startTransition(async () => {
@@ -1222,6 +1264,21 @@ export function StackivoAiAssistant({ clients, projects }: StackivoAiAssistantPr
                 onSkip={() => proceed(NO_PROJECT_SENTINEL, "No project (internal)")}
               />
             ),
+          });
+        } else if (missing.field === "state") {
+          const label = missing.question || "Which state are they in?";
+          const proceed = (stateName: string) => {
+            setPendingField(null);
+            const nextFields = { ...fields, state: stateName };
+            setCollected(nextFields);
+            push({ role: "user", content: stateName });
+            startTransition(async () => {
+              await runWorkflowRef.current(workflow, nextFields, cId, pId, "");
+            });
+          };
+          push({
+            role: "assistant",
+            content: <StatePicker label={label} onSelect={proceed} />,
           });
         } else {
           push({

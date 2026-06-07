@@ -69,7 +69,7 @@ export function InvoicesSummary({
   const stats = React.useMemo(() => computeInvoiceStats(invoices), [invoices]);
 
   return (
-    <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+    <div className="grid gap-3 sm:gap-4 [grid-template-columns:repeat(auto-fit,minmax(160px,1fr))]">
       <SummaryCard
         label="Paid this month"
         value={formatINR(stats.paidThisMonthAmount)}
@@ -131,7 +131,7 @@ function SummaryCard({
     )}>
       <CardContent className="flex min-h-32 items-start justify-between gap-3 p-4 sm:p-5">
         <div className="min-w-0 space-y-1">
-          <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
+          <p className="break-words text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
             {label}
           </p>
           <p className="text-2xl font-bold tabular-nums tracking-tight">

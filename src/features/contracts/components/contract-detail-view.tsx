@@ -12,11 +12,16 @@ import {
   XCircle,
   Link2,
   Loader2,
+  Pencil,
+  Plus,
+  Save,
 } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -38,6 +43,7 @@ import { ContractStatusBadge } from "./contract-status-badge";
 import {
   deleteContractAction,
   setContractStatusAction,
+  updateContractAction,
 } from "../actions";
 import { sendContractAction } from "../delivery";
 import { ensureContractTokenAction } from "../actions";
@@ -102,6 +108,67 @@ export function ContractDetailView({
     () => parseSections(contract.content),
     [contract.content],
   );
+
+  // --- Inline content editor ---
+  const [editing, setEditing] = React.useState(false);
+  const [savingEdits, setSavingEdits] = React.useState(false);
+  const [draftTitle, setDraftTitle] = React.useState(contract.title);
+  const [draftSections, setDraftSections] = React.useState<ParsedSection[]>([]);
+
+  // A signed/declined contract is locked — edits are only allowed before that.
+  const canEdit = contract.status !== "signed" && contract.status !== "declined";
+
+  const enterEdit = () => {
+    setDraftTitle(contract.title);
+    setDraftSections(
+      sections.length > 0
+        ? sections.map((s) => ({ ...s }))
+        : [{ heading: "Section 1", body: raw ?? "" }],
+    );
+    setEditing(true);
+  };
+
+  const updateDraftSection = (i: number, patch: Partial<ParsedSection>) =>
+    setDraftSections((prev) => prev.map((s, idx) => (idx === i ? { ...s, ...patch } : s)));
+  const addDraftSection = () =>
+    setDraftSections((prev) => [...prev, { heading: "", body: "" }]);
+  const removeDraftSection = (i: number) =>
+    setDraftSections((prev) => prev.filter((_, idx) => idx !== i));
+
+  const handleSaveEdits = () => {
+    if (!draftTitle.trim()) {
+      toast.error("Add a title for the contract.");
+      return;
+    }
+    const cleaned = draftSections
+      .map((s) => ({ heading: s.heading.trim(), body: s.body.trim() }))
+      .filter((s) => s.heading || s.body);
+    const fd = new FormData();
+    fd.set("id", contract.id);
+    fd.set("kind", contract.kind);
+    fd.set("title", draftTitle.trim());
+    fd.set("content", JSON.stringify(cleaned));
+    if (contract.clientId) fd.set("clientId", contract.clientId);
+    if (contract.projectId) fd.set("projectId", contract.projectId);
+    fd.set("status", contract.status);
+    fd.set("currency", contract.currency || "INR");
+    if (contract.valueAmount != null) fd.set("valueAmount", String(contract.valueAmount));
+    if (contract.expiresAt) fd.set("expiresAt", contract.expiresAt);
+    setSavingEdits(true);
+    startTransition(async () => {
+      try {
+        const res = await updateContractAction(undefined, fd);
+        if (!res.ok) throw new Error(res.error);
+        toast.success("Contract updated");
+        setEditing(false);
+        router.refresh();
+      } catch (e) {
+        toast.error((e as Error).message);
+      } finally {
+        setSavingEdits(false);
+      }
+    });
+  };
 
   const isSignable =
     contract.status === "draft" ||
@@ -242,75 +309,103 @@ export function ContractDetailView({
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          {isSignable && (
-            <Button size="sm" onClick={handleSendForSignature}>
-              <Send /> {contract.status === "draft" ? "Send for signature" : "Resend"}
-            </Button>
-          )}
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleCopyContractLink}
-            disabled={sharePending !== null}
-            aria-label="Copy share link"
-          >
-            {sharePending === "copy" ? (
-              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-            ) : (
-              <Link2 className="h-3.5 w-3.5" />
-            )}
-            Copy link
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            className="gap-1.5 border-[#25D366]/40 bg-[#25D366]/5 text-[#128C7E] hover:bg-[#25D366]/15 hover:text-[#128C7E] dark:border-[#25D366]/30 dark:bg-[#25D366]/10 dark:text-[#25D366]"
-            onClick={handleWhatsAppContract}
-            disabled={sharePending !== null}
-            aria-label="Share on WhatsApp"
-          >
-            {sharePending === "whatsapp" ? (
-              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-            ) : (
-              <WhatsAppIcon className="h-3.5 w-3.5 shrink-0" />
-            )}
-            WhatsApp
-          </Button>
-          {contract.status !== "signed" && contract.status !== "declined" && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => handleMark("signed")}
-            >
-              <CheckCircle2 /> Mark signed
-            </Button>
-          )}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
+          {editing ? (
+            <>
+              <Button size="sm" onClick={handleSaveEdits} disabled={savingEdits}>
+                {savingEdits ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <Save className="h-3.5 w-3.5" />
+                )}
+                Save changes
+              </Button>
               <Button
                 variant="ghost"
-                size="icon"
-                className="h-8 w-8"
-                aria-label="More actions"
+                size="sm"
+                onClick={() => setEditing(false)}
+                disabled={savingEdits}
               >
-                <MoreHorizontal className="h-4 w-4" />
+                Cancel
               </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              {contract.status !== "declined" && (
-                <DropdownMenuItem onSelect={() => handleMark("declined")}>
-                  <XCircle className="h-3.5 w-3.5" /> Mark declined
-                </DropdownMenuItem>
+            </>
+          ) : (
+            <>
+              {canEdit && (
+                <Button variant="outline" size="sm" onClick={enterEdit}>
+                  <Pencil className="h-3.5 w-3.5" /> Edit
+                </Button>
               )}
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
-                className="text-destructive focus:text-destructive"
-                onSelect={() => setDeleteOpen(true)}
+              {isSignable && (
+                <Button size="sm" onClick={handleSendForSignature}>
+                  <Send /> {contract.status === "draft" ? "Send for signature" : "Resend"}
+                </Button>
+              )}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleCopyContractLink}
+                disabled={sharePending !== null}
+                aria-label="Copy share link"
               >
-                <Trash2 className="h-3.5 w-3.5" /> Delete…
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+                {sharePending === "copy" ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <Link2 className="h-3.5 w-3.5" />
+                )}
+                Copy link
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-1.5 border-[#25D366]/40 bg-[#25D366]/5 text-[#128C7E] hover:bg-[#25D366]/15 hover:text-[#128C7E] dark:border-[#25D366]/30 dark:bg-[#25D366]/10 dark:text-[#25D366]"
+                onClick={handleWhatsAppContract}
+                disabled={sharePending !== null}
+                aria-label="Share on WhatsApp"
+              >
+                {sharePending === "whatsapp" ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <WhatsAppIcon className="h-3.5 w-3.5 shrink-0" />
+                )}
+                WhatsApp
+              </Button>
+              {contract.status !== "signed" && contract.status !== "declined" && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleMark("signed")}
+                >
+                  <CheckCircle2 /> Mark signed
+                </Button>
+              )}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    aria-label="More actions"
+                  >
+                    <MoreHorizontal className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  {contract.status !== "declined" && (
+                    <DropdownMenuItem onSelect={() => handleMark("declined")}>
+                      <XCircle className="h-3.5 w-3.5" /> Mark declined
+                    </DropdownMenuItem>
+                  )}
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    className="text-destructive focus:text-destructive"
+                    onSelect={() => setDeleteOpen(true)}
+                  >
+                    <Trash2 className="h-3.5 w-3.5" /> Delete…
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </>
+          )}
         </div>
       </div>
 
@@ -318,6 +413,74 @@ export function ContractDetailView({
         {/* LEFT — content */}
         <Card>
           <CardContent className="space-y-6 p-5 sm:p-8">
+            {editing ? (
+              <div className="space-y-5">
+                <div className="space-y-1.5">
+                  <label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                    Title
+                  </label>
+                  <Input
+                    value={draftTitle}
+                    onChange={(e) => setDraftTitle(e.target.value)}
+                    placeholder="Contract title"
+                  />
+                </div>
+                <div className="space-y-3">
+                  {draftSections.map((s, i) => (
+                    <div
+                      key={i}
+                      className="space-y-2 rounded-lg border bg-muted/20 p-3"
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono text-xs tabular-nums text-muted-foreground">
+                          {String(i + 1).padStart(2, "0")}
+                        </span>
+                        <Input
+                          value={s.heading}
+                          onChange={(e) =>
+                            updateDraftSection(i, { heading: e.target.value })
+                          }
+                          placeholder="Section heading"
+                          className="h-9 font-medium"
+                        />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 shrink-0 text-muted-foreground hover:text-destructive"
+                          onClick={() => removeDraftSection(i)}
+                          aria-label="Remove section"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                      <Textarea
+                        value={s.body}
+                        onChange={(e) =>
+                          updateDraftSection(i, { body: e.target.value })
+                        }
+                        placeholder="Section text…"
+                        rows={5}
+                        className="resize-y"
+                      />
+                    </div>
+                  ))}
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={addDraftSection}
+                >
+                  <Plus className="h-3.5 w-3.5" /> Add section
+                </Button>
+                <p className="text-xs text-muted-foreground">
+                  Edit any wording above — even the smallest change — then click{" "}
+                  <span className="font-medium text-foreground">Save changes</span>.
+                </p>
+              </div>
+            ) : (
+              <>
             <header className="border-b pb-6">
               <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
                 {CONTRACT_KIND_LABEL[contract.kind]}
@@ -417,6 +580,8 @@ export function ContractDetailView({
                   />
                 </div>
               </section>
+            )}
+              </>
             )}
           </CardContent>
         </Card>

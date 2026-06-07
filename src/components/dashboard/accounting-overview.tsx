@@ -56,7 +56,7 @@ export function AccountingOverview({
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="stagger-children grid grid-cols-2 gap-3 lg:grid-cols-5">
+        <div className="stagger-children grid gap-3 [grid-template-columns:repeat(auto-fit,minmax(165px,1fr))]">
           <Tile
             icon={Wallet}
             label="Collected"
@@ -130,7 +130,7 @@ function Tile({ icon: Icon, label, value, sub, tone, featured }: TileProps) {
       )}
     >
       <div className="min-w-0 space-y-1">
-        <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground/70">
+        <p className="break-words text-[11px] font-semibold uppercase tracking-widest text-muted-foreground/70">
           {label}
         </p>
         <p className="text-xl font-semibold tabular-nums tracking-tight sm:text-2xl">
