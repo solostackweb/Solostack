@@ -269,6 +269,12 @@ function conversationalReply(text: string): string | null {
   if (/what can you do|who are you|what are you|how can you help|what do you do|how do you work/.test(t)) {
     return "I'm your Stackivo workflow assistant. I can draft and send invoices & contracts, prepare welcome documents, add clients and projects, log billable time, and answer questions about how Stackivo works. Just describe what you need — for example, “Invoice Acme 50000 for a landing page.”";
   }
+  if (/how are you|how'?s it going|how do you do|how have you been|hope you('| a)re (doing )?(well|good)/.test(t)) {
+    return "Doing great, thanks for asking! What can I help you with — invoices, contracts, clients, or a quick question about Stackivo?";
+  }
+  if (/\bare you (a )?(bot|robot|ai|human|real)\b|who (made|built|created) you|are you chatgpt/.test(t)) {
+    return "I'm Stackivo's built-in AI assistant — here to help you run your freelance business. Ask me to create invoices, contracts, welcome docs, clients, or projects, log time, or anything about how Stackivo works.";
+  }
   return null;
 }
 
@@ -1548,19 +1554,19 @@ export function StackivoAiAssistant({ clients, projects }: StackivoAiAssistantPr
 
       // 3. Merge newly extracted fields onto what we already collected.
       const baseFields: AiFields = switching ? {} : { ...collected };
-      const merged: AiFields = { ...baseFields, ...(nlu?.fields ?? {}) };
-
-      // If we were waiting on a specific field and the NLU did not capture it,
-      // treat the whole message as that field's answer. For an optional prompt a
-      // "skip" reply is recorded as a sentinel so it counts as addressed (and is
-      // never re-asked) without inventing a value.
-      if (
-        pendingField &&
-        pendingField.field !== "clientId" &&
-        !merged[pendingField.field]
-      ) {
+      let merged: AiFields;
+      if (!switching && pendingField && pendingField.field !== "clientId") {
+        // Direct reply to a specific field prompt: assign the answer to THAT
+        // field only and skip generic NLU extraction. Otherwise a numeric reply
+        // (e.g. a discount or due-date answer like "345") gets re-read as the
+        // invoice amount and clobbers an earlier answer. An optional "skip" is
+        // recorded as a sentinel so the field counts as addressed without
+        // inventing a value.
+        merged = { ...baseFields };
         merged[pendingField.field] =
           pendingField.optional && isSkipReply(text) ? AI_SKIP_SENTINEL : text;
+      } else {
+        merged = { ...baseFields, ...(nlu?.fields ?? {}) };
       }
 
       setCollected(merged);

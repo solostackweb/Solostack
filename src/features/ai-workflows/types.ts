@@ -5,7 +5,7 @@ export const aiInvoiceRequestSchema = z.object({
   projectId: z.string().optional().or(z.literal("")),
   workDescription: z
     .string()
-    .min(8, "Describe the work in a little more detail")
+    .min(2, "Describe the work in a little more detail")
     .max(1500, "Description is too long"),
   amount: z.coerce.number().nonnegative().optional(),
   quantity: z.coerce.number().positive().optional(),
@@ -203,8 +203,21 @@ export const AI_FIELD_SEQUENCE: Record<AiWorkflow, AiFieldSpec[]> = {
     { field: "discount", optional: true },
     { field: "dueDate", optional: true },
   ],
-  contract: [{ field: "clientId" }, { field: "scope" }],
-  welcome_document: [{ field: "process" }],
+  contract: [
+    { field: "clientId" },
+    { field: "projectId", optional: true },
+    { field: "scope" },
+    { field: "type", optional: true },
+    { field: "commercials", optional: true },
+    { field: "timeline", optional: true },
+    { field: "clauses", optional: true },
+  ],
+  welcome_document: [
+    { field: "process" },
+    { field: "relationship", optional: true },
+    { field: "operations", optional: true },
+    { field: "tone", optional: true },
+  ],
   client: [
     { field: "fullName" },
     { field: "email" },

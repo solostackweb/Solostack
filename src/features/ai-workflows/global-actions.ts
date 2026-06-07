@@ -135,7 +135,51 @@ const MISSING_FIELD_QUESTIONS: Record<string, AiMissingField> = {
     placeholder: "Example: 2h 30m, billable",
   },
   question: { field: "question", question: "What do you need help with?" },
-  projectId: { field: "projectId", question: "Which project should I log this time against?" },
+  projectId: { field: "projectId", question: "Which project should I link this to? Or choose “No project”." },
+  // Contract detail prompts (offered once each, user can reply "skip").
+  type: {
+    field: "type",
+    question: "What kind of document is this — agreement, proposal, NDA, or retainer? Or reply “skip”.",
+    placeholder: "Example: Service agreement",
+    optional: true,
+  },
+  commercials: {
+    field: "commercials",
+    question: "What are the fees and payment terms? Or reply “skip”.",
+    placeholder: "Example: ₹150000, 50% upfront, balance on delivery",
+    optional: true,
+  },
+  timeline: {
+    field: "timeline",
+    question: "What's the timeline or key milestones? Or reply “skip”.",
+    placeholder: "Example: 3 weeks — design week 1, build weeks 2–3",
+    optional: true,
+  },
+  clauses: {
+    field: "clauses",
+    question: "Any special clauses, exclusions, or responsibilities? Or reply “skip”.",
+    placeholder: "Example: 2 revision rounds, confidentiality, client provides content",
+    optional: true,
+  },
+  // Welcome-document detail prompts (offered once each, user can reply "skip").
+  relationship: {
+    field: "relationship",
+    question: "What's the working relationship and what should the client expect? Or reply “skip”.",
+    placeholder: "Example: 3-month retainer, monthly check-ins",
+    optional: true,
+  },
+  operations: {
+    field: "operations",
+    question: "Any payment, scheduling, or logistics details to include? Or reply “skip”.",
+    placeholder: "Example: invoices on the 1st, Net 7, Slack for chat",
+    optional: true,
+  },
+  tone: {
+    field: "tone",
+    question: "What tone should it have — warm, premium, or direct? Or reply “skip”.",
+    placeholder: "Example: warm and professional",
+    optional: true,
+  },
   // Client fields — asked one at a time.
   email: {
     field: "email",
@@ -195,7 +239,7 @@ function stateName(code: string): string {
 function nextMissingField(
   workflow: AiWorkflow,
   fields: AiFields,
-  resolved: { clientId?: string; amount?: number },
+  resolved: { clientId?: string; amount?: number; projectId?: string; projectSkipped?: boolean },
 ): AiMissingField | null {
   for (const spec of AI_FIELD_SEQUENCE[workflow]) {
     const key = spec.field;
@@ -206,6 +250,14 @@ function nextMissingField(
     }
     if (key === "amount") {
       if (!resolved.amount || resolved.amount <= 0) return MISSING_FIELD_QUESTIONS.amount;
+      continue;
+    }
+    if (key === "projectId") {
+      // Project allocation is resolved outside `fields` (via the picker). It is
+      // addressed once a project is chosen or explicitly skipped.
+      if (!resolved.projectId && !resolved.projectSkipped) {
+        return { ...MISSING_FIELD_QUESTIONS.projectId, optional: !!spec.optional };
+      }
       continue;
     }
 
@@ -624,7 +676,8 @@ export async function createProjectFromAiAction(input: AiCreateInput) {
   const scope = field(fields, "scope");
   const status = projectStatusFromText(field(fields, "status") || "planning");
   const baseDates = parseProjectDates(field(fields, "dates"));
-  const startDate = baseDates.startDate;
+  // Default the start date to today (the created date) when none was given.
+  const startDate = baseDates.startDate || isoDate(new Date());
   // Prefer an explicit answer to the due-date prompt. We phrase it as "due …"
   // so a bare reply like "in 15 days" or "end of month" parses as a due date.
   const dueAnswer = field(fields, "dueDate");
@@ -658,6 +711,7 @@ export async function createProjectFromAiAction(input: AiCreateInput) {
           ["Name", name],
           ["Client", clientLabel],
           ["Scope", scope || "—"],
+          ["Start date", startDate],
           ["Due date", dueDate || "Not set"],
         ],
       } satisfies AiConfirmSummary,
@@ -1045,7 +1099,12 @@ export async function createContractFromAiAction(input: AiCreateInput) {
   const fields = parsed.data.fields ?? {};
   const clientId = parsed.data.clientId || "";
 
-  const missing = nextMissingField("contract", fields, { clientId });
+  // Project allocation — "__no_project__" means the user chose no project.
+  const rawProjectId = parsed.data.projectId || "";
+  const projectSkipped = rawProjectId === NO_PROJECT_SENTINEL;
+  const projectId = projectSkipped ? "" : rawProjectId;
+
+  const missing = nextMissingField("contract", fields, { clientId, projectId, projectSkipped });
   if (missing) {
     return { ok: false as const, error: missing.question, missing };
   }
@@ -1059,11 +1118,11 @@ export async function createContractFromAiAction(input: AiCreateInput) {
       .eq("id", clientId)
       .eq("user_id", userId)
       .maybeSingle(),
-    parsed.data.projectId
+    projectId
       ? supabase
           .from("projects")
           .select("id, name")
-          .eq("id", parsed.data.projectId)
+          .eq("id", projectId)
           .eq("user_id", userId)
           .maybeSingle()
       : Promise.resolve({ data: null }),
@@ -1078,12 +1137,16 @@ export async function createContractFromAiAction(input: AiCreateInput) {
   const scope = field(fields, "scope");
   const type = field(fields, "type");
   const commercials = field(fields, "commercials");
+  const timeline = field(fields, "timeline");
   const clauses = field(fields, "clauses");
   const amount = amountFromField(field(fields, "amount") || commercials);
   const brief = briefFromFields(
     [
       ["Document type", type],
-      ["Scope, deliverables, and timeline", scope],
+      ["Client", client.business_name || client.full_name || ""],
+      ["Project", project?.name || ""],
+      ["Scope and deliverables", scope],
+      ["Timeline and milestones", timeline],
       ["Commercials, payment, revisions, and IP", commercials],
       ["Special clauses, exclusions, and responsibilities", clauses],
       ["Contract value", amount > 0 ? String(amount) : ""],
@@ -1098,7 +1161,7 @@ export async function createContractFromAiAction(input: AiCreateInput) {
       workflow: "contract",
       prompt: brief,
       clientId,
-      projectId: parsed.data.projectId,
+      projectId,
     }),
   );
   const draftResult = await generateOperationalDraftAction(fdDraft);
@@ -1129,7 +1192,7 @@ export async function createContractFromAiAction(input: AiCreateInput) {
   fd.set("title", title);
   fd.set("content", JSON.stringify(sections));
   fd.set("clientId", clientId);
-  if (parsed.data.projectId) fd.set("projectId", parsed.data.projectId);
+  if (projectId) fd.set("projectId", projectId);
   fd.set("status", "draft");
   fd.set("currency", "INR");
   if (amount > 0) fd.set("valueAmount", String(amount));
@@ -1311,14 +1374,26 @@ export async function answerFromDocsAction(input: z.infer<typeof aiDocsQuestionS
     return { ok: false as const, error: "Ask a docs or support question first." };
   }
 
-  async function readPageText(relPath: string, limit = 10000): Promise<string> {
+  // Extract readable prose from a marketing/docs page. We drop imports,
+  // metadata, and noisy attributes (className/href) FIRST so the limited budget
+  // is spent on real content — section titles, headings, and body copy — rather
+  // than Tailwind class strings. Limits are generous so the whole docs page
+  // fits (the previous 14k cap silently cut off everything past Invoices, which
+  // is why questions about billing, GST, payments, etc. came back "not known").
+  async function readPageText(relPath: string, limit = 60000): Promise<string> {
     try {
       const raw = await readFile(path.join(process.cwd(), "src", "app", relPath), "utf8");
       return raw
-        .replace(/import[\s\S]*?;\n/g, "")
-        .replace(/export const[\s\S]*?;\n/g, "")
+        .replace(/import[\s\S]*?from\s*["'][^"']*["'];?/g, " ")
+        .replace(/export const (metadata|dynamic|NAV)[\s\S]*?;\n/g, " ")
+        .replace(/className=\{?["'`][^"'`]*["'`]\}?/g, " ")
+        .replace(/href=\{?["'][^"']*["']\}?/g, " ")
+        .replace(/&apos;/g, "'")
+        .replace(/&amp;/g, "&")
+        .replace(/&quot;/g, '"')
         .replace(/[{}()<>=`"'$]/g, " ")
         .replace(/\s+/g, " ")
+        .trim()
         .slice(0, limit);
     } catch {
       return "";
@@ -1326,24 +1401,34 @@ export async function answerFromDocsAction(input: z.infer<typeof aiDocsQuestionS
   }
 
   const [docsText, privacyText, termsText] = await Promise.all([
-    readPageText("(marketing)/docs/page.tsx", 14000),
-    readPageText("(marketing)/privacy/page.tsx", 5000),
-    readPageText("(marketing)/terms/page.tsx", 5000),
+    readPageText("(marketing)/docs/page.tsx", 60000),
+    readPageText("(marketing)/privacy/page.tsx", 16000),
+    readPageText("(marketing)/terms/page.tsx", 16000),
   ]);
 
   const combinedContext = [
     docsText ? `--- DOCS ---\n${docsText}` : "",
     privacyText ? `--- PRIVACY POLICY ---\n${privacyText}` : "",
     termsText ? `--- TERMS & CONDITIONS ---\n${termsText}` : "",
-  ].filter(Boolean).join("\n\n").slice(0, 22000);
+  ].filter(Boolean).join("\n\n").slice(0, 90000);
 
   const ai = await generateStructuredJson({
-    temperature: 0.1,
+    temperature: 0.4,
     messages: [
       {
         role: "system",
-        content:
-          "You answer Stackivo product support, privacy, and terms questions from the provided page text. Return JSON with answer and usedDocs boolean. If the text does not contain the answer, say what is known and suggest contacting support. Keep answers concise and actionable. Never invent policies or features.",
+        content: [
+          "You are Stackivo's friendly in-app assistant, talking directly to a Stackivo user (an Indian freelancer or agency owner).",
+          "Answer their question in a warm, natural, conversational tone — like a helpful teammate, not a manual or a robot.",
+          "Your source of truth is the provided Stackivo documentation, privacy policy, and terms.",
+          "Guidelines:",
+          "- Understand casual, natural phrasing and map it to the right topic (e.g. 'what about billing' → Plans & Billing; 'how do I get paid' / 'can clients pay online' → Payments/Razorpay; 'is my data safe' → privacy).",
+          "- When the docs cover it, answer directly and confidently in your own words. Be concise (usually 1–4 short sentences); add clear step-by-step instructions only when they genuinely help. Don't paste raw doc text.",
+          "- If the exact answer isn't in the docs, still give the closest helpful information you can, then point them to email support@stackivo.me or the in-app chat bubble. NEVER reply with a blunt 'I don't know' or 'not found in the docs'.",
+          "- For things that depend on their own account/data (their billing status, their numbers), explain how they can find or do it themselves.",
+          "- Never invent features, prices, or policies that the documentation doesn't support.",
+          "Set usedDocs to true whenever your answer is grounded in the provided documentation. Return JSON: { answer: string, usedDocs: boolean }.",
+        ].join("\n"),
       },
       {
         role: "user",
@@ -1371,7 +1456,7 @@ export async function answerFromDocsAction(input: z.infer<typeof aiDocsQuestionS
       ok: true as const,
       data: {
         answer:
-          "I could not read a precise answer from the docs yet. Share a little more detail, or use support and I will send this to the Stackivo team.",
+          "Sorry, I couldn't pull that up just now — mind rephrasing, or telling me a bit more about what you're trying to do? You can also reach the team at support@stackivo.me or the chat bubble in the bottom-right.",
         usedDocs: false,
       },
     };
