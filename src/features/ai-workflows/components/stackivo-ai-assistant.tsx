@@ -1500,6 +1500,14 @@ export function StackivoAiAssistant({ clients, projects }: StackivoAiAssistantPr
       setProjectId("");
       setActiveContract(null);
       push({ role: "assistant", content: <span className="block">{modeIntro(nextMode)}</span> });
+      // Proactively start the walkthrough by asking the first required field,
+      // so picking a workflow doesn't leave the user at a blank prompt with no
+      // follow-up. (Support/general are free-form, so they wait for input.)
+      if (nextMode !== "general" && nextMode !== "support") {
+        startTransition(async () => {
+          await runWorkflowRef.current(nextMode, {}, "", "", "");
+        });
+      }
     },
     [push],
   );
