@@ -1714,14 +1714,14 @@ export function StackivoAiAssistant({ clients, projects }: StackivoAiAssistantPr
         >
           {/* Header */}
           <div className="sticky top-0 z-10 flex h-14 items-center justify-between border-b bg-background px-4">
-            <button
-              type="button"
-              className="inline-flex items-center gap-2 text-left font-semibold"
-              onClick={() => setMode("general")}
-            >
-              <StackivoMark className="h-6 w-6" bare />
-              New conversation
-            </button>
+            <div className="inline-flex min-w-0 items-center gap-2 text-left font-semibold">
+              <StackivoMark className="h-6 w-6 shrink-0" bare />
+              <span className="truncate">
+                {mode === "general"
+                  ? "New conversation"
+                  : QUICK_ACTIONS.find((a) => a.mode === mode)?.title ?? "New conversation"}
+              </span>
+            </div>
             <div className="flex items-center gap-1">
               <Button
                 type="button"
