@@ -17,6 +17,7 @@ interface InterpretContext {
   collected?: AiFields;
   clients: ClientRecord[];
   projects: ProjectRecord[];
+  history?: Array<{ role: "user" | "assistant"; content: string }>;
 }
 
 const CANONICAL_FIELDS: Record<string, string[]> = {
@@ -24,7 +25,7 @@ const CANONICAL_FIELDS: Record<string, string[]> = {
   contract: ["scope", "type", "commercials", "clauses", "amount"],
   welcome_document: ["relationship", "process", "operations", "tone"],
   client: ["fullName", "businessName", "email", "phone", "billingAddress", "state", "notes"],
-  project: ["name", "scope", "status", "dates"],
+  project: ["name", "scope", "status", "dates", "dueDate"],
   time_entry: ["description", "duration", "billable"],
   support: ["question", "page"],
 };
@@ -82,12 +83,20 @@ function detectIntentLocally(text: string): { intent: AiIntent; confident: boole
 }
 
 function amountFromText(text: string): string {
-  const normalized = text.replace(/,/g, "");
+  // Drop percentages, then understand k / lakh / crore suffixes and currency.
+  const cleaned = text.replace(/\d+(?:\.\d+)?\s*%/g, " ").replace(/,/g, "");
+  const suffix = cleaned.match(/(\d+(?:\.\d+)?)\s*(k|lakhs?|lac|l|crores?|cr)\b/i);
+  if (suffix) {
+    const n = Number(suffix[1]);
+    const unit = suffix[2].toLowerCase();
+    const mult = unit.startsWith("k") ? 1e3 : unit.startsWith("c") ? 1e7 : 1e5;
+    return String(Math.round(n * mult));
+  }
   const match =
-    normalized.match(/(?:₹|rs\.?|inr)\s*(\d+(?:\.\d+)?)/i) ??
-    normalized.match(/(\d+(?:\.\d+)?)\s*(?:₹|rs\.?|inr)/i) ??
-    normalized.match(/\b(\d{3,}(?:\.\d+)?)\b/);
-  return match ? match[1] : "";
+    cleaned.match(/(?:₹|rs\.?|inr|rup\w*)\s*(\d+(?:\.\d+)?)/i) ??
+    cleaned.match(/(\d+(?:\.\d+)?)\s*(?:₹|rs\.?|inr|rup\w*)/i) ??
+    cleaned.match(/\b(\d{3,}(?:\.\d+)?)\b/);
+  return match ? String(Math.round(Number(match[1]))) : "";
 }
 
 function normalize(value: string) {
@@ -103,12 +112,40 @@ const ENTITY_STOPWORDS = new Set([
   "services", "solutions", "company", "pvt", "ltd", "inc", "llp",
 ]);
 
+/** Levenshtein edit distance (small inputs — entity name words). */
+function editDistance(a: string, b: string): number {
+  const m = a.length;
+  const n = b.length;
+  if (m === 0) return n;
+  if (n === 0) return m;
+  let prev = Array.from({ length: n + 1 }, (_, i) => i);
+  let curr = new Array<number>(n + 1);
+  for (let i = 1; i <= m; i++) {
+    curr[0] = i;
+    for (let j = 1; j <= n; j++) {
+      const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+      curr[j] = Math.min(prev[j] + 1, curr[j - 1] + 1, prev[j - 1] + cost);
+    }
+    [prev, curr] = [curr, prev];
+  }
+  return prev[n];
+}
+
+/** Fuzzy word equality — tolerant of small typos (e.g. "corp" vs "crop"). */
+function fuzzyWordEq(a: string, b: string): boolean {
+  if (a === b) return true;
+  const allowed = b.length <= 4 ? 1 : 2;
+  if (Math.abs(a.length - b.length) > allowed) return false;
+  return editDistance(a, b) <= allowed;
+}
+
 function resolveEntity<T extends { id: string }>(
   text: string,
   items: T[],
   label: (item: T) => string,
 ): string | undefined {
   const haystack = ` ${normalize(text)} `;
+  const tokens = normalize(text).split(" ").filter((w) => w.length >= 3);
   let best: { id: string; score: number } | null = null;
   for (const item of items) {
     const name = normalize(label(item));
@@ -129,6 +166,14 @@ function resolveEntity<T extends { id: string }>(
       const matched = significant.filter((w) => haystack.includes(` ${w} `));
       if (matched.length === significant.length) {
         score = matched.reduce((s, w) => s + w.length, 0);
+      } else {
+        // Typo-tolerant fallback: every significant word must FUZZY-match a
+        // token in the message (handles "acme crop" -> "Acme Corp"). Scored
+        // slightly lower so an exact match always wins.
+        const fuzzy = significant.filter((w) => tokens.some((tk) => fuzzyWordEq(tk, w)));
+        if (fuzzy.length === significant.length) {
+          score = fuzzy.reduce((s, w) => s + w.length, 0) - 1;
+        }
       }
     }
     if (score > 0 && (!best || score > best.score)) best = { id: item.id, score };
@@ -185,17 +230,45 @@ export async function interpretMessage(ctx: InterpretContext): Promise<AiInterpr
       {
         role: "system",
         content: [
-          "You are the routing + extraction brain of Stackivo, a workflow automation tool for freelancers and agencies.",
-          "Classify the user's message into exactly one intent and extract structured fields. Return ONLY JSON.",
-          `Valid intents: ${[...AI_WORKFLOWS, "general"].join(", ")}.`,
-          "If the user clearly asks to start or switch to a different task (e.g. 'now create a client', 'actually make an invoice'), set intent to that task and confident=true.",
-          "If the message just adds detail to the current workflow, keep the current workflow as the intent.",
-          "Resolve clientId/projectId to an id from the provided lists ONLY when the message explicitly names that exact client/project. Never infer a client from generic words (e.g. 'design', 'new', 'website') and never carry over a client from a previous task — leave the id empty if unsure.",
-          "Never invent ids, money totals, taxes, or private data. Extract only what the user stated.",
-          "Field keys by intent — invoice: workDescription, amount, quantity, dueDate, discount, notes; contract: scope, type, commercials, clauses, amount; welcome_document: relationship, process, operations, tone; client: fullName, businessName, email, phone, billingAddress, state, notes; project: name, scope, status, dates; time_entry: description, duration, billable; support: question, page.",
-          "amount/discount must be plain numbers as strings (no currency symbols). billable is 'true' or 'false'.",
-          'Return shape: {"intent":"...","confident":true,"fields":{...},"clientId":"","projectId":""}.',
-        ].join(" "),
+          "You are Stackivo's intelligence layer — the routing and extraction brain of a workflow tool for Indian freelancers and agencies.",
+          "Read the user's message like a sharp human assistant: tolerate typos, slang, shorthand, casual phrasing and messy formatting. Work out the intent and pull out CLEAN, NORMALIZED structured data. Return ONLY JSON.",
+          "",
+          `INTENT — choose exactly one of: ${[...AI_WORKFLOWS, "general"].join(", ")}.`,
+          "- If the user clearly asks to start or switch task ('now create a client', 'actually make an invoice'), set that intent with confident=true.",
+          "- If the message only adds detail to the current workflow, keep the current workflow as the intent.",
+          "- For product/help questions use 'support'; for greetings or small talk use 'general'.",
+          "",
+          "FIELD KEYS by intent:",
+          "- invoice: workDescription, amount, quantity, dueDate, discount, notes",
+          "- contract: scope, type, commercials, clauses, amount",
+          "- welcome_document: relationship, process, operations, tone",
+          "- client: fullName, businessName, email, phone, billingAddress, state, notes",
+          "- project: name, scope, status, dates, dueDate",
+          "- time_entry: description, duration, billable",
+          "- support: question, page",
+          "",
+          "NORMALIZE every value — do the interpretation HERE, never echo raw messy text for these:",
+          "- Money (amount, fees, contract value): a plain integer of rupees, no symbols/separators. Understand Indian formats and typos: '₹1,50,000' / '1.5L' / '1.5 lakh' / '1,50,000 ruppees' = 150000; '50k' = 50000; '2cr' / '2 crore' = 20000000. NEVER treat a percentage like '50% upfront' as the amount.",
+          "- discount: a percentage as '10%', or a flat rupee amount as a plain integer. Empty if none.",
+          "- dueDate, and project dates/dueDate: an ISO date 'YYYY-MM-DD'. Resolve relative phrases against the provided 'today': 'tomorrow', 'in N days/weeks/months', 'next week', 'next month', 'end of month', weekday names. For a project, put a start in 'dates' and the deadline in 'dueDate'.",
+          "- duration (time_entry): total MINUTES as an integer string ('2h 30m' = '150', '1.5 hours' = '90', '45m' = '45').",
+          "- billable: 'true' or 'false'.",
+          "- state (client): the full official Indian state/UT name ('Maharashtra', 'Madhya Pradesh'); infer from a clearly stated city ('Indore' = 'Madhya Pradesh').",
+          "- email/phone: clean values; phone digits with optional +country code.",
+          "- type (contract): one of proposal, agreement, nda, retainer when stated.",
+          "",
+          "CONTEXT: use recentMessages and alreadyCollected to understand the flow — resolve references ('the same client', 'that project'), corrections ('actually make it 6000', 'change the due date to next month'), and short follow-ups. When the user corrects a value, return the corrected field.",
+          "CLIENT/PROJECT RESOLUTION: set clientId/projectId to an id from the provided lists ONLY when the message explicitly names that exact client/project. Never infer from generic words ('design', 'new', 'website') and never carry a client over from a previous task. Leave empty if unsure.",
+          "",
+          "RULES: extract only what the user actually stated or clearly implied — never invent amounts, taxes, ids, dates or private data. Omit a field (or use '') when unknown. Fix typos in meaning, do not invent facts.",
+          "",
+          'Return shape: {"intent":"...","confident":true|false,"fields":{...},"clientId":"","projectId":""}.',
+          "",
+          "Examples:",
+          'message "invoice acme 1.5L for logo redesign, 10% off, due in 2 weeks", today "2026-06-08" -> {"intent":"invoice","confident":true,"fields":{"workDescription":"logo redesign","amount":"150000","discount":"10%","dueDate":"2026-06-22"},"clientId":"","projectId":""}',
+          'message "logged 2h 30m on wireframes, billable" -> {"intent":"time_entry","confident":true,"fields":{"description":"wireframes","duration":"150","billable":"true"},"clientId":"","projectId":""}',
+          'message "add rupal jain, rupal@acme.com, indore" -> {"intent":"client","confident":true,"fields":{"fullName":"Rupal Jain","email":"rupal@acme.com","state":"Madhya Pradesh"},"clientId":"","projectId":""}',
+        ].join("\n"),
       },
       {
         role: "user",
@@ -203,9 +276,11 @@ export async function interpretMessage(ctx: InterpretContext): Promise<AiInterpr
           message: ctx.message,
           currentWorkflow: ctx.currentWorkflow ?? "general",
           alreadyCollected: ctx.collected ?? {},
+          recentMessages: ctx.history ?? [],
           clients: clientList,
           projects: projectList,
           fieldKeysByIntent: CANONICAL_FIELDS,
+          today: new Date().toISOString().slice(0, 10),
         }),
       },
     ],

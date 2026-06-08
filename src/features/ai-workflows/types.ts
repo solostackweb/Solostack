@@ -169,10 +169,17 @@ export interface AiInterpretation {
   provider: "groq" | "local";
 }
 
+/** A single prior turn of the conversation, used to give the model context. */
+export const aiHistoryTurnSchema = z.object({
+  role: z.enum(["user", "assistant"]),
+  content: z.string().max(4000),
+});
+
 export const aiInterpretRequestSchema = z.object({
   message: z.string().trim().min(1).max(6000),
   currentWorkflow: z.enum(AI_WORKFLOWS).optional(),
   collected: z.record(z.string()).optional(),
+  history: z.array(aiHistoryTurnSchema).max(20).optional(),
 });
 
 export type AiInterpretRequest = z.infer<typeof aiInterpretRequestSchema>;

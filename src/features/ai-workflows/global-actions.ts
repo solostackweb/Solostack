@@ -10,8 +10,8 @@ import { AUTH_LOGIN_ROUTE } from "@/features/auth/routes";
 import { env } from "@/config/env";
 import { getServerSupabase } from "@/lib/supabase/server";
 import { getProfile } from "@/features/profile/server";
-import { nextInvoiceNumber } from "@/features/invoices/server";
-import { createInvoiceAction, setInvoiceStatusAction } from "@/features/invoices/actions";
+import { nextInvoiceNumber, getInvoice } from "@/features/invoices/server";
+import { createInvoiceAction, setInvoiceStatusAction, updateInvoiceAction } from "@/features/invoices/actions";
 import { sendInvoiceAction } from "@/features/invoices/delivery";
 import { createContractAction, updateContractAction } from "@/features/contracts/actions";
 import { sendContractAction } from "@/features/contracts/delivery";
@@ -25,7 +25,9 @@ import { buildWaUrl } from "@/lib/whatsapp";
 import {
   createWelcomeDocumentAction,
   publishWelcomeDocumentAction,
+  updateWelcomeDocumentAction,
 } from "@/features/welcome-documents/actions";
+import { parseWelcomeContent } from "@/features/welcome-documents/content";
 import { sendWelcomeDocumentAction } from "@/features/welcome-documents/delivery";
 import {
   ensureWelcomePublicToken,
@@ -67,6 +69,10 @@ const aiContractIdSchema = z.object({
 
 const aiDocsQuestionSchema = z.object({
   question: z.string().trim().min(4).max(3000),
+  history: z
+    .array(z.object({ role: z.enum(["user", "assistant"]), content: z.string().max(4000) }))
+    .max(20)
+    .optional(),
 });
 
 async function requireUserId() {
@@ -300,6 +306,7 @@ export async function interpretAiMessageAction(input: z.infer<typeof aiInterpret
     message: parsed.data.message,
     currentWorkflow: parsed.data.currentWorkflow,
     collected: parsed.data.collected,
+    history: parsed.data.history,
     clients,
     projects,
   });
@@ -371,6 +378,9 @@ function discountFromAnswer(value: string, subtotal: number) {
 function dueDateFromPrompt(prompt: string, fallbackDays: number) {
   const date = new Date();
   const lower = prompt.toLowerCase();
+  // The NLU normalizes dates to ISO — trust an ISO date directly.
+  const isoMatch = prompt.match(/\b(\d{4}-\d{2}-\d{2})\b/);
+  if (isoMatch) return isoMatch[1];
   const daysMatch = lower.match(/\b(\d{1,3})\s*days?\b/);
   const weeksMatch = lower.match(/\b(\d{1,3})\s*weeks?\b/);
   const monthsMatch = lower.match(/\b(\d{1,3})\s*months?\b/);
@@ -1404,6 +1414,284 @@ export async function refineContractFromAiAction(
   };
 }
 
+const aiInvoiceRefineSchema = z.object({
+  invoiceId: z.string().uuid("Invalid invoice id"),
+  instruction: z.string().trim().min(2).max(2000),
+});
+
+/**
+ * Refine an existing AI-drafted invoice from a natural-language instruction
+ * ("set amount to 60000", "add 10% discount", "due next month", "rename work to
+ * logo design"). The NLU normalises the instruction into fields; we apply them
+ * to the (single-line) draft and let updateInvoiceAction recompute GST/totals.
+ */
+export async function refineInvoiceFromAiAction(
+  input: z.infer<typeof aiInvoiceRefineSchema>,
+) {
+  const parsed = aiInvoiceRefineSchema.safeParse(input);
+  if (!parsed.success) return { ok: false as const, error: "Tell me what to change in the invoice." };
+
+  const userId = await requireUserId();
+  const supabase = await getServerSupabase();
+  const profile = await getProfile();
+
+  const loaded = await getInvoice(parsed.data.invoiceId);
+  if (!loaded) return { ok: false as const, error: "Invoice not found." };
+  const { invoice, items } = loaded;
+  if (items.length !== 1) {
+    return {
+      ok: false as const,
+      error: "This invoice has multiple line items — open it to edit those directly.",
+    };
+  }
+  const line = items[0];
+
+  const [clients, projects] = await Promise.all([
+    listClients({ limit: 200 }),
+    listProjects({ limit: 200 }),
+  ]);
+  const nlu = await interpretMessage({
+    message: parsed.data.instruction,
+    currentWorkflow: "invoice",
+    clients,
+    projects,
+  });
+  const f = nlu.fields;
+
+  const changeKeys = ["amount", "discount", "dueDate", "notes", "workDescription", "quantity"];
+  if (!changeKeys.some((k) => cleanAiAnswer(f[k]))) {
+    return {
+      ok: false as const,
+      error:
+        "I couldn't tell what to change. Try e.g. “set amount to 60000”, “add 10% discount”, “due next month”, or “rename work to logo design”.",
+    };
+  }
+
+  const description = cleanAiAnswer(f.workDescription) || line.description;
+  const quantity = f.quantity ? quantityFromAnswer(f.quantity) : line.quantity || 1;
+  const originalSubtotal = f.amount ? amountFromField(f.amount) : line.unitPrice * line.quantity;
+  const discount = f.discount
+    ? discountFromAnswer(f.discount, originalSubtotal)
+    : Number(invoice.discount ?? 0);
+  const dueDate = f.dueDate
+    ? dueDateFromPrompt(f.dueDate, profile?.invoiceDefaultDueDays ?? 15)
+    : invoice.dueDate;
+  const notes = cleanAiAnswer(f.notes) || invoice.notes || "";
+  const unitPrice = quantity > 0 ? originalSubtotal / quantity : originalSubtotal;
+
+  const fd = new FormData();
+  fd.set("id", invoice.id);
+  fd.set(
+    "payload",
+    JSON.stringify({
+      clientId: invoice.clientId ?? "",
+      projectId: invoice.projectId ?? undefined,
+      invoiceNumber: invoice.invoiceNumber,
+      issueDate: invoice.issueDate,
+      dueDate,
+      currency: invoice.currency,
+      status: invoice.status,
+      discount,
+      notes: notes || undefined,
+      terms: invoice.terms || undefined,
+      lines: [{ description, quantity, unitPrice, gstRate: line.gstRate, position: 0 }],
+    }),
+  );
+
+  const res = await updateInvoiceAction(undefined, fd);
+  if (!res.ok) return { ok: false as const, error: res.error };
+
+  const [{ data: invoiceRow }, { data: clientRow }] = await Promise.all([
+    supabase
+      .from("invoices")
+      .select("id, invoice_number, currency, subtotal, discount_amount, gst_amount, total_amount, due_date, status, notes, terms")
+      .eq("id", invoice.id)
+      .eq("user_id", userId)
+      .maybeSingle(),
+    invoice.clientId
+      ? supabase
+          .from("clients")
+          .select("full_name, business_name, email, phone")
+          .eq("id", invoice.clientId)
+          .eq("user_id", userId)
+          .maybeSingle()
+      : Promise.resolve({ data: null }),
+  ]);
+  const row = invoiceRow as
+    | {
+        invoice_number?: string;
+        currency?: string;
+        subtotal?: number;
+        discount_amount?: number;
+        gst_amount?: number;
+        total_amount?: number;
+        due_date?: string;
+        status?: string;
+        notes?: string | null;
+        terms?: string | null;
+      }
+    | null;
+  const client = clientRow as
+    | { full_name?: string | null; business_name?: string | null; email?: string | null; phone?: string | null }
+    | null;
+
+  const netSubtotal = Math.max(0, originalSubtotal - discount);
+  return {
+    ok: true as const,
+    data: {
+      id: invoice.id,
+      invoiceNumber: row?.invoice_number ?? invoice.invoiceNumber,
+      clientName: client?.business_name || client?.full_name || "Selected client",
+      clientEmail: client?.email ?? null,
+      clientPhone: client?.phone ?? null,
+      description,
+      quantity,
+      unitPrice,
+      originalSubtotal,
+      discount: Number(row?.discount_amount ?? discount),
+      subtotal: Number(row?.subtotal ?? netSubtotal),
+      taxTotal: Number(row?.gst_amount ?? 0),
+      totalAmount: Number(row?.total_amount ?? netSubtotal),
+      currency: row?.currency ?? invoice.currency,
+      dueDate: row?.due_date ?? dueDate,
+      status: row?.status ?? invoice.status,
+      terms: row?.terms ?? invoice.terms ?? null,
+      notes: row?.notes ?? notes ?? null,
+    },
+    message: "Invoice updated.",
+  };
+}
+
+const aiWelcomeRefineSchema = z.object({
+  welcomeDocId: z.string().uuid("Invalid welcome document id"),
+  instruction: z.string().trim().min(2).max(2000),
+});
+
+/**
+ * Refine an existing AI-drafted welcome document from a natural-language
+ * instruction. Mirrors the contract refinement flow: re-draft the sections via
+ * Groq applying the requested change, then persist with updateWelcomeDocumentAction.
+ */
+export async function refineWelcomeDocFromAiAction(
+  input: z.infer<typeof aiWelcomeRefineSchema>,
+) {
+  const parsed = aiWelcomeRefineSchema.safeParse(input);
+  if (!parsed.success) return { ok: false as const, error: "Tell me what to change in the welcome document." };
+
+  const userId = await requireUserId();
+  const supabase = await getServerSupabase();
+
+  const { data: docRow } = await supabase
+    .from("welcome_documents")
+    .select("id, title, intro, content, client_id, project_id, acknowledgement_required, brand_color")
+    .eq("id", parsed.data.welcomeDocId)
+    .eq("user_id", userId)
+    .maybeSingle();
+  const doc = docRow as
+    | {
+        id: string;
+        title: string;
+        intro: string | null;
+        content: string | null;
+        client_id?: string | null;
+        project_id?: string | null;
+        acknowledgement_required?: boolean | null;
+        brand_color?: string | null;
+      }
+    | null;
+  if (!doc) return { ok: false as const, error: "Welcome document not found." };
+
+  const existingSections = parseWelcomeContent(doc.content).map((s) => ({
+    heading: s.heading,
+    body: s.body,
+  }));
+  const currentText = existingSections.map((s) => `## ${s.heading}\n${s.body}`).join("\n\n");
+  const brief = [
+    "Revise the EXISTING welcome/onboarding document below by applying the requested change.",
+    "Keep every unchanged section intact; only modify what the change requires.",
+    "",
+    "CURRENT DOCUMENT:",
+    currentText || "(empty document)",
+    "",
+    `REQUESTED CHANGE: ${parsed.data.instruction}`,
+  ].join("\n");
+
+  const fdDraft = new FormData();
+  fdDraft.set(
+    "payload",
+    JSON.stringify({
+      workflow: "welcome_document",
+      prompt: brief,
+      clientId: doc.client_id ?? "",
+      projectId: doc.project_id ?? "",
+    }),
+  );
+  const draftResult = await generateOperationalDraftAction(fdDraft);
+  if (!draftResult.ok || !("sections" in draftResult.data)) {
+    return {
+      ok: false as const,
+      error: draftResult.ok ? "Could not revise the welcome document." : draftResult.error,
+    };
+  }
+
+  const draft = draftResult.data as AiWelcomeDraft;
+  const sections = draft.sections.length > 0 ? draft.sections : existingSections;
+  const title = cleanAiAnswer(draft.title) || doc.title;
+  const intro = draft.intro ?? doc.intro ?? null;
+  const acknowledgementRequired = draft.acknowledgementRequired ?? doc.acknowledgement_required ?? false;
+
+  const res = await updateWelcomeDocumentAction({
+    id: doc.id,
+    title,
+    intro,
+    sections,
+    clientId: doc.client_id ?? null,
+    projectId: doc.project_id ?? null,
+    brandColor: doc.brand_color ?? null,
+    acknowledgementRequired,
+  });
+  if (!res.ok) return { ok: false as const, error: res.error };
+
+  const { data: clientRow } = doc.client_id
+    ? await supabase
+        .from("clients")
+        .select("full_name, business_name, email, phone")
+        .eq("id", doc.client_id)
+        .eq("user_id", userId)
+        .maybeSingle()
+    : { data: null };
+  const client = clientRow as
+    | { full_name?: string | null; business_name?: string | null; email?: string | null; phone?: string | null }
+    | null;
+
+  let projectName: string | null = null;
+  if (doc.project_id) {
+    const { data: projectRow } = await supabase
+      .from("projects")
+      .select("name")
+      .eq("id", doc.project_id)
+      .eq("user_id", userId)
+      .maybeSingle();
+    projectName = (projectRow as { name?: string | null } | null)?.name ?? null;
+  }
+
+  return {
+    ok: true as const,
+    data: {
+      id: doc.id,
+      title,
+      intro,
+      sections,
+      acknowledgementRequired,
+      clientName: client?.business_name || client?.full_name || null,
+      clientEmail: client?.email ?? null,
+      clientPhone: client?.phone ?? null,
+      projectName,
+    },
+    message: "Welcome document updated.",
+  };
+}
+
 export async function answerFromDocsAction(input: z.infer<typeof aiDocsQuestionSchema>) {
   const parsed = aiDocsQuestionSchema.safeParse(input);
   if (!parsed.success) {
@@ -1461,15 +1749,17 @@ export async function answerFromDocsAction(input: z.infer<typeof aiDocsQuestionS
           "- Understand casual, natural phrasing and map it to the right topic (e.g. 'what about billing' → Plans & Billing; 'how do I get paid' / 'can clients pay online' → Payments/Razorpay; 'is my data safe' → privacy).",
           "- When the docs cover it, answer directly and confidently in your own words. Be concise (usually 1–4 short sentences); add clear step-by-step instructions only when they genuinely help. Don't paste raw doc text.",
           "- If the exact answer isn't in the docs, still give the closest helpful information you can, then point them to email support@stackivo.me or the in-app chat bubble. NEVER reply with a blunt 'I don't know' or 'not found in the docs'.",
+          "- You may also help with general freelancing, invoicing, GST, contracts, and small-business questions from your own knowledge — be a genuinely useful assistant. But any claim about a Stackivo FEATURE, PRICE, or POLICY must be supported by the provided documentation; never invent those.",
+          "- Use recentMessages to understand follow-up questions and references (e.g. after 'what are the plans?' a follow-up 'what about the business one?' means the Business plan).",
           "- For things that depend on their own account/data (their billing status, their numbers), explain how they can find or do it themselves.",
-          "- Never invent features, prices, or policies that the documentation doesn't support.",
-          "Set usedDocs to true whenever your answer is grounded in the provided documentation. Return JSON: { answer: string, usedDocs: boolean }.",
+          "Set usedDocs to true when your answer relies on the provided documentation. Return JSON: { answer: string, usedDocs: boolean }.",
         ].join("\n"),
       },
       {
         role: "user",
         content: JSON.stringify({
           question: parsed.data.question,
+          recentMessages: parsed.data.history ?? [],
           context: combinedContext,
           requiredShape: {
             answer: "string",

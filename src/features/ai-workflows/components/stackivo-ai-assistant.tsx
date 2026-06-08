@@ -43,6 +43,8 @@ import {
   interpretAiMessageAction,
   invoiceWhatsappFromAiAction,
   refineContractFromAiAction,
+  refineInvoiceFromAiAction,
+  refineWelcomeDocFromAiAction,
   sendContractFromAiAction,
   sendWelcomeDocFromAiAction,
   welcomeDocWhatsappFromAiAction,
@@ -299,6 +301,22 @@ function isInformationalQuestion(text: string): boolean {
 /** Matches a short "skip"/"none" style reply to an optional prompt. */
 function isSkipReply(text: string): boolean {
   return /^(skip|none|no|n\/a|na|nope|nah|leave it|not now|-|—)$/i.test(text.trim());
+}
+
+/** A short affirmative reply to a confirmation prompt ("yes", "go ahead"). */
+function isAffirmative(text: string): boolean {
+  const t = text.trim().toLowerCase().replace(/[!.]+$/g, "");
+  return /^(y|yes+|yeah|yep|yup|ok|okay|sure|confirm|confirmed|create|create it|do it|go ahead|proceed|send it|sounds good|looks good|perfect|all good|that'?s right|correct)$/.test(
+    t,
+  );
+}
+
+/** A short negative/cancel reply to a confirmation prompt. */
+function isNegative(text: string): boolean {
+  const t = text.trim().toLowerCase().replace(/[!.]+$/g, "");
+  return /^(n|no|nope|nah|cancel|stop|don'?t|do not|abort|discard|wait|never mind|nevermind)$/.test(
+    t,
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -841,6 +859,19 @@ export function StackivoAiAssistant({ clients, projects }: StackivoAiAssistantPr
   // revise it instead of starting a new workflow).
   const [activeContract, setActiveContract] =
     React.useState<AiContractPreview | null>(null);
+  // Last created invoice / welcome doc kept open for in-panel refinement, so a
+  // follow-up like "set amount to 60000" revises it instead of starting over.
+  const [activeInvoice, setActiveInvoice] = React.useState<AiInvoicePreview | null>(null);
+  const [activeWelcomeDoc, setActiveWelcomeDoc] =
+    React.useState<AiWelcomeDocPreview | null>(null);
+  // When a confirmation summary is showing, a typed "yes"/"confirm"/"cancel"
+  // acts on it (in addition to the buttons).
+  const [pendingConfirm, setPendingConfirm] = React.useState<null | {
+    workflow: AiMode;
+    fields: AiFields;
+    cId: string;
+    pId: string;
+  }>(null);
   // Mobile/PWA: the desktop panel lives in a hidden md-only rail, so on small
   // screens we portal the panel to document.body and render it full-screen.
   const [isMobile, setIsMobile] = React.useState(false);
@@ -863,6 +894,11 @@ export function StackivoAiAssistant({ clients, projects }: StackivoAiAssistantPr
   ]);
   const scrollRef = React.useRef<HTMLDivElement>(null);
   const lastInvoicePreviewRef = React.useRef<AiInvoicePreview | null>(null);
+  // Plain-text transcript of the conversation (string turns only) so the model
+  // has memory for corrections, references, and follow-up questions.
+  const transcriptRef = React.useRef<Array<{ role: "user" | "assistant"; content: string }>>([]);
+  // Mirror of pendingConfirm read inside the submit handler without stale closures.
+  const pendingConfirmRef = React.useRef<typeof pendingConfirm>(null);
   const runWorkflowRef = React.useRef<
     (
       workflow: AiMode,
@@ -892,6 +928,10 @@ export function StackivoAiAssistant({ clients, projects }: StackivoAiAssistantPr
     setProjectId("");
     setLastInvoicePreview(null);
     setActiveContract(null);
+    setActiveInvoice(null);
+    setActiveWelcomeDoc(null);
+    setPendingConfirm(null);
+    transcriptRef.current = [];
     setMessages((prev) => prev.slice(0, 1));
   }, []);
 
@@ -915,6 +955,10 @@ export function StackivoAiAssistant({ clients, projects }: StackivoAiAssistantPr
   React.useEffect(() => {
     lastInvoicePreviewRef.current = lastInvoicePreview;
   }, [lastInvoicePreview]);
+
+  React.useEffect(() => {
+    pendingConfirmRef.current = pendingConfirm;
+  }, [pendingConfirm]);
 
   React.useEffect(() => {
     panelWidthRef.current = panelWidth;
@@ -971,6 +1015,13 @@ export function StackivoAiAssistant({ clients, projects }: StackivoAiAssistantPr
   }, [messages, open, pending]);
 
   const push = React.useCallback((message: Omit<Message, "id">) => {
+    // Record textual turns (skip JSX previews/pickers) as conversation memory.
+    if (typeof message.content === "string") {
+      transcriptRef.current = [
+        ...transcriptRef.current,
+        { role: message.role, content: message.content },
+      ].slice(-12);
+    }
     setMessages((prev) => [...prev, { ...message, id: newId() }]);
   }, []);
 
@@ -1130,7 +1181,10 @@ export function StackivoAiAssistant({ clients, projects }: StackivoAiAssistantPr
         push({ role: "assistant", content: "Tell me a little more about what you need." });
         return;
       }
-      const docs = await answerFromDocsAction({ question: text });
+      const docs = await answerFromDocsAction({
+        question: text,
+        history: transcriptRef.current.slice(0, -1),
+      });
       const answer = docs.ok
         ? docs.data.answer
         : "I'm not sure from the docs — could you rephrase, or tell me what you're trying to do? I can help with invoices, contracts, welcome docs, clients, projects, and time logs.";
@@ -1178,18 +1232,22 @@ export function StackivoAiAssistant({ clients, projects }: StackivoAiAssistantPr
       // Show a pre-create summary and wait for the user to approve it.
       const showConfirm = (summary: AiConfirmSummary) => {
         setPendingField(null);
+        // Remember the pending creation so a typed "yes"/"cancel" works too.
+        setPendingConfirm({ workflow, fields, cId, pId });
         push({
           role: "assistant",
           content: (
             <ConfirmBlock
               summary={summary}
               onConfirm={() => {
+                setPendingConfirm(null);
                 push({ role: "user", content: "Confirm" });
                 startTransition(async () => {
                   await runWorkflowRef.current(workflow, fields, cId, pId, "", true);
                 });
               }}
               onCancel={() => {
+                setPendingConfirm(null);
                 finish();
                 push({ role: "assistant", content: "No problem — cancelled. What next?" });
               }}
@@ -1311,6 +1369,9 @@ export function StackivoAiAssistant({ clients, projects }: StackivoAiAssistantPr
         setClientId("");
         setProjectId("");
         setActiveContract(null);
+        setActiveInvoice(null);
+        setActiveWelcomeDoc(null);
+        setPendingConfirm(null);
       };
 
       switch (workflow) {
@@ -1324,6 +1385,8 @@ export function StackivoAiAssistant({ clients, projects }: StackivoAiAssistantPr
           const preview = res.data.preview;
           setLastInvoicePreview(preview);
           finish();
+          // Keep the draft open for in-panel refinement (e.g. "set amount to 60000").
+          setActiveInvoice(preview);
           push({
             role: "assistant",
             content: (
@@ -1420,6 +1483,8 @@ export function StackivoAiAssistant({ clients, projects }: StackivoAiAssistantPr
             return;
           }
           finish();
+          // Keep the draft open for in-panel refinement.
+          setActiveWelcomeDoc(res.data);
           push({
             role: "assistant",
             content: (
@@ -1499,6 +1564,9 @@ export function StackivoAiAssistant({ clients, projects }: StackivoAiAssistantPr
       setClientId("");
       setProjectId("");
       setActiveContract(null);
+      setActiveInvoice(null);
+      setActiveWelcomeDoc(null);
+      setPendingConfirm(null);
       push({ role: "assistant", content: <span className="block">{modeIntro(nextMode)}</span> });
       // Proactively start the walkthrough by asking the first required field,
       // so picking a workflow doesn't leave the user at a blank prompt with no
@@ -1538,12 +1606,38 @@ export function StackivoAiAssistant({ clients, projects }: StackivoAiAssistantPr
     setInput("");
     push({ role: "user", content: text });
 
+    // A confirmation summary is showing — let a typed "yes"/"create"/"cancel"
+    // act on it, just like the buttons.
+    const pc = pendingConfirmRef.current;
+    if (pc) {
+      if (isAffirmative(text)) {
+        setPendingConfirm(null);
+        startTransition(async () => {
+          await runWorkflowRef.current(pc.workflow, pc.fields, pc.cId, pc.pId, "", true);
+        });
+        return;
+      }
+      if (isNegative(text)) {
+        setPendingConfirm(null);
+        setMode("general");
+        setCollected({});
+        setPendingField(null);
+        setClientId("");
+        setProjectId("");
+        push({ role: "assistant", content: "No problem — cancelled. What next?" });
+        return;
+      }
+      // Otherwise treat it as an edit/new input and re-interpret normally.
+      setPendingConfirm(null);
+    }
+
     startTransition(async () => {
       // 1. Interpret the message (intent + structured fields + resolved ids).
       const interpreted = await interpretAiMessageAction({
         message: text,
         currentWorkflow: mode === "general" ? undefined : mode,
         collected,
+        history: transcriptRef.current.slice(0, -1),
       });
       const nlu: AiInterpretation | null = interpreted.ok ? interpreted.data : null;
 
@@ -1590,6 +1684,72 @@ export function StackivoAiAssistant({ clients, projects }: StackivoAiAssistantPr
         setActiveContract(null);
       }
 
+      // 1c. If an invoice draft is open, revise it in place from the message —
+      // unless the user is clearly starting a new invoice or switching workflow.
+      if (activeInvoice) {
+        const chat = conversationalReply(text);
+        if (chat) { push({ role: "assistant", content: chat }); return; }
+        const switchingAway =
+          !!nlu?.confident && nlu.intent !== "general" && nlu.intent !== "invoice";
+        const startsNew =
+          /\b(create|draft|make|generate|raise|new|another)\s+(a\s+|an\s+|another\s+|new\s+)?(new\s+)?(invoice|bill)\b/i.test(text) ||
+          /\b(new|another|second|separate|different)\s+invoice\b/i.test(text);
+        if (!switchingAway && !startsNew) {
+          const res = await refineInvoiceFromAiAction({
+            invoiceId: activeInvoice.id,
+            instruction: text,
+          });
+          if (!res.ok) { push({ role: "assistant", content: res.error }); return; }
+          setActiveInvoice(res.data);
+          setLastInvoicePreview(res.data);
+          push({
+            role: "assistant",
+            content: (
+              <InvoiceDraftPreview
+                preview={res.data}
+                onApprove={handleInvoiceApprove}
+                onOpen={() => router.push(`/dashboard/invoices/${res.data.id}`)}
+              />
+            ),
+          });
+          router.refresh();
+          return;
+        }
+        setActiveInvoice(null);
+      }
+
+      // 1d. If a welcome doc draft is open, revise it in place from the message.
+      if (activeWelcomeDoc) {
+        const chat = conversationalReply(text);
+        if (chat) { push({ role: "assistant", content: chat }); return; }
+        const switchingAway =
+          !!nlu?.confident && nlu.intent !== "general" && nlu.intent !== "welcome_document";
+        const startsNew =
+          /\b(create|draft|make|generate|prepare|new|another)\s+(a\s+|an\s+|another\s+|new\s+)?(new\s+)?(welcome|onboarding)\b/i.test(text) ||
+          /\b(new|another)\s+(welcome|onboarding)\b/i.test(text);
+        if (!switchingAway && !startsNew) {
+          const res = await refineWelcomeDocFromAiAction({
+            welcomeDocId: activeWelcomeDoc.id,
+            instruction: text,
+          });
+          if (!res.ok) { push({ role: "assistant", content: res.error }); return; }
+          setActiveWelcomeDoc(res.data);
+          push({
+            role: "assistant",
+            content: (
+              <WelcomeDocDraftPreview
+                preview={res.data}
+                onApprove={handleWelcomeDocApprove}
+                onOpen={() => router.push(`/dashboard/welcome/${res.data.id}`)}
+              />
+            ),
+          });
+          router.refresh();
+          return;
+        }
+        setActiveWelcomeDoc(null);
+      }
+
       // 2. Decide the target workflow.
       //    - From the home screen, an informational question ("what about
       //      billing?", "how do invoices work?") is answered from the docs
@@ -1626,10 +1786,14 @@ export function StackivoAiAssistant({ clients, projects }: StackivoAiAssistantPr
         // (e.g. a discount or due-date answer like "345") gets re-read as the
         // invoice amount and clobbers an earlier answer. An optional "skip" is
         // recorded as a sentinel so the field counts as addressed without
-        // inventing a value.
+        // inventing a value. When the NLU normalised THIS field (e.g. an amount
+        // or an ISO date), prefer that clean value over the raw text.
         merged = { ...baseFields };
+        const normalized = nlu?.fields?.[pendingField.field]?.trim();
         merged[pendingField.field] =
-          pendingField.optional && isSkipReply(text) ? AI_SKIP_SENTINEL : text;
+          pendingField.optional && isSkipReply(text)
+            ? AI_SKIP_SENTINEL
+            : normalized || text;
       } else {
         merged = { ...baseFields, ...(nlu?.fields ?? {}) };
       }
@@ -1651,8 +1815,12 @@ export function StackivoAiAssistant({ clients, projects }: StackivoAiAssistantPr
     input,
     pending,
     activeContract,
+    activeInvoice,
+    activeWelcomeDoc,
     handleContractApproveAndSend,
     handleContractWhatsApp,
+    handleInvoiceApprove,
+    handleWelcomeDocApprove,
     router,
     mode,
     collected,
