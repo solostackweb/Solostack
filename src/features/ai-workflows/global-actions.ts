@@ -895,16 +895,24 @@ export async function createInvoiceFromAiAction(input: AiCreateInput) {
   const profile = await getProfile();
 
   const clientId = parsed.data.clientId || "";
+  // Project allocation — "__no_project__" means the user chose no project.
+  const rawProjectId = parsed.data.projectId || "";
+  const projectSkipped = rawProjectId === NO_PROJECT_SENTINEL;
+  const projectId = projectSkipped ? "" : rawProjectId;
   const fallbackDueDays = profile?.invoiceDefaultDueDays ?? 15;
   const originalSubtotal = amountFromField(field(fields, "amount"));
 
-  const missing = nextMissingField("invoice", fields, { clientId, amount: originalSubtotal });
+  const missing = nextMissingField("invoice", fields, {
+    clientId,
+    amount: originalSubtotal,
+    projectId,
+    projectSkipped,
+  });
   if (missing) {
     return { ok: false as const, error: missing.question, missing };
   }
 
   const nextNumber = await nextInvoiceNumber(userId);
-  const projectId = parsed.data.projectId || "";
   const workDescription = field(fields, "workDescription") || "Professional services";
   const quantity = field(fields, "quantity") ? quantityFromAnswer(field(fields, "quantity")) : 1;
   const discount = field(fields, "discount")

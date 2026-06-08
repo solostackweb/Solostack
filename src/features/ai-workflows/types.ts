@@ -205,6 +205,7 @@ export interface AiFieldSpec {
 export const AI_FIELD_SEQUENCE: Record<AiWorkflow, AiFieldSpec[]> = {
   invoice: [
     { field: "clientId" },
+    { field: "projectId", optional: true },
     { field: "workDescription" },
     { field: "amount" },
     { field: "discount", optional: true },
