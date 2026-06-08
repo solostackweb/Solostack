@@ -370,12 +370,30 @@ function dueDateFromPrompt(prompt: string, fallbackDays: number) {
   const date = new Date();
   const lower = prompt.toLowerCase();
   const daysMatch = lower.match(/\b(\d{1,3})\s*days?\b/);
+  const weeksMatch = lower.match(/\b(\d{1,3})\s*weeks?\b/);
+  const monthsMatch = lower.match(/\b(\d{1,3})\s*months?\b/);
   if (daysMatch) {
     date.setDate(date.getDate() + Number(daysMatch[1]));
     return date.toISOString().slice(0, 10);
   }
+  if (weeksMatch) {
+    date.setDate(date.getDate() + Number(weeksMatch[1]) * 7);
+    return date.toISOString().slice(0, 10);
+  }
+  if (monthsMatch) {
+    date.setMonth(date.getMonth() + Number(monthsMatch[1]));
+    return date.toISOString().slice(0, 10);
+  }
+  if (lower.includes("tomorrow")) {
+    date.setDate(date.getDate() + 1);
+    return date.toISOString().slice(0, 10);
+  }
   if (lower.includes("next week")) {
     date.setDate(date.getDate() + 7);
+    return date.toISOString().slice(0, 10);
+  }
+  if (lower.includes("next month")) {
+    date.setMonth(date.getMonth() + 1);
     return date.toISOString().slice(0, 10);
   }
   if (lower.includes("month end") || lower.includes("end of month")) {
@@ -449,6 +467,12 @@ function addDays(date: Date, days: number) {
   return next;
 }
 
+function addMonths(date: Date, months: number) {
+  const next = new Date(date);
+  next.setMonth(next.getMonth() + months);
+  return next;
+}
+
 function isoDate(date: Date) {
   return date.toISOString().slice(0, 10);
 }
@@ -500,11 +524,17 @@ function parseProjectDates(value: string) {
   }
 
   if (!dueDate) {
-    const dueDays = lower.match(/(?:due|deadline|complete|finish|ends?)\s*(?:in\s*)?(\d{1,3})\s*days?/);
+    const lead = "(?:due|deadline|complete|finish|ends?|in)\\s*(?:in\\s*)?";
+    const dueDays = lower.match(new RegExp(`${lead}(\\d{1,3})\\s*days?`));
+    const dueWeeks = lower.match(new RegExp(`${lead}(\\d{1,3})\\s*weeks?`));
+    const dueMonths = lower.match(new RegExp(`${lead}(\\d{1,3})\\s*months?`));
     if (dueDays) dueDate = isoDate(addDays(todayDate, Number(dueDays[1])));
-    else if (lower.includes("due next week") || lower.includes("deadline next week")) dueDate = isoDate(addDays(todayDate, 7));
+    else if (dueWeeks) dueDate = isoDate(addDays(todayDate, Number(dueWeeks[1]) * 7));
+    else if (dueMonths) dueDate = isoDate(addMonths(todayDate, Number(dueMonths[1])));
+    else if (lower.includes("due next week") || lower.includes("deadline next week") || lower.includes("next week")) dueDate = isoDate(addDays(todayDate, 7));
     else if (lower.includes("due end of month") || lower.includes("end of month")) dueDate = isoDate(endOfMonth(todayDate));
-    else if (lower.includes("due next month") || lower.includes("next month")) dueDate = isoDate(endOfMonth(addDays(endOfMonth(todayDate), 1)));
+    else if (lower.includes("due next month") || lower.includes("next month")) dueDate = isoDate(endOfMonth(addMonths(todayDate, 1)));
+    else if (lower.includes("tomorrow")) dueDate = isoDate(addDays(todayDate, 1));
   }
 
   return { startDate, dueDate };
