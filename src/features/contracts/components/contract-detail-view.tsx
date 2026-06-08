@@ -113,6 +113,7 @@ export function ContractDetailView({
   const [editing, setEditing] = React.useState(false);
   const [savingEdits, setSavingEdits] = React.useState(false);
   const [draftTitle, setDraftTitle] = React.useState(contract.title);
+  const [draftValue, setDraftValue] = React.useState("");
   const [draftSections, setDraftSections] = React.useState<ParsedSection[]>([]);
 
   // A signed/declined contract is locked — edits are only allowed before that.
@@ -120,6 +121,11 @@ export function ContractDetailView({
 
   const enterEdit = () => {
     setDraftTitle(contract.title);
+    setDraftValue(
+      contract.valueAmount != null && contract.valueAmount > 0
+        ? String(contract.valueAmount)
+        : "",
+    );
     setDraftSections(
       sections.length > 0
         ? sections.map((s) => ({ ...s }))
@@ -152,7 +158,9 @@ export function ContractDetailView({
     if (contract.projectId) fd.set("projectId", contract.projectId);
     fd.set("status", contract.status);
     fd.set("currency", contract.currency || "INR");
-    if (contract.valueAmount != null) fd.set("valueAmount", String(contract.valueAmount));
+    // Strip currency symbols / separators so "1,50,000" or "₹1.5L"-style input
+    // becomes a clean number; empty clears the value.
+    fd.set("valueAmount", draftValue.replace(/[^0-9.]/g, ""));
     if (contract.expiresAt) fd.set("expiresAt", contract.expiresAt);
     setSavingEdits(true);
     startTransition(async () => {
@@ -415,15 +423,28 @@ export function ContractDetailView({
           <CardContent className="space-y-6 p-5 sm:p-8">
             {editing ? (
               <div className="space-y-5">
-                <div className="space-y-1.5">
-                  <label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                    Title
-                  </label>
-                  <Input
-                    value={draftTitle}
-                    onChange={(e) => setDraftTitle(e.target.value)}
-                    placeholder="Contract title"
-                  />
+                <div className="grid gap-3 sm:grid-cols-[1fr_180px]">
+                  <div className="space-y-1.5">
+                    <label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                      Title
+                    </label>
+                    <Input
+                      value={draftTitle}
+                      onChange={(e) => setDraftTitle(e.target.value)}
+                      placeholder="Contract title"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                      Value (₹)
+                    </label>
+                    <Input
+                      inputMode="decimal"
+                      value={draftValue}
+                      onChange={(e) => setDraftValue(e.target.value)}
+                      placeholder="e.g. 150000"
+                    />
+                  </div>
                 </div>
                 <div className="space-y-3">
                   {draftSections.map((s, i) => (

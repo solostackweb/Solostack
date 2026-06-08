@@ -311,7 +311,9 @@ export async function interpretAiMessageAction(input: z.infer<typeof aiInterpret
 const CURRENCY_TOKEN = String.raw`(?:₹|rs\.?|inr|rupees?|rup\w*|\/-)`;
 
 function amountFromPrompt(prompt: string) {
-  const normalized = prompt.replace(/,/g, "");
+  // Drop percentage figures (e.g. "50% upfront") first so they're never
+  // mistaken for the amount, then strip thousands separators.
+  const normalized = prompt.replace(/\d+(?:\.\d+)?\s*%/g, " ").replace(/,/g, "");
   const match =
     normalized.match(new RegExp(`${CURRENCY_TOKEN}\\s*(\\d+(?:\\.\\d+)?)`, "i")) ??
     normalized.match(new RegExp(`(\\d+(?:\\.\\d+)?)\\s*${CURRENCY_TOKEN}`, "i")) ??
@@ -569,7 +571,11 @@ function amountFromField(value: string) {
   if (!cleaned) return 0;
   const viaPrompt = amountFromPrompt(cleaned);
   if (viaPrompt > 0) return viaPrompt;
-  const number = cleaned.replace(/,/g, "").match(/\d+(?:\.\d+)?/)?.[0];
+  // Fallback: also ignore percentage figures so "50% upfront" never wins.
+  const number = cleaned
+    .replace(/\d+(?:\.\d+)?\s*%/g, " ")
+    .replace(/,/g, "")
+    .match(/\d+(?:\.\d+)?/)?.[0];
   const parsed = number ? Number(number) : 0;
   return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
 }
