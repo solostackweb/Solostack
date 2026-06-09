@@ -2290,43 +2290,36 @@ export function StackivoAiAssistant({ clients, projects }: StackivoAiAssistantPr
             {/* Greeting + quick actions (general mode, no conversation yet) */}
             {mode === "general" && messages.length <= 1 && (
               <>
-                <div className="grid gap-4 md:grid-cols-[1.1fr_0.9fr] md:items-center">
-                  <div className="space-y-3">
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-primary/70">
-                      Stackivo AI
-                    </p>
-                    <h2 className="text-2xl font-semibold tracking-tight">What are we doing today?</h2>
-                    <p className="max-w-md text-sm leading-relaxed text-muted-foreground">
-                      Chat freely, pick a workflow, or let AI draft the document or action you need.
-                    </p>
-                  </div>
-                  <div className="flex justify-center md:justify-end">
-                    <div className="relative flex h-28 w-full max-w-[240px] items-center justify-center overflow-hidden rounded-3xl border bg-[linear-gradient(180deg,hsl(var(--primary)/0.08),hsl(var(--background))_75%)]">
-                      <span className="absolute left-10 top-8 h-14 w-14 rounded-full bg-primary/20 blur-sm" />
-                      <span className="absolute left-16 top-5 h-16 w-16 rounded-full bg-primary/15" />
-                      <span className="absolute right-10 top-8 h-14 w-14 rounded-full bg-primary/80 shadow-[0_0_30px_rgba(59,130,246,0.18)]" />
-                      <StackivoMark className="relative h-14 w-14 shadow-lg" />
-                    </div>
-                  </div>
+                <div className="space-y-1.5">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-primary/70">
+                    Stackivo AI
+                  </p>
+                  <h2 className="text-xl font-semibold tracking-tight">What are we doing today?</h2>
+                  <p className="text-sm leading-relaxed text-muted-foreground">
+                    Pick a workflow below, or just describe what you need.
+                  </p>
                 </div>
 
-                <div className="grid gap-3 md:grid-cols-2">
+                {/* Compact, container-based grid so 7 items lay out cleanly at
+                    any panel width (the panel is portaled, so viewport `md:`
+                    breakpoints don't reflect its real width). */}
+                <div className="grid gap-2 [grid-template-columns:repeat(auto-fill,minmax(150px,1fr))]">
                   {QUICK_ACTIONS.map((action) => (
                     <button
                       key={action.mode}
                       type="button"
                       onClick={() => selectMode(action.mode)}
                       className={cn(
-                        "flex min-h-24 items-start gap-3 rounded-2xl border bg-background/95 p-4 text-left transition-all hover:-translate-y-0.5 hover:border-primary/30 hover:bg-primary/5",
+                        "flex items-center gap-2.5 rounded-xl border bg-background/95 p-3 text-left transition-all hover:border-primary/30 hover:bg-primary/5",
                         mode === action.mode && "border-primary/50 bg-primary/5 ring-1 ring-primary/20",
                       )}
+                      title={action.description}
                     >
-                      <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
                         <action.icon className="h-4 w-4" />
                       </span>
-                      <span className="min-w-0">
-                        <span className="block text-sm font-medium leading-5">{action.title}</span>
-                        <span className="mt-0.5 block text-xs leading-5 text-muted-foreground">{action.description}</span>
+                      <span className="min-w-0 text-sm font-medium leading-tight">
+                        {action.title}
                       </span>
                     </button>
                   ))}
@@ -2439,14 +2432,19 @@ export function StackivoAiAssistant({ clients, projects }: StackivoAiAssistantPr
                 </Button>
               </div>
             </div>
-            <p className="mt-2 flex items-center gap-1.5 px-1 text-[11px] text-muted-foreground">
-              <Lightbulb className="h-3 w-3 shrink-0 text-primary/60" />
-              Tip: use the
-              <LayoutGrid className="h-3 w-3 shrink-0" />
-              menu to switch tasks, or
-              <Plus className="h-3 w-3 shrink-0" />
-              to start a new chat.
-            </p>
+            <div className="mt-2 space-y-1 px-1">
+              <p className="flex flex-wrap items-center gap-1.5 text-[11px] text-muted-foreground">
+                <Lightbulb className="h-3 w-3 shrink-0 text-primary/60" />
+                Tip: use the
+                <LayoutGrid className="inline h-3 w-3 shrink-0" />
+                menu to switch tasks, or
+                <Plus className="inline h-3 w-3 shrink-0" />
+                to start a new chat.
+              </p>
+              <p className="text-center text-[10px] text-muted-foreground/70">
+                AI can make mistakes — please review everything before approving or sending.
+              </p>
+            </div>
           </div>
         </div>
       ), isMobile ? document.body : (panelSlot ?? document.body)) : null}
