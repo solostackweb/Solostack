@@ -14,6 +14,7 @@ import {
   FileText,
   Headphones,
   LayoutDashboard,
+  Lightbulb,
   Mail,
   Maximize2,
   MessageCircle,
@@ -92,6 +93,10 @@ interface Message {
   id: string;
   role: "assistant" | "user";
   content: React.ReactNode;
+  /** Optional one-tap quick replies shown under an assistant message. */
+  suggestions?: string[];
+  /** Optional short professional tip shown under an assistant message. */
+  tip?: string;
 }
 
 interface AiInvoicePreview {
@@ -263,10 +268,11 @@ function modeIntro(mode: AiMode): string {
  */
 function conversationalReply(text: string): string | null {
   const t = text.trim().toLowerCase().replace(/[!.?,]+$/g, "");
-  if (/^(hi+|hey+|hello+|yo|hiya|namaste|good (morning|afternoon|evening))\b/.test(t)) {
+  // Greetings — tolerant of common typos (helo, helloo, hii, heyy, gud morning).
+  if (/^(hi+|hey+|h(e|a)l+o+|hii+|heyy+|yo+|hiya|hello+|namaste|namaskar|hii?ya|good ?(morning|afternoon|evening|day)|gud ?(morning|mrng|eve))\b/.test(t)) {
     return "Hey! I can create invoices, contracts, and welcome docs, add clients and projects, log time, or answer questions about Stackivo. What would you like to do?";
   }
-  if (/^(thanks|thank you|thx|ty|great|perfect|awesome|cool|nice|ok|okay|okey|got it|cheers)( (so much|a lot|you|man|mate|buddy))?$/.test(t)) {
+  if (/^(thanks?|thank ?(you|u)|thnx|thnks|thanx|thx|ty|tysm|great|perfect|awesome|cool|nice|ok+|okay|okey|k|got it|cheers|appreciate it)( (so much|a lot|you|u|man|mate|buddy|bro))?$/.test(t)) {
     return "Anytime! Tell me the next thing you'd like to do.";
   }
   if (/\b(can|could|may) i ask( you)?( a| you a)? ?(question|something|doubt)?\b|^ask you|are you (there|online|here)|you there/.test(t)) {
@@ -306,6 +312,42 @@ function isSkipReply(text: string): boolean {
   return /^(skip|none|no|n\/a|na|nope|nah|leave it|not now|-|—)$/i.test(text.trim());
 }
 
+/**
+ * Sanity-check a typed answer against the field it's meant to fill. Returns a
+ * gentle correction string when the answer clearly can't work (e.g. no number
+ * for an amount, no time unit for a duration, no date for a due date) so the
+ * assistant can re-ask instead of silently saving nonsense. Returns null when
+ * the answer looks plausible (we stay lenient — better to accept than to nag).
+ */
+function fieldValidationError(field: string, text: string): string | null {
+  const t = text.trim();
+  const hasNumber = /\d/.test(t);
+  switch (field) {
+    case "amount":
+      if (!hasNumber)
+        return "I need a number for the amount — for example “50000” or “1.5L”. How much should I invoice (before tax)?";
+      return null;
+    case "duration":
+      if (!hasNumber)
+        return "Tell me how long in hours/minutes — for example “2h 30m” or “45m”. And is it billable?";
+      return null;
+    case "dueDate":
+      // A date, a relative phrase, or "skip" are all fine.
+      if (
+        !hasNumber &&
+        !/\b(today|tomorrow|week|month|monday|tuesday|wednesday|thursday|friday|saturday|sunday|eom|end of)\b/i.test(t)
+      )
+        return "When is it due? Try “in 15 days”, “next month”, a date like 2026-07-01 — or reply “skip”.";
+      return null;
+    case "email":
+      if (!/^\S+@\S+\.\S+$/.test(t))
+        return "That doesn't look like an email address — for example “name@company.com”. What's their email?";
+      return null;
+    default:
+      return null;
+  }
+}
+
 /** A short affirmative reply to a confirmation prompt ("yes", "go ahead"). */
 function isAffirmative(text: string): boolean {
   const t = text.trim().toLowerCase().replace(/[!.]+$/g, "");
@@ -320,6 +362,26 @@ function isNegative(text: string): boolean {
   return /^(n|no|nope|nah|cancel|stop|don'?t|do not|abort|discard|wait|never mind|nevermind)$/.test(
     t,
   );
+}
+
+/**
+ * Detects an intent to ABANDON the current workflow ("leave it", "cancel
+ * this", "let's do something else", "forget the contract", "never mind").
+ * Used to gracefully exit any in-progress flow (pending question, picker, or
+ * open draft) instead of re-asking. Phrased to avoid false positives on real
+ * answers — it looks for explicit drop/leave/cancel language.
+ */
+function isAbandonFlow(text: string): boolean {
+  const t = text.trim().toLowerCase().replace(/[!.]+$/g, "");
+  if (/^(cancel|stop|abort|forget it|never ?mind|leave it|drop it|exit|quit)$/.test(t)) {
+    return true;
+  }
+  return /\b(leave|drop|cancel|forget|skip|abandon|stop)\b.*\b(this|that|the (invoice|contract|proposal|client|project|welcome|document|doc|time)|it)\b/.test(
+    t,
+  ) ||
+    /\b(do|try|create|make|something) (something )?(else|different|other)\b/.test(t) ||
+    /\b(let'?s|lets|i want to|can we|how about we) (do|try) something else\b/.test(t) ||
+    /\bnever ?mind\b|\bforget (it|the|this|that)\b/.test(t);
 }
 
 // ---------------------------------------------------------------------------
@@ -1441,6 +1503,10 @@ export function StackivoAiAssistant({ clients, projects }: StackivoAiAssistantPr
                 ) : null}
               </>
             ),
+            suggestions: missing.optional
+              ? [...(missing.suggestions ?? []), "Skip"]
+              : missing.suggestions,
+            tip: missing.tip,
           });
         }
       };
@@ -1695,8 +1761,8 @@ export function StackivoAiAssistant({ clients, projects }: StackivoAiAssistantPr
 
   // ----- Submit handler -----
 
-  const handleSubmit = React.useCallback(() => {
-    const text = input.trim();
+  const handleSubmit = React.useCallback((override?: string) => {
+    const text = (override ?? input).trim();
     if (!text || pending) return;
     setInput("");
     push({ role: "user", content: text });
@@ -1724,6 +1790,77 @@ export function StackivoAiAssistant({ clients, projects }: StackivoAiAssistantPr
       }
       // Otherwise treat it as an edit/new input and re-interpret normally.
       setPendingConfirm(null);
+    }
+
+    // The user wants to abandon whatever is in progress ("leave it", "cancel
+    // this", "let's do something else"). Reset cleanly to the home screen and
+    // wait for their next instruction — works for ANY workflow, pending
+    // question, picker, or open draft.
+    const inProgress =
+      mode !== "general" ||
+      !!pendingField ||
+      !!activeContract ||
+      !!activeInvoice ||
+      !!activeWelcomeDoc;
+    if (inProgress && isAbandonFlow(text)) {
+      setMode("general");
+      setCollected({});
+      setPendingField(null);
+      setClientId("");
+      setProjectId("");
+      setActiveContract(null);
+      setActiveInvoice(null);
+      setActiveWelcomeDoc(null);
+      setPendingConfirm(null);
+      push({
+        role: "assistant",
+        content: "Sure — I've set that aside. What would you like to do next?",
+      });
+      return;
+    }
+
+    // Local short-circuits — handle these WITHOUT a Groq call to save tokens
+    // and latency. Only applies mid-flow (a field is pending), where the reply
+    // is unambiguous:
+    //   • "skip" on an optional field → record the skip and continue.
+    //   • a greeting / thanks / meta remark → reply conversationally + re-ask.
+    if (pendingField && pendingField.field !== "clientId") {
+      if (pendingField.optional && isSkipReply(text)) {
+        const merged = { ...collected, [pendingField.field]: AI_SKIP_SENTINEL };
+        setCollected(merged);
+        setPendingField(null);
+        startTransition(async () => {
+          await runWorkflowRef.current(mode, merged, clientId, projectId, "");
+        });
+        return;
+      }
+      const chat = conversationalReply(text);
+      if (chat) {
+        push({ role: "assistant", content: chat });
+        push({
+          role: "assistant",
+          content: (
+            <>
+              <span className="block">{pendingField.question}</span>
+              {pendingField.placeholder ? (
+                <span className="mt-1 block text-xs text-muted-foreground">
+                  {pendingField.placeholder}
+                </span>
+              ) : null}
+              {pendingField.optional ? (
+                <span className="mt-1 block text-xs text-muted-foreground">
+                  Optional — reply “skip” to leave it out.
+                </span>
+              ) : null}
+            </>
+          ),
+          suggestions: pendingField.optional
+            ? [...(pendingField.suggestions ?? []), "Skip"]
+            : pendingField.suggestions,
+          tip: pendingField.tip,
+        });
+        return;
+      }
     }
 
     startTransition(async () => {
@@ -1846,6 +1983,43 @@ export function StackivoAiAssistant({ clients, projects }: StackivoAiAssistantPr
         setActiveWelcomeDoc(null);
       }
 
+      // 1e. Mid-question chit-chat guard. If we're waiting on a specific field
+      // and the user types a greeting / thanks / meta remark (not an answer and
+      // not a confident switch to another task), reply conversationally and
+      // re-ask the SAME question — instead of saving "thanks" as the amount.
+      if (
+        pendingField &&
+        !(nlu?.confident && nlu.intent !== "general" && nlu.intent !== mode)
+      ) {
+        const chat = conversationalReply(text);
+        if (chat) {
+          push({ role: "assistant", content: chat });
+          push({
+            role: "assistant",
+            content: (
+              <>
+                <span className="block">{pendingField.question}</span>
+                {pendingField.placeholder ? (
+                  <span className="mt-1 block text-xs text-muted-foreground">
+                    {pendingField.placeholder}
+                  </span>
+                ) : null}
+                {pendingField.optional ? (
+                  <span className="mt-1 block text-xs text-muted-foreground">
+                    Optional — reply “skip” to leave it out.
+                  </span>
+                ) : null}
+              </>
+            ),
+            suggestions: pendingField.optional
+              ? [...(pendingField.suggestions ?? []), "Skip"]
+              : pendingField.suggestions,
+            tip: pendingField.tip,
+          });
+          return;
+        }
+      }
+
       // 2. Decide the target workflow.
       //    - From the home screen, an informational question ("what about
       //      billing?", "how do invoices work?") is answered from the docs
@@ -1872,6 +2046,41 @@ export function StackivoAiAssistant({ clients, projects }: StackivoAiAssistantPr
 
       const switching = targetMode !== mode;
       if (switching) setMode(targetMode);
+
+      // 2b. Validate a direct answer to a pending field before saving it. If the
+      // reply clearly can't fill that field (e.g. text for an amount) and the
+      // NLU didn't extract a clean value either, gently re-ask with an example
+      // rather than storing nonsense. Optional "skip" always passes.
+      if (
+        !switching &&
+        pendingField &&
+        pendingField.field !== "clientId" &&
+        !(pendingField.optional && isSkipReply(text)) &&
+        !nlu?.fields?.[pendingField.field]
+      ) {
+        const validationError = fieldValidationError(pendingField.field, text);
+        if (validationError) {
+          push({ role: "assistant", content: validationError });
+          push({
+            role: "assistant",
+            content: (
+              <>
+                <span className="block">{pendingField.question}</span>
+                {pendingField.placeholder ? (
+                  <span className="mt-1 block text-xs text-muted-foreground">
+                    {pendingField.placeholder}
+                  </span>
+                ) : null}
+              </>
+            ),
+            suggestions: pendingField.optional
+              ? [...(pendingField.suggestions ?? []), "Skip"]
+              : pendingField.suggestions,
+            tip: pendingField.tip,
+          });
+          return;
+        }
+      }
 
       // 3. Merge newly extracted fields onto what we already collected.
       const baseFields: AiFields = switching ? {} : { ...collected };
@@ -2092,23 +2301,54 @@ export function StackivoAiAssistant({ clients, projects }: StackivoAiAssistantPr
             )}
 
             {/* Message bubbles */}
-            {messages.map((message) => (
-              <div
-                key={message.id}
-                className={cn("flex", message.role === "user" ? "justify-end" : "justify-start")}
-              >
+            {messages.map((message, index) => {
+              // Quick-reply chips appear only under the most recent assistant
+              // message, so older questions don't keep stale chips around.
+              const isLast = index === messages.length - 1;
+              const showSuggestions =
+                isLast &&
+                !pending &&
+                message.role === "assistant" &&
+                !!message.suggestions?.length;
+              return (
                 <div
-                  className={cn(
-                    "max-w-[88%] rounded-2xl border px-4 py-3 text-sm leading-relaxed shadow-sm",
-                    message.role === "user"
-                      ? "border-primary bg-primary text-primary-foreground"
-                      : "mr-auto bg-muted/60",
-                  )}
+                  key={message.id}
+                  className={cn("flex flex-col", message.role === "user" ? "items-end" : "items-start")}
                 >
-                  {message.content}
+                  <div
+                    className={cn(
+                      "max-w-[88%] rounded-2xl border px-4 py-3 text-sm leading-relaxed shadow-sm",
+                      message.role === "user"
+                        ? "border-primary bg-primary text-primary-foreground"
+                        : "mr-auto bg-muted/60",
+                    )}
+                  >
+                    {message.content}
+                    {message.role === "assistant" && message.tip ? (
+                      <span className="mt-2 flex items-start gap-1.5 rounded-lg border border-primary/15 bg-primary/[0.04] px-2.5 py-1.5 text-xs text-muted-foreground">
+                        <Lightbulb className="mt-0.5 h-3 w-3 shrink-0 text-primary/70" />
+                        <span>{message.tip}</span>
+                      </span>
+                    ) : null}
+                  </div>
+                  {showSuggestions ? (
+                    <div className="mt-2 flex max-w-[88%] flex-wrap gap-1.5">
+                      {message.suggestions!.map((s) => (
+                        <button
+                          key={s}
+                          type="button"
+                          disabled={pending}
+                          onClick={() => handleSubmit(s)}
+                          className="rounded-full border bg-background px-3 py-1 text-xs text-foreground transition-colors hover:border-primary/40 hover:bg-primary/5 disabled:opacity-50"
+                        >
+                          {s}
+                        </button>
+                      ))}
+                    </div>
+                  ) : null}
                 </div>
-              </div>
-            ))}
+              );
+            })}
 
             {/* Typing indicator */}
             {pending && (
@@ -2158,7 +2398,7 @@ export function StackivoAiAssistant({ clients, projects }: StackivoAiAssistantPr
                   type="button"
                   size="icon"
                   className="h-9 w-9 rounded-full"
-                  onClick={handleSubmit}
+                  onClick={() => handleSubmit()}
                   disabled={pending || !input.trim()}
                 >
                   <ArrowUp className="h-4 w-4" />

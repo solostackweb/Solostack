@@ -143,6 +143,10 @@ export interface AiMissingField {
    * not already addressed it (the key is absent from the collected fields).
    */
   optional?: boolean;
+  /** Optional one-tap example answers the UI renders as quick-reply chips. */
+  suggestions?: string[];
+  /** Optional short professional tip shown beneath the question. */
+  tip?: string;
 }
 
 /**

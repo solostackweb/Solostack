@@ -195,8 +195,12 @@ export function requireServerEnv() {
     // when unset, AI workflow actions return a deterministic local draft so the
     // UI can still be exercised in dev without network access.
     groqApiKey: optional(process.env.GROQ_API_KEY),
+    // Default to a fast, non-reasoning model: it's cheaper and more reliable for
+    // the structured JSON extraction/drafting the assistant does (a reasoning
+    // model burns hidden chain-of-thought tokens here for no quality gain).
+    // Override via GROQ_MODEL if you want a different Groq-hosted model.
     groqModel:
-      optional(process.env.GROQ_MODEL) ?? "qwen/qwen3-32b",
+      optional(process.env.GROQ_MODEL) ?? "llama-3.3-70b-versatile",
     // -- Cloudflare R2 (Client Portal file storage) -----------------------
     // S3-compatible bucket for client-portal file uploads. We use R2
     // because it has zero egress fees, which lets us host customer

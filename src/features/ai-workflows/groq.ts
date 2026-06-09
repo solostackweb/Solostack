@@ -41,6 +41,14 @@ function parseJsonLoose(raw: string): unknown | null {
   }
 }
 
+/** Hard ceiling on a single Groq round-trip so a slow upstream can't hang the
+ *  user's request (and the serverless function) indefinitely. */
+const GROQ_TIMEOUT_MS = 12_000;
+/** One retry on transient failures (timeout / 5xx / 429), with brief backoff. */
+const GROQ_MAX_ATTEMPTS = 2;
+
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
 export async function generateStructuredJson({
   messages,
   temperature = 0.2,
@@ -62,29 +70,64 @@ export async function generateStructuredJson({
     serverEnv.groqModel,
   );
 
-  const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${serverEnv.groqApiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model: serverEnv.groqModel,
-      messages,
-      temperature,
-      max_tokens: maxTokens,
-      response_format: { type: "json_object" },
-      ...(isReasoningModel ? { reasoning_format: "hidden" } : {}),
-    }),
+  const body = JSON.stringify({
+    model: serverEnv.groqModel,
+    messages,
+    temperature,
+    max_tokens: maxTokens,
+    response_format: { type: "json_object" },
+    ...(isReasoningModel ? { reasoning_format: "hidden" } : {}),
   });
 
-  if (!res.ok) {
-    throw new Error(`Groq request failed with status ${res.status}`);
+  let lastError: unknown = null;
+  for (let attempt = 1; attempt <= GROQ_MAX_ATTEMPTS; attempt++) {
+    // Abort the request if it exceeds the timeout — frees the function and lets
+    // callers fall back to their local/deterministic path quickly.
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), GROQ_TIMEOUT_MS);
+    try {
+      const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${serverEnv.groqApiKey}`,
+          "Content-Type": "application/json",
+        },
+        body,
+        signal: controller.signal,
+      });
+
+      // Retry transient upstream errors (rate limit / server) once; fail fast
+      // on client errors (bad request, auth) since a retry won't help.
+      if (res.status === 429 || res.status >= 500) {
+        lastError = new Error(`Groq request failed with status ${res.status}`);
+        if (attempt < GROQ_MAX_ATTEMPTS) {
+          await sleep(300 * attempt);
+          continue;
+        }
+        throw lastError;
+      }
+      if (!res.ok) {
+        throw new Error(`Groq request failed with status ${res.status}`);
+      }
+
+      const json = (await res.json()) as GroqChatResponse;
+      const content = json.choices?.[0]?.message?.content;
+      if (!content) return null;
+      return parseJsonLoose(content);
+    } catch (err) {
+      lastError = err;
+      // Retry once on abort/network errors; otherwise stop.
+      const retriable =
+        err instanceof Error &&
+        (err.name === "AbortError" || err.name === "TypeError");
+      if (retriable && attempt < GROQ_MAX_ATTEMPTS) {
+        await sleep(300 * attempt);
+        continue;
+      }
+      throw lastError;
+    } finally {
+      clearTimeout(timer);
+    }
   }
-
-  const json = (await res.json()) as GroqChatResponse;
-  const content = json.choices?.[0]?.message?.content;
-  if (!content) return null;
-
-  return parseJsonLoose(content);
+  return null;
 }

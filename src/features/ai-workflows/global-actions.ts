@@ -76,6 +76,29 @@ const aiDocsQuestionSchema = z.object({
     .optional(),
 });
 
+/**
+ * Lightweight per-user, per-minute rate limit for AI actions. The assistant is
+ * an open, money-spending surface (every call costs Groq tokens), so this caps
+ * how fast a single user can fire model-backed requests. In-memory and
+ * best-effort — fine for a single instance / research-preview scale; swap for a
+ * shared store (e.g. Upstash) if you run many instances.
+ */
+const AI_RATE_LIMIT = 20; // requests
+const AI_RATE_WINDOW_MS = 60_000; // per minute
+const aiRateBuckets = new Map<string, { count: number; resetAt: number }>();
+
+function checkAiRateLimit(userId: string): boolean {
+  const now = Date.now();
+  const bucket = aiRateBuckets.get(userId);
+  if (!bucket || now > bucket.resetAt) {
+    aiRateBuckets.set(userId, { count: 1, resetAt: now + AI_RATE_WINDOW_MS });
+    return true;
+  }
+  if (bucket.count >= AI_RATE_LIMIT) return false;
+  bucket.count += 1;
+  return true;
+}
+
 async function requireUserId() {
   const supabase = await getServerSupabase();
   const {
@@ -120,6 +143,7 @@ const MISSING_FIELD_QUESTIONS: Record<string, AiMissingField> = {
     field: "amount",
     question: "What amount should I invoice (before tax/discount)?",
     placeholder: "Example: 50000",
+    tip: "Enter the pre-tax amount — GST is added automatically based on your and the client's state.",
   },
   scope: {
     field: "scope",
@@ -140,6 +164,7 @@ const MISSING_FIELD_QUESTIONS: Record<string, AiMissingField> = {
     field: "duration",
     question: "How long, and is it billable?",
     placeholder: "Example: 2h 30m, billable",
+    suggestions: ["30m, billable", "1h, billable", "2h 30m, billable", "1h, non-billable"],
   },
   question: { field: "question", question: "What do you need help with?" },
   projectId: { field: "projectId", question: "Which project should I link this to? Or choose “No project”." },
@@ -149,12 +174,15 @@ const MISSING_FIELD_QUESTIONS: Record<string, AiMissingField> = {
     question: "What kind of document is this — agreement, proposal, NDA, or retainer? Or reply “skip”.",
     placeholder: "Example: Service agreement",
     optional: true,
+    suggestions: ["Service agreement", "Proposal", "NDA", "Retainer"],
   },
   commercials: {
     field: "commercials",
     question: "What are the fees and payment terms? Or reply “skip”.",
     placeholder: "Example: ₹150000, 50% upfront, balance on delivery",
     optional: true,
+    suggestions: ["50% upfront, 50% on delivery", "Full payment upfront", "Monthly retainer"],
+    tip: "Splitting payment (e.g. 50% upfront) protects your cash flow and reduces the risk of non-payment.",
   },
   timeline: {
     field: "timeline",
@@ -186,6 +214,7 @@ const MISSING_FIELD_QUESTIONS: Record<string, AiMissingField> = {
     question: "What tone should it have — warm, premium, or direct? Or reply “skip”.",
     placeholder: "Example: warm and professional",
     optional: true,
+    suggestions: ["Warm and friendly", "Premium and polished", "Direct and concise"],
   },
   // Client fields — asked one at a time.
   email: {
@@ -221,12 +250,15 @@ const MISSING_FIELD_QUESTIONS: Record<string, AiMissingField> = {
     question: "Any discount? Enter an amount or %, or reply “skip”.",
     placeholder: "Example: 5000 or 10%",
     optional: true,
+    suggestions: ["No discount", "10%", "₹5000 off"],
   },
   dueDate: {
     field: "dueDate",
     question: "When is it due? e.g. “in 15 days”, or reply “skip”.",
     placeholder: "Example: in 15 days",
     optional: true,
+    suggestions: ["In 7 days", "In 15 days", "In 30 days", "End of month"],
+    tip: "Shorter due dates (7–15 days) typically get you paid faster.",
   },
 };
 
@@ -298,7 +330,10 @@ export async function interpretAiMessageAction(input: z.infer<typeof aiInterpret
   if (!parsed.success) {
     return { ok: false as const, error: "Tell me what you'd like to do." };
   }
-  await requireUserId();
+  const userId = await requireUserId();
+  if (!checkAiRateLimit(userId)) {
+    return { ok: false as const, error: "You're sending messages a little fast — give it a few seconds and try again." };
+  }
   const [clients, projects] = await Promise.all([
     listClients({ limit: 200 }),
     listProjects({ limit: 200 }),
@@ -307,7 +342,7 @@ export async function interpretAiMessageAction(input: z.infer<typeof aiInterpret
     message: parsed.data.message,
     currentWorkflow: parsed.data.currentWorkflow,
     collected: parsed.data.collected,
-    history: parsed.data.history,
+    history: parsed.data.history?.slice(-6),
     clients,
     projects,
   });
@@ -1701,49 +1736,71 @@ export async function refineWelcomeDocFromAiAction(
   };
 }
 
+/**
+ * Extract readable prose from a marketing/docs page, dropping imports,
+ * metadata, and noisy attributes (className/href) so the token budget is spent
+ * on real content — section titles, headings, body copy.
+ */
+async function readDocsPageText(relPath: string, limit: number): Promise<string> {
+  try {
+    const raw = await readFile(path.join(process.cwd(), "src", "app", relPath), "utf8");
+    return raw
+      .replace(/import[\s\S]*?from\s*["'][^"']*["'];?/g, " ")
+      .replace(/export const (metadata|dynamic|NAV)[\s\S]*?;\n/g, " ")
+      .replace(/className=\{?["'`][^"'`]*["'`]\}?/g, " ")
+      .replace(/href=\{?["'][^"']*["']\}?/g, " ")
+      .replace(/&apos;/g, "'")
+      .replace(/&amp;/g, "&")
+      .replace(/&quot;/g, '"')
+      .replace(/[{}()<>=`"'$]/g, " ")
+      .replace(/\s+/g, " ")
+      .trim()
+      .slice(0, limit);
+  } catch {
+    return "";
+  }
+}
+
+// The docs/privacy/terms pages are static, so the trimmed context is identical
+// for every question. Build it once per server instance and reuse it — this
+// avoids re-reading three files and (more importantly) keeps the input token
+// cost predictable. Limits are sized to fit the full docs prose without the
+// previous ~90k-char overshoot.
+let cachedDocsContext: string | null = null;
+async function getDocsContext(): Promise<string> {
+  if (cachedDocsContext !== null) return cachedDocsContext;
+  const [docsText, privacyText, termsText] = await Promise.all([
+    readDocsPageText("(marketing)/docs/page.tsx", 28000),
+    readDocsPageText("(marketing)/privacy/page.tsx", 8000),
+    readDocsPageText("(marketing)/terms/page.tsx", 8000),
+  ]);
+  cachedDocsContext = [
+    docsText ? `--- DOCS ---\n${docsText}` : "",
+    privacyText ? `--- PRIVACY POLICY ---\n${privacyText}` : "",
+    termsText ? `--- TERMS & CONDITIONS ---\n${termsText}` : "",
+  ]
+    .filter(Boolean)
+    .join("\n\n");
+  return cachedDocsContext;
+}
+
 export async function answerFromDocsAction(input: z.infer<typeof aiDocsQuestionSchema>) {
   const parsed = aiDocsQuestionSchema.safeParse(input);
   if (!parsed.success) {
     return { ok: false as const, error: "Ask a docs or support question first." };
   }
-
-  // Extract readable prose from a marketing/docs page. We drop imports,
-  // metadata, and noisy attributes (className/href) FIRST so the limited budget
-  // is spent on real content — section titles, headings, and body copy — rather
-  // than Tailwind class strings. Limits are generous so the whole docs page
-  // fits (the previous 14k cap silently cut off everything past Invoices, which
-  // is why questions about billing, GST, payments, etc. came back "not known").
-  async function readPageText(relPath: string, limit = 60000): Promise<string> {
-    try {
-      const raw = await readFile(path.join(process.cwd(), "src", "app", relPath), "utf8");
-      return raw
-        .replace(/import[\s\S]*?from\s*["'][^"']*["'];?/g, " ")
-        .replace(/export const (metadata|dynamic|NAV)[\s\S]*?;\n/g, " ")
-        .replace(/className=\{?["'`][^"'`]*["'`]\}?/g, " ")
-        .replace(/href=\{?["'][^"']*["']\}?/g, " ")
-        .replace(/&apos;/g, "'")
-        .replace(/&amp;/g, "&")
-        .replace(/&quot;/g, '"')
-        .replace(/[{}()<>=`"'$]/g, " ")
-        .replace(/\s+/g, " ")
-        .trim()
-        .slice(0, limit);
-    } catch {
-      return "";
-    }
+  const userId = await requireUserId();
+  if (!checkAiRateLimit(userId)) {
+    return {
+      ok: true as const,
+      data: {
+        answer: "You're asking a little fast — give it a few seconds and try again.",
+        usedDocs: false,
+      },
+    };
   }
 
-  const [docsText, privacyText, termsText] = await Promise.all([
-    readPageText("(marketing)/docs/page.tsx", 60000),
-    readPageText("(marketing)/privacy/page.tsx", 16000),
-    readPageText("(marketing)/terms/page.tsx", 16000),
-  ]);
-
-  const combinedContext = [
-    docsText ? `--- DOCS ---\n${docsText}` : "",
-    privacyText ? `--- PRIVACY POLICY ---\n${privacyText}` : "",
-    termsText ? `--- TERMS & CONDITIONS ---\n${termsText}` : "",
-  ].filter(Boolean).join("\n\n").slice(0, 90000);
+  const combinedContext = await getDocsContext();
 
   const ai = await generateStructuredJson({
     temperature: 0.4,
@@ -1768,7 +1825,7 @@ export async function answerFromDocsAction(input: z.infer<typeof aiDocsQuestionS
         role: "user",
         content: JSON.stringify({
           question: parsed.data.question,
-          recentMessages: parsed.data.history ?? [],
+          recentMessages: (parsed.data.history ?? []).slice(-6),
           context: combinedContext,
           requiredShape: {
             answer: "string",
