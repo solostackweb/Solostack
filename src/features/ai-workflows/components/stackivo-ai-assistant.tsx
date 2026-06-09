@@ -16,6 +16,7 @@ import {
   LayoutDashboard,
   Lightbulb,
   Mail,
+  LayoutGrid,
   Maximize2,
   MessageCircle,
   Minimize2,
@@ -28,6 +29,14 @@ import {
 
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { StackivoMark } from "@/components/brand/stackivo-logo";
 import { cn } from "@/lib/utils";
 import { INDIAN_STATES } from "@/features/gst/state-codes";
@@ -2031,7 +2040,20 @@ export function StackivoAiAssistant({ clients, projects }: StackivoAiAssistantPr
         targetMode = "general";
       } else if (nlu) {
         const intent = nlu.intent;
-        const isSwitch = nlu.confident && intent !== "general" && intent !== mode;
+        // While we're waiting on a specific field answer, the message is an
+        // ANSWER, not a command — so don't let an incidental keyword in it
+        // (e.g. answering "What work did you do?" with "client call") switch
+        // workflows. Only an explicit command ("actually create an invoice")
+        // is allowed to switch mid-question.
+        const explicitSwitchCommand =
+          /\b(create|make|draft|add|new|start|log|raise|generate|prepare|switch to|instead)\b/.test(
+            text.toLowerCase(),
+          );
+        const isSwitch =
+          nlu.confident &&
+          intent !== "general" &&
+          intent !== mode &&
+          (!pendingField || pendingField.field === "clientId" || explicitSwitchCommand);
         if (mode === "general") {
           // A support/question intent is answered from docs (general handler);
           // an actionable intent opens its workflow.
@@ -2197,6 +2219,37 @@ export function StackivoAiAssistant({ clients, projects }: StackivoAiAssistantPr
               </span>
             </div>
             <div className="flex items-center gap-1">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    aria-label="What can I do?"
+                  >
+                    <LayoutGrid className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  <DropdownMenuLabel>Start a workflow</DropdownMenuLabel>
+                  {QUICK_ACTIONS.map((action) => (
+                    <DropdownMenuItem
+                      key={action.mode}
+                      onSelect={() => selectMode(action.mode)}
+                      className="gap-2"
+                    >
+                      <action.icon className="h-3.5 w-3.5 text-muted-foreground" />
+                      {action.title}
+                    </DropdownMenuItem>
+                  ))}
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onSelect={handleNewConversation} className="gap-2">
+                    <Plus className="h-3.5 w-3.5 text-muted-foreground" />
+                    New conversation
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
               <Button
                 type="button"
                 variant="ghost"
@@ -2405,6 +2458,14 @@ export function StackivoAiAssistant({ clients, projects }: StackivoAiAssistantPr
                 </Button>
               </div>
             </div>
+            <p className="mt-2 flex items-center gap-1.5 px-1 text-[11px] text-muted-foreground">
+              <Lightbulb className="h-3 w-3 shrink-0 text-primary/60" />
+              Tip: use the
+              <LayoutGrid className="h-3 w-3 shrink-0" />
+              menu to switch tasks, or
+              <Plus className="h-3 w-3 shrink-0" />
+              to start a new chat.
+            </p>
           </div>
         </div>
       ), isMobile ? document.body : (panelSlot ?? document.body)) : null}
