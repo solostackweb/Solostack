@@ -28,6 +28,7 @@ import {
   updateWelcomeDocumentAction,
 } from "@/features/welcome-documents/actions";
 import { parseWelcomeContent } from "@/features/welcome-documents/content";
+import { BUILTIN_WELCOME_TEMPLATES } from "@/features/welcome-documents/templates";
 import { sendWelcomeDocumentAction } from "@/features/welcome-documents/delivery";
 import {
   ensureWelcomePublicToken,
@@ -1807,6 +1808,9 @@ const aiWelcomeDocIdSchema = z.object({
   welcomeDocId: z.string().uuid("Invalid welcome document id"),
 });
 
+/** Sentinel for the "describe it myself" choice in the welcome template picker. */
+const WELCOME_CUSTOM = "__custom__";
+
 export async function createWelcomeDocFromAiAction(input: AiCreateInput) {
   const parsed = aiCreateSchema.safeParse(input);
   if (!parsed.success) {
@@ -1814,16 +1818,48 @@ export async function createWelcomeDocFromAiAction(input: AiCreateInput) {
   }
   const fields = parsed.data.fields ?? {};
 
-  const missing = nextMissingField("welcome_document", fields, {});
-  if (missing) {
-    return { ok: false as const, error: missing.question, missing };
-  }
-
   const userId = await requireUserId();
   const supabase = await getServerSupabase();
-  const clientId = parsed.data.clientId || undefined;
-  const projectId = parsed.data.projectId || undefined;
 
+  // 1. Client — asked first so the document is personalised. "No client"
+  //    (NO_CLIENT_SENTINEL) produces a generic doc.
+  const rawClientId = parsed.data.clientId || "";
+  const clientSkipped = rawClientId === NO_CLIENT_SENTINEL;
+  const clientId = clientSkipped ? "" : rawClientId;
+  if (!clientId && !clientSkipped) {
+    return {
+      ok: false as const,
+      error: "Which client is this welcome document for?",
+      missing: { field: "clientId", question: "Which client is this welcome document for?" },
+    };
+  }
+
+  // 2. Project (optional).
+  const rawProjectId = parsed.data.projectId || "";
+  const projectSkipped = rawProjectId === NO_PROJECT_SENTINEL;
+  const projectId = projectSkipped ? "" : rawProjectId;
+  if (!projectId && !projectSkipped) {
+    return {
+      ok: false as const,
+      error: MISSING_FIELD_QUESTIONS.projectId.question,
+      missing: { ...MISSING_FIELD_QUESTIONS.projectId, optional: true },
+    };
+  }
+
+  // 3. Template choice — a ready-made template or "custom".
+  const template = field(fields, "welcomeTemplate");
+  if (!template) {
+    return {
+      ok: false as const,
+      error: "Pick a template to start from.",
+      missing: {
+        field: "welcomeTemplate",
+        question: "Pick a ready-made template to start from — or choose Custom to describe your own.",
+      },
+    };
+  }
+
+  // Load client/project context for personalisation + preview.
   const [{ data: clientRow }, { data: projectRow }] = await Promise.all([
     clientId
       ? supabase.from("clients").select("id, full_name, business_name, email, phone").eq("id", clientId).eq("user_id", userId).maybeSingle()
@@ -1834,39 +1870,64 @@ export async function createWelcomeDocFromAiAction(input: AiCreateInput) {
   ]);
   const client = clientRow as { id: string; full_name?: string | null; business_name?: string | null; email?: string | null; phone?: string | null } | null;
   const project = projectRow as { id: string; name?: string | null } | null;
-
-  const brief = briefFromFields(
-    [
-      ["Working relationship and what to expect", field(fields, "relationship")],
-      ["Working style, communication, and process", field(fields, "process")],
-      ["Payments, operations, and logistics", field(fields, "operations")],
-      ["Tone", field(fields, "tone")],
-    ],
-    field(fields, "process"),
-  );
-
-  const fdDraft = new FormData();
-  fdDraft.set("payload", JSON.stringify({
-    workflow: "welcome_document",
-    prompt: brief,
-    clientId: parsed.data.clientId,
-    projectId: parsed.data.projectId,
-  }));
-  const draftResult = await generateOperationalDraftAction(fdDraft);
-  if (!draftResult.ok || !("sections" in draftResult.data)) {
-    return { ok: false as const, error: draftResult.ok ? "Could not draft welcome document." : draftResult.error };
-  }
-
-  const draft = draftResult.data as AiWelcomeDraft;
   const clientDisplay = client?.business_name || client?.full_name || null;
 
+  let title: string;
+  let intro: string | null;
+  let sections: Array<{ heading: string; body: string }>;
+  let acknowledgementRequired: boolean;
+
+  const tpl =
+    template !== WELCOME_CUSTOM
+      ? BUILTIN_WELCOME_TEMPLATES.find((t) => t.id === template)
+      : undefined;
+
+  if (tpl) {
+    // Seed from the ready-made template, personalised to the client.
+    title = clientDisplay ? `Welcome, ${clientDisplay}` : tpl.title;
+    intro = tpl.intro ?? null;
+    sections = tpl.sections.map((s) => ({ heading: s.heading, body: s.body }));
+    acknowledgementRequired = true;
+  } else {
+    // Custom path — collect content details, then draft with AI.
+    const contentMissing = nextMissingField("welcome_document", fields, {});
+    if (contentMissing) {
+      return { ok: false as const, error: contentMissing.question, missing: contentMissing };
+    }
+    const brief = briefFromFields(
+      [
+        ["Client", clientDisplay ?? ""],
+        ["Project", project?.name ?? ""],
+        ["Working relationship and what to expect", field(fields, "relationship")],
+        ["Working style, communication, and process", field(fields, "process")],
+        ["Payments, operations, and logistics", field(fields, "operations")],
+        ["Tone", field(fields, "tone")],
+      ],
+      field(fields, "process"),
+    );
+    const fdDraft = new FormData();
+    fdDraft.set(
+      "payload",
+      JSON.stringify({ workflow: "welcome_document", prompt: brief, clientId, projectId }),
+    );
+    const draftResult = await generateOperationalDraftAction(fdDraft);
+    if (!draftResult.ok || !("sections" in draftResult.data)) {
+      return { ok: false as const, error: draftResult.ok ? "Could not draft welcome document." : draftResult.error };
+    }
+    const draft = draftResult.data as AiWelcomeDraft;
+    title = cleanAiAnswer(draft.title) || (clientDisplay ? `Welcome, ${clientDisplay}` : "Welcome document");
+    intro = draft.intro || null;
+    sections = draft.sections;
+    acknowledgementRequired = draft.acknowledgementRequired ?? true;
+  }
+
   const res = await createWelcomeDocumentAction({
-    title: draft.title || (clientDisplay ? `Welcome, ${clientDisplay}` : "Welcome document"),
-    intro: draft.intro || null,
-    sections: draft.sections,
-    clientId: clientId ?? null,
-    projectId: projectId ?? null,
-    acknowledgementRequired: draft.acknowledgementRequired ?? false,
+    title,
+    intro,
+    sections,
+    clientId: clientId || null,
+    projectId: projectId || null,
+    acknowledgementRequired,
     brandColor: null,
   });
   if (!res.ok || !res.data?.id) {
@@ -1877,10 +1938,10 @@ export async function createWelcomeDocFromAiAction(input: AiCreateInput) {
     ok: true as const,
     data: {
       id: res.data.id,
-      title: draft.title,
-      intro: draft.intro ?? null,
-      sections: draft.sections,
-      acknowledgementRequired: draft.acknowledgementRequired,
+      title,
+      intro,
+      sections,
+      acknowledgementRequired,
       clientName: clientDisplay,
       clientEmail: client?.email ?? null,
       clientPhone: client?.phone ?? null,

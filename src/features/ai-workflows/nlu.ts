@@ -51,33 +51,58 @@ function looksLikeQuestion(t: string): boolean {
   );
 }
 
+/**
+ * Match a workflow keyword in the text and report whether the keyword leads the
+ * message. Returns null when no workflow keyword is present.
+ */
+function matchWorkflowKeyword(
+  t: string,
+): { intent: AiIntent; leads: boolean } | null {
+  if (/\binvoice\b|\bbill\b|\bbilling\b|\breceipt\b|\bcharge\b/.test(t))
+    return { intent: "invoice", leads: /^(invoice|bill|billing)\b/.test(t) };
+  if (/\bcontract\b|\bagreement\b|\bproposal\b|\bnda\b|\bretainer\b/.test(t))
+    return { intent: "contract", leads: /^(contract|agreement|proposal|nda|retainer)\b/.test(t) };
+  if (/\bwelcome\b|\bonboard\b|\bonboarding\b|\bkickoff\b/.test(t))
+    return { intent: "welcome_document", leads: /^(welcome|onboard)/.test(t) };
+  if (/\bproject\b/.test(t)) return { intent: "project", leads: /^project\b/.test(t) };
+  if (/\bclient\b|\bcustomer\b|\bcontact\b/.test(t)) return { intent: "client", leads: /^(client|customer|contact)\b/.test(t) };
+  if (/\btime\b|\bhours?\b|\bminutes?\b|\blog time\b|\bbillable\b/.test(t)) return { intent: "time_entry", leads: false };
+  return null;
+}
+
 function detectIntentLocally(text: string): { intent: AiIntent; confident: boolean } {
   const t = text.toLowerCase().trim();
   const action = ACTION_VERB.test(t);
   const question = looksLikeQuestion(t);
+  const wf = matchWorkflowKeyword(t);
 
-  // 1. Explicit help/support topics and any action-free question are
+  // 1. A clear command — an action verb together with a workflow keyword (e.g.
+  //    "help me create a contract", "go ahead and make an invoice") — always
+  //    starts that workflow, even if the message also contains a word like
+  //    "help". This must win BEFORE the support catch below.
+  if (wf && action) {
+    return { intent: wf.intent, confident: true };
+  }
+
+  // 2. Explicit help/support topics and any action-free question are
   //    informational — answer them from the docs instead of starting a
-  //    workflow. This is what makes "what about billing" return an answer
-  //    rather than silently opening the invoice flow.
-  if (/\bsupport\b|\bbug\b|\bissue\b|\bhelp\b|how do\b|how to\b|how does\b|what is\b|what are\b|what about\b|\bprivacy\b|\bterms\b|\bpricing\b|\brefund\b|\bgdpr\b/.test(t)) {
+  //    workflow. "plan/plans/pricing/billing plan" are pricing questions, not
+  //    the invoice workflow.
+  if (
+    /\bsupport\b|\bbug\b|\bissue\b|\bhelp\b|how do\b|how to\b|how does\b|what is\b|what are\b|what about\b|\bprivacy\b|\bterms\b|\bpricing\b|\bprice\b|\bplans?\b|\brefund\b|\bgdpr\b|\bupgrade\b|\bsubscription\b/.test(
+      t,
+    )
+  ) {
     return { intent: "support", confident: true };
   }
   if (question && !action) {
     return { intent: "support", confident: true };
   }
 
-  // 2. Actionable workflows. "confident" (used to switch tasks mid-flow) is set
-  //    when an action verb is present or the message leads with the keyword.
-  if (/\binvoice\b|\bbill\b|\bbilling\b|\breceipt\b|\bcharge\b/.test(t))
-    return { intent: "invoice", confident: action || /^(invoice|bill|billing)\b/.test(t) };
-  if (/\bcontract\b|\bagreement\b|\bproposal\b|\bnda\b|\bretainer\b/.test(t))
-    return { intent: "contract", confident: action || /^(contract|agreement|proposal|nda|retainer)\b/.test(t) };
-  if (/\bwelcome\b|\bonboard\b|\bonboarding\b|\bkickoff\b/.test(t))
-    return { intent: "welcome_document", confident: action || /^(welcome|onboard)/.test(t) };
-  if (/\bproject\b/.test(t)) return { intent: "project", confident: action || /^project\b/.test(t) };
-  if (/\bclient\b|\bcustomer\b|\bcontact\b/.test(t)) return { intent: "client", confident: action || /^(client|customer|contact)\b/.test(t) };
-  if (/\btime\b|\bhours?\b|\bminutes?\b|\blog time\b|\bbillable\b/.test(t)) return { intent: "time_entry", confident: action };
+  // 3. A workflow keyword on its own — confident only when it leads the message.
+  if (wf) {
+    return { intent: wf.intent, confident: wf.leads };
+  }
 
   return { intent: "general", confident: false };
 }

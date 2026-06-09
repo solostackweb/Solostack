@@ -17,6 +17,7 @@ import type {
 } from "../types";
 import { WelcomeEditor } from "./welcome-editor";
 import { WELCOME_DOCUMENT_NEW, WELCOME_DOCUMENTS_INDEX } from "../routes";
+import { BUILTIN_WELCOME_TEMPLATES } from "../templates";
 
 interface ClientOption {
   id: string;
@@ -40,101 +41,11 @@ const BLANK_SECTIONS: WelcomeDocumentSection[] = [
 ];
 
 /**
- * Hardcoded system templates shown whenever the DB returns none.
- * These give freelancers a useful starting point without any DB setup.
+ * Built-in system templates — now defined in `../templates` so the AI
+ * assistant can seed a draft from the same content. Shown whenever the DB
+ * returns no system templates.
  */
-const BUILTIN_TEMPLATES: WelcomeDocumentTemplate[] = [
-  {
-    id: "__builtin_freelancer",
-    title: "Freelancer Onboarding",
-    description: "The standard onboarding pack for new freelance clients — covers process, communication, and payments.",
-    intro: "Welcome aboard! This guide will walk you through how we work together so we can hit the ground running.",
-    category: "Freelancing",
-    isSystem: true,
-    sections: [
-      {
-        id: "s_1",
-        heading: "How We Work Together",
-        body: "I work in focused sprints with regular check-ins. You'll always know where things stand — no radio silence.\n\n- **Communication:** Primarily via email or your preferred channel.\n- **Response time:** I reply within 1 business day.\n- **Revisions:** Up to 2 rounds are included in the project scope.",
-      },
-      {
-        id: "s_2",
-        heading: "Project Timeline",
-        body: "We'll agree on milestones before work begins. I'll send you a brief update at each stage so there are no surprises.\n\nIf timelines shift on your end, just let me know early — I can usually accommodate changes with enough notice.",
-      },
-      {
-        id: "s_3",
-        heading: "Payments & Invoicing",
-        body: "Invoices are issued at the agreed milestones. Payment is due within 14 days of the invoice date.\n\nI accept bank transfer and UPI. All invoices are sent via Stackivo so you always have a paper trail.",
-      },
-      {
-        id: "s_4",
-        heading: "Files & Deliverables",
-        body: "Final files will be delivered in the formats agreed in the project brief. I'll share a private folder link when the project wraps.\n\nPlease save a copy on your end — I archive projects 90 days after delivery.",
-      },
-    ],
-  },
-  {
-    id: "__builtin_agency",
-    title: "Agency Client Welcome",
-    description: "For agencies onboarding a new retainer or project client — sets expectations around process, approvals, and billing.",
-    intro: "We're excited to kick things off! This guide explains our working process so the project runs smoothly from day one.",
-    category: "Agency",
-    isSystem: true,
-    sections: [
-      {
-        id: "s_1",
-        heading: "Your Dedicated Team",
-        body: "You'll have a single point of contact (your account lead) plus access to our full team of specialists. We believe in direct, transparent communication — no gatekeeping.",
-      },
-      {
-        id: "s_2",
-        heading: "Project Management",
-        body: "We use a shared project board (link shared separately) where you can track progress in real time. Weekly status emails go out every Friday.\n\nAll key decisions are documented in writing so there's a clear audit trail.",
-      },
-      {
-        id: "s_3",
-        heading: "Approvals & Feedback",
-        body: "We batch feedback into clearly defined rounds — this keeps momentum high and avoids scope creep.\n\n1. Review draft deliverable\n2. Consolidate feedback into a single document\n3. We incorporate and return for final sign-off\n\nOut-of-scope requests are quoted separately before work begins.",
-      },
-      {
-        id: "s_4",
-        heading: "Billing & Reporting",
-        body: "Monthly retainer invoices are issued on the 1st of each month, with a detailed activity report attached. Project-based work is billed at agreed milestones.\n\nAll invoices include a line-by-line breakdown so your finance team always has the detail they need.",
-      },
-    ],
-  },
-  {
-    id: "__builtin_consultant",
-    title: "Consultant Welcome Pack",
-    description: "A concise welcome guide for consultants — sets context on deliverables, confidentiality, and engagement terms.",
-    intro: "Thank you for bringing me on board. Here's a quick overview of how I structure engagements to make sure we get the best outcome together.",
-    category: "Consulting",
-    isSystem: true,
-    sections: [
-      {
-        id: "s_1",
-        heading: "Engagement Scope",
-        body: "Our engagement is focused on the agreed objectives outlined in the proposal. Any additional scope will be quoted and approved before work begins.\n\nI'm proactive about flagging if I see related issues — but I'll always ask before expanding the work.",
-      },
-      {
-        id: "s_2",
-        heading: "Confidentiality",
-        body: "Everything shared in the course of our engagement is treated as confidential. I operate under strict NDA terms and do not share client information with third parties.\n\nI ask for the same in return — particularly around unreleased strategies or financial data.",
-      },
-      {
-        id: "s_3",
-        heading: "Deliverables & Timelines",
-        body: "Deliverables and due dates are listed in the project proposal. I'll confirm receipt of any materials I need from you and flag blockers early.\n\nIf I need access to systems, tools, or team members — I'll request them in writing.",
-      },
-      {
-        id: "s_4",
-        heading: "Next Steps",
-        body: "1. Complete this acknowledgement\n2. Book our kickoff call (link in the proposal)\n3. Share any background documents mentioned in the brief\n\nI'll send a short agenda 24 hours before our kickoff.",
-      },
-    ],
-  },
-];
+const BUILTIN_TEMPLATES: WelcomeDocumentTemplate[] = BUILTIN_WELCOME_TEMPLATES;
 
 /**
  * Two-step "new document" flow:

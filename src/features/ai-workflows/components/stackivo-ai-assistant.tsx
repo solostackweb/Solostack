@@ -6,6 +6,7 @@ import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import {
   ArrowUp,
+  Bookmark,
   Check,
   Clock,
   ExternalLink,
@@ -29,6 +30,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { StackivoMark } from "@/components/brand/stackivo-logo";
 import { cn } from "@/lib/utils";
 import { INDIAN_STATES } from "@/features/gst/state-codes";
+import { BUILTIN_WELCOME_TEMPLATES } from "@/features/welcome-documents/templates";
+import { saveAsTemplateAction } from "@/features/welcome-documents/actions";
 import {
   approveInvoiceFromAiAction,
   approveWelcomeDocFromAiAction,
@@ -682,6 +685,43 @@ function StatePicker({
   );
 }
 
+function WelcomeTemplatePicker({
+  onSelect,
+}: {
+  onSelect: (templateId: string, display: string) => void;
+}) {
+  return (
+    <div className="space-y-3">
+      <p className="text-sm">Pick a starting point for the welcome document:</p>
+      <div className="grid gap-2">
+        {BUILTIN_WELCOME_TEMPLATES.map((t) => (
+          <button
+            key={t.id}
+            type="button"
+            onClick={() => onSelect(t.id, t.title)}
+            className="rounded-lg border bg-background p-3 text-left text-sm transition-colors hover:border-primary/40 hover:bg-primary/5"
+          >
+            <span className="block font-medium">{t.title}</span>
+            {t.description ? (
+              <span className="mt-0.5 block text-xs text-muted-foreground">{t.description}</span>
+            ) : null}
+          </button>
+        ))}
+        <button
+          type="button"
+          onClick={() => onSelect("__custom__", "Custom — I'll describe it")}
+          className="rounded-lg border border-dashed bg-background p-3 text-left text-sm transition-colors hover:border-primary/40 hover:bg-primary/5"
+        >
+          <span className="block font-medium">Custom</span>
+          <span className="mt-0.5 block text-xs text-muted-foreground">
+            Describe how you work and I&apos;ll draft it for you.
+          </span>
+        </button>
+      </div>
+    </div>
+  );
+}
+
 // Contract preview — all sections
 function ContractDraftPreview({
   preview,
@@ -748,10 +788,12 @@ function WelcomeDocDraftPreview({
   preview,
   onApprove,
   onOpen,
+  onSaveTemplate,
 }: {
   preview: AiWelcomeDocPreview;
   onApprove: (preview: AiWelcomeDocPreview) => void;
   onOpen: () => void;
+  onSaveTemplate: (preview: AiWelcomeDocPreview) => void;
 }) {
   return (
     <div className="space-y-3">
@@ -785,6 +827,16 @@ function WelcomeDocDraftPreview({
         </Button>
         <Button type="button" size="sm" variant="outline" onClick={onOpen}>
           Open editor
+        </Button>
+        <Button
+          type="button"
+          size="sm"
+          variant="ghost"
+          className="gap-1.5"
+          onClick={() => onSaveTemplate(preview)}
+        >
+          <Bookmark className="h-3.5 w-3.5" />
+          Save as template
         </Button>
       </div>
     </div>
@@ -1132,6 +1184,25 @@ export function StackivoAiAssistant({ clients, projects }: StackivoAiAssistantPr
     [handleWelcomeDocDelivery, push, router],
   );
 
+  const handleSaveWelcomeTemplate = React.useCallback(
+    (preview: AiWelcomeDocPreview) => {
+      push({ role: "user", content: "Save as a template" });
+      startTransition(async () => {
+        const res = await saveAsTemplateAction({
+          id: preview.id,
+          templateTitle: preview.title || "Welcome template",
+        });
+        push({
+          role: "assistant",
+          content: res.ok
+            ? "Saved as a reusable template — you'll see it next time you create a welcome document."
+            : res.error || "Could not save the template.",
+        });
+      });
+    },
+    [push],
+  );
+
   // ----- Contract handlers -----
 
   const handleContractApproveAndSend = React.useCallback(
@@ -1270,7 +1341,7 @@ export function StackivoAiAssistant({ clients, projects }: StackivoAiAssistantPr
                     ? "welcome document"
                     : "";
           const label = subject ? `Which client is this ${subject} for?` : "Which client is this for?";
-          const allowSkip = workflow === "project";
+          const allowSkip = workflow === "project" || workflow === "welcome_document";
           const proceed = (id: string, display: string) => {
             // Persist the choice — including the "no client" sentinel — so the
             // next message keeps it and the workflow doesn't re-ask.
@@ -1337,6 +1408,20 @@ export function StackivoAiAssistant({ clients, projects }: StackivoAiAssistantPr
           push({
             role: "assistant",
             content: <StatePicker label={label} onSelect={proceed} />,
+          });
+        } else if (missing.field === "welcomeTemplate") {
+          const proceed = (templateId: string, display: string) => {
+            setPendingField(null);
+            const nextFields = { ...fields, welcomeTemplate: templateId };
+            setCollected(nextFields);
+            push({ role: "user", content: display });
+            startTransition(async () => {
+              await runWorkflowRef.current(workflow, nextFields, cId, pId, "");
+            });
+          };
+          push({
+            role: "assistant",
+            content: <WelcomeTemplatePicker onSelect={proceed} />,
           });
         } else {
           push({
@@ -1492,6 +1577,7 @@ export function StackivoAiAssistant({ clients, projects }: StackivoAiAssistantPr
                 preview={res.data}
                 onApprove={handleWelcomeDocApprove}
                 onOpen={() => router.push(`/dashboard/welcome/${res.data.id}`)}
+                onSaveTemplate={handleSaveWelcomeTemplate}
               />
             ),
           });
@@ -1546,6 +1632,8 @@ export function StackivoAiAssistant({ clients, projects }: StackivoAiAssistantPr
       handleContractApproveAndSend,
       handleContractWhatsApp,
       handleWelcomeDocApprove,
+      handleSaveWelcomeTemplate,
+      projects,
     ],
   );
 
@@ -1584,15 +1672,22 @@ export function StackivoAiAssistant({ clients, projects }: StackivoAiAssistantPr
   const detectMode = React.useCallback(
     (text: string): AiMode => {
       const t = text.toLowerCase();
-      // Questions and help topics are answered from docs, not turned into a draft.
+      const action = /\b(create|make|draft|add|new|start|log|raise|generate|send|prepare|build|issue|set ?up)\b/.test(t);
+      const keyword: AiMode | null =
+        /invoice|bill\s|billing|receipt|charge/.test(t) ? "invoice"
+        : /contract|agreement|proposal|nda|retainer/.test(t) ? "contract"
+        : /welcome|onboard|kickoff/.test(t) ? "welcome_document"
+        : /\bproject\b/.test(t) ? "project"
+        : /\bclient\b|\bcustomer\b|\bcontact\b/.test(t) ? "client"
+        : /\btime\b|\bhours?\b|\bminutes?\b|\blog\b|\bbillable\b/.test(t) ? "time_entry"
+        : null;
+      // A clear command ("help me create a contract") starts that workflow even
+      // though it contains "help".
+      if (keyword && action) return keyword;
+      // Questions and help/pricing topics are answered from docs, not drafted.
       if (isInformationalQuestion(text)) return "support";
-      if (/support|bug|issue|help|how do|how to|what is|privacy|terms/.test(t)) return "support";
-      if (/invoice|bill\s|billing|receipt|charge/.test(t)) return "invoice";
-      if (/contract|agreement|proposal|nda|retainer/.test(t)) return "contract";
-      if (/welcome|onboard|kickoff/.test(t)) return "welcome_document";
-      if (/\bproject\b/.test(t)) return "project";
-      if (/\bclient\b|\bcustomer\b|\bcontact\b/.test(t)) return "client";
-      if (/\btime\b|\bhours?\b|\bminutes?\b|\blog\b|\bbillable\b/.test(t)) return "time_entry";
+      if (/support|bug|issue|help|how do|how to|what is|privacy|terms|pricing|price|\bplans?\b|refund|upgrade|subscription/.test(t)) return "support";
+      if (keyword) return keyword;
       return mode;
     },
     [mode],
@@ -1741,6 +1836,7 @@ export function StackivoAiAssistant({ clients, projects }: StackivoAiAssistantPr
                 preview={res.data}
                 onApprove={handleWelcomeDocApprove}
                 onOpen={() => router.push(`/dashboard/welcome/${res.data.id}`)}
+                onSaveTemplate={handleSaveWelcomeTemplate}
               />
             ),
           });
@@ -1821,6 +1917,7 @@ export function StackivoAiAssistant({ clients, projects }: StackivoAiAssistantPr
     handleContractWhatsApp,
     handleInvoiceApprove,
     handleWelcomeDocApprove,
+    handleSaveWelcomeTemplate,
     router,
     mode,
     collected,
