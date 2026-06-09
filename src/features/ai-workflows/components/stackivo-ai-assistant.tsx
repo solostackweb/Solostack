@@ -997,22 +997,17 @@ export function StackivoAiAssistant({ clients, projects }: StackivoAiAssistantPr
   // screens we portal the panel to document.body and render it full-screen.
   const [isMobile, setIsMobile] = React.useState(false);
   const [pending, startTransition] = React.useTransition();
-  const [messages, setMessages] = React.useState<Message[]>(() => [
-    {
-      id: newId(),
-      role: "assistant",
-      content: (
-        <>
-          <span className="block font-semibold">Good to see you.</span>
-          <span className="mt-1 block text-muted-foreground">
-            Tell me what you want to do, or pick a workflow. I can create invoices,
-            contracts, welcome docs, clients, projects, log time, and answer support
-            questions.
-          </span>
-        </>
-      ),
-    },
-  ]);
+  // Empty by default — the polished hero + quick-action grid IS the greeting,
+  // so we don't also push a "Good to see you" bubble (that double-rendered and
+  // looked cut off behind the hero).
+  const [messages, setMessages] = React.useState<Message[]>(() => []);
+  // Time-of-day greeting for the empty state — small humanising touch.
+  const greeting = React.useMemo(() => {
+    const h = new Date().getHours();
+    if (h < 12) return "Good morning";
+    if (h < 17) return "Good afternoon";
+    return "Good evening";
+  }, []);
   const scrollRef = React.useRef<HTMLDivElement>(null);
   const lastInvoicePreviewRef = React.useRef<AiInvoicePreview | null>(null);
   // Plain-text transcript of the conversation (string turns only) so the model
@@ -1051,7 +1046,7 @@ export function StackivoAiAssistant({ clients, projects }: StackivoAiAssistantPr
     setActiveWelcomeDoc(null);
     setPendingConfirm(null);
     transcriptRef.current = [];
-    setMessages((prev) => prev.slice(0, 1));
+    setMessages([]);
   }, []);
 
   React.useEffect(() => { setMounted(true); }, []);
@@ -1124,7 +1119,7 @@ export function StackivoAiAssistant({ clients, projects }: StackivoAiAssistantPr
       if (!node) return;
       // On initial open (no conversation yet), show the top (greeting + quick actions).
       // Only auto-scroll to bottom once a real conversation is underway.
-      if (messages.length > 1 || pending) {
+      if (messages.length > 0 || pending) {
         node.scrollTo({ top: node.scrollHeight, behavior: "smooth" });
       } else {
         node.scrollTo({ top: 0, behavior: "instant" });
@@ -2160,18 +2155,21 @@ export function StackivoAiAssistant({ clients, projects }: StackivoAiAssistantPr
 
   return (
     <>
-      {/* Top bar trigger — desktop */}
-      <div className="hidden items-center gap-1 md:flex">
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          className="gap-1.5 text-sm font-semibold"
-          onClick={() => setOpen(true)}
-        >
-          <Sparkles className="h-4 w-4" /> Ask AI
-        </Button>
-      </div>
+      {/* Top bar trigger — desktop (hidden while the panel is open so it
+          doesn't duplicate the panel's own header). */}
+      {!open && (
+        <div className="hidden items-center gap-1 md:flex">
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="gap-1.5 text-sm font-semibold"
+            onClick={() => setOpen(true)}
+          >
+            <Sparkles className="h-4 w-4" /> Ask AI
+          </Button>
+        </div>
+      )}
       {/* Top bar trigger — mobile */}
       {!open && (
         <Button
@@ -2288,34 +2286,44 @@ export function StackivoAiAssistant({ clients, projects }: StackivoAiAssistantPr
             className="scrollbar-modern min-h-0 flex-1 space-y-6 overflow-y-auto bg-muted/15 [background-image:radial-gradient(hsl(var(--border)/0.35)_1px,transparent_1px)] [background-size:18px_18px] px-5 py-5 md:px-6"
           >
             {/* Greeting + quick actions (general mode, no conversation yet) */}
-            {mode === "general" && messages.length <= 1 && (
-              <>
-                <div className="space-y-1.5">
+            {mode === "general" && messages.length === 0 && !pending && (
+              <div className="motion-safe:animate-page-enter">
+                {/* Hero — animated mark + warm greeting, centered. */}
+                <div className="flex flex-col items-center pb-6 pt-4 text-center">
+                  <span className="relative mb-4 flex h-16 w-16 items-center justify-center">
+                    <span className="absolute inset-0 rounded-2xl bg-primary/15 motion-safe:animate-ping [animation-duration:2.8s]" />
+                    <span className="relative flex h-16 w-16 items-center justify-center rounded-2xl bg-[linear-gradient(140deg,hsl(var(--primary)/0.18),hsl(var(--primary)/0.04))] ring-1 ring-primary/15">
+                      <StackivoMark className="h-8 w-8" />
+                    </span>
+                  </span>
                   <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-primary/70">
                     Stackivo AI
                   </p>
-                  <h2 className="text-xl font-semibold tracking-tight">What are we doing today?</h2>
-                  <p className="text-sm leading-relaxed text-muted-foreground">
-                    Pick a workflow below, or just describe what you need.
+                  <h2 className="mt-1.5 text-xl font-semibold tracking-tight">
+                    {greeting}, what can I do for you?
+                  </h2>
+                  <p className="mt-1.5 max-w-xs text-sm leading-relaxed text-muted-foreground">
+                    Pick a workflow, or just describe what you need — I&apos;ll take it from there.
                   </p>
                 </div>
 
                 {/* Compact, container-based grid so 7 items lay out cleanly at
                     any panel width (the panel is portaled, so viewport `md:`
-                    breakpoints don't reflect its real width). */}
+                    breakpoints don't reflect its real width). Cards stagger in. */}
                 <div className="grid gap-2 [grid-template-columns:repeat(auto-fill,minmax(150px,1fr))]">
-                  {QUICK_ACTIONS.map((action) => (
+                  {QUICK_ACTIONS.map((action, i) => (
                     <button
                       key={action.mode}
                       type="button"
                       onClick={() => selectMode(action.mode)}
+                      style={{ animationDelay: `${i * 45}ms` }}
                       className={cn(
-                        "flex items-center gap-2.5 rounded-xl border bg-background/95 p-3 text-left transition-all hover:border-primary/30 hover:bg-primary/5",
+                        "group flex items-center gap-2.5 rounded-xl border bg-background/95 p-3 text-left transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/40 hover:bg-primary/5 hover:shadow-sm motion-safe:animate-page-enter",
                         mode === action.mode && "border-primary/50 bg-primary/5 ring-1 ring-primary/20",
                       )}
                       title={action.description}
                     >
-                      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary transition-transform duration-200 group-hover:scale-110">
                         <action.icon className="h-4 w-4" />
                       </span>
                       <span className="min-w-0 text-sm font-medium leading-tight">
@@ -2324,7 +2332,7 @@ export function StackivoAiAssistant({ clients, projects }: StackivoAiAssistantPr
                     </button>
                   ))}
                 </div>
-              </>
+              </div>
             )}
 
             {/* Message bubbles */}
@@ -2340,7 +2348,10 @@ export function StackivoAiAssistant({ clients, projects }: StackivoAiAssistantPr
               return (
                 <div
                   key={message.id}
-                  className={cn("flex flex-col", message.role === "user" ? "items-end" : "items-start")}
+                  className={cn(
+                    "flex flex-col motion-safe:animate-page-enter",
+                    message.role === "user" ? "items-end" : "items-start",
+                  )}
                 >
                   <div
                     className={cn(

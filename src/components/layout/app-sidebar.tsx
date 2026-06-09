@@ -3,7 +3,6 @@
 import * as React from "react";
 import Link from "next/link";
 import { PanelLeftClose, PanelLeftOpen } from "lucide-react";
-import { toast } from "sonner";
 import { StackivoMark } from "@/components/brand/stackivo-logo";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -53,16 +52,8 @@ export function AppSidebar() {
         userCollapsedRef.current = collapsed;
         aiForcedRef.current = true;
         setCollapsed(true);
-        // One-time, self-dismissing hint on how to bring the menu back. Using a
-        // toast (rather than an anchored popup) keeps it lightweight and it
-        // naturally never re-nags; we also gate it with a localStorage flag.
-        if (localStorage.getItem("stackivo:ai-collapse-hint") !== "seen") {
-          localStorage.setItem("stackivo:ai-collapse-hint", "seen");
-          toast("Menu tucked away to make room for AI.", {
-            description: "Use the ⟨ ⟩ button at the bottom of the rail to expand it anytime.",
-            duration: 6000,
-          });
-        }
+        // The collapsed rail still shows nav icons + the expand button, so the
+        // menu stays discoverable without an intrusive popup.
       } else if (!aiOpen && aiForcedRef.current) {
         aiForcedRef.current = false;
         setCollapsed(userCollapsedRef.current);
