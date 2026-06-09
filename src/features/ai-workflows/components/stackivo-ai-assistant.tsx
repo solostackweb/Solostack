@@ -17,9 +17,7 @@ import {
   Lightbulb,
   Mail,
   LayoutGrid,
-  Maximize2,
   MessageCircle,
-  Minimize2,
   Plus,
   ReceiptText,
   Sparkles,
@@ -1039,8 +1037,6 @@ export function StackivoAiAssistant({ clients, projects }: StackivoAiAssistantPr
 
   const RESIZE_MIN = 420;
   const RESIZE_MAX = 720;
-  const RESIZE_DEFAULT = 440;
-  const RESIZE_EXPANDED = 700;
 
   const handleNewConversation = React.useCallback(() => {
     setMode("general");
@@ -2209,8 +2205,8 @@ export function StackivoAiAssistant({ clients, projects }: StackivoAiAssistantPr
           )}
         >
           {/* Header */}
-          <div className="sticky top-0 z-10 flex h-14 items-center justify-between border-b bg-background px-4">
-            <div className="inline-flex min-w-0 items-center gap-2 text-left font-semibold">
+          <div className="sticky top-0 z-10 flex h-14 items-center gap-2 border-b bg-background px-3">
+            <div className="flex min-w-0 flex-1 items-center gap-2 font-semibold">
               <StackivoMark className="h-6 w-6 shrink-0" bare />
               <span className="truncate">
                 {mode === "general"
@@ -2218,7 +2214,7 @@ export function StackivoAiAssistant({ clients, projects }: StackivoAiAssistantPr
                   : QUICK_ACTIONS.find((a) => a.mode === mode)?.title ?? "New conversation"}
               </span>
             </div>
-            <div className="flex items-center gap-1">
+            <div className="flex shrink-0 items-center gap-0.5">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button
@@ -2260,22 +2256,7 @@ export function StackivoAiAssistant({ clients, projects }: StackivoAiAssistantPr
               >
                 <Plus className="h-4 w-4" />
               </Button>
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                className="hidden h-8 w-8 md:inline-flex"
-                onClick={() => {
-                  setExpanded((value) => {
-                    const next = !value;
-                    setPanelWidth(next ? RESIZE_EXPANDED : RESIZE_DEFAULT);
-                    return next;
-                  });
-                }}
-                aria-label={expanded ? "Collapse AI panel" : "Expand AI panel"}
-              >
-                {expanded ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
-              </Button>
+              <span className="mx-0.5 h-5 w-px bg-border" aria-hidden="true" />
               <Button
                 type="button"
                 variant="ghost"

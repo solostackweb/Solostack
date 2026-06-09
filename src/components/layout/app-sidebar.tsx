@@ -3,6 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { PanelLeftClose, PanelLeftOpen } from "lucide-react";
+import { toast } from "sonner";
 import { StackivoMark } from "@/components/brand/stackivo-logo";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -22,6 +23,12 @@ export function AppSidebar() {
     return pref === "collapsed";
   });
   const onToggle = React.useCallback(() => setCollapsed((v) => !v), []);
+  // When the AI panel is open we auto-collapse the sidebar to its icon rail so
+  // the screen isn't split three ways. We remember the user's own collapsed
+  // choice and restore it when the panel closes — and never override a manual
+  // toggle the user makes while the panel is open.
+  const userCollapsedRef = React.useRef(collapsed);
+  const aiForcedRef = React.useRef(false);
 
   // Live-react to preference changes made from the Appearance settings page.
   React.useEffect(() => {
@@ -34,6 +41,38 @@ export function AppSidebar() {
     window.addEventListener("storage", onStorage);
     return () => window.removeEventListener("storage", onStorage);
   }, []);
+
+  // Auto-collapse while the AI panel is open (tracks the `stackivo-ai-open`
+  // class the panel sets on <html>). Restores the previous state on close.
+  React.useEffect(() => {
+    if (typeof window === "undefined") return;
+    const root = document.documentElement;
+    const sync = () => {
+      const aiOpen = root.classList.contains("stackivo-ai-open");
+      if (aiOpen && !aiForcedRef.current) {
+        userCollapsedRef.current = collapsed;
+        aiForcedRef.current = true;
+        setCollapsed(true);
+        // One-time, self-dismissing hint on how to bring the menu back. Using a
+        // toast (rather than an anchored popup) keeps it lightweight and it
+        // naturally never re-nags; we also gate it with a localStorage flag.
+        if (localStorage.getItem("stackivo:ai-collapse-hint") !== "seen") {
+          localStorage.setItem("stackivo:ai-collapse-hint", "seen");
+          toast("Menu tucked away to make room for AI.", {
+            description: "Use the ⟨ ⟩ button at the bottom of the rail to expand it anytime.",
+            duration: 6000,
+          });
+        }
+      } else if (!aiOpen && aiForcedRef.current) {
+        aiForcedRef.current = false;
+        setCollapsed(userCollapsedRef.current);
+      }
+    };
+    sync();
+    const observer = new MutationObserver(sync);
+    observer.observe(root, { attributes: true, attributeFilter: ["class"] });
+    return () => observer.disconnect();
+  }, [collapsed]);
 
   const { profile, subscription } = useProfile();
   const workspaceName =
