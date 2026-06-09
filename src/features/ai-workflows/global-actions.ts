@@ -385,9 +385,12 @@ function quantityFromAnswer(value: string) {
 
 function discountFromPrompt(prompt: string, subtotal: number) {
   const normalized = prompt.replace(/,/g, "").toLowerCase();
+  // Any number immediately followed by "%" is a percentage discount — this also
+  // catches a bare "10%" answer with no "discount/off" keyword (which otherwise
+  // fell through and was mis-read as a flat ₹10).
   const percentMatch =
     normalized.match(/(?:discount|off)\s*(?:of\s*)?(\d+(?:\.\d+)?)\s*%/) ??
-    normalized.match(/(\d+(?:\.\d+)?)\s*%\s*(?:discount|off)/);
+    normalized.match(/(\d+(?:\.\d+)?)\s*%/);
   if (percentMatch) {
     return Math.min(subtotal, Math.max(0, (subtotal * Number(percentMatch[1])) / 100));
   }
@@ -1093,7 +1096,65 @@ export async function approveInvoiceFromAiAction(input: z.infer<typeof aiInvoice
   fd.set("status", "sent");
   const res = await setInvoiceStatusAction(undefined, fd);
   if (!res.ok) return res;
-  return { ok: true as const, message: "Invoice approved and marked as sent." };
+
+  // Re-read the CURRENT invoice from the DB so the delivery card reflects any
+  // edits the user made on the invoice page (the in-memory preview can be
+  // stale — e.g. amount/discount changed after the draft was first shown).
+  const userId = await requireUserId();
+  const supabase = await getServerSupabase();
+  const { data: invoiceRow } = await supabase
+    .from("invoices")
+    .select("id, invoice_number, currency, total_amount, due_date, status, client_id")
+    .eq("id", parsed.data.invoiceId)
+    .eq("user_id", userId)
+    .maybeSingle();
+  const invoice = invoiceRow as
+    | {
+        id: string;
+        invoice_number: string;
+        currency: string;
+        total_amount: number;
+        due_date: string;
+        status: string;
+        client_id?: string | null;
+      }
+    | null;
+
+  let clientName: string | null = null;
+  let clientEmail: string | null = null;
+  let clientPhone: string | null = null;
+  if (invoice?.client_id) {
+    const { data: clientRow } = await supabase
+      .from("clients")
+      .select("full_name, business_name, email, phone")
+      .eq("id", invoice.client_id)
+      .eq("user_id", userId)
+      .maybeSingle();
+    const c = clientRow as
+      | { full_name?: string | null; business_name?: string | null; email?: string | null; phone?: string | null }
+      | null;
+    clientName = c?.business_name || c?.full_name || null;
+    clientEmail = c?.email ?? null;
+    clientPhone = c?.phone ?? null;
+  }
+
+  return {
+    ok: true as const,
+    message: "Invoice approved and marked as sent.",
+    data: invoice
+      ? {
+          id: invoice.id,
+          invoiceNumber: invoice.invoice_number,
+          totalAmount: Number(invoice.total_amount) || 0,
+          currency: invoice.currency,
+          dueDate: invoice.due_date,
+          status: invoice.status,
+          clientName,
+          clientEmail,
+          clientPhone,
+        }
+      : null,
+  };
 }
 
 export async function emailInvoiceFromAiAction(input: z.infer<typeof aiInvoiceIdSchema>) {

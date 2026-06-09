@@ -1185,17 +1185,34 @@ export function StackivoAiAssistant({ clients, projects }: StackivoAiAssistantPr
       startTransition(async () => {
         const res = await approveInvoiceFromAiAction({ invoiceId: preview.id });
         if (!res.ok) { push({ role: "assistant", content: res.error }); return; }
+        // Merge the fresh, server-read invoice (reflects any edits) over the
+        // in-memory preview so the delivery card shows the CORRECT total.
+        const fresh: AiInvoicePreview = {
+          ...preview,
+          status: "sent",
+          ...(res.data
+            ? {
+                invoiceNumber: res.data.invoiceNumber,
+                totalAmount: res.data.totalAmount,
+                currency: res.data.currency,
+                dueDate: res.data.dueDate,
+                clientName: res.data.clientName ?? preview.clientName,
+                clientEmail: res.data.clientEmail ?? preview.clientEmail,
+                clientPhone: res.data.clientPhone ?? preview.clientPhone,
+              }
+            : {}),
+        };
         push({
           role: "assistant",
           content: (
             <InvoiceDeliveryActions
-              preview={{ ...preview, status: "sent" }}
+              preview={fresh}
               onDeliver={handleInvoiceDelivery}
               onOpen={() => router.push(`/dashboard/invoices/${preview.id}`)}
             />
           ),
         });
-        setLastInvoicePreview({ ...preview, status: "sent" });
+        setLastInvoicePreview(fresh);
         router.refresh();
       });
     },
