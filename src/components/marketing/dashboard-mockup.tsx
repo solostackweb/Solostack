@@ -42,7 +42,7 @@ export function DashboardMockup() {
                   }`}
                 >
                   {i === 0 && (
-                    <span className="absolute left-0 top-1/2 h-4 w-[3px] -translate-y-1/2 rounded-r-full bg-gradient-to-b from-indigo-400 to-violet-500" />
+                    <span className="absolute left-0 top-1/2 h-4 w-[3px] -translate-y-1/2 rounded-r-full bg-gradient-to-b from-primary to-primary" />
                   )}
                   <item.icon className="h-3.5 w-3.5" />
                   {item.label}
@@ -188,7 +188,7 @@ function RevenueChart() {
           <div key={months[i]} className="flex flex-1 flex-col items-center gap-1">
             <div className="flex w-full flex-col items-center gap-0.5">
               <div
-                className="w-full rounded-t bg-violet-400/30"
+                className="w-full rounded-t bg-primary/30"
                 style={{ height: `${d.collected}%` }}
               />
               <div

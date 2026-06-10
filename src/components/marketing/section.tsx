@@ -29,7 +29,7 @@ const HORIZONTAL_PADDING =
  * rhythm feels cinematic rather than cramped.
  */
 const VERTICAL_PADDING =
-  "py-16 sm:py-20 lg:py-24 xl:py-28";
+  "py-12 sm:py-14 lg:py-16";
 
 export function Section({
   children,
@@ -68,7 +68,7 @@ export function Section({
 
 export function SectionEyebrow({ children }: { children: React.ReactNode }) {
   return (
-    <p className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-gradient-to-r from-primary/8 to-violet-500/6 px-3.5 py-1.5 text-[11px] font-semibold uppercase tracking-widest text-primary shadow-sm shadow-primary/10 backdrop-blur-sm">
+    <p className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-3.5 py-1.5 text-[11px] font-semibold uppercase tracking-widest text-primary">
       <span className="h-1 w-1 rounded-full bg-primary/80" />
       {children}
     </p>
@@ -101,10 +101,10 @@ export function SectionHeading({
       {eyebrow ? <SectionEyebrow>{eyebrow}</SectionEyebrow> : null}
       <h2
         className={cn(
-          "text-balance font-bold tracking-tight",
+          "text-balance font-display font-semibold tracking-tight",
           size === "large"
-            ? "text-4xl sm:text-5xl lg:text-[58px] lg:tracking-[-0.03em]"
-            : "text-3xl sm:text-[40px] lg:text-[46px] lg:tracking-[-0.025em]",
+            ? "text-[32px] sm:text-[44px] lg:text-5xl lg:tracking-[-0.02em]"
+            : "text-[26px] sm:text-[34px] lg:text-[40px] lg:tracking-[-0.018em]",
         )}
       >
         {title}

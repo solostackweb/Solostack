@@ -321,11 +321,12 @@ export async function getRemindersSnapshot(): Promise<{
   const todayIso = now.toISOString().slice(0, 10);
   const in14 = new Date(now.getTime() + 14 * 86_400_000).toISOString();
 
-  // Overdue: sent or viewed invoices whose due date is today or earlier
+  // Overdue: either explicitly overdue, or live invoices whose due date has
+  // passed. This mirrors the invoice read model's effective-status logic.
   const { data: overdueRows } = await supabase
     .from("invoices")
     .select("id, invoice_number, due_date, total_amount")
-    .in("status", ["sent", "viewed"])
+    .in("status", ["sent", "viewed", "overdue"])
     .lte("due_date", todayIso)
     .order("due_date", { ascending: true })
     .limit(4);

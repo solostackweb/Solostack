@@ -571,15 +571,15 @@
    * Use as a Tailwind `[&]:btn-primary` helper or apply the class directly.
    */
   .btn-gradient {
-    background-image: linear-gradient(135deg, hsl(243 75% 52%), hsl(262 83% 58%));
+    background-image: linear-gradient(135deg, hsl(221 83% 53%), hsl(214 90% 48%));
     color: white;
-    box-shadow: 0 4px 14px -2px hsl(243 75% 52% / 0.35);
+    box-shadow: 0 4px 14px -2px hsl(221 83% 53% / 0.35);
     transition: box-shadow 200ms ease, transform 150ms cubic-bezier(0.22, 1, 0.36, 1),
                 filter 200ms ease;
   }
   .btn-gradient:hover {
-    box-shadow: 0 6px 20px -2px hsl(243 75% 52% / 0.45);
-    filter: brightness(1.08);
+    box-shadow: 0 6px 20px -2px hsl(221 83% 53% / 0.45);
+    filter: brightness(1.06);
   }
   .btn-gradient:active {
     transform: scale(0.98);
@@ -591,13 +591,13 @@
    * Apply to H1/H2 key phrases for the Stripe headline style.
    */
   .text-gradient {
-    background-image: linear-gradient(135deg, hsl(243 75% 52%), hsl(262 83% 64%), hsl(280 70% 60%));
+    background-image: linear-gradient(120deg, hsl(221 83% 53%), hsl(211 90% 48%));
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
   }
   .dark .text-gradient {
-    background-image: linear-gradient(135deg, hsl(243 80% 72%), hsl(262 83% 78%), hsl(280 70% 72%));
+    background-image: linear-gradient(120deg, hsl(217 91% 68%), hsl(205 90% 62%));
   }
 
   /*

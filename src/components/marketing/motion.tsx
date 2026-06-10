@@ -159,8 +159,8 @@ export function GradientMesh({ className }: { className?: string }) {
       )}
     >
       <div className="absolute -left-[15%] top-[-20%] h-[60%] w-[60%] rounded-full bg-primary/15 blur-[120px]" />
-      <div className="absolute right-[-10%] top-[10%] h-[55%] w-[55%] rounded-full bg-indigo-500/10 blur-[110px]" />
-      <div className="absolute bottom-[-20%] left-[20%] h-[50%] w-[50%] rounded-full bg-violet-500/[0.08] blur-[100px]" />
+      <div className="absolute right-[-10%] top-[10%] h-[55%] w-[55%] rounded-full bg-primary/10 blur-[110px]" />
+      <div className="absolute bottom-[-20%] left-[20%] h-[50%] w-[50%] rounded-full bg-primary/[0.08] blur-[100px]" />
     </div>
   );
 }
@@ -171,7 +171,7 @@ export function GlowSpotlight({ className }: { className?: string }) {
     <div
       aria-hidden
       className={cn(
-        "pointer-events-none absolute -inset-x-8 -top-10 -z-10 h-[120%] rounded-[3rem] bg-gradient-to-b from-primary/15 via-indigo-500/[0.08] to-transparent blur-3xl",
+        "pointer-events-none absolute -inset-x-8 -top-10 -z-10 h-[120%] rounded-[3rem] bg-gradient-to-b from-primary/15 via-primary/[0.08] to-transparent blur-3xl",
         className,
       )}
     />

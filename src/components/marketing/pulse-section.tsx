@@ -10,7 +10,7 @@ export function PulseSection() {
         <Reveal className="relative order-2 lg:order-1">
           <div
             aria-hidden
-            className="pointer-events-none absolute -inset-4 -z-10 rounded-[2rem] bg-gradient-to-br from-indigo-500/15 via-transparent to-primary/10 blur-2xl"
+            className="pointer-events-none absolute -inset-4 -z-10 rounded-[2rem] bg-gradient-to-br from-primary/15 via-transparent to-primary/10 blur-2xl"
           />
           <div className="transition-transform duration-300 ease-out hover:-translate-y-1">
             <PulseMockup />

@@ -194,7 +194,7 @@ function PricingCard({
       {tier.popular ? (
         <div
           aria-hidden
-          className="pointer-events-none absolute -inset-px -z-10 rounded-2xl bg-gradient-to-br from-primary/[0.18] via-violet-500/[0.08] to-transparent blur-lg"
+          className="pointer-events-none absolute -inset-px -z-10 rounded-2xl bg-gradient-to-br from-primary/[0.18] via-primary/[0.08] to-transparent blur-lg"
         />
       ) : null}
       {tier.popular ? (

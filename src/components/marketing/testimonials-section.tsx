@@ -27,7 +27,7 @@ const TESTIMONIALS: Testimonial[] = [
     role: "UI/UX Designer",
     location: "Bengaluru",
     initial: "P",
-    accentClass: "bg-violet-500/10 text-violet-600 dark:text-violet-400",
+    accentClass: "bg-primary/10 text-primary dark:text-primary",
   },
   {
     quote:

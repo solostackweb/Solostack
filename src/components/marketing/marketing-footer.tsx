@@ -5,11 +5,11 @@ import type { MarketingAuthState } from "@/features/marketing/types";
 import { NewsletterForm } from "./newsletter-form";
 
 const PRODUCT_LINKS = [
-  { label: "Features", href: "/#features" },
+  { label: "Product tour", href: "/#features" },
+  { label: "Stackivo AI", href: "/#ai" },
   { label: "Workflow", href: "/#workflow" },
   { label: "GST invoicing", href: "/#gst" },
   { label: "Pricing", href: "/pricing" },
-  { label: "Demo", href: "/demo" },
   { label: "Changelog", href: "/changelog" },
 ];
 
@@ -65,23 +65,19 @@ export function MarketingFooter({
   ];
 
   return (
-    <footer className="relative border-t bg-background">
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-border to-transparent"
-      />
-      <div className="mx-auto w-full max-w-[1400px] px-5 py-14 sm:px-8 sm:py-16 lg:px-10 xl:px-14 2xl:px-20">
-        <div className="grid gap-12 md:grid-cols-2 lg:grid-cols-[1.6fr_repeat(4,1fr)]">
+    <footer className="relative overflow-hidden border-t bg-muted/20">
+      <div className="mx-auto w-full max-w-[1200px] px-5 pb-10 pt-14 sm:px-8 sm:pt-16">
+        <div className="grid gap-12 md:grid-cols-2 lg:grid-cols-[1.5fr_repeat(4,1fr)]">
           <div className="space-y-4">
             <Link href="/" className="flex items-center gap-2.5 font-bold tracking-tight">
               <StackivoMark className="h-8 w-8" />
               <span className="text-base">{siteConfig.name}</span>
             </Link>
             <p className="max-w-xs text-sm leading-relaxed text-muted-foreground">
-              The freelance workflow built for independent professionals.
-              Clients, invoices, contracts, projects — one clean place.
+              Contracts, invoices, projects, time and payments — one clean
+              workspace for freelancers and small studios.
             </p>
-            <div className="space-y-2">
+            <div className="space-y-2 pt-1">
               <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
                 Newsletter
               </p>
@@ -118,12 +114,22 @@ export function MarketingFooter({
           ))}
         </div>
 
-        <div className="mt-10 flex flex-col items-start justify-between gap-3 border-t pt-8 text-xs text-muted-foreground sm:flex-row sm:items-center">
+        <div className="mt-12 flex flex-col items-start justify-between gap-3 border-t border-border/70 pt-7 text-xs text-muted-foreground sm:flex-row sm:items-center">
           <p>
             © {new Date().getFullYear()} {siteConfig.name}. Built for independent professionals.
           </p>
           <p className="font-medium">Made in India · For the world</p>
         </div>
+      </div>
+
+      {/* Oversized watermark wordmark — Vercel/Linear-style sign-off */}
+      <div
+        aria-hidden
+        className="pointer-events-none select-none overflow-hidden"
+      >
+        <p className="mx-auto -mb-[0.21em] w-full max-w-[1200px] px-5 text-center font-display text-[20vw] font-bold leading-none tracking-[-0.04em] text-foreground/[0.04] sm:px-8 lg:text-[15rem]">
+          Stackivo
+        </p>
       </div>
     </footer>
   );

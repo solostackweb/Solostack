@@ -57,7 +57,7 @@ export function DashboardShell({
             {/* animate-page-enter: subtle lift+fade on every route render.
                 GPU-only (transform + opacity). Collapsed to instant under
                 prefers-reduced-motion via the global CSS rule. */}
-            <div className="mx-auto w-full max-w-7xl p-4 md:p-6 lg:p-8 motion-safe:animate-page-enter">
+            <div className="mx-auto w-full max-w-[92rem] p-4 md:p-6 lg:p-8 motion-safe:animate-page-enter">
               {children}
             </div>
           </main>

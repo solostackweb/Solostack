@@ -265,7 +265,7 @@ export async function getInvoiceAggregates(): Promise<{
         .from("invoices")
         .select("*")
         .order("created_at", { ascending: false })
-        .limit(5),
+        .limit(6),
     ]);
 
   type AggRow = { total_amount?: number; paid_at?: string | null; status?: string };

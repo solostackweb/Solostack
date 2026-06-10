@@ -14,8 +14,8 @@ export function CtaBand({
     <section className="relative isolate overflow-hidden border-y border-primary/10">
       {/* Stripe-style rich gradient wash */}
       <div aria-hidden className="pointer-events-none absolute inset-0 -z-10">
-        <div className="absolute inset-0 bg-gradient-to-br from-indigo-600/[0.10] via-violet-500/[0.06] to-transparent" />
-        <div className="absolute inset-0 bg-gradient-to-tl from-violet-600/[0.08] via-transparent to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/[0.10] via-primary/[0.06] to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-tl from-primary/[0.08] via-transparent to-transparent" />
       </div>
       {/* Dot grid */}
       <div

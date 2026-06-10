@@ -2,12 +2,11 @@ import { Suspense } from "react";
 import Link from "next/link";
 import { Plus } from "lucide-react";
 
-import { AccountingOverview } from "@/components/dashboard/accounting-overview";
 import { ActivityTimeline } from "@/components/dashboard/activity-timeline";
+import { BusinessCommandCenter } from "@/components/dashboard/business-command-center";
 import { QuickActions } from "@/components/dashboard/quick-actions";
 import { RecentClients } from "@/components/dashboard/recent-clients";
 import { RecentInvoices } from "@/components/dashboard/recent-invoices";
-import { RevenueChartLazy } from "@/components/dashboard/revenue-chart-lazy";
 import { UpcomingReminders } from "@/components/dashboard/upcoming-reminders";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/shared/page-header";
@@ -49,17 +48,15 @@ async function KpiSection() {
     revenueSeries,
   } = await getKpiSnapshot();
   return (
-    <>
-      <AccountingOverview
-        collectedAllTime={collectedAllTime}
-        outstanding={outstanding}
-        overdueAmount={overdueAmount}
-        activeProjects={activeProjects}
-        weeklyBillableSeconds={weeklyBillableSeconds}
-        weeklyBillableAmount={weeklyBillableAmount}
-      />
-      <RevenueChartLazy series={revenueSeries} />
-    </>
+    <BusinessCommandCenter
+      collectedAllTime={collectedAllTime}
+      outstanding={outstanding}
+      overdueAmount={overdueAmount}
+      activeProjects={activeProjects}
+      weeklyBillableSeconds={weeklyBillableSeconds}
+      weeklyBillableAmount={weeklyBillableAmount}
+      revenueSeries={revenueSeries}
+    />
   );
 }
 
@@ -93,18 +90,38 @@ async function BottomGridSection() {
 
 function KpiSkeleton() {
   return (
-    <div className="space-y-5">
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-        {Array.from({ length: 5 }).map((_, i) => (
-          <div key={i} className="rounded-xl border bg-card p-5">
-            <Skeleton className="mb-3 h-3.5 w-24" />
-            <Skeleton className="h-7 w-28" />
+    <div className="overflow-hidden rounded-xl border bg-card">
+      <div className="grid lg:grid-cols-[minmax(0,0.92fr)_minmax(0,1.38fr)]">
+        <div className="space-y-5 border-b p-5 sm:p-6 lg:border-b-0 lg:border-r">
+          <div className="flex items-start justify-between gap-3">
+            <div className="space-y-3">
+              <Skeleton className="h-3 w-40" />
+              <Skeleton className="h-9 w-32" />
+              <Skeleton className="h-4 w-48" />
+            </div>
+            <Skeleton className="h-7 w-36 rounded-full" />
           </div>
-        ))}
-      </div>
-      <div className="rounded-xl border bg-card p-6">
-        <Skeleton className="mb-4 h-4 w-32" />
-        <Skeleton className="h-[200px] w-full rounded-lg" />
+          <Skeleton className="h-2 w-full rounded-full" />
+          <div className="grid gap-3 sm:grid-cols-2">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="rounded-lg border p-3">
+                <Skeleton className="mb-3 h-3 w-20" />
+                <Skeleton className="h-6 w-24" />
+              </div>
+            ))}
+          </div>
+          <Skeleton className="h-16 w-full rounded-lg" />
+        </div>
+        <div className="space-y-5 p-5 sm:p-6">
+          <div className="flex items-start justify-between gap-3">
+            <div className="space-y-2">
+              <Skeleton className="h-4 w-28" />
+              <Skeleton className="h-3 w-52" />
+            </div>
+            <Skeleton className="h-7 w-36 rounded-full" />
+          </div>
+          <Skeleton className="h-[260px] w-full rounded-lg sm:h-[310px]" />
+        </div>
       </div>
     </div>
   );
@@ -176,7 +193,7 @@ export default async function DashboardPage() {
   const greetingName = firstNameOf(profile);
 
   return (
-    <div className="space-y-5 sm:space-y-8">
+    <div className="space-y-5 sm:space-y-7">
       <PageHeader
         title={`Welcome back, ${greetingName}`}
         description="Here's what's happening with your business today."

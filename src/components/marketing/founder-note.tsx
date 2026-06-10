@@ -26,7 +26,7 @@ export function FounderNote() {
           />
           <div
             aria-hidden
-            className="pointer-events-none absolute -bottom-16 -left-16 h-48 w-48 rounded-full bg-indigo-500/10 blur-3xl"
+            className="pointer-events-none absolute -bottom-16 -left-16 h-48 w-48 rounded-full bg-primary/10 blur-3xl"
           />
 
           <div className="relative">

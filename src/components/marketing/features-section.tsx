@@ -138,8 +138,8 @@ function FeatureTile({ feature }: { feature: Feature }) {
     >
       {accent ? (
         <>
-          <div aria-hidden className="pointer-events-none absolute -right-16 -top-16 h-56 w-56 rounded-full bg-indigo-500/[0.14] blur-3xl" />
-          <div aria-hidden className="pointer-events-none absolute -bottom-10 -left-10 h-40 w-40 rounded-full bg-violet-500/[0.10] blur-2xl" />
+          <div aria-hidden className="pointer-events-none absolute -right-16 -top-16 h-56 w-56 rounded-full bg-primary/[0.14] blur-3xl" />
+          <div aria-hidden className="pointer-events-none absolute -bottom-10 -left-10 h-40 w-40 rounded-full bg-primary/[0.10] blur-2xl" />
         </>
       ) : null}
       <span
@@ -147,7 +147,7 @@ function FeatureTile({ feature }: { feature: Feature }) {
           "inline-flex h-10 w-10 items-center justify-center rounded-xl ring-1 transition-all duration-250 group-hover:scale-105",
           accent
             ? "btn-gradient border-0 text-white shadow-lg shadow-primary/25 ring-0"
-            : "border-0 bg-gradient-to-br from-primary/12 to-violet-500/8 text-primary ring-primary/15 group-hover:from-primary/18 group-hover:shadow-md group-hover:shadow-primary/10",
+            : "border-0 bg-gradient-to-br from-primary/12 to-primary/8 text-primary ring-primary/15 group-hover:from-primary/18 group-hover:shadow-md group-hover:shadow-primary/10",
         )}
       >
         <Icon className="h-[18px] w-[18px]" strokeWidth={2} />

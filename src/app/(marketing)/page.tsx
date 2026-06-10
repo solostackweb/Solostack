@@ -1,29 +1,39 @@
 import type { Metadata } from "next";
-import { HeroSection } from "@/components/marketing/hero-section";
-import { FeaturesSection } from "@/components/marketing/features-section";
-import { WorkflowSection } from "@/components/marketing/workflow-section";
-import { GstSection } from "@/components/marketing/gst-section";
-import { PainSection } from "@/components/marketing/pain-section";
-import { PulseSection } from "@/components/marketing/pulse-section";
+import { Hero } from "@/components/marketing/home/hero";
+import { TrustStrip } from "@/components/marketing/home/trust-strip";
+import { ProblemSection } from "@/components/marketing/home/problem-section";
+import { ShowcaseSection } from "@/components/marketing/home/showcase-section";
+import { CapabilitiesSection } from "@/components/marketing/home/capabilities-section";
+import { AiSection } from "@/components/marketing/home/ai-section";
+import { WorkflowSection } from "@/components/marketing/home/workflow-section";
+import { Testimonials } from "@/components/marketing/home/testimonials";
+import { PricingTeaser } from "@/components/marketing/home/pricing-teaser";
+import { FinalCta } from "@/components/marketing/home/final-cta";
 import { FaqSection } from "@/components/marketing/faq-section";
-import { CtaBand } from "@/components/marketing/cta-band";
-import { FounderNote } from "@/components/marketing/founder-note";
 import { getMarketingAuthState } from "@/features/marketing/auth-state";
 import { siteConfig } from "@/config/site";
 
 export const metadata: Metadata = {
-  title: "Stackivo — Your freelance workflow, all in one place",
+  title: "Stackivo — Your client work, finally in one place",
   description:
-    "Stackivo brings clients, invoices, contracts, projects, time tracking, and payments into one clean workspace for freelancers, consultants, and small studios. Simple invoices or full GST — you decide.",
+    "Contracts, invoices, projects, time and payments — Stackivo replaces the six tools freelancers and studios juggle with one fast, GST-ready workspace. Free for your first 5 clients.",
   alternates: { canonical: "/" },
   openGraph: {
-    title: "Stackivo — Your freelance workflow, all in one place",
+    title: "Stackivo — Your client work, finally in one place",
     description:
-      "Clients, projects, GST-ready invoices, contracts, time tracking, and payments in one workspace. Free forever for your first 5 clients.",
+      "Contracts, invoices, projects, time and payments in one fast, GST-ready workspace for freelancers and studios. Free for your first 5 clients.",
     url: siteConfig.url,
   },
 };
 
+/**
+ * Homepage — a single story arc:
+ *
+ *   Hero (what it is) → Trust (who it's for) → Problem (the scattered stack)
+ *   → Showcase (the product, interactive) → Capabilities (the details)
+ *   → AI (the multiplier) → Workflow (hello-to-paid) → Testimonials (proof)
+ *   → Pricing (the ask) → FAQ (objections) → Final CTA (the close).
+ */
 export default async function LandingPage() {
   const authState = await getMarketingAuthState();
 
@@ -50,18 +60,17 @@ export default async function LandingPage() {
           }),
         }}
       />
-      <HeroSection authState={authState} />
-      {/* Pain-first: lead with the problem the visitor recognises before
-          parading the tooling. Features-first ordering reads as "we are a
-          feature list"; pain-first creates relevance + emotional hook. */}
-      <PainSection />
-      <FeaturesSection />
+      <Hero authState={authState} />
+      <TrustStrip />
+      <ProblemSection />
+      <ShowcaseSection />
+      <CapabilitiesSection />
+      <AiSection />
       <WorkflowSection />
-      <GstSection />
-      <PulseSection />
-      <FounderNote />
+      <Testimonials />
+      <PricingTeaser />
       <FaqSection />
-      <CtaBand authState={authState} />
+      <FinalCta authState={authState} />
     </>
   );
 }

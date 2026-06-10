@@ -27,7 +27,7 @@ export function GuaranteeStrip() {
           body="Cancel from settings · keep paid features till the period ends."
         />
         <Tile
-          icon={<Database className="h-4 w-4 text-violet-600" />}
+          icon={<Database className="h-4 w-4 text-primary" />}
           title="Your data, exportable"
           body="One-click JSON export of every record you own. Always."
         />
