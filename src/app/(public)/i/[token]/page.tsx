@@ -90,19 +90,30 @@ export default async function PublicInvoicePage({ params }: Props) {
   const docLabel = viewModel.taxMode === "non_gst" ? "Invoice" : "Tax Invoice";
   const pdfUrl = getInvoicePdfShareUrl(token);
 
+  const isPartiallyPaid = status === "partially_paid";
+  const paidSoFar =
+    isPartiallyPaid && Number(shared.invoice.payment_amount ?? 0) > 0
+      ? Math.min(Number(shared.invoice.payment_amount), Number(shared.invoice.total_amount))
+      : 0;
+  const balanceDue = Number(shared.invoice.total_amount) - paidSoFar;
+
   const statusChip = isPaid
     ? "bg-emerald-50 text-emerald-700 border-emerald-200"
     : isOverdue
       ? "bg-red-50 text-red-700 border-red-200"
-      : "bg-slate-100 text-slate-600 border-slate-200";
+      : isPartiallyPaid
+        ? "bg-amber-50 text-amber-700 border-amber-200"
+        : "bg-slate-100 text-slate-600 border-slate-200";
 
   const statusLabel = isPaid
     ? "Paid"
     : isOverdue
       ? "Overdue"
-      : status === "sent"
-        ? "Due"
-        : status.charAt(0).toUpperCase() + status.slice(1);
+      : isPartiallyPaid
+        ? "Partially paid"
+        : status === "sent"
+          ? "Due"
+          : status.charAt(0).toUpperCase() + status.slice(1);
 
   return (
     <div className="min-h-svh bg-slate-50/80">
@@ -181,8 +192,13 @@ export default async function PublicInvoicePage({ params }: Props) {
                     {isPaid ? "Amount Paid" : "Amount Due"}
                   </p>
                   <p className="mt-1 text-3xl font-bold tabular-nums text-slate-900">
-                    {amountFormatted}
+                    {paidSoFar > 0 ? fmt(balanceDue, shared.invoice.currency) : amountFormatted}
                   </p>
+                  {paidSoFar > 0 && (
+                    <p className="mt-1 text-xs font-medium text-amber-600">
+                      {fmt(paidSoFar, shared.invoice.currency)} received
+                    </p>
+                  )}
                 </div>
               </div>
 
@@ -332,11 +348,19 @@ export default async function PublicInvoicePage({ params }: Props) {
                       <dd className="text-right text-xs text-slate-400">Not applicable</dd>
                     </>
                   )}
+                  {paidSoFar > 0 && (
+                    <>
+                      <dt className="text-xs text-slate-500">Paid to date</dt>
+                      <dd className="text-right text-sm tabular-nums text-emerald-700">
+                        -{fmt(paidSoFar, viewModel.currency)}
+                      </dd>
+                    </>
+                  )}
                   <dt className="border-t border-slate-200 pt-2 text-sm font-bold text-slate-900">
-                    {isPaid ? "Total Paid" : "Amount Due"}
+                    {isPaid ? "Total Paid" : paidSoFar > 0 ? "Balance Due" : "Amount Due"}
                   </dt>
                   <dd className="border-t border-slate-200 pt-2 text-right text-sm font-bold tabular-nums text-slate-900">
-                    {fmt(viewModel.totalAmount, viewModel.currency)}
+                    {fmt(paidSoFar > 0 ? balanceDue : viewModel.totalAmount, viewModel.currency)}
                   </dd>
                 </dl>
               </div>

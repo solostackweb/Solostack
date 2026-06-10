@@ -59,28 +59,7 @@ export function SignatureCaptureModal({
   defaultLegalName = "",
 }: SignatureCaptureModalProps) {
   const signatureCanvasRef = useRef<SignatureCanvas>(null);
-  const containerRef = useRef<HTMLDivElement | null>(null);
-
-  const [canvasPixelWidth, setCanvasPixelWidth] = useState<number>(500);
-  const [canvasPixelHeight, setCanvasPixelHeight] = useState<number>(200);
-  const cssCanvasHeight = 200; // CSS height in px
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  // Compute canvas pixel size to match devicePixelRatio for pointer accuracy
-  useEffect(() => {
-    function updateSize() {
-      const dpr = typeof window !== "undefined" ? window.devicePixelRatio || 1 : 1;
-      const containerWidth = containerRef.current?.clientWidth || 500;
-      const pixelW = Math.max(300, Math.floor(containerWidth * dpr));
-      const pixelH = Math.max(120, Math.floor(cssCanvasHeight * dpr));
-      setCanvasPixelWidth(pixelW);
-      setCanvasPixelHeight(pixelH);
-    }
-
-    updateSize();
-    window.addEventListener("resize", updateSize);
-    return () => window.removeEventListener("resize", updateSize);
-  }, [cssCanvasHeight]);
 
   // State for type tab
   const [typedName, setTypedName] = useState("");
@@ -300,10 +279,7 @@ export function SignatureCaptureModal({
                 <p className="text-sm text-muted-foreground">
                   Sign using your mouse, touchscreen, or trackpad.
                 </p>
-                <div
-                  ref={containerRef}
-                  className="rounded-lg border-2 border-dashed bg-slate-50 p-2 sm:p-4"
-                >
+                <div className="rounded-lg border-2 border-dashed bg-slate-50 p-2 sm:p-4">
                   <SignatureCanvas
                     ref={signatureCanvasRef}
                     onEnd={() => {
@@ -315,9 +291,7 @@ export function SignatureCaptureModal({
                       }
                     }}
                     canvasProps={{
-                      width: canvasPixelWidth,
-                      height: canvasPixelHeight,
-                      style: { width: "100%", height: `${cssCanvasHeight}px`, display: "block", touchAction: "none" },
+                      style: { width: "100%", height: "200px", display: "block", touchAction: "none" },
                       className: "border border-slate-200 rounded w-full cursor-crosshair",
                     }}
                     backgroundColor="white"

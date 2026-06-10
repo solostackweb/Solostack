@@ -57,6 +57,8 @@ export default async function PublicContractPage({ params }: Props) {
       title={viewModel.title}
       subtitle={`From ${viewModel.seller.businessName}`}
       senderName={viewModel.seller.businessName}
+      logoUrl={viewModel.seller.logoDataUrl}
+      accent={viewModel.brandColor}
       statusBadge={
         <Badge
           variant="secondary"

@@ -1,5 +1,12 @@
 import "server-only";
 
+import { Font } from "@react-pdf/renderer";
+
+// Disable react-pdf's default hyphenation. It breaks words mid-syllable
+// ("Website" → "Web-site", "invoice" → "in-voice") which reads as a typo on
+// business documents. Registered here because every template imports theme.
+Font.registerHyphenationCallback((word) => [word]);
+
 /**
  * Shared PDF design tokens.
  *

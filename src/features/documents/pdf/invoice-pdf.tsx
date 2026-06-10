@@ -132,7 +132,8 @@ const s = StyleSheet.create({
     paddingHorizontal: PAD,
     paddingTop: PAD,
     paddingBottom: PAD + 28, // room for fixed footer
-    lineHeight: pdfLineHeights.normal,
+    // NOTE: never set lineHeight on the Page style — react-pdf stops
+    // rendering fixed/absolute children (the footer) when it is present.
   },
 
   // ── accent bar ──────────────────────────────────────────────────────────
@@ -350,9 +351,26 @@ export function InvoicePdf({
       ? pdfColors.danger
       : pdfColors.mutedForeground;
 
+  const paidSoFar =
+    data.status === "partially_paid" && safe(data.paymentAmount) > 0
+      ? Math.min(safe(data.paymentAmount), totals.total)
+      : 0;
+  const heroAmount = isPaid
+    ? totals.paidAmount
+    : round(totals.total - paidSoFar);
+
+  const paidMethodSuffix = [
+    data.paymentMethod,
+    data.paymentReference ? `Ref ${data.paymentReference}` : null,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+
   const amountSubText = isPaid
-    ? `Paid on ${formatDate(data.paidAt ?? data.paymentRecordedAt)}`
-    : `Due ${formatDate(data.dueDate)}`;
+    ? `Paid on ${formatDate(data.paidAt ?? data.paymentRecordedAt)}${paidMethodSuffix ? ` · ${paidMethodSuffix}` : ""}`
+    : paidSoFar > 0
+      ? `${formatCurrency(paidSoFar, data.currency)} received · balance due ${formatDate(data.dueDate)}`
+      : `Due ${formatDate(data.dueDate)}`;
 
   return (
     <Document
@@ -361,6 +379,12 @@ export function InvoicePdf({
       subject={`${docLabel} for ${data.client.name}`}
     >
       <Page size="A4" style={s.page}>
+
+        {/* Fixed footer — declared first so it repeats on every page */}
+        <DocumentFooter
+          brand={brand}
+          label={`${docLabel} ${data.invoiceNumber}`}
+        />
 
         {/* ── 1. ACCENT BAR ─────────────────────────────────── */}
         <View style={[s.accentBar, { backgroundColor: brand.accent }]} />
@@ -406,7 +430,7 @@ export function InvoicePdf({
           <View>
             <Text style={s.amountEyebrow}>{amountEyebrow}</Text>
             <Text style={s.amountValue}>
-              {formatCurrency(totals.paidAmount, data.currency)}
+              {formatCurrency(heroAmount, data.currency)}
             </Text>
             <Text style={[s.amountSub, { color: amountSubColor }]}>
               {amountSubText}
@@ -431,8 +455,19 @@ export function InvoicePdf({
               </Text>
             </View>
             <View style={s.dateCell}>
-              <Text style={s.dateLabel}>Type</Text>
-              <Text style={s.dateValue}>{docLabel}</Text>
+              {data.taxMode !== "non_gst" ? (
+                <>
+                  <Text style={s.dateLabel}>Place of supply</Text>
+                  <Text style={s.dateValue}>
+                    {data.client.stateCode ? `State ${data.client.stateCode}` : "—"}
+                  </Text>
+                </>
+              ) : (
+                <>
+                  <Text style={s.dateLabel}>Type</Text>
+                  <Text style={s.dateValue}>{docLabel}</Text>
+                </>
+              )}
             </View>
           </View>
         </View>
@@ -486,16 +521,24 @@ export function InvoicePdf({
         {/* ── 6. TOTALS ─────────────────────────────────────── */}
         <TotalsBlock
           brandAccent={brand.accent}
-          rows={buildTotalsRows(data, totals)}
+          rows={buildTotalsRows(data, totals, paidSoFar)}
           grand={{
-            label: isPaid ? "Total paid" : "Amount due",
-            value: formatCurrency(totals.total, data.currency),
+            label: isPaid
+              ? "Total paid"
+              : paidSoFar > 0
+                ? "Balance due"
+                : "Amount due",
+            value: formatCurrency(
+              isPaid ? totals.total : round(totals.total - paidSoFar),
+              data.currency,
+            ),
           }}
         />
 
-        {/* ── 7. NOTES / TERMS ──────────────────────────────── */}
+        {/* ── 7+8. CLOSING BLOCK (kept together) ─────────────── */}
+        <View wrap={false}>
         {(data.notes || data.terms) ? (
-          <View style={s.notesRow}>
+          <View style={s.notesRow} wrap={false}>
             {data.notes ? (
               <View style={data.terms ? s.notesLeft : { flex: 1 }}>
                 <NoteBlock label="Notes" accent={brand.accent}>
@@ -513,7 +556,7 @@ export function InvoicePdf({
           </View>
         ) : null}
 
-        {/* ── 8. SIGNATURE ──────────────────────────────────── */}
+        
         {data.seller.signature ? (
           <SignatureBlock
             label="Authorised signature"
@@ -521,12 +564,8 @@ export function InvoicePdf({
             fallbackName={brand.businessName}
           />
         ) : null}
+        </View>
 
-        {/* ── 9. FOOTER (fixed on every page) ───────────────── */}
-        <DocumentFooter
-          brand={brand}
-          label={`${docLabel} ${data.invoiceNumber}`}
-        />
       </Page>
     </Document>
   );
@@ -600,6 +639,7 @@ function INVOICE_COLUMNS(data: InvoicePdfData): TableColumn<InvoicePdfItem>[] {
 function buildTotalsRows(
   data: InvoicePdfData,
   totals: ReturnType<typeof resolveTotals>,
+  paidSoFar = 0,
 ): { label: string; value: string }[] {
   const rows: { label: string; value: string }[] = [
     { label: "Subtotal", value: formatCurrency(totals.subtotal, data.currency) },
@@ -614,6 +654,16 @@ function buildTotalsRows(
     rows.push({ label: "IGST", value: formatCurrency(totals.igstAmount, data.currency) });
   } else {
     rows.push({ label: "GST", value: "Not applicable" });
+  }
+  rows.push({
+    label: "Total",
+    value: formatCurrency(totals.total, data.currency),
+  });
+  if (paidSoFar > 0) {
+    rows.push({
+      label: "Paid to date",
+      value: `-${formatCurrency(paidSoFar, data.currency)}`,
+    });
   }
   return rows;
 }

@@ -37,7 +37,8 @@ const pageStyles = StyleSheet.create({
     padding: pdfSpacing.pagePadding,
     paddingTop: pdfSpacing.pagePadding,
     paddingBottom: pdfSpacing.pagePadding + 28, // room for fixed footer
-    lineHeight: pdfLineHeights.normal,
+    // NOTE: never set lineHeight on the Page style — react-pdf stops
+    // rendering fixed/absolute children (the footer) when it is present.
   },
   contentWrap: { flex: 1 },
 });
@@ -905,7 +906,7 @@ export function NoteBlock({
   accent: string;
 }) {
   return (
-    <View style={[noteStyles.wrap, { borderLeftColor: accent }]}>
+    <View style={[noteStyles.wrap, { borderLeftColor: accent }]} wrap={false}>
       {label ? <Text style={noteStyles.label}>{label}</Text> : null}
       <Text style={noteStyles.body}>{children}</Text>
     </View>

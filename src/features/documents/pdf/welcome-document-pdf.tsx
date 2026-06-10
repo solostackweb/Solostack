@@ -80,7 +80,8 @@ const s = StyleSheet.create({
     paddingHorizontal: PAD,
     paddingTop: PAD,
     paddingBottom: PAD + 28,
-    lineHeight: pdfLineHeights.normal,
+    // NOTE: never set lineHeight on the Page style — react-pdf stops
+    // rendering fixed/absolute children (the footer) when it is present.
   },
 
   // ── accent bar ──────────────────────────────────────────────────────────
