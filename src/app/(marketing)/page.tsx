@@ -9,7 +9,8 @@ import { WorkflowSection } from "@/components/marketing/home/workflow-section";
 import { Testimonials } from "@/components/marketing/home/testimonials";
 import { PricingTeaser } from "@/components/marketing/home/pricing-teaser";
 import { FinalCta } from "@/components/marketing/home/final-cta";
-import { FaqSection, DEFAULT_FAQS } from "@/components/marketing/faq-section";
+import { FaqSection } from "@/components/marketing/faq-section";
+import { DEFAULT_FAQS } from "@/components/marketing/faq-data";
 import { getMarketingAuthState } from "@/features/marketing/auth-state";
 import { siteConfig } from "@/config/site";
 
