@@ -1,6 +1,7 @@
 import Link from "next/link";
-import { ArrowRight, Sparkles, Zap } from "lucide-react";
+import { ArrowRight, Zap } from "lucide-react";
 import { Section } from "@/components/marketing/section";
+import { PageHero } from "@/components/marketing/page-hero";
 import { Reveal } from "@/components/marketing/motion";
 import { Button } from "@/components/ui/button";
 import { NewsletterForm } from "@/components/marketing/newsletter-form";
@@ -25,22 +26,11 @@ interface ToolHeroProps {
 
 export function ToolHero({ eyebrow, title, tagline }: ToolHeroProps) {
   return (
-    <Section size="default" className="pt-24 sm:pt-32 lg:pt-36">
-      <div className="mx-auto max-w-2xl text-center">
-        {eyebrow ? (
-          <span className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-3 py-1 text-[11px] font-semibold uppercase tracking-wider text-primary">
-            <Sparkles className="h-3 w-3" />
-            Free tool · {eyebrow}
-          </span>
-        ) : null}
-        <h1 className="mt-4 text-balance text-3xl font-bold tracking-tight sm:text-4xl lg:text-5xl">
-          {title}
-        </h1>
-        <p className="mt-4 text-pretty text-base leading-7 text-muted-foreground sm:text-lg">
-          {tagline}
-        </p>
-      </div>
-    </Section>
+    <PageHero
+      eyebrow={eyebrow ? `Free tool · ${eyebrow}` : "Free tool"}
+      title={title}
+      subtitle={tagline}
+    />
   );
 }
 
@@ -65,7 +55,7 @@ export function ToolFooter({
 }) {
   return (
     <>
-      <Section size="default" className="pb-10 pt-20 sm:pt-24">
+      <Section size="default" className="pb-10 pt-12 sm:pt-14">
         <Reveal>
           <div className="mx-auto max-w-3xl overflow-hidden rounded-2xl border bg-card p-8 text-center shadow-sm sm:p-10">
             <h2 className="text-2xl font-semibold tracking-tight sm:text-[28px]">

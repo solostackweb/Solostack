@@ -60,6 +60,24 @@ export default async function PricingPage() {
 
   return (
     <>
+      <script
+        type="application/ld+json"
+        suppressHydrationWarning
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "FAQPage",
+            mainEntity: PRICING_FAQS.map((f) => ({
+              "@type": "Question",
+              name: f.q.replace(/&rsquo;/g, "\u2019"),
+              acceptedAnswer: {
+                "@type": "Answer",
+                text: f.a.replace(/&rsquo;/g, "\u2019"),
+              },
+            })),
+          }),
+        }}
+      />
       <PageHero
         eyebrow="Simple, transparent pricing"
         title="Free forever for solo workers."

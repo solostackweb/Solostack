@@ -154,7 +154,7 @@ export async function subscribeToNewsletterAction(
     });
     return {
       ok: false,
-      error: "Could not subscribe right now. Please email hello@stackivo.me.",
+      error: "Could not subscribe right now. Please email support@stackivo.me.",
     };
   }
 }

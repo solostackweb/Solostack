@@ -1,0 +1,43 @@
+# Stackivo
+
+> Stackivo is an all-in-one client-workflow workspace for Indian freelancers,
+> consultants, and small studios. It replaces the scattered stack of Excel
+> invoices, WhatsApp follow-ups, Word contracts, and notes-app time tracking
+> with one fast web app: clients (CRM), GST-ready invoicing, contracts with
+> e-signature, welcome/onboarding documents, projects, time tracking, a
+> branded client portal, payments via Razorpay (UPI / cards / netbanking),
+> Pulse analytics, and an in-app AI assistant.
+
+Key facts:
+- Audience: Indian freelancers, independent consultants, and small studios.
+- Pricing: Free plan covers the first 5 clients (free forever, no card).
+  Pro is ₹499/month and Business ₹1,499/month; annual billing gives about
+  two months free. 30-day money-back guarantee on paid plans.
+- GST: invoices can be simple (non-GST) or full GST; CGST/SGST vs IGST is
+  applied automatically from the client's state.
+- Payments: Razorpay checkout — UPI, cards, netbanking; payments reconcile
+  to invoices automatically.
+- Data: workspaces are isolated with row-level security; daily backups;
+  data is exportable. Governed by India's DPDP Act, 2023.
+- Independently operated from Indore, India.
+
+## Main pages
+- [Home](https://stackivo.me/): product overview and feature tour
+- [Pricing](https://stackivo.me/pricing): plans, comparison, pricing FAQ
+- [Docs](https://stackivo.me/docs): full help center for every feature
+- [Blog](https://stackivo.me/blog): India-specific freelancing guides (pricing, GST, contracts, cashflow)
+- [Free tools](https://stackivo.me/tools): hourly-rate, GST, and late-payment-interest calculators
+- [Security](https://stackivo.me/security): security practices
+- [About](https://stackivo.me/about): company background
+- [Demo](https://stackivo.me/demo): 90-second product walkthrough
+- [Changelog](https://stackivo.me/changelog): what shipped recently
+- [Contact](https://stackivo.me/contact): support and partnership channels
+
+## Policies
+- [Terms of Service](https://stackivo.me/terms)
+- [Privacy Policy](https://stackivo.me/privacy)
+- [Refund & Cancellation Policy](https://stackivo.me/refund-policy)
+
+## Contact
+- Support: support@stackivo.me
+- Privacy/data requests: support@stackivo.me

@@ -9,7 +9,7 @@ import { WorkflowSection } from "@/components/marketing/home/workflow-section";
 import { Testimonials } from "@/components/marketing/home/testimonials";
 import { PricingTeaser } from "@/components/marketing/home/pricing-teaser";
 import { FinalCta } from "@/components/marketing/home/final-cta";
-import { FaqSection } from "@/components/marketing/faq-section";
+import { FaqSection, DEFAULT_FAQS } from "@/components/marketing/faq-section";
 import { getMarketingAuthState } from "@/features/marketing/auth-state";
 import { siteConfig } from "@/config/site";
 
@@ -57,6 +57,21 @@ export default async function LandingPage() {
               price: "0",
               priceCurrency: "INR",
             },
+          }),
+        }}
+      />
+      <script
+        type="application/ld+json"
+        suppressHydrationWarning
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "FAQPage",
+            mainEntity: DEFAULT_FAQS.map((f) => ({
+              "@type": "Question",
+              name: f.q,
+              acceptedAnswer: { "@type": "Answer", text: f.a },
+            })),
           }),
         }}
       />

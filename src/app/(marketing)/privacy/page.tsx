@@ -35,15 +35,14 @@ export default function PrivacyPage() {
     >
       <h2>1. Who we are</h2>
       <p>
-        Stackivo (the &ldquo;<strong>Service</strong>&rdquo;) is operated by
-        Developer Bazaar Technologies, Indore, India. We act as the{" "}
+        Stackivo (the &ldquo;<strong>Service</strong>&rdquo;) is an independently operated product based in Indore, India. We act as the{" "}
         <strong>data fiduciary</strong> under India&rsquo;s Digital Personal
         Data Protection Act, 2023 (DPDP Act) for all personal data you provide
         through the Service.
       </p>
       <p>
         Questions or requests? Email{" "}
-        <a href="mailto:privacy@stackivo.me">privacy@stackivo.me</a>.
+        <a href="mailto:support@stackivo.me">support@stackivo.me</a>.
       </p>
 
       <h2>2. What we collect</h2>
@@ -321,7 +320,7 @@ export default function PrivacyPage() {
       <p>To exercise any right, email us at:</p>
       <ul>
         <li>
-          <a href="mailto:privacy@stackivo.me">privacy@stackivo.me</a> — we
+          <a href="mailto:support@stackivo.me">support@stackivo.me</a> — we
           respond within 30 days.
         </li>
         <li>
@@ -370,7 +369,7 @@ export default function PrivacyPage() {
         Stackivo is not intended for users under 18. We do not knowingly
         collect personal data from anyone under 18. If you believe a minor has
         registered, please contact us at{" "}
-        <a href="mailto:privacy@stackivo.me">privacy@stackivo.me</a> and we
+        <a href="mailto:support@stackivo.me">support@stackivo.me</a> and we
         will delete the account promptly.
       </p>
 
@@ -391,16 +390,43 @@ export default function PrivacyPage() {
       <ul>
         <li>
           Email:{" "}
-          <a href="mailto:privacy@stackivo.me">privacy@stackivo.me</a>
+          <a href="mailto:support@stackivo.me">support@stackivo.me</a>
         </li>
         <li>
           General contact:{" "}
           <Link href="/contact">stackivo.me/contact</Link>
         </li>
         <li>
-          Address: Developer Bazaar Technologies, Indore, Madhya Pradesh, India
+          Address: Stackivo, Indore, Madhya Pradesh, India
         </li>
       </ul>
+
+      <h2>12. Grievance Officer</h2>
+      <p>
+        In accordance with the Information Technology Act, 2000, the
+        Information Technology (Intermediary Guidelines and Digital Media
+        Ethics Code) Rules, 2021, and the grievance-redressal requirements of
+        the DPDP Act, 2023, you can escalate unresolved concerns to our
+        designated Grievance Officer:
+      </p>
+      <ul>
+        <li>
+          <strong>Grievance Officer</strong> — Stackivo,
+          Indore, Madhya Pradesh, India
+        </li>
+        <li>
+          Email:{" "}
+          <a href="mailto:grievance@stackivo.me">grievance@stackivo.me</a>
+        </li>
+        <li>
+          We acknowledge grievances within <strong>48 hours</strong> and aim
+          to resolve them within <strong>15 days</strong> of receipt.
+        </li>
+      </ul>
+      <p>
+        If you remain unsatisfied after our response, you may complain to the
+        Data Protection Board of India once constituted under the DPDP Act.
+      </p>
     </ProsePage>
   );
 }

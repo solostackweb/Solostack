@@ -107,10 +107,10 @@ export function TestimonialsSection() {
               tier-one queue between you and the people who built the
               product — open the chat at the bottom-right or email{" "}
               <a
-                href="mailto:hello@stackivo.me"
+                href="mailto:support@stackivo.me"
                 className="font-medium text-foreground underline underline-offset-4 hover:opacity-80"
               >
-                hello@stackivo.me
+                support@stackivo.me
               </a>
               .
             </p>

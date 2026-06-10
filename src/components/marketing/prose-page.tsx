@@ -20,7 +20,7 @@ export function ProsePage({
   children: React.ReactNode;
 }) {
   return (
-    <Section size="default" className="pb-20 pt-24 sm:pt-32 lg:pb-28 lg:pt-40">
+    <Section size="default" className="pb-16 pt-12 sm:pt-16 lg:pb-20 lg:pt-20">
       <div className="mx-auto max-w-3xl">
         {eyebrow ? <div className="mb-4">{eyebrow}</div> : null}
         <h1 className="text-balance text-4xl font-semibold tracking-tight sm:text-5xl">

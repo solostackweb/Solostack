@@ -38,7 +38,7 @@ export default function TermsPage() {
           <strong>&ldquo;Stackivo&rdquo;</strong> or{" "}
           <strong>&ldquo;the Service&rdquo;</strong> — the SaaS platform
           available at stackivo.me, including all features, APIs, and associated
-          tools operated by Developer Bazaar Technologies, Indore, India (
+          tools operated independently from Indore, India (
           <strong>&ldquo;we&rdquo;</strong>, <strong>&ldquo;us&rdquo;</strong>,
           or <strong>&ldquo;our&rdquo;</strong>).
         </li>
@@ -336,8 +336,7 @@ export default function TermsPage() {
       <ul>
         <li>
           The Stackivo name, logo, product design, codebase, documentation, and
-          all associated intellectual property are owned by Developer Bazaar
-          Technologies and protected by Indian and international IP law.
+          all associated intellectual property are owned by the founder of Stackivo and protected by Indian and international IP law.
         </li>
         <li>
           Your use of the Service does not grant you any rights in our
@@ -493,8 +492,7 @@ export default function TermsPage() {
 
       <h2>15. Indemnification</h2>
       <p>
-        You agree to indemnify, defend, and hold harmless Developer Bazaar
-        Technologies and its team from any claim, loss, damage, or expense
+        You agree to indemnify, defend, and hold harmless Stackivo and its team from any claim, loss, damage, or expense
         (including reasonable legal fees) arising from:
       </p>
       <ul>
@@ -575,7 +573,7 @@ export default function TermsPage() {
           Contact form: <Link href="/contact">stackivo.me/contact</Link>
         </li>
         <li>
-          Address: Developer Bazaar Technologies, Indore, Madhya Pradesh, India
+          Address: Stackivo, Indore, Madhya Pradesh, India
         </li>
       </ul>
     </ProsePage>

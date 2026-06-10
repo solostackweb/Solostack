@@ -88,11 +88,11 @@ export function FounderNote() {
                 Talk to us
               </Link>
               <a
-                href="mailto:hello@stackivo.me"
+                href="mailto:support@stackivo.me"
                 className="inline-flex items-center gap-1.5 text-sm font-medium text-foreground hover:opacity-80"
               >
                 <Mail className="h-3.5 w-3.5" />
-                hello@stackivo.me
+                support@stackivo.me
               </a>
             </div>
           </div>

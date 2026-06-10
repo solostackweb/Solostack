@@ -129,7 +129,7 @@ export default function SecurityPage() {
         <li>
           <strong>Correct:</strong> inline editing of any record. For
           identity / login data, email{" "}
-          <a href="mailto:privacy@stackivo.me">privacy@stackivo.me</a>.
+          <a href="mailto:support@stackivo.me">support@stackivo.me</a>.
         </li>
         <li>
           <strong>Object:</strong> opt out of analytics any time via the
@@ -148,7 +148,7 @@ export default function SecurityPage() {
       <h2>Reporting a vulnerability</h2>
       <p>
         Found a bug or potential vulnerability? Email{" "}
-        <a href="mailto:security@stackivo.me">security@stackivo.me</a>. We
+        <a href="mailto:support@stackivo.me">support@stackivo.me</a>. We
         respond within 48 hours and credit responsible disclosures (with your
         permission) on this page.
       </p>
@@ -156,7 +156,7 @@ export default function SecurityPage() {
       <h2>Questions?</h2>
       <p>
         Anything else &mdash; reach us at{" "}
-        <a href="mailto:security@stackivo.me">security@stackivo.me</a> or via
+        <a href="mailto:support@stackivo.me">support@stackivo.me</a> or via
         the <Link href="/contact">contact page</Link>. We&rsquo;ll happily
         provide a DPA, share infrastructure diagrams, or walk through our
         controls in detail.

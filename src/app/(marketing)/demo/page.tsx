@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Play, ArrowRight, MessageCircle } from "lucide-react";
-import { Section, SectionHeading } from "@/components/marketing/section";
+import { Section } from "@/components/marketing/section";
+import { PageHero } from "@/components/marketing/page-hero";
 import { Button } from "@/components/ui/button";
 import { siteConfig } from "@/config/site";
 import { env } from "@/config/env";
@@ -34,15 +35,13 @@ export default function DemoPage() {
 
   return (
     <>
-      <Section size="default" className="pt-24 sm:pt-32 lg:pt-40">
-        <SectionHeading
-          eyebrow="Stackivo in 90 seconds"
-          title="See it work end-to-end."
-          subtitle="Signup → first GST invoice → Pulse revenue view. Real screen, no fluff."
-        />
-      </Section>
+      <PageHero
+        eyebrow="Stackivo in 90 seconds"
+        title="See it work end-to-end."
+        subtitle="Signup → first GST invoice → Pulse revenue view. Real screen, no fluff."
+      />
 
-      <Section size="default" className="pb-16 pt-4 sm:pb-20 lg:pb-24">
+      <Section size="default" className="pb-14 sm:pb-16">
         {loomUrl ? (
           <div className="mx-auto max-w-3xl">
             <div className="overflow-hidden rounded-xl border bg-card shadow-xl">

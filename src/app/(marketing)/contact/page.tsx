@@ -60,8 +60,8 @@ export default function ContactPage() {
           title="Press &amp; partnerships"
           description="Coverage, partnerships, or business inquiries."
           cta={
-            <a href="mailto:hello@stackivo.me" className="text-foreground">
-              hello@stackivo.me
+            <a href="mailto:connect@stackivo.me" className="text-foreground">
+              connect@stackivo.me
             </a>
           }
         />

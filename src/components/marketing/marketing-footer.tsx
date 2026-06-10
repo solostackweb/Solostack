@@ -32,6 +32,7 @@ const COMPANY_LINKS = [
   { label: "Security", href: "/security" },
   { label: "Terms", href: "/terms" },
   { label: "Privacy", href: "/privacy" },
+  { label: "Refund policy", href: "/refund-policy" },
 ];
 
 export function MarketingFooter({

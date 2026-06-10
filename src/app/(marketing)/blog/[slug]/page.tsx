@@ -86,6 +86,16 @@ export default async function BlogPostPage({
           dangerouslySetInnerHTML={{
             __html: JSON.stringify({
               "@context": "https://schema.org",
+              "@graph": [
+              {
+              "@type": "BreadcrumbList",
+              itemListElement: [
+                { "@type": "ListItem", position: 1, name: "Home", item: siteConfig.url },
+                { "@type": "ListItem", position: 2, name: "Blog", item: `${siteConfig.url}/blog` },
+                { "@type": "ListItem", position: 3, name: post.title, item: `${siteConfig.url}/blog/${post.slug}` },
+              ],
+              },
+              {
               "@type": "Article",
               headline: post.title,
               description: post.description,
@@ -102,6 +112,8 @@ export default async function BlogPostPage({
               datePublished: post.publishedAt,
               dateModified: post.updatedAt ?? post.publishedAt,
               mainEntityOfPage: `${siteConfig.url}/blog/${post.slug}`,
+              },
+              ],
             }),
           }}
         />

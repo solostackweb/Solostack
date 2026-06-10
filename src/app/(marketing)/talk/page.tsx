@@ -70,10 +70,10 @@ export default function TalkPage() {
               <span>
                 <strong>Email</strong> —{" "}
                 <a
-                  href="mailto:hello@stackivo.me"
+                  href="mailto:support@stackivo.me"
                   className="font-medium text-foreground underline underline-offset-4 hover:opacity-80"
                 >
-                  hello@stackivo.me
+                  support@stackivo.me
                 </a>
                 . Replies usually within a few hours (IST).
               </span>

@@ -47,6 +47,12 @@ export function SignupForm({
         <AuthFormError message={oauthErrorMessage} />
       ) : null}
       <GoogleOAuthButton from="signup" next={next} />
+      <p className="text-center text-[11px] leading-relaxed text-muted-foreground">
+        By continuing with Google you agree to our{" "}
+        <a href="/terms" target="_blank" rel="noopener noreferrer" className="font-medium text-foreground underline underline-offset-2">Terms</a>{" "}
+        and{" "}
+        <a href="/privacy" target="_blank" rel="noopener noreferrer" className="font-medium text-foreground underline underline-offset-2">Privacy Policy</a>.
+      </p>
       <AuthOrSeparator />
 
       <form
@@ -111,6 +117,45 @@ export function SignupForm({
             name="password"
           />
         </div>
+
+        {/* Explicit consent — required by India’s DPDP Act, 2023. The
+            checkbox is `required`, so the browser blocks submission until
+            the user actively ticks it. The value also reaches the server
+            action as acceptTerms="on". */}
+        <label
+          htmlFor="acceptTerms"
+          className="flex cursor-pointer items-start gap-2.5 text-[13px] leading-relaxed text-muted-foreground"
+        >
+          <input
+            id="acceptTerms"
+            name="acceptTerms"
+            type="checkbox"
+            required
+            className="mt-0.5 h-4 w-4 shrink-0 cursor-pointer accent-[hsl(var(--primary))]"
+          />
+          <span>
+            I agree to the{" "}
+            <a
+              href="/terms"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-medium text-foreground underline underline-offset-2"
+            >
+              Terms of Service
+            </a>{" "}
+            and{" "}
+            <a
+              href="/privacy"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-medium text-foreground underline underline-offset-2"
+            >
+              Privacy Policy
+            </a>
+            , and consent to the processing of my personal data as described
+            there.
+          </span>
+        </label>
 
         <SubmitButton />
       </form>
