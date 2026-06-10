@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Section } from "@/components/marketing/section";
+import { PageHero } from "@/components/marketing/page-hero";
 import { DocsSidebar } from "./docs-sidebar";
 
 export const metadata: Metadata = {
@@ -123,22 +124,15 @@ function Badge({ plan }: { plan: "Pro" | "Business" }) {
 ───────────────────────────────────────────── */
 export default function DocsPage() {
   return (
-    <Section size="default" className="pb-24 pt-24 sm:pt-32">
-      {/* Page header */}
-      <div className="mb-12 max-w-2xl">
-        <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-primary">
-          Documentation
-        </p>
-        <h1 className="text-4xl font-semibold tracking-tight text-foreground sm:text-5xl">
-          Stackivo Help Center
-        </h1>
-        <p className="mt-4 text-base leading-7 text-muted-foreground sm:text-lg">
-          Everything you need to run your freelance business — invoices,
-          contracts, projects, payments, GST compliance, AI workflows, and more.
-          If you&apos;re stuck, this is the place to start.
-        </p>
-      </div>
+    <>
+      <PageHero
+        align="left"
+        eyebrow="Documentation"
+        title="Stackivo Help Center"
+        subtitle="Everything you need to run your freelance business — invoices, contracts, projects, payments, GST compliance, AI workflows, and more. If you're stuck, this is the place to start."
+      />
 
+      <Section size="ultra" className="pb-20">
       {/* Two-column layout */}
       <div className="flex gap-12 lg:gap-16">
         {/* ── Sticky sidebar (client component, tracks scroll) ── */}
@@ -1479,6 +1473,7 @@ export default function DocsPage() {
           </DocSection>
         </div>
       </div>
-    </Section>
+      </Section>
+    </>
   );
 }

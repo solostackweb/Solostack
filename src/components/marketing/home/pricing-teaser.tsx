@@ -36,7 +36,7 @@ export function PricingTeaser() {
   const plans = [PLANS.free, PLANS.pro, PLANS.business];
 
   return (
-    <Section id="pricing" size="wide" className="border-t bg-muted/30 py-20 sm:py-24 lg:py-28">
+    <Section id="pricing" size="ultra" className="border-t bg-muted/30">
       <Reveal>
         <SectionHeading
           eyebrow="Pricing"
@@ -45,7 +45,7 @@ export function PricingTeaser() {
         />
       </Reveal>
 
-      <StaggerReveal className="mx-auto mt-12 grid max-w-5xl gap-5 md:grid-cols-3 lg:mt-16">
+      <StaggerReveal className="mx-auto mt-10 grid max-w-6xl gap-5 md:grid-cols-3 lg:mt-12">
         {plans.map((plan) => {
           const featured = plan.id === "pro";
           return (

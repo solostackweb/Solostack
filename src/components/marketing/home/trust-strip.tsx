@@ -16,11 +16,11 @@ const PROFESSIONS = [
 export function TrustStrip() {
   return (
     <section className="border-b border-border/60">
-      <div className="mx-auto w-full max-w-[1200px] px-5 py-10 sm:px-8 sm:py-12">
+      <div className="mx-auto w-full max-w-[1600px] px-5 py-8 sm:px-8 sm:py-10 lg:px-12">
         <p className="text-center text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground/70">
           Built for independent professionals across India
         </p>
-        <ul className="mt-6 flex flex-wrap items-center justify-center gap-x-8 gap-y-3 sm:gap-x-12">
+        <ul className="mt-5 flex flex-wrap items-center justify-center gap-x-8 gap-y-3 sm:gap-x-12">
           {PROFESSIONS.map((p) => (
             <li
               key={p}

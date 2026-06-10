@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Section, SectionHeading } from "@/components/marketing/section";
+import { PageHero } from "@/components/marketing/page-hero";
 import { PricingCards } from "@/components/marketing/pricing-cards";
 import { PricingComparison } from "@/components/marketing/pricing-comparison";
 import { FaqSection, type FaqItem } from "@/components/marketing/faq-section";
@@ -59,48 +60,33 @@ export default async function PricingPage() {
 
   return (
     <>
-      <Section
-        size="wide"
-        className="relative isolate overflow-hidden pt-24 pb-4 sm:pt-32 sm:pb-6 lg:pt-40"
+      <PageHero
+        eyebrow="Simple, transparent pricing"
+        title="Free forever for solo workers."
+        subtitle="Start on the free plan, upgrade when you need unlimited clients or premium tooling. No credit card required."
       >
-        {/* Layered gradient mesh */}
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[640px] bg-[radial-gradient(ellipse_60%_55%_at_50%_-10%,hsl(var(--primary)/0.22),transparent_72%)]"
-        />
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-0 -z-10 [background-image:linear-gradient(to_right,hsl(var(--border)/0.4)_1px,transparent_1px),linear-gradient(to_bottom,hsl(var(--border)/0.4)_1px,transparent_1px)] [background-size:56px_56px] opacity-[0.18] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_20%,#000,transparent_82%)]"
-        />
-        <Reveal>
-          <SectionHeading
-            eyebrow="Simple, transparent pricing"
-            title="Free forever for solo workers."
-            subtitle="Start on the free plan, upgrade when you need unlimited clients or premium tooling. No credit card required."
-          />
-        </Reveal>
-      </Section>
+        <p className="text-xs font-medium text-muted-foreground/80">
+          30-day money-back guarantee · GST-compliant invoices · Cancel anytime
+        </p>
+      </PageHero>
 
-      <Section size="wide" className="pt-6 pb-12 sm:pt-8 sm:pb-14">
+      <Section size="ultra">
         <PricingCards authState={authState} />
-      </Section>
-
-      <Section size="wide" className="pb-20 sm:pb-24 lg:pb-28">
-        <Reveal>
+        <Reveal className="mt-10">
           <GuaranteeStrip />
         </Reveal>
       </Section>
 
-      <Section size="wide" className="border-y bg-muted/30">
+      <Section size="ultra" className="border-y bg-muted/30">
         <Reveal>
           <SectionHeading title="Compare every plan" />
         </Reveal>
-        <Reveal className="mx-auto mt-16 max-w-5xl">
+        <Reveal className="mx-auto mt-10 max-w-6xl">
           <PricingComparison />
         </Reveal>
       </Section>
 
-      <Section size="wide">
+      <Section size="ultra">
         <Reveal>
           <SectionHeading
             eyebrow="vs the alternatives"
@@ -108,7 +94,7 @@ export default async function PricingPage() {
             subtitle="Honest, conservative comparison. Verify each claim on their own site — these things change."
           />
         </Reveal>
-        <Reveal className="mt-12">
+        <Reveal className="mt-10">
           <CompetitorComparison />
         </Reveal>
       </Section>

@@ -1,129 +1,113 @@
-import Link from "next/link";
-import {
-  ArrowLeft,
-  Receipt,
-  TrendingUp,
-  Layers,
-  Star,
-} from "lucide-react";
-import type { LucideIcon } from "lucide-react";
-import { StackivoLogo, StackivoMark } from "@/components/brand/stackivo-logo";
+import { Check, IndianRupee, ShieldCheck, Zap } from "lucide-react";
+import { MarketingHeader } from "@/components/marketing/marketing-header";
+import { MarketingFooter } from "@/components/marketing/marketing-footer";
+import { getMarketingAuthState } from "@/features/marketing/auth-state";
 
 /**
- * Premium split-screen auth layout.
- * Dark brand panel on the left with social proof, clean form on the right.
- * Collapses to single column on mobile with logo at top.
+ * Auth route group — same marketing header + footer so login / signup /
+ * portal access feel like the product. Two-column stage: value panel on the
+ * left (desktop), form card on the right. Single centered column on mobile.
  */
-export default function AuthLayout({ children }: { children: React.ReactNode }) {
+const VALUE_POINTS = [
+  "Clients, contracts, invoices, projects & time in one workspace",
+  "Simple or full GST invoicing — picked per client, automatically",
+  "Branded client portal that answers “how’s it going?” for you",
+  "Payments via UPI, cards & netbanking, reconciled for you",
+];
+
+const STATS = [
+  { icon: Zap, label: "2-minute setup" },
+  { icon: IndianRupee, label: "Free for 5 clients" },
+  { icon: ShieldCheck, label: "Daily backups" },
+];
+
+export default async function AuthLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  const authState = await getMarketingAuthState();
+
   return (
-    <div className="flex min-h-dvh bg-background">
-      {/* Left brand panel — desktop only */}
-      <aside className="relative hidden w-[44%] flex-col justify-between overflow-hidden bg-[#0a0a0f] px-10 py-12 text-white lg:flex xl:w-[42%] xl:px-14">
-        {/* Multi-layer gradient mesh */}
-        <div className="pointer-events-none absolute inset-0" aria-hidden>
-          <div className="absolute -left-[20%] -top-[20%] h-[65%] w-[65%] rounded-full bg-primary/[0.18] blur-[130px]" />
-          <div className="absolute -bottom-[15%] -right-[15%] h-[55%] w-[55%] rounded-full bg-indigo-500/[0.14] blur-[110px]" />
-          <div className="absolute left-[30%] top-[50%] h-[35%] w-[35%] rounded-full bg-violet-600/[0.10] blur-[85px]" />
+    <div className="flex min-h-dvh flex-col bg-background">
+      <MarketingHeader authState={authState} />
+
+      <main className="relative isolate flex flex-1 items-center overflow-hidden px-5 py-12 sm:px-8 sm:py-14">
+        {/* Backdrop — same family as the marketing heroes */}
+        <div aria-hidden className="pointer-events-none absolute inset-0 -z-10">
+          <div className="absolute left-[15%] top-[-30%] h-[480px] w-[800px] rounded-full bg-primary/[0.07] blur-[110px]" />
+          <div
+            className="absolute inset-0 opacity-[0.3] [mask-image:radial-gradient(ellipse_60%_70%_at_40%_10%,black,transparent)]"
+            style={{
+              backgroundImage:
+                "linear-gradient(hsl(var(--border)/0.7) 1px, transparent 1px), linear-gradient(90deg, hsl(var(--border)/0.7) 1px, transparent 1px)",
+              backgroundSize: "56px 56px",
+            }}
+          />
         </div>
 
-        {/* Fine grid overlay */}
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-0 opacity-[0.055] [background-image:linear-gradient(to_right,rgba(255,255,255,0.15)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.15)_1px,transparent_1px)] [background-size:52px_52px]"
-        />
-
-        {/* Top: Logo */}
-        <div className="relative z-10">
-          <Link
-            href="/"
-            aria-label="Stackivo home"
-            className="inline-flex items-center gap-2.5 font-semibold tracking-tight text-white"
-          >
-            <StackivoMark className="h-9 w-9 rounded-xl shadow-lg shadow-primary/30" />
-            <span className="text-[17px]">Stackivo</span>
-          </Link>
-        </div>
-
-        {/* Middle: Testimonial + social proof */}
-        <div className="relative z-10 space-y-9">
-          {/* Star rating */}
-          <div className="flex items-center gap-0.5">
-            {[...Array(5)].map((_, i) => (
-              <Star
-                key={i}
-                className="h-4 w-4 fill-amber-400 text-amber-400"
-              />
-            ))}
-            <span className="ml-2.5 text-xs font-medium text-white/50">
-              Loved by independent professionals
-            </span>
-          </div>
-
-          <blockquote className="space-y-5">
-            <p className="text-[19px] font-medium leading-[1.5] text-white/90 xl:text-xl xl:leading-relaxed">
-              &ldquo;I went from juggling three tools and a spreadsheet to
-              having everything in one place. Sending invoices actually feels
-              good now.&rdquo;
+        <div className="mx-auto grid w-full max-w-[1100px] items-center gap-12 lg:grid-cols-[1.05fr_420px] lg:gap-20">
+          {/* Left: value panel — desktop only */}
+          <div className="hidden lg:block">
+            <p className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-3.5 py-1.5 text-[11px] font-semibold uppercase tracking-widest text-primary">
+              Built for Indian freelancers &amp; studios
             </p>
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary/40 to-indigo-500/40 text-sm font-semibold ring-1 ring-white/15">
-                AM
-              </div>
-              <div>
-                <p className="text-sm font-medium text-white">Aanya Mehta</p>
-                <p className="text-[12px] text-white/40">
-                  Brand designer · Bengaluru
-                </p>
-              </div>
-            </div>
-          </blockquote>
+            <h2 className="mt-5 max-w-md font-display text-[34px] font-semibold leading-[1.12] tracking-[-0.02em] text-foreground">
+              Everything between you and getting paid, handled.
+            </h2>
 
-          {/* Value props */}
-          <div className="space-y-2.5 pt-1">
-            <ValueProp icon={Receipt} label="Simple invoices or full GST — your call" />
-            <ValueProp icon={Layers} label="Clients, contracts, projects in one workspace" />
-            <ValueProp icon={TrendingUp} label="Pulse analytics: see your business clearly" />
+            <ul className="mt-7 space-y-3.5">
+              {VALUE_POINTS.map((point) => (
+                <li key={point} className="flex items-start gap-3 text-[15px] text-foreground/90">
+                  <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-success/10 text-success">
+                    <Check className="h-3 w-3" strokeWidth={3} />
+                  </span>
+                  {point}
+                </li>
+              ))}
+            </ul>
+
+            {/* Testimonial */}
+            <figure className="mt-8 max-w-md rounded-2xl border border-border/80 bg-card/80 p-5 shadow-sm backdrop-blur">
+              <blockquote className="text-sm leading-relaxed text-foreground/90">
+                &ldquo;I had my first invoice out in 10 minutes. No learning
+                curve — clients, invoices, get paid.&rdquo;
+              </blockquote>
+              <figcaption className="mt-3 flex items-center gap-2.5">
+                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
+                  D
+                </span>
+                <span className="text-xs text-muted-foreground">
+                  <span className="font-semibold text-foreground">Divya Krishnan</span>
+                  {" "}· Brand Strategist, Chennai
+                </span>
+              </figcaption>
+            </figure>
+
+            {/* Stat chips */}
+            <div className="mt-7 flex flex-wrap items-center gap-x-6 gap-y-2">
+              {STATS.map((s) => (
+                <span key={s.label} className="inline-flex items-center gap-1.5 text-[13px] font-medium text-muted-foreground">
+                  <s.icon className="h-3.5 w-3.5 text-primary/70" />
+                  {s.label}
+                </span>
+              ))}
+            </div>
+          </div>
+
+          {/* Right: form card */}
+          <div className="mx-auto w-full max-w-[420px] lg:mx-0">
+            <div className="rounded-3xl border border-border/80 bg-card p-7 shadow-xl shadow-primary/[0.06] sm:p-8">
+              {children}
+            </div>
+            <p className="mt-4 text-center text-xs text-muted-foreground/80 lg:hidden">
+              Free for your first 5 clients · No card required
+            </p>
           </div>
         </div>
-
-        {/* Bottom: Back link */}
-        <div className="relative z-10">
-          <Link
-            href="/"
-            className="inline-flex items-center gap-1.5 text-[13px] font-medium text-white/50 transition-colors hover:text-white/90"
-          >
-            <ArrowLeft className="h-3.5 w-3.5" /> Back to home
-          </Link>
-        </div>
-      </aside>
-
-      {/* Right form panel */}
-      <main
-        className="relative flex flex-1 flex-col items-center justify-center px-5 py-12 sm:px-10"
-        style={{
-          paddingTop: "max(env(safe-area-inset-top, 0px), 3rem)",
-          paddingBottom: "max(env(safe-area-inset-bottom, 0px), 3rem)",
-        }}
-      >
-        {/* Mobile logo — hidden on desktop where the brand panel handles it */}
-        <div className="mb-10 flex justify-center lg:hidden">
-          <Link href="/" aria-label="Stackivo home">
-            <StackivoLogo />
-          </Link>
-        </div>
-        <div className="w-full max-w-[360px]">{children}</div>
       </main>
-    </div>
-  );
-}
 
-function ValueProp({ icon: Icon, label }: { icon: LucideIcon; label: string }) {
-  return (
-    <div className="flex items-center gap-2.5">
-      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-white/[0.08] ring-1 ring-white/10">
-        <Icon className="h-3.5 w-3.5 text-white/70" />
-      </span>
-      <span className="text-[13px] text-white/60">{label}</span>
+      <MarketingFooter authState={authState} />
     </div>
   );
 }

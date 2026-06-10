@@ -31,7 +31,7 @@ const TESTIMONIALS = [
 
 export function Testimonials() {
   return (
-    <Section className="py-20 sm:py-24 lg:py-28">
+    <Section size="ultra">
       <Reveal>
         <SectionHeading
           eyebrow="Early access"
@@ -40,7 +40,7 @@ export function Testimonials() {
         />
       </Reveal>
 
-      <StaggerReveal className="mx-auto mt-12 grid max-w-5xl gap-5 md:grid-cols-3 lg:mt-16">
+      <StaggerReveal className="mt-10 grid gap-5 md:grid-cols-3 lg:mt-12">
         {TESTIMONIALS.map((t) => (
           <StaggerItem key={t.name} className="h-full">
             <figure className="flex h-full flex-col rounded-3xl border border-border/80 bg-card p-7">

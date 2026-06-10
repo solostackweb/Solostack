@@ -5,9 +5,9 @@ import type { MarketingAuthState } from "@/features/marketing/types";
 import { NewsletterForm } from "./newsletter-form";
 
 const PRODUCT_LINKS = [
-  { label: "Product tour", href: "/#features" },
+  { label: "Features", href: "/#features" },
   { label: "Stackivo AI", href: "/#ai" },
-  { label: "Workflow", href: "/#workflow" },
+  { label: "How it works", href: "/#workflow" },
   { label: "GST invoicing", href: "/#gst" },
   { label: "Pricing", href: "/pricing" },
   { label: "Changelog", href: "/changelog" },
@@ -22,6 +22,7 @@ const TOOLS_LINKS = [
     href: "/tools/late-payment-interest-calculator",
   },
   { label: "Blog", href: "/blog" },
+  { label: "Docs", href: "/docs" },
 ];
 
 const COMPANY_LINKS = [
@@ -38,36 +39,24 @@ export function MarketingFooter({
 }: {
   authState: MarketingAuthState;
 }) {
-  const accountLinks = authState.isAuthenticated
-    ? [
-        { label: "Dashboard", href: "/dashboard" },
-        ...(authState.showUpgradeNudge
-          ? [
-              {
-                label: "Upgrade to Pro",
-                href: "/dashboard/settings/billing?upgrade=clients",
-              },
-            ]
-          : []),
-      ]
-    : [
-        { label: "Start free", href: "/signup" },
-        { label: "Log in", href: "/login" },
-        { label: "Client portal access", href: "/portal-access" },
-        { label: "Reset password", href: "/forgot-password" },
-      ];
-
   const columns = [
     { heading: "Product", links: PRODUCT_LINKS },
-    { heading: "Free tools", links: TOOLS_LINKS },
-    { heading: "Account", links: accountLinks },
+    { heading: "Resources", links: TOOLS_LINKS },
     { heading: "Company", links: COMPANY_LINKS },
   ];
 
+  const bottomLinks = authState.isAuthenticated
+    ? [{ label: "Dashboard", href: "/dashboard" }]
+    : [
+        { label: "Log in", href: "/login" },
+        { label: "Start free", href: "/signup" },
+        { label: "Client portal", href: "/portal-access" },
+      ];
+
   return (
-    <footer className="relative overflow-hidden border-t bg-muted/20">
-      <div className="mx-auto w-full max-w-[1200px] px-5 pb-10 pt-14 sm:px-8 sm:pt-16">
-        <div className="grid gap-12 md:grid-cols-2 lg:grid-cols-[1.5fr_repeat(4,1fr)]">
+    <footer className="border-t bg-muted/20">
+      <div className="mx-auto w-full max-w-[1600px] px-5 pb-8 pt-12 sm:px-8 sm:pt-14 lg:px-12 2xl:px-16">
+        <div className="grid gap-10 md:grid-cols-2 lg:grid-cols-[1.6fr_1fr_1fr_1fr] lg:gap-8">
           <div className="space-y-4">
             <Link href="/" className="flex items-center gap-2.5 font-bold tracking-tight">
               <StackivoMark className="h-8 w-8" />
@@ -114,22 +103,23 @@ export function MarketingFooter({
           ))}
         </div>
 
-        <div className="mt-12 flex flex-col items-start justify-between gap-3 border-t border-border/70 pt-7 text-xs text-muted-foreground sm:flex-row sm:items-center">
+        <div className="mt-10 flex flex-col items-start justify-between gap-3 border-t border-border/70 pt-6 text-xs text-muted-foreground sm:flex-row sm:items-center">
           <p>
             © {new Date().getFullYear()} {siteConfig.name}. Built for independent professionals.
           </p>
-          <p className="font-medium">Made in India · For the world</p>
+          <div className="flex items-center gap-4">
+            {bottomLinks.map((l) => (
+              <Link
+                key={l.href}
+                href={l.href}
+                className="transition-colors hover:text-foreground"
+              >
+                {l.label}
+              </Link>
+            ))}
+            <span className="font-medium">Made in India · For the world</span>
+          </div>
         </div>
-      </div>
-
-      {/* Oversized watermark wordmark — Vercel/Linear-style sign-off */}
-      <div
-        aria-hidden
-        className="pointer-events-none select-none overflow-hidden"
-      >
-        <p className="mx-auto -mb-[0.21em] w-full max-w-[1200px] px-5 text-center font-display text-[20vw] font-bold leading-none tracking-[-0.04em] text-foreground/[0.04] sm:px-8 lg:text-[15rem]">
-          Stackivo
-        </p>
       </div>
     </footer>
   );

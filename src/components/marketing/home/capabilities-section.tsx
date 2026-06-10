@@ -15,7 +15,7 @@ import { cn } from "@/lib/utils";
  */
 export function CapabilitiesSection() {
   return (
-    <Section id="capabilities" size="wide" className="relative border-y bg-muted/30 py-20 sm:py-24 lg:py-28">
+    <Section id="capabilities" size="ultra" className="relative border-y bg-muted/30">
       <span id="gst" aria-hidden className="absolute -top-20" />
       <Reveal>
         <SectionHeading
@@ -25,7 +25,7 @@ export function CapabilitiesSection() {
         />
       </Reveal>
 
-      <StaggerReveal className="mt-12 grid gap-5 sm:grid-cols-2 lg:mt-16 lg:grid-cols-3">
+      <StaggerReveal className="mt-10 grid gap-5 sm:grid-cols-2 lg:mt-12 lg:grid-cols-3">
         {/* GST — featured card */}
         <StaggerItem className="sm:col-span-2 lg:col-span-2">
           <BentoCard

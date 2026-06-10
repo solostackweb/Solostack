@@ -1,11 +1,12 @@
-import { ArrowDown, Check } from "lucide-react";
+import { ArrowDown, ArrowRight, Check } from "lucide-react";
 import { StackivoMark } from "@/components/brand/stackivo-logo";
 import { Section, SectionHeading } from "../section";
 import { Reveal, StaggerItem, StaggerReveal } from "../motion";
 
 /**
- * Problem → solution. The visitor should recognise their own messy stack in
- * the scattered chips, then see it collapse into one Stackivo card.
+ * Problem → solution, laid out horizontally: the scattered stack on the
+ * left collapses (→) into one Stackivo card on the right. Stacks vertically
+ * with a down arrow on mobile.
  */
 const SCATTERED = [
   { label: "Invoices in Excel", rotate: "-rotate-2" },
@@ -25,7 +26,7 @@ const RESOLVED = [
 
 export function ProblemSection() {
   return (
-    <Section className="py-20 sm:py-24 lg:py-28">
+    <Section size="ultra">
       <Reveal>
         <SectionHeading
           eyebrow="The problem"
@@ -34,9 +35,9 @@ export function ProblemSection() {
         />
       </Reveal>
 
-      <div className="mx-auto mt-14 flex max-w-2xl flex-col items-center">
-        {/* Scattered stack */}
-        <StaggerReveal className="flex flex-wrap items-center justify-center gap-3">
+      <div className="mt-10 grid items-center gap-6 lg:mt-12 lg:grid-cols-[1.1fr_auto_1fr] lg:gap-10">
+        {/* Scattered stack — left */}
+        <StaggerReveal className="flex flex-wrap items-center justify-center gap-3 lg:justify-end">
           {SCATTERED.map((item) => (
             <StaggerItem key={item.label} className={item.rotate}>
               <span className="inline-block rounded-xl border border-dashed border-border bg-muted/50 px-4 py-2.5 text-sm font-medium text-muted-foreground shadow-sm">
@@ -46,16 +47,18 @@ export function ProblemSection() {
           ))}
         </StaggerReveal>
 
-        <Reveal delay={0.25} className="my-8 flex flex-col items-center gap-1">
-          <ArrowDown className="h-5 w-5 text-primary" />
-          <span className="text-xs font-semibold uppercase tracking-widest text-primary">
+        {/* Arrow — center */}
+        <Reveal delay={0.2} className="flex flex-col items-center gap-1 lg:px-2">
+          <ArrowDown className="h-5 w-5 text-primary lg:hidden" />
+          <ArrowRight className="hidden h-6 w-6 text-primary lg:block" />
+          <span className="text-[11px] font-semibold uppercase tracking-widest text-primary">
             becomes
           </span>
         </Reveal>
 
-        {/* Resolved card */}
-        <Reveal delay={0.3} className="w-full">
-          <div className="relative overflow-hidden rounded-3xl border border-primary/15 bg-card p-7 shadow-xl shadow-primary/[0.07] sm:p-9">
+        {/* Resolved card — right */}
+        <Reveal delay={0.25}>
+          <div className="relative overflow-hidden rounded-3xl border border-primary/15 bg-card p-6 shadow-xl shadow-primary/[0.07] sm:p-8">
             <div
               aria-hidden
               className="pointer-events-none absolute -right-16 -top-16 h-48 w-48 rounded-full bg-primary/[0.07] blur-2xl"
@@ -71,7 +74,7 @@ export function ProblemSection() {
                 </p>
               </div>
             </div>
-            <ul className="mt-6 grid gap-3 sm:grid-cols-2">
+            <ul className="mt-5 grid gap-2.5 sm:grid-cols-2">
               {RESOLVED.map((line) => (
                 <li key={line} className="flex items-start gap-2.5 text-sm text-foreground">
                   <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-success/10 text-success">

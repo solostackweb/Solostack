@@ -5,61 +5,39 @@ import type { MarketingAuthState } from "@/features/marketing/types";
 import { Reveal } from "../motion";
 
 /**
- * Final CTA — a single dark, confident panel. The only dark moment on the
- * page, so it lands with weight. Uses foreground tokens so dark mode still
- * resolves correctly.
+ * Slim closing CTA — one line, one button, on the normal light background.
  */
 export function FinalCta({ authState }: { authState: MarketingAuthState }) {
   const href = authState.isAuthenticated ? "/dashboard" : "/signup";
-  const label = authState.isAuthenticated ? "Go to dashboard" : "Start free today";
+  const label = authState.isAuthenticated ? "Go to dashboard" : "Start free";
 
   return (
-    <section className="px-5 py-20 sm:px-8 sm:py-24 lg:py-28">
-      <Reveal className="mx-auto w-full max-w-[1200px]">
-        <div className="relative isolate overflow-hidden rounded-[2rem] bg-foreground px-6 py-16 text-center sm:rounded-[2.5rem] sm:px-12 sm:py-20 lg:py-24">
-          {/* Glow accents */}
-          <div aria-hidden className="pointer-events-none absolute inset-0 -z-10">
-            <div className="absolute left-1/2 top-[-40%] h-[420px] w-[720px] -translate-x-1/2 rounded-full bg-primary/25 blur-[100px]" />
-            <div className="absolute bottom-[-50%] left-[10%] h-[300px] w-[400px] rounded-full bg-primary/15 blur-[90px]" />
-          </div>
-
-          <p className="text-xs font-bold uppercase tracking-[0.2em] text-background/50">
-            Free for your first 5 clients
-          </p>
-          <h2 className="mx-auto mt-4 max-w-2xl text-balance font-display text-[32px] font-semibold leading-[1.1] tracking-tight text-background sm:text-5xl">
-            Be the freelancer who has it together.
+    <section className="border-t bg-muted/30">
+      <Reveal className="mx-auto flex w-full max-w-[1600px] flex-col items-center justify-between gap-5 px-5 py-10 text-center sm:px-8 sm:py-12 lg:flex-row lg:px-12 lg:text-left 2xl:px-16">
+        <div>
+          <h2 className="font-display text-2xl font-semibold tracking-tight text-foreground sm:text-[28px]">
+            Ready to get your client work together?
           </h2>
-          <p className="mx-auto mt-5 max-w-xl text-pretty text-[15px] leading-relaxed text-background/70 sm:text-base">
-            Send your first contract, invoice, and payment link in the next ten
-            minutes. No card, no sales call — just a calmer way to run your
-            business.
+          <p className="mt-1.5 text-[15px] text-muted-foreground">
+            Free for your first 5 clients · No card required · 2-minute setup
           </p>
-
-          <div className="mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row">
-            <Button
-              asChild
-              size="lg"
-              className="h-12 min-w-[210px] rounded-full bg-background text-[15px] font-semibold text-foreground hover:bg-background/90"
-            >
-              <Link href={href} data-cta="final_cta_primary">
-                {label} <ArrowRight className="ml-1.5 h-4 w-4" />
-              </Link>
-            </Button>
-            <Button
-              asChild
-              size="lg"
-              variant="outline"
-              className="h-12 min-w-[170px] rounded-full border-background/25 bg-transparent text-[15px] text-background hover:bg-background/10 hover:text-background"
-            >
-              <Link href="/talk" data-cta="final_cta_talk">
-                Talk to us
-              </Link>
-            </Button>
-          </div>
-
-          <p className="mt-6 text-xs text-background/50">
-            2-minute setup · Cancel anytime · Your data is always exportable
-          </p>
+        </div>
+        <div className="flex shrink-0 flex-col gap-3 sm:flex-row">
+          <Button asChild size="lg" className="btn-gradient h-12 min-w-[180px] rounded-full border-0 text-[15px] font-semibold">
+            <Link href={href} data-cta="final_cta_primary">
+              {label} <ArrowRight className="ml-1.5 h-4 w-4" />
+            </Link>
+          </Button>
+          <Button
+            asChild
+            size="lg"
+            variant="outline"
+            className="h-12 min-w-[140px] rounded-full text-[15px] hover:border-primary/40 hover:bg-primary/5"
+          >
+            <Link href="/talk" data-cta="final_cta_talk">
+              Talk to us
+            </Link>
+          </Button>
         </div>
       </Reveal>
     </section>

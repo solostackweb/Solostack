@@ -110,7 +110,7 @@ export function ShowcaseSection() {
   const tab = TABS[active];
 
   return (
-    <Section id="features" size="wide" className="py-20 sm:py-24 lg:py-28">
+    <Section id="features" size="ultra">
       <Reveal>
         <SectionHeading
           eyebrow="The product"
@@ -119,7 +119,7 @@ export function ShowcaseSection() {
         />
       </Reveal>
 
-      <div className="mt-12 grid gap-8 lg:mt-16 lg:grid-cols-[300px_1fr] lg:gap-12">
+      <div className="mt-10 grid gap-8 lg:mt-12 lg:grid-cols-[320px_1fr] lg:gap-14">
         {/* Tab rail */}
         <div
           role="tablist"

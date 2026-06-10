@@ -15,7 +15,7 @@ const QUICK_ACTIONS = [
 
 export function AiSection() {
   return (
-    <Section id="ai" size="wide" className="py-20 sm:py-24 lg:py-28">
+    <Section id="ai" size="ultra">
       <div className="grid items-center gap-12 lg:grid-cols-2 lg:gap-16">
         {/* Copy */}
         <Reveal>
