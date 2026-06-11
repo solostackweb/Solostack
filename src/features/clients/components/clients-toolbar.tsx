@@ -14,6 +14,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { DataTableViewOptions } from "@/components/data-table/data-table-view-options";
+import { cn } from "@/lib/utils";
 
 import type { ClientRecord } from "../server";
 
@@ -67,19 +68,22 @@ export function ClientsToolbar({ table }: ClientsToolbarProps) {
           </SelectContent>
         </Select>
 
-        {isFiltered && (
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-9 px-2 text-xs"
-            onClick={() => {
-              table.getColumn("name")?.setFilterValue("");
-              table.getColumn("gstRegistered")?.setFilterValue(undefined);
-            }}
-          >
-            Reset <X className="ml-1 h-3 w-3" />
-          </Button>
-        )}
+        <Button
+          variant="ghost"
+          size="sm"
+          className={cn(
+            "h-9 w-[74px] px-2 text-xs transition-opacity",
+            !isFiltered && "pointer-events-none invisible opacity-0",
+          )}
+          aria-hidden={!isFiltered}
+          tabIndex={isFiltered ? 0 : -1}
+          onClick={() => {
+            table.getColumn("name")?.setFilterValue("");
+            table.getColumn("gstRegistered")?.setFilterValue(undefined);
+          }}
+        >
+          Reset <X className="ml-1 h-3 w-3" />
+        </Button>
       </div>
 
       <div className="flex items-center gap-2">

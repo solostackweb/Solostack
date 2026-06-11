@@ -248,15 +248,11 @@ export async function getInvoiceAggregates(): Promise<{
   // Pull just the small set of fields needed to compute every aggregate
   // in-app. For a single freelancer's lifetime invoice volume this is
   // tiny and far cheaper than running six separate `count`/`sum` queries.
-  const [{ data: allRows }, { count: overdueCount }, { count: draftCount }, { data: recent }] =
+  const [{ data: allRows }, { count: draftCount }, { data: recent }] =
     await Promise.all([
       supabase
         .from("invoices")
-        .select("total_amount, paid_at, status"),
-      supabase
-        .from("invoices")
-        .select("id", { count: "exact", head: true })
-        .eq("status", "overdue"),
+        .select("total_amount, paid_at, status, due_date"),
       supabase
         .from("invoices")
         .select("id", { count: "exact", head: true })
@@ -268,7 +264,12 @@ export async function getInvoiceAggregates(): Promise<{
         .limit(6),
     ]);
 
-  type AggRow = { total_amount?: number; paid_at?: string | null; status?: string };
+  type AggRow = {
+    total_amount?: number;
+    paid_at?: string | null;
+    status?: string;
+    due_date?: string | null;
+  };
   const rows = (allRows as AggRow[] | null) ?? [];
 
   let paidThisMonth = 0;
@@ -276,10 +277,17 @@ export async function getInvoiceAggregates(): Promise<{
   let totalInvoiced = 0;
   let outstanding = 0;
   let overdueAmount = 0;
+  let overdueCount = 0;
 
   for (const r of rows) {
     const amt = Number(r.total_amount) || 0;
-    const status = r.status ?? "draft";
+    const storedStatus = r.status ?? "draft";
+    const status =
+      (storedStatus === "sent" || storedStatus === "viewed") &&
+      r.due_date &&
+      new Date(r.due_date) < new Date()
+        ? "overdue"
+        : storedStatus;
     // Drafts have NOT been issued — they're not part of total_invoiced.
     if (status === "draft") continue;
     totalInvoiced += amt;
@@ -296,6 +304,7 @@ export async function getInvoiceAggregates(): Promise<{
     outstanding += amt;
     if (status === "overdue") {
       overdueAmount += amt;
+      overdueCount += 1;
     }
   }
 
@@ -305,7 +314,7 @@ export async function getInvoiceAggregates(): Promise<{
     totalInvoiced,
     outstanding,
     overdueAmount,
-    overdueCount: overdueCount ?? 0,
+    overdueCount,
     draftCount: draftCount ?? 0,
     recent: ((recent as unknown as InvoiceRow[]) ?? []).map(mapInvoiceRow),
   };

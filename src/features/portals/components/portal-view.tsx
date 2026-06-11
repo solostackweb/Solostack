@@ -283,10 +283,42 @@ export function PortalView(props: ViewProps) {
       />
     </>
   );
+  const paidAmount = props.invoices
+    .filter((invoice) => invoice.status === "paid")
+    .reduce((sum, invoice) => sum + invoice.total_amount, 0);
+  const openAmount = props.invoices
+    .filter((invoice) => invoice.status !== "paid" && invoice.status !== "cancelled")
+    .reduce((sum, invoice) => sum + invoice.total_amount, 0);
+  const currency = props.invoices[0]?.currency ?? "INR";
 
   return (
     // pb-20 reserves space for the mobile bottom nav bar (hidden on sm+)
-    <div className="relative pb-20 sm:pb-0">
+    <div className="relative space-y-5 pb-20 sm:pb-0">
+      {isOwner && (
+        <section
+          className="overflow-hidden rounded-xl border bg-card shadow-sm"
+          style={{ borderTop: `4px solid ${props.brandColor}` }}
+        >
+          <div className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between">
+            <div className="min-w-0">
+              <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+                Client portal
+              </p>
+              <h1 className="mt-1 truncate text-2xl font-semibold tracking-tight">
+                {props.portalName}
+              </h1>
+              <p className="mt-1 truncate text-sm text-muted-foreground">
+                {props.clientName ?? "No client linked"} - {props.portalStatus}
+              </p>
+            </div>
+            <div className="grid grid-cols-3 gap-2 sm:min-w-[360px]">
+              <PortalMiniStat label="Open" value={formatPortalCurrency(currency, openAmount)} />
+              <PortalMiniStat label="Paid" value={formatPortalCurrency(currency, paidAmount)} />
+              <PortalMiniStat label="Files" value={String(props.files.length)} />
+            </div>
+          </div>
+        </section>
+      )}
       <div className="grid gap-5 lg:grid-cols-3">
         <div className="space-y-5 lg:col-span-2">
           {mainSections}
@@ -318,6 +350,19 @@ export function PortalView(props: ViewProps) {
 
       {/* Mobile bottom nav — anchor-scroll to key sections */}
       <MobileNavBar />
+    </div>
+  );
+}
+
+function PortalMiniStat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-lg border bg-background/70 px-3 py-2">
+      <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+        {label}
+      </p>
+      <p className="mt-0.5 truncate font-mono text-sm font-semibold tabular-nums">
+        {value}
+      </p>
     </div>
   );
 }

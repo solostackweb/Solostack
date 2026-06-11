@@ -21,7 +21,13 @@ export function AppSidebar() {
     const pref = localStorage.getItem("stackivo:sidebar-behaviour");
     return pref === "collapsed";
   });
-  const onToggle = React.useCallback(() => setCollapsed((v) => !v), []);
+  const onToggle = React.useCallback(() => {
+    setCollapsed((value) => {
+      const next = !value;
+      localStorage.setItem("stackivo:sidebar-behaviour", next ? "collapsed" : "expanded");
+      return next;
+    });
+  }, []);
   // When the AI panel is open we auto-collapse the sidebar to its icon rail so
   // the screen isn't split three ways. We remember the user's own collapsed
   // choice and restore it when the panel closes — and never override a manual
@@ -77,8 +83,8 @@ export function AppSidebar() {
   return (
     <aside
       className={cn(
-        "hidden md:flex h-screen sticky top-0 shrink-0 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground transition-[width] duration-200",
-        collapsed ? "w-[64px]" : "w-[278px]",
+        "hidden md:flex h-screen sticky top-0 shrink-0 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground shadow-sm shadow-black/[0.02] transition-[width] duration-200",
+        collapsed ? "w-[68px]" : "w-[288px]",
       )}
     >
       {/* Brand */}
@@ -90,7 +96,10 @@ export function AppSidebar() {
       >
         <Link
           href="/dashboard"
-          className="flex items-center gap-2.5 font-semibold"
+          className={cn(
+            "flex items-center gap-2.5 rounded-lg font-semibold transition-colors",
+            !collapsed && "px-1 py-1 hover:bg-sidebar-accent/70",
+          )}
           aria-label="Stackivo home"
         >
           <StackivoMark className="h-7 w-7" />
@@ -103,7 +112,7 @@ export function AppSidebar() {
       </div>
 
       {/* Primary nav */}
-      <div className="flex-1 overflow-y-auto scrollbar-thin px-2 pb-2 pt-1">
+      <div className="flex-1 overflow-y-auto scrollbar-thin px-2 pb-3 pt-1">
         {!collapsed && (
           <p className="mb-1 px-3 text-[10px] font-semibold uppercase tracking-widest text-sidebar-foreground/30">
             Workspace
@@ -128,7 +137,7 @@ export function AppSidebar() {
         {!collapsed ? (
           <Link
             href="/dashboard/settings/company"
-            className="group flex items-center gap-2.5 rounded-lg p-2 transition-colors hover:bg-sidebar-accent"
+            className="group flex items-center gap-2.5 rounded-lg border border-sidebar-border/60 bg-sidebar-accent/25 p-2 transition-colors hover:bg-sidebar-accent"
           >
             <div
               aria-hidden
@@ -162,7 +171,7 @@ export function AppSidebar() {
           variant="ghost"
           size="icon"
           onClick={onToggle}
-          className="h-8 w-full text-sidebar-foreground/40 hover:bg-sidebar-accent hover:text-sidebar-foreground"
+          className="h-8 w-full text-sidebar-foreground/45 hover:bg-sidebar-accent hover:text-sidebar-foreground"
           aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
         >
           {collapsed ? (

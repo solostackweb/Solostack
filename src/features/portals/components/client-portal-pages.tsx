@@ -348,7 +348,7 @@ export function ClientPortalInvoices({ data }: { data: ClientPortalProps }) {
             />
           ) : (
             <div className="mt-3 space-y-2">
-              {/*
+              {data.invoices.map((invoice) => (
                 <DocumentExternalCard
                   key={invoice.id}
                   icon={Receipt}
@@ -356,7 +356,7 @@ export function ClientPortalInvoices({ data }: { data: ClientPortalProps }) {
                   meta={`${formatPortalCurrency(invoice.currency, invoice.total_amount)} - ${invoice.status.replace(/_/g, " ")}`}
                   href={invoice.public_token ? `/i/${invoice.public_token}` : null}
                 />
-              */}
+              ))}
             </div>
           )}
         </section>

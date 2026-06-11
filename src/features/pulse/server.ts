@@ -97,7 +97,23 @@ export async function getOverdueTotal(): Promise<{
   total: number;
   count: number;
 }> {
-  return getInvoiceStatusSummary("overdue");
+  const supabase = await getServerSupabase();
+  const todayIso = new Date().toISOString().slice(0, 10);
+  const { data } = await supabase
+    .from("invoices")
+    .select("total_amount")
+    .in("status", ["sent", "viewed", "overdue"])
+    .lte("due_date", todayIso);
+
+  const rows = (data as Array<{ total_amount: number | null }> | null) ?? [];
+  return {
+    count: rows.length,
+    total:
+      Math.round(
+        rows.reduce((sum, row) => sum + (Number(row.total_amount) || 0), 0) *
+          100,
+      ) / 100,
+  };
 }
 
 export async function getPaidInvoiceSummary(): Promise<PaidInvoiceSummary> {

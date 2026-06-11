@@ -19,7 +19,7 @@ export function SidebarNav({ items, collapsed, onNavigate, isFreePlan = false }:
   const pathname = usePathname();
 
   return (
-    <nav className="flex flex-col gap-0.5 px-2">
+    <nav className={cn("flex flex-col gap-1", collapsed ? "px-1" : "px-2")}>
       {items.map((item) => {
         const isActive =
           pathname === item.href ||
@@ -33,9 +33,10 @@ export function SidebarNav({ items, collapsed, onNavigate, isFreePlan = false }:
             onClick={onNavigate}
             className={cn(
               "group relative flex h-9 items-center gap-3 rounded-lg px-2.5 text-[13px] font-medium",
-              "transition-all duration-150 ease-out",
-              "text-sidebar-foreground/55 hover:bg-sidebar-accent hover:text-sidebar-foreground",
-              isActive && "bg-sidebar-accent text-sidebar-foreground",
+              "transition-colors duration-150 ease-out",
+              "text-sidebar-foreground/58 hover:bg-sidebar-accent/80 hover:text-sidebar-foreground",
+              isActive &&
+                "bg-sidebar-accent text-sidebar-foreground shadow-sm ring-1 ring-sidebar-border/70",
               collapsed && "justify-center px-0",
             )}
             title={collapsed ? item.title : undefined}
@@ -44,7 +45,7 @@ export function SidebarNav({ items, collapsed, onNavigate, isFreePlan = false }:
             {isActive && !collapsed && (
               <span
                 aria-hidden
-                className="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r-full bg-gradient-to-b from-indigo-400 to-violet-500"
+                className="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r-full bg-primary"
                 style={{ boxShadow: "0 0 8px hsl(243 75% 62% / 0.65)" }}
               />
             )}
