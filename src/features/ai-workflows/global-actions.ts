@@ -987,6 +987,14 @@ export async function createInvoiceFromAiAction(input: AiCreateInput) {
   if (!draftResult.ok) return draftResult;
   const line = draftResult.data.items[0];
 
+  // The user's typed work description is authoritative. Only fall back to the
+  // AI-suggested line description when the user didn't provide one — otherwise
+  // the model can replace it with the project/client name.
+  const userWork = field(fields, "workDescription");
+  const lineDescription = userWork
+    ? cleanPromptTitle(userWork, "Professional services")
+    : line?.description || cleanPromptTitle(invoiceInput.workDescription, "Professional services");
+
   const fd = new FormData();
   fd.set(
     "payload",
@@ -1003,7 +1011,7 @@ export async function createInvoiceFromAiAction(input: AiCreateInput) {
       terms: invoiceInput.terms || draftResult.data.terms || profile?.invoiceDefaultTerms || undefined,
       lines: [
         {
-          description: line?.description || cleanPromptTitle(invoiceInput.workDescription, "Professional services"),
+          description: lineDescription,
           quantity,
           unitPrice,
           gstRate: profile?.gstRegistered ? profile.invoiceDefaultGstRate : 0,
@@ -1068,7 +1076,7 @@ export async function createInvoiceFromAiAction(input: AiCreateInput) {
         clientName: client?.business_name || client?.full_name || "Selected client",
         clientEmail: client?.email ?? null,
         clientPhone: client?.phone ?? null,
-        description: line?.description || cleanPromptTitle(invoiceInput.workDescription, "Professional services"),
+        description: lineDescription,
         quantity,
         unitPrice,
         originalSubtotal,

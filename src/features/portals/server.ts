@@ -641,22 +641,27 @@ export async function getPortalSnapshot(
     // back to the unconstrained user-scoped query.
     const portalClientId = access.portal.client_id;
 
+    // Only finished documents are attachable to a portal — drafts must never be
+    // exposed to a client, so we exclude status === "draft" from every list.
     const contractsQuery = admin
       .from("contracts")
       .select("id, title, status, client_id")
       .eq("user_id", access.userId)
+      .neq("status", "draft")
       .order("updated_at", { ascending: false })
       .limit(200);
     const invoicesQuery = admin
       .from("invoices")
       .select("id, invoice_number, total_amount, currency, status, client_id")
       .eq("user_id", access.userId)
+      .neq("status", "draft")
       .order("created_at", { ascending: false })
       .limit(200);
     const welcomeQuery = admin
       .from("welcome_documents")
       .select("id, title, status, acknowledgement_required, client_id")
       .eq("user_id", access.userId)
+      .neq("status", "draft")
       .order("updated_at", { ascending: false })
       .limit(200);
 

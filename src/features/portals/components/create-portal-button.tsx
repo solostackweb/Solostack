@@ -26,7 +26,6 @@ import {
 } from "@/components/ui/dialog";
 import { createPortalAction } from "../actions";
 import { portalDashboardDetail } from "../routes";
-import { GuidedAiWorkflowSheet } from "@/features/ai-workflows/components/guided-ai-workflow-sheet";
 import type { AiPortalDraft } from "@/features/ai-workflows/types";
 
 /**
@@ -131,29 +130,11 @@ export function CreatePortalButton({
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <DialogTitle>Create a client portal</DialogTitle>
-              <DialogDescription>
-                Only one active portal per client. You can attach contracts,
-                invoices, and files after creation.
-              </DialogDescription>
-            </div>
-            <GuidedAiWorkflowSheet<AiPortalDraft>
-              workflow="portal"
-              title="Let's create your portal"
-              description="Describe the client workspace and Stackivo AI will draft the setup."
-              placeholder="Example: Portal for Acme's brand redesign project, use a clean blue brand color"
-              clients={clientOptions.map((client) => ({
-                id: client.id,
-                name: client.businessName
-                  ? `${client.businessName} · ${client.fullName}`
-                  : client.fullName,
-              }))}
-              selectedClientId={clientId}
-              onApplyDraft={applyAiDraft}
-            />
-          </div>
+          <DialogTitle>Create a client portal</DialogTitle>
+          <DialogDescription>
+            Only one active portal per client. You can attach contracts,
+            invoices, and files after creation.
+          </DialogDescription>
         </DialogHeader>
         <form onSubmit={onSubmit} className="space-y-4">
           <div className="space-y-2">

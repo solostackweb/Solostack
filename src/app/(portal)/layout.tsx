@@ -7,6 +7,7 @@ import { getServerSupabase } from "@/lib/supabase/server";
 import { AUTH_LOGIN_ROUTE } from "@/features/auth/routes";
 import { LogOut, Workflow } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { ThemeToggle } from "@/components/shared/theme-toggle";
 import { logoutAction } from "@/features/auth/actions";
 
 function portalIdFromPath(path: string): string | null {
@@ -126,7 +127,7 @@ export default async function PortalLayout({
         className="sticky top-0 z-30 border-b bg-background/95 backdrop-blur-md"
         style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
       >
-        <div className="mx-auto flex h-14 max-w-5xl items-center justify-between gap-3 px-4 sm:px-6">
+        <div className="mx-auto flex h-14 w-full max-w-[1400px] items-center justify-between gap-3 px-4 sm:px-6 lg:px-8">
           <Link
             href="/portal"
             className="flex min-w-0 items-center gap-2 text-sm font-semibold tracking-tight"
@@ -141,10 +142,11 @@ export default async function PortalLayout({
               </span>
             </span>
           </Link>
-          <div className="flex items-center gap-2 sm:gap-3">
-            <span className="hidden max-w-[160px] truncate text-xs text-muted-foreground sm:inline">
+          <div className="flex items-center gap-1.5 sm:gap-2">
+            <span className="hidden max-w-[160px] truncate text-xs text-muted-foreground md:inline">
               {user.email}
             </span>
+            <ThemeToggle />
             <form action={logoutAction}>
               <Button type="submit" size="sm" variant="ghost">
                 <LogOut />
@@ -155,7 +157,7 @@ export default async function PortalLayout({
         </div>
       </header>
       <main
-        className="mx-auto w-full max-w-5xl flex-1 px-4 py-6 sm:px-6 sm:py-10"
+        className="mx-auto w-full max-w-[1400px] flex-1 px-4 py-6 sm:px-6 sm:py-8 lg:px-8"
         style={{
           paddingBottom: "max(env(safe-area-inset-bottom, 0px), 2rem)",
         }}

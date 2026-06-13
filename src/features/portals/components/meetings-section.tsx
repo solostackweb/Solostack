@@ -121,7 +121,9 @@ function MeetingCard({
   const router = useRouter();
   const [acceptOpen, setAcceptOpen] = React.useState(false);
   const [meetLink, setMeetLink] = React.useState(meeting.meet_link ?? "");
-  const [proposedTime, setProposedTime] = React.useState(meeting.proposed_time ?? "");
+  // Confirmed time is now a real date+time picker. We hold an ISO-ish
+  // `datetime-local` value and format it to a readable string on submit.
+  const [confirmedAt, setConfirmedAt] = React.useState("");
   const [pending, setPending] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
 
@@ -136,10 +138,22 @@ function MeetingCard({
     e.preventDefault();
     setPending(true);
     setError(null);
+    // Format the picked datetime into a friendly, human string for storage.
+    const formattedTime = confirmedAt
+      ? new Date(confirmedAt).toLocaleString("en-IN", {
+          weekday: "short",
+          day: "numeric",
+          month: "short",
+          year: "numeric",
+          hour: "numeric",
+          minute: "2-digit",
+          hour12: true,
+        })
+      : meeting.proposed_time ?? undefined;
     const res = await acceptPortalMeetingAction({
       portalId, meetingId: meeting.id,
       meetLink: meetLink.trim() || undefined,
-      proposedTime: proposedTime.trim() || undefined,
+      proposedTime: formattedTime || undefined,
     });
     setPending(false);
     if (!res.ok) { setError(res.error ?? "Could not confirm."); return; }
@@ -355,13 +369,18 @@ function MeetingCard({
           </DialogHeader>
           <form onSubmit={handleAccept} className="space-y-4">
             <div className="space-y-1.5">
-              <Label htmlFor="accept-time" className="text-xs">Confirmed time</Label>
+              <Label htmlFor="accept-time" className="text-xs">Confirmed date &amp; time</Label>
               <Input
                 id="accept-time"
-                placeholder="e.g. Friday 10 Jan, 3pm IST"
-                value={proposedTime}
-                onChange={(e) => setProposedTime(e.target.value)}
+                type="datetime-local"
+                value={confirmedAt}
+                onChange={(e) => setConfirmedAt(e.target.value)}
               />
+              {meeting.proposed_time && !confirmedAt && (
+                <p className="text-[11px] text-muted-foreground">
+                  Client proposed: {meeting.proposed_time}
+                </p>
+              )}
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="accept-link" className="text-xs">Google Meet link</Label>
@@ -429,10 +448,21 @@ function RequestMeetingDialog({ portalId }: { portalId: string }) {
     if (!topic.trim()) return;
     setPending(true);
     setError(null);
+    const formattedTime = time
+      ? new Date(time).toLocaleString("en-IN", {
+          weekday: "short",
+          day: "numeric",
+          month: "short",
+          year: "numeric",
+          hour: "numeric",
+          minute: "2-digit",
+          hour12: true,
+        })
+      : undefined;
     const res = await requestPortalMeetingAction({
       portalId,
       topic: topic.trim(),
-      proposedTime: time.trim() || undefined,
+      proposedTime: formattedTime,
       meetLink: link.trim() || undefined,
       notes: notes.trim() || undefined,
     });
@@ -484,10 +514,9 @@ function RequestMeetingDialog({ portalId }: { portalId: string }) {
               </Label>
               <Input
                 id="req-time"
-                placeholder="e.g. Monday 2pm IST or 10 Jan at 4pm"
+                type="datetime-local"
                 value={time}
                 onChange={(e) => setTime(e.target.value)}
-                maxLength={200}
               />
             </div>
             <div className="space-y-1.5">

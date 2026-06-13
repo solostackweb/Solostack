@@ -554,7 +554,7 @@ function ClientTopBar({ portalName }: { portalName: string }) {
       className="sticky top-14 z-20 -mx-4 mb-4 border-b bg-background/90 px-4 py-3 backdrop-blur-md sm:-mx-6 sm:px-6"
       style={{ top: "calc(3.5rem + env(safe-area-inset-top, 0px))" }}
     >
-      <div className="mx-auto flex max-w-5xl items-center justify-between gap-3">
+      <div className="mx-auto flex w-full max-w-[1400px] items-center justify-between gap-3">
         <div className="min-w-0">
           <p className="truncate text-sm font-semibold">{portalName}</p>
           <p className="text-[11px] text-muted-foreground">Client companion app</p>
