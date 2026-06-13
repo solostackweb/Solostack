@@ -258,24 +258,29 @@ export async function getPortalSnapshot(
   const portalClientId = access.portal.client_id;
   if (portalClientId) {
     const ownerId = access.portal.owner_user_id;
+    // Only auto-link FINISHED documents. Drafts must never be surfaced to a
+    // client, so we exclude status === "draft" from every auto-link query.
     const [contractAutoRes, invoiceAutoRes, welcomeAutoRes] = await Promise.all([
       admin
         .from("contracts")
         .select("id")
         .eq("client_id", portalClientId)
         .eq("user_id", ownerId)
+        .neq("status", "draft")
         .limit(200),
       admin
         .from("invoices")
         .select("id")
         .eq("client_id", portalClientId)
         .eq("user_id", ownerId)
+        .neq("status", "draft")
         .limit(200),
       admin
         .from("welcome_documents")
         .select("id")
         .eq("client_id", portalClientId)
         .eq("user_id", ownerId)
+        .neq("status", "draft")
         .limit(200),
     ]);
 
@@ -470,7 +475,10 @@ export async function getPortalSnapshot(
       public_token: c?.public_token ?? null,
       added_at: row.added_at,
     };
-  });
+  })
+  // Defensive: hide any draft docs that were linked before draft-filtering
+  // existed, so a client never sees a draft.
+  .filter((c) => c.status !== "draft");
 
   const invoices = ((invoicesRes.data ?? []) as Array<{
     invoice_id: string;
@@ -504,7 +512,8 @@ export async function getPortalSnapshot(
       public_token: i?.public_token ?? null,
       added_at: row.added_at,
     };
-  });
+  })
+  .filter((i) => i.status !== "draft");
 
   const welcomeDocuments = ((welcomeDocsRes.data ?? []) as Array<{
     document_id: string;
@@ -537,7 +546,8 @@ export async function getPortalSnapshot(
       acknowledgement_required: w?.acknowledgement_required ?? false,
       added_at: row.added_at,
     };
-  });
+  })
+  .filter((w) => w.status !== "draft");
 
   // ---------------------------------------------------------------------------
   // Hydrate portal_updates with author profiles and their reactions

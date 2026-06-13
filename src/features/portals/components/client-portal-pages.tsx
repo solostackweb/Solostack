@@ -69,7 +69,7 @@ export function ClientPortalShell({
           background: `linear-gradient(135deg, ${brandColor}14, transparent 55%)`,
         }}
       >
-        <div className="mx-auto max-w-5xl">
+        <div className="mx-auto max-w-[1400px]">
           <div className="flex items-center gap-3.5">
             <div
               className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl text-base font-bold text-white shadow-md"
@@ -126,7 +126,7 @@ export function ClientPortalShell({
       </section>
 
       {/* ── Page heading ───────────────────────────────────────────── */}
-      <div className="mx-auto mb-5 mt-6 flex max-w-5xl items-center justify-between gap-3">
+      <div className="mx-auto mb-5 mt-6 flex max-w-[1400px] items-center justify-between gap-3">
         <div className="min-w-0">
           <h2 className="truncate text-lg font-bold tracking-tight sm:text-xl">{title}</h2>
           {subtitle && (
@@ -135,10 +135,10 @@ export function ClientPortalShell({
         </div>
       </div>
 
-      <div className="mx-auto max-w-5xl">{children}</div>
+      <div className="mx-auto max-w-[1400px]">{children}</div>
 
       {/* ── Footer attribution ─────────────────────────────────────── */}
-      <p className="mx-auto mt-10 max-w-5xl text-center text-[11px] text-muted-foreground/70 sm:text-left">
+      <p className="mx-auto mt-10 max-w-[1400px] text-center text-[11px] text-muted-foreground/70 sm:text-left">
         Powered by Stackivo · A shared workspace between you and {portalName}
       </p>
 

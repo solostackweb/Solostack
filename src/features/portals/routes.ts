@@ -8,7 +8,7 @@
  *   /portal/<id>/files             — client-side: files
  *   /portal/<id>/contracts         — client-side: contracts
  *   /portal/<id>/invoices          — client-side: invoices
- *   /portal/<id>/messages          — client-side: chat
+ *   /portal/<id>/chat              — client-side: chat
  *   /portal/accept?token=<...>     — accept an emailed invitation
  */
 
@@ -29,11 +29,10 @@ export const portalClientMeetings = (portalId: string): string =>
   `/portal/${portalId}/meetings`;
 export const portalClientMore = (portalId: string): string =>
   `/portal/${portalId}/more`;
-export const portalClientContracts = (portalId: string): string =>
-  `/portal/${portalId}/contracts`;
 export const portalClientInvoices = (portalId: string): string =>
   `/portal/${portalId}/invoices`;
-export const portalClientMessages = (portalId: string): string =>
-  `/portal/${portalId}/messages`;
+// Chat lives at /chat (there is no /messages or /contracts client page).
+export const portalClientChat = (portalId: string): string =>
+  `/portal/${portalId}/chat`;
 
 export const PORTAL_ACCEPT_INVITE = "/portal/accept";
