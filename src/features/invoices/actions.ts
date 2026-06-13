@@ -23,6 +23,7 @@ import {
 } from "./server-schemas";
 import { calculateInvoice } from "./engine";
 import { recordActivity } from "@/features/activity/server";
+import { markTimeEntriesInvoiced } from "@/features/time/server";
 import { createNotification } from "@/features/notifications/server";
 import { generateReceiptForInvoice } from "./receipts";
 import type { ClientRow, UserProfileRow } from "@/lib/supabase/types";
@@ -217,6 +218,13 @@ export async function createInvoiceAction(
       position: i,
     })),
   );
+
+  // Claim the billable time entries this invoice covers. The update is
+  // self-guarding (only unbilled+billable+owned rows match), so duplicates
+  // or stale ids are silently skipped rather than double-billed.
+  if (parsed.data.timeEntryIds && parsed.data.timeEntryIds.length > 0) {
+    await markTimeEntriesInvoiced(userId, parsed.data.timeEntryIds, invoiceId);
+  }
 
   // Bump invoice numbering so the next invoice gets a fresh number. Best
   // effort — a failure here does NOT roll back the invoice.

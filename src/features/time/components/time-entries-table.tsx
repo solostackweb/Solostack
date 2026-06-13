@@ -145,6 +145,14 @@ function EntryRow({
               <span>Non-billable</span>
             </>
           )}
+          {entry.invoiceId && (
+            <>
+              <span>·</span>
+              <span className="inline-flex items-center rounded-full bg-success/10 px-1.5 py-0.5 text-[10px] font-semibold text-success">
+                Invoiced
+              </span>
+            </>
+          )}
         </div>
       </div>
 
@@ -179,12 +187,14 @@ function EntryRow({
           <DropdownMenuContent align="end">
             <DropdownMenuItem
               className="text-destructive focus:text-destructive"
+              disabled={Boolean(entry.invoiceId)}
               onSelect={(e) => {
                 e.preventDefault();
                 handleDelete();
               }}
             >
-              <Trash2 className="h-3.5 w-3.5" /> Delete
+              <Trash2 className="h-3.5 w-3.5" />
+              {entry.invoiceId ? "On an invoice" : "Delete"}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

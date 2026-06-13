@@ -32,15 +32,18 @@ import type { PortalFileRow } from "@/lib/supabase/types";
 type ClientPortalProps = ViewProps;
 
 const navItems = [
-  { key: "home", label: "Home", icon: Home, href: (id: string) => `/portal/${id}` },
-  { key: "invoices", label: "Invoices", icon: Receipt, href: (id: string) => `/portal/${id}/invoices` },
-  { key: "files", label: "Files", icon: Files, href: (id: string) => `/portal/${id}/files` },
-  { key: "meetings", label: "Meetings", icon: Video, href: (id: string) => `/portal/${id}/meetings` },
-  { key: "chat", label: "Chat", icon: MessageSquare, href: (id: string) => `/portal/${id}/chat` },
+  { key: "home", label: "Home", icon: Home, href: (id: string) => `/portal/${id}`, mobile: true },
+  { key: "updates", label: "Updates", icon: List, href: (id: string) => `/portal/${id}/updates`, mobile: false },
+  { key: "invoices", label: "Invoices", icon: Receipt, href: (id: string) => `/portal/${id}/invoices`, mobile: true },
+  { key: "files", label: "Files", icon: Files, href: (id: string) => `/portal/${id}/files`, mobile: true },
+  { key: "meetings", label: "Meetings", icon: Video, href: (id: string) => `/portal/${id}/meetings`, mobile: true },
+  { key: "chat", label: "Chat", icon: MessageSquare, href: (id: string) => `/portal/${id}/chat`, mobile: true },
 ] as const;
 
 export function ClientPortalShell({
   portalId,
+  portalName,
+  clientName,
   brandColor = "#2563EB",
   title,
   subtitle,
@@ -57,49 +60,117 @@ export function ClientPortalShell({
   const pathname = usePathname();
 
   return (
-    <div className="min-h-[calc(100svh-7rem)] pb-28">
-      <div
-        className="-mx-4 mb-4 border-b bg-background/70 px-4 py-4 sm:-mx-6 sm:px-6"
-        style={{ top: "calc(3.5rem + env(safe-area-inset-top, 0px))" }}
+    <div className="min-h-[calc(100svh-7rem)] pb-28 sm:pb-10">
+
+      {/* ── Branded workspace header ───────────────────────────────── */}
+      <section
+        className="relative -mx-4 overflow-hidden border-b px-4 pb-0 pt-5 sm:-mx-6 sm:px-6"
+        style={{
+          background: `linear-gradient(135deg, ${brandColor}14, transparent 55%)`,
+        }}
       >
-        <div className="mx-auto flex max-w-5xl items-center justify-between gap-3">
-          <div className="min-w-0">
-            <h1 className="truncate text-2xl font-bold tracking-tight">{title}</h1>
-            {subtitle && (
-              <p className="truncate text-sm text-muted-foreground">{subtitle}</p>
-            )}
+        <div className="mx-auto max-w-5xl">
+          <div className="flex items-center gap-3.5">
+            <div
+              className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl text-base font-bold text-white shadow-md"
+              style={{ background: brandColor }}
+            >
+              {initials(portalName)}
+            </div>
+            <div className="min-w-0">
+              <h1 className="truncate text-xl font-bold tracking-tight sm:text-2xl">
+                {portalName}
+              </h1>
+              <p className="truncate text-xs text-muted-foreground sm:text-sm">
+                Shared client workspace{clientName ? ` · ${clientName}` : ""}
+              </p>
+            </div>
           </div>
+
+          {/* Desktop nav tabs — brand-coloured active state */}
+          <nav
+            aria-label="Portal sections"
+            className="mt-4 hidden gap-1 overflow-x-auto sm:flex"
+          >
+            {navItems.map(({ key, href, icon: Icon, label }) => {
+              const url = href(portalId);
+              const active =
+                key === "home" ? pathname === url : pathname?.startsWith(url);
+              return (
+                <Link
+                  key={key}
+                  href={url}
+                  aria-current={active ? "page" : undefined}
+                  className={`relative flex items-center gap-1.5 whitespace-nowrap rounded-t-lg px-3.5 py-2.5 text-[13px] font-semibold transition-colors ${
+                    active
+                      ? "text-foreground"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  <Icon className="h-4 w-4" style={active ? { color: brandColor } : undefined} />
+                  {label}
+                  {active && (
+                    <span
+                      aria-hidden
+                      className="absolute inset-x-2 -bottom-px h-[2.5px] rounded-full"
+                      style={{ background: brandColor }}
+                    />
+                  )}
+                </Link>
+              );
+            })}
+          </nav>
+          {/* Spacer keeps the band height consistent on mobile (no tabs) */}
+          <div className="h-4 sm:hidden" />
+        </div>
+      </section>
+
+      {/* ── Page heading ───────────────────────────────────────────── */}
+      <div className="mx-auto mb-5 mt-6 flex max-w-5xl items-center justify-between gap-3">
+        <div className="min-w-0">
+          <h2 className="truncate text-lg font-bold tracking-tight sm:text-xl">{title}</h2>
+          {subtitle && (
+            <p className="mt-0.5 truncate text-sm text-muted-foreground">{subtitle}</p>
+          )}
         </div>
       </div>
 
-      {children}
+      <div className="mx-auto max-w-5xl">{children}</div>
 
+      {/* ── Footer attribution ─────────────────────────────────────── */}
+      <p className="mx-auto mt-10 max-w-5xl text-center text-[11px] text-muted-foreground/70 sm:text-left">
+        Powered by Stackivo · A shared workspace between you and {portalName}
+      </p>
+
+      {/* ── Mobile bottom nav ──────────────────────────────────────── */}
       <nav
         aria-label="Client portal navigation"
         className="fixed inset-x-0 bottom-0 z-50 px-3 pb-3 sm:hidden"
         style={{ paddingBottom: "max(env(safe-area-inset-bottom, 0px), 0.75rem)" }}
       >
         <div className="mx-auto flex max-w-md items-center justify-between rounded-[1.4rem] border bg-background/95 p-1.5 shadow-2xl shadow-slate-900/15 backdrop-blur-md">
-          {navItems.map(({ key, href, icon: Icon, label }) => {
-            const url = href(portalId);
-            const active =
-              key === "home" ? pathname === url : pathname?.startsWith(url);
-            return (
-              <Link
-                key={key}
-                href={url}
-                className={`flex min-w-0 flex-1 flex-col items-center gap-0.5 rounded-2xl px-1.5 py-2 text-[10px] font-semibold transition ${
-                  active
-                    ? "text-white shadow-sm"
-                    : "text-muted-foreground hover:bg-muted hover:text-foreground"
-                }`}
-                style={active ? { background: brandColor } : undefined}
-              >
-                <Icon className="h-[18px] w-[18px]" />
-                <span>{label}</span>
-              </Link>
-            );
-          })}
+          {navItems
+            .filter((item) => item.mobile)
+            .map(({ key, href, icon: Icon, label }) => {
+              const url = href(portalId);
+              const active =
+                key === "home" ? pathname === url : pathname?.startsWith(url);
+              return (
+                <Link
+                  key={key}
+                  href={url}
+                  className={`flex min-w-0 flex-1 flex-col items-center gap-0.5 rounded-2xl px-1.5 py-2 text-[10px] font-semibold transition ${
+                    active
+                      ? "text-white shadow-sm"
+                      : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                  }`}
+                  style={active ? { background: brandColor } : undefined}
+                >
+                  <Icon className="h-[18px] w-[18px]" />
+                  <span>{label}</span>
+                </Link>
+              );
+            })}
         </div>
       </nav>
     </div>
@@ -138,30 +209,28 @@ export function ClientPortalHome({ data }: { data: ClientPortalProps }) {
       subtitle="Project status and next actions"
     >
       <div className="space-y-5">
-        <section
-          className="overflow-hidden rounded-[1.6rem] border bg-card shadow-sm"
-          style={{ borderTop: `4px solid ${data.brandColor}` }}
-        >
-          <div className="flex items-start justify-between gap-4 p-5 sm:p-6">
+        <section className="rounded-[1.6rem] border bg-card p-5 shadow-sm sm:p-6">
+          <div className="flex flex-wrap items-end justify-between gap-3">
             <div className="min-w-0">
-              <p className="text-xs font-medium text-muted-foreground">Good to see you</p>
-              <h2 className="mt-1 truncate text-2xl font-bold tracking-tight">
-                {data.portalName}
-              </h2>
+              <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
+                Project progress
+              </p>
               <p className="mt-1 text-sm text-muted-foreground">
-                {latestUpdate ? updateTypeLabel(latestUpdate.update_type) : "In progress"} • {completion}% complete
+                {latestUpdate
+                  ? `Latest: ${updateTypeLabel(latestUpdate.update_type)}`
+                  : "Work is in progress"}
               </p>
             </div>
-            <div
-              className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl text-sm font-bold text-white"
-              style={{ background: data.brandColor }}
+            <p
+              className="font-mono text-3xl font-bold tabular-nums tracking-tight"
+              style={{ color: data.brandColor }}
             >
-              {initials(data.portalName)}
-            </div>
+              {completion}%
+            </p>
           </div>
-          <div className="mx-5 mb-5 h-2.5 overflow-hidden rounded-full bg-muted sm:mx-6 sm:mb-6">
+          <div className="mt-4 h-2.5 overflow-hidden rounded-full bg-muted">
             <div
-              className="h-full rounded-full"
+              className="h-full rounded-full transition-[width] duration-500"
               style={{ width: `${completion}%`, background: data.brandColor }}
             />
           </div>

@@ -103,16 +103,25 @@ const PAYMENT_ICON: Record<PaymentMethod, React.ComponentType<{ className?: stri
  *  - Owns the RHF form and wires line-item array ops
  *  - Derives live totals via `useWatch` so the right column stays in sync
  */
+import {
+  UnbilledTimePanel,
+  type UnbilledEntryLite,
+  type UnbilledGroupSelection,
+} from "./unbilled-time-panel";
+
 interface CreateInvoiceViewProps {
   clients: ClientRecord[];
   projects: ProjectRecord[];
   nextInvoiceNumber: string;
+  /** Billable, uninvoiced time entries (all clients; filtered client-side). */
+  unbilledTime?: UnbilledEntryLite[];
 }
 
 export function CreateInvoiceView({
   clients,
   projects,
   nextInvoiceNumber,
+  unbilledTime = [],
 }: CreateInvoiceViewProps) {
   const router = useRouter();
   const [previewOpen, setPreviewOpen] = React.useState(true);
@@ -132,6 +141,41 @@ export function CreateInvoiceView({
     control,
     name: "items",
   });
+
+  // Unbilled-time groups pulled onto this invoice. Key = project group key;
+  // value carries the covered entry ids + the generated line description so
+  // submit can skip groups whose line item was manually deleted.
+  const [addedTime, setAddedTime] = React.useState<
+    Record<string, { ids: string[]; description: string }>
+  >({});
+
+  const handleAddTimeGroup = React.useCallback(
+    (g: UnbilledGroupSelection) => {
+      append({ id: newItemId(), description: g.description, quantity: g.hours, rate: g.rate });
+      setAddedTime((prev) => ({
+        ...prev,
+        [g.key]: { ids: g.ids, description: g.description },
+      }));
+    },
+    [append],
+  );
+
+  const handleUndoTimeGroup = React.useCallback(
+    (key: string) => {
+      setAddedTime((prev) => {
+        const meta = prev[key];
+        if (meta) {
+          const items = form.getValues("items") ?? [];
+          const idx = items.findIndex((it) => it.description === meta.description);
+          if (idx >= 0) remove(idx);
+        }
+        const next = { ...prev };
+        delete next[key];
+        return next;
+      });
+    },
+    [form, remove],
+  );
 
   // Live values for the preview + summary
   const watched = useWatch({ control }) as InvoiceFormValues;
@@ -206,6 +250,11 @@ export function CreateInvoiceView({
         notes: values.notes || undefined,
         terms: values.terms || undefined,
         lines: totalsForLines,
+        timeEntryIds: Object.values(addedTime)
+          .filter((meta) =>
+            (values.items ?? []).some((it) => it.description === meta.description),
+          )
+          .flatMap((meta) => meta.ids),
       };
       const fd = new FormData();
       fd.set("payload", JSON.stringify(payload));
@@ -420,6 +469,14 @@ export function CreateInvoiceView({
 
               {/* Line items */}
               <SectionCard label="Line items" error={errors.items?.message}>
+                <UnbilledTimePanel
+                  entries={unbilledTime}
+                  clientId={watched.clientId || null}
+                  projects={projects.map((p) => ({ id: p.id, name: p.name }))}
+                  addedKeys={Object.keys(addedTime)}
+                  onAdd={handleAddTimeGroup}
+                  onUndo={handleUndoTimeGroup}
+                />
                 {/* Negative margins must match SectionCard horizontal padding
                     at each breakpoint (p-4 mobile, p-6 sm+) so the row
                     dividers reach all the way to the card edges. */}

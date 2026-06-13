@@ -73,6 +73,8 @@ export const invoiceCrudSchema = z.object({
   notes: optionalText(2000),
   terms: optionalText(2000),
   lines: z.array(invoiceLineSchema).min(1, "Add at least one line item"),
+  /** Billable time entries this invoice covers — marked invoiced on create. */
+  timeEntryIds: z.array(z.string().uuid()).max(500).optional(),
 });
 
 export type InvoiceCrudInput = z.infer<typeof invoiceCrudSchema>;

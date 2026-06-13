@@ -1,7 +1,8 @@
 "use client";
 
 import * as React from "react";
-import { Plus, Search } from "lucide-react";
+import { ArrowRight, Plus, Search } from "lucide-react";
+import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -146,6 +147,8 @@ export function TimeDashboardView({
         )}
       >
         <div className="min-w-0 space-y-6">
+      <UnbilledBanner entries={entries} />
+
       <TimeSummaryCards entries={thisWeek} />
 
       <ActiveTimerWidget
@@ -254,6 +257,37 @@ export function TimeDashboardView({
         defaultHourlyRate={defaultHourlyRate}
         initialAiDraft={aiDraft}
       />
+    </div>
+  );
+}
+
+/**
+ * Strip surfacing total uninvoiced billable value with a one-click path to
+ * invoice it. Hidden when everything is billed.
+ */
+function UnbilledBanner({ entries }: { entries: TimeEntryRecord[] }) {
+  const unbilled = entries.filter(
+    (e) => e.billable && !e.invoiceId && e.endedAt,
+  );
+  const seconds = unbilled.reduce((s, e) => s + e.durationSeconds, 0);
+  const amount = unbilled.reduce((s, e) => s + (Number(e.amount) || 0), 0);
+  if (seconds === 0 || amount === 0) return null;
+  return (
+    <div className="flex flex-col gap-3 rounded-xl border border-primary/20 bg-primary/[0.04] px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between">
+      <p className="text-sm">
+        <span className="font-semibold">
+          {formatINR(amount)} of billable time
+        </span>{" "}
+        <span className="text-muted-foreground">
+          ({formatDuration(seconds, { compact: true })}) hasn&rsquo;t been
+          invoiced yet.
+        </span>
+      </p>
+      <Button asChild size="sm" className="h-8 shrink-0 self-start sm:self-auto">
+        <Link href="/dashboard/invoices/new">
+          Bill this time <ArrowRight className="ml-1 h-3.5 w-3.5" />
+        </Link>
+      </Button>
     </div>
   );
 }

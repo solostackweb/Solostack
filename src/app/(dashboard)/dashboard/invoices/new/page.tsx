@@ -3,6 +3,7 @@ import { CreateInvoiceView } from "@/features/invoices/components/new-invoice/cr
 import { listClients } from "@/features/clients/server";
 import { listProjects } from "@/features/projects/server";
 import { nextInvoiceNumber } from "@/features/invoices/server";
+import { getUnbilledTime } from "@/features/time/server";
 import { getServerSupabase } from "@/lib/supabase/server";
 import { AUTH_LOGIN_ROUTE } from "@/features/auth/routes";
 import { getProfile } from "@/features/profile/server";
@@ -19,11 +20,12 @@ export default async function NewInvoicePage() {
   } = await supabase.auth.getUser();
   if (!user) redirect(AUTH_LOGIN_ROUTE);
 
-  const [clients, projects, nextNumber, profile] = await Promise.all([
+  const [clients, projects, nextNumber, profile, unbilled] = await Promise.all([
     listClients({ limit: 200 }),
     listProjects({ limit: 200 }),
     nextInvoiceNumber(user.id),
     getProfile(),
+    getUnbilledTime(),
   ]);
 
   if (!hasFreelancerSignature(profile)) {
@@ -41,6 +43,14 @@ export default async function NewInvoicePage() {
       clients={clients}
       projects={projects}
       nextInvoiceNumber={nextNumber.formatted}
+      unbilledTime={unbilled.entries.map((e) => ({
+        id: e.id,
+        clientId: e.clientId,
+        projectId: e.projectId,
+        seconds: e.durationSeconds,
+        amount: e.amount,
+        startedAt: e.startedAt,
+      }))}
     />
   );
 }

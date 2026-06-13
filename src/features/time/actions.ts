@@ -185,6 +185,18 @@ export async function deleteTimeEntryAction(
   if (!idParse.success) return { ok: false, error: "Invalid entry id." };
   await requireUserId();
   const supabase = await getServerSupabase();
+  // Invoiced entries are part of an issued document — refuse to delete.
+  const { data: existing } = await supabase
+    .from("time_entries")
+    .select("invoice_id")
+    .eq("id", idParse.data)
+    .maybeSingle();
+  if ((existing as { invoice_id: string | null } | null)?.invoice_id) {
+    return {
+      ok: false,
+      error: "This entry is on an invoice. Delete or amend the invoice first.",
+    };
+  }
   const { error } = await supabase.from("time_entries").delete().eq("id", idParse.data);
   if (error) return { ok: false, error: error.message };
   revalidatePath("/dashboard/time");

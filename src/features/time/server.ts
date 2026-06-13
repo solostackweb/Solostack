@@ -24,6 +24,8 @@ export interface TimeEntryRecord {
   hourlyRate: number;
   amount: number;
   tags: string[];
+  invoiceId: string | null;
+  invoicedAt: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -41,6 +43,8 @@ export function mapTimeEntryRow(row: TimeEntryRow): TimeEntryRecord {
     hourlyRate: row.hourly_rate,
     amount: row.amount,
     tags: row.tags ?? [],
+    invoiceId: row.invoice_id ?? null,
+    invoicedAt: row.invoiced_at ?? null,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -162,4 +166,133 @@ export async function getTimeAggregates(opts: {
     billableAmount: Math.round(billableAmount * 100) / 100,
     byProject,
   };
+}
+
+// --- Billing integration ----------------------------------------------------
+
+export interface UnbilledTimeGroup {
+  projectId: string | null;
+  projectName: string | null;
+  entryIds: string[];
+  seconds: number;
+  amount: number;
+  /** Weighted-average hourly rate across the group (amount / hours). */
+  effectiveRate: number;
+  earliest: string;
+  latest: string;
+}
+
+export interface UnbilledTimeSummary {
+  entries: TimeEntryRecord[];
+  groups: UnbilledTimeGroup[];
+  totalSeconds: number;
+  totalAmount: number;
+}
+
+/**
+ * Billable, completed, not-yet-invoiced time — optionally scoped to one
+ * client. Powers the "Unbilled time" panel on invoice creation and the
+ * Time page summary. Grouped per project so one project becomes one
+ * invoice line item.
+ */
+export async function getUnbilledTime(opts: {
+  clientId?: string;
+} = {}): Promise<UnbilledTimeSummary> {
+  const supabase = await getServerSupabase();
+  let q = supabase
+    .from("time_entries")
+    .select("*")
+    .eq("billable", true)
+    .is("invoice_id", null)
+    .not("ended_at", "is", null)
+    .order("started_at", { ascending: true })
+    .limit(500);
+  if (opts.clientId) q = q.eq("client_id", opts.clientId);
+  const { data } = await q;
+  const entries = ((data as unknown as TimeEntryRow[]) ?? []).map(mapTimeEntryRow);
+
+  // Resolve project names in one query.
+  const projectIds = Array.from(
+    new Set(entries.map((e) => e.projectId).filter((id): id is string => !!id)),
+  );
+  const names = new Map<string, string>();
+  if (projectIds.length > 0) {
+    const { data: projects } = await supabase
+      .from("projects")
+      .select("id, name")
+      .in("id", projectIds);
+    for (const p of (projects as Array<{ id: string; name: string }> | null) ?? []) {
+      names.set(p.id, p.name);
+    }
+  }
+
+  const groupMap = new Map<string | null, UnbilledTimeGroup>();
+  let totalSeconds = 0;
+  let totalAmount = 0;
+  for (const e of entries) {
+    totalSeconds += e.durationSeconds;
+    totalAmount += e.amount;
+    const key = e.projectId;
+    const g =
+      groupMap.get(key) ??
+      ({
+        projectId: key,
+        projectName: key ? names.get(key) ?? null : null,
+        entryIds: [],
+        seconds: 0,
+        amount: 0,
+        effectiveRate: 0,
+        earliest: e.startedAt,
+        latest: e.startedAt,
+      } satisfies UnbilledTimeGroup);
+    g.entryIds.push(e.id);
+    g.seconds += e.durationSeconds;
+    g.amount += e.amount;
+    if (e.startedAt < g.earliest) g.earliest = e.startedAt;
+    if (e.startedAt > g.latest) g.latest = e.startedAt;
+    groupMap.set(key, g);
+  }
+  const groups = Array.from(groupMap.values())
+    .map((g) => ({
+      ...g,
+      amount: Math.round(g.amount * 100) / 100,
+      effectiveRate:
+        g.seconds > 0 ? Math.round((g.amount / (g.seconds / 3600)) * 100) / 100 : 0,
+    }))
+    .sort((a, b) => b.seconds - a.seconds);
+
+  return {
+    entries,
+    groups,
+    totalSeconds,
+    totalAmount: Math.round(totalAmount * 100) / 100,
+  };
+}
+
+/**
+ * Atomically claim a set of billable entries for an invoice. The filters
+ * repeat the "unbilled + billable + finished + owned by user" conditions so
+ * a stale client can never double-bill an entry that was invoiced elsewhere
+ * in the meantime. Returns the number of entries actually claimed.
+ */
+export async function markTimeEntriesInvoiced(
+  userId: string,
+  entryIds: string[],
+  invoiceId: string,
+): Promise<number> {
+  if (entryIds.length === 0) return 0;
+  const supabase = await getServerSupabase();
+  const { data } = await supabase
+    .from("time_entries")
+    .update({
+      invoice_id: invoiceId,
+      invoiced_at: new Date().toISOString(),
+    } as never)
+    .eq("user_id", userId)
+    .eq("billable", true)
+    .is("invoice_id", null)
+    .not("ended_at", "is", null)
+    .in("id", entryIds)
+    .select("id");
+  return (data as Array<{ id: string }> | null)?.length ?? 0;
 }

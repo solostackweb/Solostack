@@ -569,6 +569,8 @@ export interface TimeEntryRow {
   hourly_rate: number;
   amount: number;
   tags: string[];
+  invoice_id: string | null;
+  invoiced_at: string | null;
   created_at: string;
   updated_at: string;
 }
