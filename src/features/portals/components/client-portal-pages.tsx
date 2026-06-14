@@ -44,6 +44,7 @@ export function ClientPortalShell({
   portalId,
   portalName,
   clientName,
+  freelancerName,
   brandColor = "#2563EB",
   title,
   subtitle,
@@ -52,6 +53,7 @@ export function ClientPortalShell({
   portalId: string;
   portalName: string;
   clientName?: string | null;
+  freelancerName?: string | null;
   brandColor?: string;
   title: string;
   subtitle?: string;
@@ -139,7 +141,8 @@ export function ClientPortalShell({
 
       {/* ── Footer attribution ─────────────────────────────────────── */}
       <p className="mx-auto mt-10 max-w-[1400px] text-center text-[11px] text-muted-foreground/70 sm:text-left">
-        Powered by Stackivo · A shared workspace between you and {portalName}
+        Powered by Stackivo · A shared workspace between you and{" "}
+        {freelancerName ?? "your freelancer"}
       </p>
 
       {/* ── Mobile bottom nav ──────────────────────────────────────── */}
@@ -197,147 +200,135 @@ export function ClientPortalHome({ data }: { data: ClientPortalProps }) {
       update.approval_status !== "none",
   ).length;
   const latestUpdate = data.updates[0] ?? null;
-  const completion = calculateCompletion(data);
+  const openInvoices = data.invoices.filter(
+    (invoice) => invoice.status !== "paid" && invoice.status !== "cancelled",
+  );
+  const unsignedContracts = data.contracts.filter(
+    (c) => c.status !== "signed" && c.status !== "declined",
+  ).length;
 
   return (
     <ClientPortalShell
       portalId={data.portalId}
       portalName={data.portalName}
       clientName={data.clientName}
+      freelancerName={freelancerName(data)}
       brandColor={data.brandColor}
       title="Home"
-      subtitle="Project status and next actions"
+      subtitle="Everything for this project in one place"
     >
       <div className="space-y-5">
-        <section className="rounded-[1.6rem] border bg-card p-5 shadow-sm sm:p-6">
-          <div className="flex flex-wrap items-end justify-between gap-3">
-            <div className="min-w-0">
-              <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
-                Project progress
-              </p>
-              <p className="mt-1 text-sm text-muted-foreground">
-                {latestUpdate
-                  ? `Latest: ${updateTypeLabel(latestUpdate.update_type)}`
-                  : "Work is in progress"}
-              </p>
-            </div>
-            <p
-              className="font-mono text-3xl font-bold tabular-nums tracking-tight"
-              style={{ color: data.brandColor }}
-            >
-              {completion}%
-            </p>
-          </div>
-          <div className="mt-4 h-2.5 overflow-hidden rounded-full bg-muted">
-            <div
-              className="h-full rounded-full transition-[width] duration-500"
-              style={{ width: `${completion}%`, background: data.brandColor }}
-            />
-          </div>
-        </section>
+        {/* Things that need the client's attention — only shown when real. */}
+        {(pendingApprovals > 0 || openInvoices.length > 0 || meeting?.meet_link) && (
+          <section className="grid gap-3 md:grid-cols-2">
+            {pendingApprovals > 0 && (
+              <PortalActionCard
+                icon={CheckCircle2}
+                label="Needs your review"
+                title={`${pendingApprovals} approval${pendingApprovals > 1 ? "s" : ""} waiting`}
+                href={`/portal/${data.portalId}/updates`}
+                color={data.brandColor}
+              />
+            )}
+            {openInvoices.length > 0 && (
+              <PortalActionCard
+                icon={Wallet}
+                label="Payment due"
+                title={`${formatPortalCurrency(currency, outstandingAmount)} across ${openInvoices.length} invoice${openInvoices.length > 1 ? "s" : ""}`}
+                href={`/portal/${data.portalId}/invoices`}
+                color={data.brandColor}
+              />
+            )}
+            {meeting?.meet_link && (
+              <PortalActionCard
+                icon={Video}
+                label="Meeting room"
+                title={`Join${meeting.proposed_time ? ` · ${meeting.proposed_time}` : ""}`}
+                href={meeting.meet_link}
+                external
+                color={data.brandColor}
+              />
+            )}
+          </section>
+        )}
 
-        <section className="grid gap-3 md:grid-cols-2">
-          <PortalActionCard
-            icon={pendingApprovals > 0 ? CheckCircle2 : Files}
-            label={pendingApprovals > 0 ? "Review needed" : "Next delivery"}
-            title={
-              pendingApprovals > 0
-                ? `${pendingApprovals} approval${pendingApprovals > 1 ? "s" : ""} waiting`
-                : deliverable?.name ?? latestUpdate?.title ?? "Nothing pending"
-            }
-            href={
-              pendingApprovals > 0
-                ? `/portal/${data.portalId}/updates`
-                : `/portal/${data.portalId}/files`
-            }
-            color={data.brandColor}
-          />
-          <PortalActionCard
-            icon={meeting?.meet_link ? Video : Clock3}
-            label={meeting?.meet_link ? "Meeting room" : "Schedule"}
-            title={meeting?.meet_link ? "Join meeting" : meeting?.topic ?? "No meeting scheduled"}
-            href={meeting?.meet_link ?? `/portal/${data.portalId}/meetings`}
-            external={Boolean(meeting?.meet_link)}
-            color={data.brandColor}
-          />
-        </section>
-
-        <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        {/* At-a-glance — every tile is grounded in real data and links out. */}
+        <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           <StatusCard
             icon={Wallet}
             label="Payments"
-            title={formatPortalCurrency(currency, outstandingAmount)}
-            meta={`${formatPortalCurrency(currency, paidAmount)} paid`}
+            title={
+              outstandingAmount > 0
+                ? `${formatPortalCurrency(currency, outstandingAmount)} due`
+                : "All settled"
+            }
+            meta={`${formatPortalCurrency(currency, paidAmount)} paid to date`}
             accent="emerald"
+            href={`/portal/${data.portalId}/invoices`}
           />
           <StatusCard
             icon={Files}
-            label="Current deliverable"
-            title={deliverable?.name ?? "No deliverable yet"}
-            meta={deliverable ? "Ready in Files" : "Your freelancer will share it here"}
+            label="Files shared"
+            title={
+              data.files.length > 0
+                ? `${data.files.length} file${data.files.length > 1 ? "s" : ""}`
+                : "No files yet"
+            }
+            meta={deliverable?.name ?? "Deliverables will appear here"}
             accent="blue"
+            href={`/portal/${data.portalId}/files`}
           />
           <StatusCard
             icon={Clock3}
-            label="Upcoming meeting"
-            title={meeting?.proposed_time ?? "No meeting scheduled"}
-            meta={meeting?.topic ?? "Meetings will appear here"}
+            label="Next meeting"
+            title={meeting?.proposed_time ?? "None scheduled"}
+            meta={meeting?.topic ?? "Request one from Meetings"}
             accent="amber"
+            href={`/portal/${data.portalId}/meetings`}
           />
-          <StatusCard
-            icon={CheckCircle2}
-            label="Pending approvals"
-            title={pendingApprovals > 0 ? `${pendingApprovals} waiting` : "Nothing pending"}
-            meta="Review requests appear in Updates"
-            accent="rose"
-          />
-          <StatusCard
-            icon={MessageSquare}
-            label="Recent update"
-            title={latestUpdate?.title ?? "No updates yet"}
-            meta={latestUpdate?.body ?? "Progress notes will appear here"}
-            className="sm:col-span-2 lg:col-span-4"
-            accent="slate"
-          />
-        </section>
-
-        <section className="rounded-[1.35rem] border bg-card p-4 shadow-sm">
-          <div className="flex items-center justify-between gap-3">
-            <h2 className="text-sm font-semibold">Workspace shortcuts</h2>
-            <span className="text-[11px] font-medium text-muted-foreground">
-              Client PWA
-            </span>
-          </div>
-          <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
-            <ActionLink
-              icon={Receipt}
-              label="Invoices"
-              href={`/portal/${data.portalId}/invoices`}
-            />
-            <ActionLink
-              icon={Files}
-              label="Files"
+          {unsignedContracts > 0 && (
+            <StatusCard
+              icon={FileText}
+              label="Contracts to sign"
+              title={`${unsignedContracts} pending`}
+              meta="Review and sign in Files"
+              accent="rose"
               href={`/portal/${data.portalId}/files`}
             />
-            <ActionLink
-              icon={Video}
-              label="Meetings"
-              href={`/portal/${data.portalId}/meetings`}
-            />
-            <ActionLink
-              icon={MessageSquare}
-              label="Chat"
-              href={`/portal/${data.portalId}/chat`}
-            />
-            {meeting?.meet_link && (
-              <ActionLink
-                icon={Video}
-                label="Join Meeting"
-                href={meeting.meet_link}
-                external
-              />
-            )}
+          )}
+        </section>
+
+        {/* Latest update — links straight to the full Updates thread. */}
+        <section className="rounded-[1.35rem] border bg-card p-4 shadow-sm sm:p-5">
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <h2 className="text-sm font-semibold">Latest update</h2>
+            <Link
+              href={`/portal/${data.portalId}/updates`}
+              className="text-[11px] font-medium text-muted-foreground transition-colors hover:text-foreground"
+            >
+              View all →
+            </Link>
           </div>
+          {latestUpdate ? (
+            <Link
+              href={`/portal/${data.portalId}/updates`}
+              className="block rounded-xl border bg-background p-3 transition-colors hover:border-primary/40"
+            >
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                {updateTypeLabel(latestUpdate.update_type)} · {relativeTime(latestUpdate.created_at)}
+              </p>
+              <p className="mt-1 text-sm font-semibold leading-snug">{latestUpdate.title}</p>
+              {latestUpdate.body && (
+                <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-muted-foreground">
+                  {latestUpdate.body}
+                </p>
+              )}
+            </Link>
+          ) : (
+            <p className="rounded-xl border border-dashed bg-muted/30 p-4 text-center text-xs text-muted-foreground">
+              No updates yet. Progress notes from your freelancer will appear here.
+            </p>
+          )}
         </section>
 
         <RecentActivity activity={data.activity} />
@@ -352,6 +343,7 @@ export function ClientPortalUpdates({ data }: { data: ClientPortalProps }) {
       portalId={data.portalId}
       portalName={data.portalName}
       clientName={data.clientName}
+      freelancerName={freelancerName(data)}
       brandColor={data.brandColor}
       title="Updates"
       subtitle="Structured progress notes and approvals"
@@ -385,6 +377,7 @@ export function ClientPortalInvoices({ data }: { data: ClientPortalProps }) {
       portalId={data.portalId}
       portalName={data.portalName}
       clientName={data.clientName}
+      freelancerName={freelancerName(data)}
       brandColor={data.brandColor}
       title="Invoices"
       subtitle="Payments and receipts"
@@ -448,6 +441,7 @@ export function ClientPortalFiles({ data }: { data: ClientPortalProps }) {
       portalId={data.portalId}
       portalName={data.portalName}
       clientName={data.clientName}
+      freelancerName={freelancerName(data)}
       brandColor={data.brandColor}
       title="Files"
       subtitle="Documents and delivery assets"
@@ -540,6 +534,7 @@ export function ClientPortalMeetings({ data }: { data: ClientPortalProps }) {
       portalId={data.portalId}
       portalName={data.portalName}
       clientName={data.clientName}
+      freelancerName={freelancerName(data)}
       brandColor={data.brandColor}
       title="Meetings"
       subtitle="Calls, links, and scheduling"
@@ -561,6 +556,7 @@ export function ClientPortalChat({ data }: { data: ClientPortalProps }) {
       portalId={data.portalId}
       portalName={data.portalName}
       clientName={data.clientName}
+      freelancerName={freelancerName(data)}
       brandColor={data.brandColor}
       title="Chat"
       subtitle="Messages with your freelancer"
@@ -583,6 +579,7 @@ function StatusCard({
   meta,
   className,
   accent = "slate",
+  href,
 }: {
   icon: React.ComponentType<{ className?: string }>;
   label: string;
@@ -590,6 +587,7 @@ function StatusCard({
   meta: string;
   className?: string;
   accent?: "emerald" | "blue" | "amber" | "rose" | "slate";
+  href?: string;
 }) {
   const accents = {
     emerald: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400",
@@ -599,8 +597,8 @@ function StatusCard({
     slate: "bg-slate-500/10 text-slate-700 dark:text-slate-300",
   };
 
-  return (
-    <div className={`rounded-[1.15rem] border bg-card p-4 shadow-sm ${className ?? ""}`}>
+  const inner = (
+    <>
       <div className="mb-3 flex items-center gap-2 text-xs font-medium text-muted-foreground">
         <span className={`flex h-8 w-8 items-center justify-center rounded-xl ${accents[accent]}`}>
           <Icon className="h-4 w-4" />
@@ -611,8 +609,18 @@ function StatusCard({
       <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-muted-foreground">
         {meta}
       </p>
-    </div>
+    </>
   );
+
+  const base = `rounded-[1.15rem] border bg-card p-4 shadow-sm ${className ?? ""}`;
+  if (href) {
+    return (
+      <Link href={href} className={`${base} block transition-colors hover:border-primary/40`}>
+        {inner}
+      </Link>
+    );
+  }
+  return <div className={base}>{inner}</div>;
 }
 
 function PortalActionCard({
@@ -652,30 +660,6 @@ function PortalActionCard({
         </span>
       </span>
       <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground transition group-hover:translate-x-0.5 group-hover:text-foreground" />
-    </Link>
-  );
-}
-
-function ActionLink({
-  icon: Icon,
-  label,
-  href,
-  external,
-}: {
-  icon: React.ComponentType<{ className?: string }>;
-  label: string;
-  href: string;
-  external?: boolean;
-}) {
-  return (
-    <Link
-      href={href}
-      target={external ? "_blank" : undefined}
-      rel={external ? "noreferrer" : undefined}
-      className="flex min-h-14 items-center justify-center gap-2 rounded-xl border bg-background px-3 py-3 text-xs font-semibold shadow-sm transition hover:border-primary/40 hover:bg-muted/40"
-    >
-      <Icon className="h-4 w-4" />
-      {label}
     </Link>
   );
 }
@@ -984,23 +968,6 @@ function EmptyBlock({
   );
 }
 
-function calculateCompletion(data: ClientPortalProps): number {
-  const total =
-    data.updates.length +
-    data.files.length +
-    data.invoices.length +
-    data.contracts.length +
-    data.meetings.length;
-  if (total === 0) return 12;
-  const done =
-    data.updates.filter((update) => update.approval_status === "approved").length +
-    data.files.length +
-    data.invoices.filter((invoice) => invoice.status === "paid").length +
-    data.contracts.filter((contract) => contract.status === "signed").length +
-    data.meetings.filter((meeting) => meeting.status === "completed").length;
-  return Math.max(12, Math.min(96, Math.round((done / total) * 100)));
-}
-
 function updateTypeLabel(type: ClientPortalProps["updates"][number]["update_type"]): string {
   return type.replace(/_/g, " ");
 }
@@ -1009,6 +976,12 @@ function initials(name: string): string {
   const parts = name.trim().split(/\s+/).filter(Boolean);
   if (parts.length === 0) return "S";
   return `${parts[0]?.[0] ?? ""}${parts.at(-1)?.[0] ?? ""}`.toUpperCase() || "S";
+}
+
+/** The freelancer (portal owner) display name, for client-facing copy. */
+function freelancerName(data: ClientPortalProps): string | null {
+  const owner = data.members.find((m) => m.role === "owner");
+  return owner?.profile?.full_name ?? owner?.profile?.email ?? null;
 }
 
 function categoryLabel(category: string): string {
