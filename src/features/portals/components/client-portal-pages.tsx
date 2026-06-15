@@ -1023,4 +1023,85 @@ function EmptyBlock({
     <div className="mt-4 flex flex-col items-center gap-2 rounded-2xl border border-dashed px-4 py-8 text-center">
       <Icon className="h-7 w-7 text-muted-foreground/30" />
       <p className="text-sm font-semibold">{title}</p>
-      <p className="max-w-
+      <p className="max-w-sm text-xs leading-relaxed text-muted-foreground">{text}</p>
+    </div>
+  );
+}
+
+function updateTypeLabel(type: ClientPortalProps["updates"][number]["update_type"]): string {
+  return type.replace(/_/g, " ");
+}
+
+function initials(name: string): string {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return "S";
+  return `${parts[0]?.[0] ?? ""}${parts.at(-1)?.[0] ?? ""}`.toUpperCase() || "S";
+}
+
+/** The freelancer (portal owner) display name, for client-facing copy. */
+function freelancerName(data: ClientPortalProps): string | null {
+  const owner = data.members.find((m) => m.role === "owner");
+  return owner?.profile?.full_name ?? owner?.profile?.email ?? null;
+}
+
+function categoryLabel(category: string): string {
+  const labels: Record<string, string> = {
+    deliverable: "Deliverables",
+    contract: "Contracts",
+    invoice: "Invoices",
+    asset: "Assets",
+    meeting_note: "Meeting notes",
+    misc: "Other",
+  };
+  return labels[category] ?? "Other";
+}
+
+function formatPortalCurrency(currency: string, amount: number): string {
+  if (!Number.isFinite(amount)) return `${currency} 0`;
+  return `${currency} ${new Intl.NumberFormat("en-IN", {
+    minimumFractionDigits: Number.isInteger(amount) ? 0 : 2,
+    maximumFractionDigits: 2,
+  }).format(amount)}`;
+}
+
+function formatHours(totalSeconds: number): string {
+  const h = Math.floor(totalSeconds / 3600);
+  const m = Math.floor((totalSeconds % 3600) / 60);
+  if (h === 0 && m === 0) return "0m";
+  if (h === 0) return `${m}m`;
+  if (m === 0) return `${h}h`;
+  return `${h}h ${m}m`;
+}
+
+function formatBytes(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  const units = ["KB", "MB", "GB", "TB"] as const;
+  let value = bytes / 1024;
+  let index = 0;
+  while (value >= 1024 && index < units.length - 1) {
+    value /= 1024;
+    index += 1;
+  }
+  return `${value.toFixed(value >= 10 ? 0 : 1)} ${units[index]}`;
+}
+
+function formatDate(iso: string): string {
+  return new Date(iso).toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
+function relativeTime(iso: string): string {
+  const diffMs = Date.now() - Date.parse(iso);
+  const diffMins = Math.floor(diffMs / 60_000);
+  if (diffMins < 1) return "just now";
+  if (diffMins < 60) return `${diffMins}m ago`;
+  const diffHours = Math.floor(diffMins / 60);
+  if (diffHours < 24) return `${diffHours}h ago`;
+  const diffDays = Math.floor(diffHours / 24);
+  if (diffDays === 1) return "yesterday";
+  if (diffDays < 7) return `${diffDays}d ago`;
+  return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+}
