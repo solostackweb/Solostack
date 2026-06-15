@@ -137,7 +137,7 @@ export function ClientPortalShell({
         </div>
       </div>
 
-      <div className="mx-auto max-w-[1400px]">{children}</div>
+      <div className="mx-auto min-w-0 max-w-[1400px] overflow-x-hidden">{children}</div>
 
       {/* ── Footer attribution ─────────────────────────────────────── */}
       <p className="mx-auto mt-10 max-w-[1400px] text-center text-[11px] text-muted-foreground/70 sm:text-left">
@@ -511,7 +511,7 @@ export function ClientPortalFiles({ data }: { data: ClientPortalProps }) {
           data.welcomeDocuments.length > 0) && (
           <section className="rounded-2xl border bg-card p-4 shadow-sm">
             <h2 className="text-sm font-semibold">Project documents</h2>
-            <div className="mt-3 grid gap-2 sm:grid-cols-2">
+            <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
               {data.invoices.map((invoice) => (
                 <DocumentExternalCard
                   key={invoice.id}
@@ -795,7 +795,7 @@ function DocumentExternalCard({
 
   if (!href) {
     return (
-      <div className="flex items-center gap-3 rounded-xl border bg-background p-3 opacity-50">
+      <div className="flex min-w-0 items-center gap-3 rounded-xl border bg-background p-3 opacity-50">
         {content}
       </div>
     );
@@ -804,7 +804,7 @@ function DocumentExternalCard({
   return (
     <Link
       href={href}
-      className="flex items-center gap-3 rounded-xl border bg-background p-3 transition hover:border-primary/40"
+      className="flex min-w-0 items-center gap-3 rounded-xl border bg-background p-3 transition hover:border-primary/40"
     >
       {content}
     </Link>
