@@ -1,6 +1,5 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { PageHeader } from "@/components/shared/page-header";
 import { Button } from "@/components/ui/button";
 import {
   ExternalLink, Users, Files, TrendingUp, Video, CheckCircle2, Receipt,
@@ -57,23 +56,50 @@ export default async function PortalDetailPage({
     snapshot.client?.fullName ?? snapshot.client?.businessName ?? null;
   const isActive = portal.status === "active";
 
+  // Money totals for the brand header strip.
+  const paidAmount = snapshot.invoices
+    .filter((invoice) => invoice.status === "paid")
+    .reduce((sum, invoice) => sum + invoice.total_amount, 0);
+  const openAmount = snapshot.invoices
+    .filter((invoice) => invoice.status !== "paid" && invoice.status !== "cancelled")
+    .reduce((sum, invoice) => sum + invoice.total_amount, 0);
+  const currency = snapshot.invoices[0]?.currency ?? "INR";
+  const money = (amount: number) =>
+    `${currency} ${new Intl.NumberFormat("en-IN").format(amount)}`;
+
   return (
     <div className="space-y-5">
-      <PageHeader
-        title={portal.name}
-        description={
-          clientName
-            ? `Client: ${clientName}`
-            : "Manage your portal — attach documents, share files, and collaborate."
-        }
-        actions={
-          <Button asChild variant="outline" size="sm">
-            <Link href={portalClientHome(id)} target="_blank">
-              View as client <ExternalLink className="h-3.5 w-3.5" />
-            </Link>
-          </Button>
-        }
-      />
+      {/* ── Brand header — client name, status, money + view-as-client ─────── */}
+      <section
+        className="overflow-hidden rounded-xl border bg-card shadow-sm"
+        style={{ borderTop: `4px solid ${portal.brand_color ?? "#2563EB"}` }}
+      >
+        <div className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between">
+          <div className="min-w-0">
+            <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
+              Client portal
+            </p>
+            <h1 className="mt-1 truncate text-2xl font-semibold tracking-tight">
+              {portal.name}
+            </h1>
+            <p className="mt-1 truncate text-sm text-muted-foreground">
+              {clientName ?? "No client linked"} · {portal.status}
+            </p>
+          </div>
+          <div className="flex flex-col gap-3 sm:items-end">
+            <div className="grid grid-cols-3 gap-2 sm:min-w-[360px]">
+              <PortalMoneyStat label="Open" value={money(openAmount)} />
+              <PortalMoneyStat label="Paid" value={money(paidAmount)} />
+              <PortalMoneyStat label="Files" value={String(snapshot.files.length)} />
+            </div>
+            <Button asChild variant="outline" size="sm" className="self-start sm:self-end">
+              <Link href={portalClientHome(id)} target="_blank">
+                View as client <ExternalLink className="h-3.5 w-3.5" />
+              </Link>
+            </Button>
+          </div>
+        </div>
+      </section>
 
       {/* ── Compact overview strip ─────────────────────────────────────────── */}
       <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
@@ -250,6 +276,19 @@ function PortalMetric({
           <Icon className="h-4 w-4" />
         </span>
       </div>
+    </div>
+  );
+}
+
+function PortalMoneyStat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-lg border bg-background/70 px-3 py-2">
+      <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+        {label}
+      </p>
+      <p className="mt-0.5 truncate font-mono text-sm font-semibold tabular-nums">
+        {value}
+      </p>
     </div>
   );
 }
