@@ -50,6 +50,7 @@ export async function getClientPortalProps(portalId: string): Promise<ViewProps>
     activity: snapshot.activity,
     updates: snapshot.updates,
     meetings: snapshot.meetings,
+    timeByProject: snapshot.timeByProject,
     storageUsage: snapshot.storageUsage,
     storageCap: Number.POSITIVE_INFINITY,
     r2Enabled: isR2Configured(),

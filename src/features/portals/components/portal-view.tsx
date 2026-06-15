@@ -170,6 +170,16 @@ export interface ViewProps {
       requester: { full_name: string | null; email: string | null } | null;
     }
   >;
+  timeByProject: Array<{
+    projectId: string | null;
+    projectName: string;
+    status: string | null;
+    totalSeconds: number;
+    billableSeconds: number;
+    billableAmount: number;
+    currency: string;
+    entryCount: number;
+  }>;
 }
 
 /**

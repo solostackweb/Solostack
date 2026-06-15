@@ -331,9 +331,69 @@ export function ClientPortalHome({ data }: { data: ClientPortalProps }) {
           )}
         </section>
 
+        <TimeByProject items={data.timeByProject} brandColor={data.brandColor} />
+
         <RecentActivity activity={data.activity} />
       </div>
     </ClientPortalShell>
+  );
+}
+
+/** Per-project time tracked — handles a client with multiple projects. */
+function TimeByProject({
+  items,
+  brandColor,
+}: {
+  items: ClientPortalProps["timeByProject"];
+  brandColor: string;
+}) {
+  if (!items || items.length === 0) return null;
+  const grandTotal = items.reduce((sum, p) => sum + p.totalSeconds, 0);
+
+  return (
+    <section className="rounded-[1.35rem] border bg-card p-4 shadow-sm sm:p-5">
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <h2 className="text-sm font-semibold">Time tracked</h2>
+        <span className="text-[11px] font-medium text-muted-foreground">
+          {formatHours(grandTotal)} total
+          {items.length > 1 ? ` · ${items.length} projects` : ""}
+        </span>
+      </div>
+      <ul className="space-y-2">
+        {items.map((p) => {
+          const pct = grandTotal > 0 ? Math.round((p.totalSeconds / grandTotal) * 100) : 0;
+          return (
+            <li key={p.projectId ?? "none"} className="rounded-xl border bg-background p-3">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-semibold">{p.projectName}</p>
+                  <p className="mt-0.5 text-[11px] text-muted-foreground">
+                    {formatHours(p.totalSeconds)}
+                    {p.billableSeconds > 0
+                      ? ` · ${formatHours(p.billableSeconds)} billable`
+                      : ""}
+                    {p.status ? ` · ${p.status.replace(/_/g, " ")}` : ""}
+                  </p>
+                </div>
+                {p.billableAmount > 0 && (
+                  <span className="shrink-0 font-mono text-sm font-semibold tabular-nums">
+                    {formatPortalCurrency(p.currency, p.billableAmount)}
+                  </span>
+                )}
+              </div>
+              {items.length > 1 && (
+                <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-muted">
+                  <div
+                    className="h-full rounded-full"
+                    style={{ width: `${pct}%`, background: brandColor }}
+                  />
+                </div>
+              )}
+            </li>
+          );
+        })}
+      </ul>
+    </section>
   );
 }
 
@@ -1002,6 +1062,15 @@ function formatPortalCurrency(currency: string, amount: number): string {
     minimumFractionDigits: Number.isInteger(amount) ? 0 : 2,
     maximumFractionDigits: 2,
   }).format(amount)}`;
+}
+
+function formatHours(totalSeconds: number): string {
+  const h = Math.floor(totalSeconds / 3600);
+  const m = Math.floor((totalSeconds % 3600) / 60);
+  if (h === 0 && m === 0) return "0m";
+  if (h === 0) return `${m}m`;
+  if (m === 0) return `${h}h`;
+  return `${h}h ${m}m`;
 }
 
 function formatBytes(bytes: number): string {

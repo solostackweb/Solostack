@@ -241,6 +241,21 @@ export interface PortalSnapshot {
       requester: { full_name: string | null; email: string | null } | null;
     }
   >;
+  /**
+   * Time tracked for the portal's client, grouped per project. Lets the
+   * client see hours logged on each of their projects (handles the
+   * multiple-projects-per-client case). Empty when the portal has no client.
+   */
+  timeByProject: Array<{
+    projectId: string | null;
+    projectName: string;
+    status: string | null;
+    totalSeconds: number;
+    billableSeconds: number;
+    billableAmount: number;
+    currency: string;
+    entryCount: number;
+  }>;
 }
 
 /**
@@ -635,6 +650,76 @@ export async function getPortalSnapshot(
 
   const usage = (usageRes.data as { total_bytes?: number; file_count?: number } | null) ?? null;
 
+  // -------------------------------------------------------------------------
+  // Time tracked, grouped per project for this portal's client. Surfaces hours
+  // logged on each project the client owns (handles multiple projects per
+  // client). Only completed entries (ended) are counted.
+  // -------------------------------------------------------------------------
+  let timeByProject: PortalSnapshot["timeByProject"] = [];
+  if (access.portal.client_id) {
+    const ownerId = access.portal.owner_user_id;
+    const [projectsRes, timeRes] = await Promise.all([
+      admin
+        .from("projects")
+        .select("id, name, status")
+        .eq("user_id", ownerId)
+        .eq("client_id", access.portal.client_id)
+        .limit(200),
+      admin
+        .from("time_entries")
+        .select("project_id, duration_seconds, amount, billable")
+        .eq("user_id", ownerId)
+        .eq("client_id", access.portal.client_id)
+        .not("ended_at", "is", null)
+        .limit(2000),
+    ]);
+
+    const projectRows = (projectsRes.data ?? []) as Array<{
+      id: string;
+      name: string | null;
+      status: string | null;
+    }>;
+    const projectMeta = new Map(projectRows.map((p) => [p.id, p]));
+
+    const agg = new Map<
+      string | null,
+      { totalSeconds: number; billableSeconds: number; billableAmount: number; entryCount: number }
+    >();
+    for (const r of (timeRes.data ?? []) as Array<{
+      project_id: string | null;
+      duration_seconds: number;
+      amount: number | null;
+      billable: boolean;
+    }>) {
+      const cur =
+        agg.get(r.project_id) ??
+        { totalSeconds: 0, billableSeconds: 0, billableAmount: 0, entryCount: 0 };
+      cur.totalSeconds += r.duration_seconds;
+      cur.entryCount += 1;
+      if (r.billable) {
+        cur.billableSeconds += r.duration_seconds;
+        cur.billableAmount += Number(r.amount) || 0;
+      }
+      agg.set(r.project_id, cur);
+    }
+
+    timeByProject = Array.from(agg.entries())
+      .map(([projectId, v]) => {
+        const meta = projectId ? projectMeta.get(projectId) : null;
+        return {
+          projectId,
+          projectName: meta?.name ?? (projectId ? "Untitled project" : "General / no project"),
+          status: meta?.status ?? null,
+          totalSeconds: v.totalSeconds,
+          billableSeconds: v.billableSeconds,
+          billableAmount: Math.round(v.billableAmount * 100) / 100,
+          currency: "INR",
+          entryCount: v.entryCount,
+        };
+      })
+      .sort((a, b) => b.totalSeconds - a.totalSeconds);
+  }
+
   let availableContracts: PortalSnapshot["availableContracts"] = [];
   let availableInvoices: PortalSnapshot["availableInvoices"] = [];
   let availableWelcomeDocuments: PortalSnapshot["availableWelcomeDocuments"] = [];
@@ -757,6 +842,7 @@ export async function getPortalSnapshot(
     activity: (activityRes.data ?? []) as import("@/lib/supabase/types").PortalActivityRow[],
     updates,
     meetings,
+    timeByProject,
   };
 }
 
