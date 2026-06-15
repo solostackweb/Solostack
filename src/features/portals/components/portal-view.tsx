@@ -1262,18 +1262,29 @@ function WelcomeDocumentsSection({
                       {d.acknowledgement_required ? " · acknowledgement required" : ""}
                     </p>
                   </div>
-                  {d.public_token && (
-                    <Button
-                      asChild
-                      size="sm"
-                      variant={needsAck ? "default" : "outline"}
-                      className="h-8 shrink-0"
-                    >
-                      <Link href={`/w/${d.public_token}`} target="_blank">
-                        {needsAck ? "Read & acknowledge" : "Read guide"}
+                  {isOwner ? (
+                    // Freelancer: open the welcome doc in the dashboard — never
+                    // the client-facing "Read & acknowledge".
+                    <Button asChild size="sm" variant="outline" className="h-8 shrink-0">
+                      <Link href={`/dashboard/welcome/${d.id}`}>
+                        View
                         <ExternalLink className="h-3.5 w-3.5" />
                       </Link>
                     </Button>
+                  ) : (
+                    d.public_token && (
+                      <Button
+                        asChild
+                        size="sm"
+                        variant={needsAck ? "default" : "outline"}
+                        className="h-8 shrink-0"
+                      >
+                        <Link href={`/w/${d.public_token}`} target="_blank">
+                          {needsAck ? "Read & acknowledge" : "Read guide"}
+                          <ExternalLink className="h-3.5 w-3.5" />
+                        </Link>
+                      </Button>
+                    )
                   )}
                 </li>
               );
@@ -1349,18 +1360,29 @@ function ContractsSection({
                       {c.status.replace(/_/g, " ")}
                     </p>
                   </div>
-                  {c.public_token && (
-                    <Button
-                      asChild
-                      size="sm"
-                      variant={needsSign ? "default" : "outline"}
-                      className="h-8 shrink-0"
-                    >
-                      <Link href={`/c/${c.public_token}`} target="_blank">
-                        {needsSign ? "Review & sign" : "View"}
+                  {isOwner ? (
+                    // Freelancer: manage the contract in the dashboard — never
+                    // the client-facing "Review & sign" action.
+                    <Button asChild size="sm" variant="outline" className="h-8 shrink-0">
+                      <Link href={`/dashboard/contracts/${c.id}`}>
+                        View
                         <ExternalLink className="h-3.5 w-3.5" />
                       </Link>
                     </Button>
+                  ) : (
+                    c.public_token && (
+                      <Button
+                        asChild
+                        size="sm"
+                        variant={needsSign ? "default" : "outline"}
+                        className="h-8 shrink-0"
+                      >
+                        <Link href={`/c/${c.public_token}`} target="_blank">
+                          {needsSign ? "Review & sign" : "View"}
+                          <ExternalLink className="h-3.5 w-3.5" />
+                        </Link>
+                      </Button>
+                    )
                   )}
                 </li>
               );
@@ -1451,18 +1473,29 @@ function InvoicesSection({
                       </span>
                     </p>
                   </div>
-                  {i.public_token && (
-                    <Button
-                      asChild
-                      size="sm"
-                      variant={paid || cancelled ? "outline" : "default"}
-                      className="h-8 shrink-0"
-                    >
-                      <Link href={`/i/${i.public_token}`} target="_blank">
-                        {paid ? "View receipt" : cancelled ? "View" : "Pay now"}
+                  {isOwner ? (
+                    // Freelancer: open the invoice in the dashboard — never the
+                    // client-facing "Pay now". Always available, every invoice.
+                    <Button asChild size="sm" variant="outline" className="h-8 shrink-0">
+                      <Link href={`/dashboard/invoices/${i.id}`}>
+                        View
                         <ExternalLink className="h-3.5 w-3.5" />
                       </Link>
                     </Button>
+                  ) : (
+                    i.public_token && (
+                      <Button
+                        asChild
+                        size="sm"
+                        variant={paid || cancelled ? "outline" : "default"}
+                        className="h-8 shrink-0"
+                      >
+                        <Link href={`/i/${i.public_token}`} target="_blank">
+                          {paid ? "View receipt" : cancelled ? "View" : "Pay now"}
+                          <ExternalLink className="h-3.5 w-3.5" />
+                        </Link>
+                      </Button>
+                    )
                   )}
                 </li>
               );
