@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import {
   Plus,
   Search,
-  Sparkles,
+  BookOpen,
   MoreHorizontal,
   Eye,
   Send,
@@ -252,7 +252,7 @@ export function WelcomeListView({ documents, clients }: Props) {
 
       {filtered.length === 0 ? (
         <EmptyState
-          icon={Sparkles}
+          icon={BookOpen}
           title={
             documents.length === 0
               ? "Your first welcome document is one click away"
@@ -347,7 +347,7 @@ function WelcomeRow({
           className="flex min-w-0 flex-1 items-center gap-3"
         >
           <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground">
-            <Sparkles className="h-4 w-4" />
+            <BookOpen className="h-4 w-4" />
           </div>
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2">

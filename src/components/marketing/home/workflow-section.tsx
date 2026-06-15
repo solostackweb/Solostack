@@ -1,7 +1,7 @@
 import {
   FileSignature,
   FolderKanban,
-  HandHeart,
+  BookOpen,
   Receipt,
   UserPlus,
 } from "lucide-react";
@@ -27,7 +27,7 @@ const STEPS = [
     chip: "Timer ready",
   },
   {
-    icon: HandHeart,
+    icon: BookOpen,
     title: "Send the welcome doc",
     body: "A polished onboarding doc — process, expectations, payment terms.",
     chip: "Great first impression",

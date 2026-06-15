@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { Sparkles, FileText, Library, ArrowLeft } from "lucide-react";
+import { BookOpen, FileText, Library, ArrowLeft } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 
@@ -273,7 +273,7 @@ function BlankCard({ onSelect }: { onSelect: () => void }) {
 }
 
 function TemplateCard({ tpl }: { tpl: WelcomeDocumentTemplate }) {
-  const Icon = tpl.isSystem ? Sparkles : Library;
+  const Icon = tpl.isSystem ? BookOpen : Library;
   return (
     <Link
       href={`${WELCOME_DOCUMENT_NEW}?template=${tpl.id}`}

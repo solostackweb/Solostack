@@ -30,7 +30,7 @@ import {
   Upload,
   ExternalLink,
   ShieldCheck,
-  Sparkles,
+  BookOpen,
   File,
   FileImage,
   FileArchive,
@@ -852,7 +852,7 @@ function ClientFilesPanel({
             {welcomeDocuments.map((document) => (
               <PortalDocumentCard
                 key={`welcome-${document.id}`}
-                icon={Sparkles}
+                icon={BookOpen}
                 title={document.title}
                 meta={`${document.status.replace(/_/g, " ")}${document.acknowledgement_required ? " • acknowledgement required" : ""}`}
                 disabled={!document.public_token}
@@ -1236,7 +1236,7 @@ function WelcomeDocumentsSection({
     <Card id="portal-welcome" className="scroll-mt-24">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
         <CardTitle className="flex items-center gap-2 text-sm font-semibold">
-          <Sparkles className="h-4 w-4 text-muted-foreground" />
+          <BookOpen className="h-4 w-4 text-muted-foreground" />
           Welcome guides
         </CardTitle>
         {isOwner && (
@@ -1257,7 +1257,7 @@ function WelcomeDocumentsSection({
       <CardContent>
         {documents.length === 0 ? (
           <EmptyState
-            icon={<Sparkles className="h-7 w-7 text-muted-foreground/30" />}
+            icon={<BookOpen className="h-7 w-7 text-muted-foreground/30" />}
             message={isOwner ? "Attach a welcome guide to onboard your client." : "No onboarding guides attached yet."}
           />
         ) : (
@@ -2533,49 +2533,4 @@ function getMemberDisplayName(
 }
 
 function getMemberEmail(
-  profile: ViewProps["members"][number]["profile"],
-): string | null {
-  return profile?.email ?? null;
-}
-
-function formatActivityTitle(item: PortalActivityRow): string {
-  switch (item.type) {
-    case "portal.created":            return "Portal created";
-    case "portal.renamed":            return "Portal renamed";
-    case "portal.member_invited":     return "Client invited";
-    case "portal.member_joined":      return "Client joined";
-    case "portal.member_revoked":     return "Access revoked";
-    case "contract.attached":         return "Contract attached";
-    case "invoice.attached":          return "Invoice attached";
-    case "message.posted":            return "Message sent";
-    case "file.uploaded":             return "File uploaded";
-    case "file.deleted":              return "File deleted";
-    case "update.posted":             return "Update posted";
-    case "update.acknowledged":       return "Update acknowledged";
-    case "update.approved":           return "Update approved";
-    case "update.revision_requested": return "Revision requested";
-    case "update.comment":            return "Comment added";
-    case "meeting.requested":         return "Meeting requested";
-    case "meeting.accepted":          return "Meeting confirmed";
-    case "meeting.declined":          return "Meeting declined";
-    case "meeting.completed":         return "Meeting completed";
-    default:
-      return item.type.replace(/[._]/g, " ");
-  }
-}
-
-function formatActivityDescription(item: PortalActivityRow): string | null {
-  const payload = parsePayload(item.payload);
-  if (typeof payload.name === "string")    return payload.name;
-  if (typeof payload.title === "string")   return payload.title;
-  if (typeof payload.topic === "string")   return payload.topic;
-  if (typeof payload.email === "string")   return payload.email;
-  if (typeof payload.number === "string")  return `Invoice ${payload.number}`;
-  if (typeof payload.preview === "string") return `"${payload.preview}"`;
-  return null;
-}
-
-function parsePayload(payload: PortalActivityRow["payload"]): Record<string, unknown> {
-  if (!payload || typeof payload !== "object" || Array.isArray(payload)) return {};
-  return payload as Record<string, unknown>;
-}
+  prof

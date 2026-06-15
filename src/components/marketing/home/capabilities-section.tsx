@@ -1,7 +1,7 @@
 import {
   BarChart3,
   BellRing,
-  HandHeart,
+  BookOpen,
   IndianRupee,
   ShieldCheck,
 } from "lucide-react";
@@ -81,7 +81,7 @@ export function CapabilitiesSection() {
 
         <StaggerItem>
           <BentoCard
-            icon={HandHeart}
+            icon={BookOpen}
             title="Welcome documents"
             body="Onboard every client with a polished welcome doc — scope, process, payment terms — so projects start clear and stay clear."
             className="h-full"
