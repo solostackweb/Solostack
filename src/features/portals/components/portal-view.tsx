@@ -303,9 +303,10 @@ export function PortalView(props: ViewProps) {
           {mainSections}
         </div>
 
-        {/* Right rail — owner-only admin chrome */}
+        {/* Right rail — owner-only admin chrome. Sticky on desktop so it stays
+            visible while the main column scrolls. */}
         {isOwner && (
-          <div className="space-y-4">
+          <div className="space-y-4 lg:sticky lg:top-20 lg:self-start lg:max-h-[calc(100dvh-6rem)] lg:overflow-y-auto lg:pb-2 lg:pr-1 scrollbar-thin">
             {/* Members first — most actionable for the freelancer */}
             <MembersSection
               portalId={props.portalId}

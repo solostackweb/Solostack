@@ -219,7 +219,7 @@ export function ClientPortalHome({ data }: { data: ClientPortalProps }) {
     >
       <div className="space-y-5">
         {/* Things that need the client's attention — only shown when real. */}
-        {(pendingApprovals > 0 || openInvoices.length > 0 || meeting?.meet_link) && (
+        {(pendingApprovals > 0 || meeting?.meet_link) && (
           <section className="grid gap-3 md:grid-cols-2">
             {pendingApprovals > 0 && (
               <PortalActionCard
@@ -227,15 +227,6 @@ export function ClientPortalHome({ data }: { data: ClientPortalProps }) {
                 label="Needs your review"
                 title={`${pendingApprovals} approval${pendingApprovals > 1 ? "s" : ""} waiting`}
                 href={`/portal/${data.portalId}/updates`}
-                color={data.brandColor}
-              />
-            )}
-            {openInvoices.length > 0 && (
-              <PortalActionCard
-                icon={Wallet}
-                label="Payment due"
-                title={`${formatPortalCurrency(currency, outstandingAmount)} across ${openInvoices.length} invoice${openInvoices.length > 1 ? "s" : ""}`}
-                href={`/portal/${data.portalId}/invoices`}
                 color={data.brandColor}
               />
             )}

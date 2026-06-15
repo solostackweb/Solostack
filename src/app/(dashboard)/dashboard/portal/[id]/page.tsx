@@ -86,13 +86,11 @@ export default async function PortalDetailPage({
               {clientName ?? "No client linked"} · {portal.status}
             </p>
           </div>
-          <div className="flex flex-col gap-3 sm:items-end">
-            <div className="grid grid-cols-3 gap-2 sm:min-w-[360px]">
-              <PortalMoneyStat label="Open" value={money(openAmount)} />
-              <PortalMoneyStat label="Paid" value={money(paidAmount)} />
-              <PortalMoneyStat label="Files" value={String(snapshot.files.length)} />
-            </div>
-            <Button asChild variant="outline" size="sm" className="self-start sm:self-end">
+          <div className="flex flex-wrap items-center gap-2 sm:flex-nowrap sm:justify-end">
+            <PortalMoneyStat label="Open" value={money(openAmount)} />
+            <PortalMoneyStat label="Paid" value={money(paidAmount)} />
+            <PortalMoneyStat label="Files" value={String(snapshot.files.length)} />
+            <Button asChild variant="outline" size="sm" className="h-full shrink-0">
               <Link href={portalClientHome(id)} target="_blank">
                 View as client <ExternalLink className="h-3.5 w-3.5" />
               </Link>
