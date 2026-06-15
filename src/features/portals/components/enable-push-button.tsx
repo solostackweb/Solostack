@@ -11,11 +11,12 @@ import { Bell, BellOff, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { env } from "@/config/env";
 
-function urlBase64ToUint8Array(base64String: string): Uint8Array {
+function urlBase64ToUint8Array(base64String: string): Uint8Array<ArrayBuffer> {
   const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
   const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
   const raw = atob(base64);
-  const out = new Uint8Array(raw.length);
+  const buffer = new ArrayBuffer(raw.length);
+  const out = new Uint8Array(buffer);
   for (let i = 0; i < raw.length; i += 1) out[i] = raw.charCodeAt(i);
   return out;
 }
@@ -51,7 +52,7 @@ export function EnablePushButton({ className }: { className?: string }) {
       const reg = await navigator.serviceWorker.ready;
       const sub = await reg.pushManager.subscribe({
         userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(env.vapidPublicKey),
+        applicationServerKey: urlBase64ToUint8Array(env.vapidPublicKey) as BufferSource,
       });
       const json = sub.toJSON() as { endpoint?: string; keys?: Record<string, string> };
       await fetch("/api/push/subscribe", {
