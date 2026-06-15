@@ -1,5 +1,6 @@
 "use server";
 
+import crypto from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { getAdminSupabase } from "@/lib/supabase/admin";
@@ -14,6 +15,8 @@ import {
   dispatchPortalMeetingRequestedComms,
   dispatchPortalMeetingConfirmedComms,
 } from "./email";
+import { buildJitsiRoom } from "./video";
+import { sendPushToPortal } from "./push";
 
 // =============================================================================
 // REQUEST MEETING  (owner or client can request)
@@ -94,6 +97,9 @@ const acceptSchema = z.object({
   meetingId: z.string().uuid(),
   meetLink: z.string().trim().max(500).optional().or(z.literal("")),
   proposedTime: z.string().trim().max(200).optional(),
+  /** Machine timestamp (ISO) — source of truth for calendar events. */
+  scheduledAt: z.string().datetime().optional(),
+  durationMinutes: z.number().int().min(5).max(480).optional(),
 });
 
 export async function acceptPortalMeetingAction(
@@ -111,13 +117,21 @@ export async function acceptPortalMeetingAction(
     return { ok: false, error: mapAccessError(access) };
   }
 
+  // Auto-provision a built-in video room when the owner didn't paste a link,
+  // so every confirmed meeting has a working "Join" button.
+  const meetLink =
+    parsed.data.meetLink?.trim() ||
+    buildJitsiRoom(parsed.data.portalId, parsed.data.meetingId);
+
   const admin = getAdminSupabase();
   const { error } = await admin
     .from("portal_meetings")
     .update({
       status: "accepted",
-      meet_link: parsed.data.meetLink || null,
+      meet_link: meetLink,
       proposed_time: parsed.data.proposedTime ?? undefined,
+      scheduled_at: parsed.data.scheduledAt ?? undefined,
+      duration_minutes: parsed.data.durationMinutes ?? undefined,
       updated_at: new Date().toISOString(),
     } as never)
     .eq("id", parsed.data.meetingId)
@@ -146,8 +160,15 @@ export async function acceptPortalMeetingAction(
     actorUserId: access.userId,
     topic: mr?.topic ?? "Meeting",
     proposedTime: parsed.data.proposedTime ?? mr?.proposed_time ?? null,
-    meetLink: parsed.data.meetLink || null,
+    meetLink,
     idempotencyKey: `meeting_confirmed:${parsed.data.meetingId}`,
+  });
+
+  void sendPushToPortal(parsed.data.portalId, access.userId, {
+    title: "Meeting confirmed",
+    body: `${mr?.topic ?? "Meeting"}${parsed.data.proposedTime ? ` · ${parsed.data.proposedTime}` : ""}`,
+    url: portalClientHome(parsed.data.portalId) + "/meetings",
+    tag: `portal-meeting-${parsed.data.meetingId}`,
   });
 
   revalidatePath(portalClientHome(parsed.data.portalId));
@@ -265,6 +286,48 @@ export async function cancelPortalMeetingAction(input: {
   revalidatePath(portalClientHome(input.portalId));
   revalidatePath(portalDashboardDetail(input.portalId));
   return { ok: true };
+}
+
+// =============================================================================
+// CALENDAR FEED TOKEN  (per-member secret for the webcal subscription)
+// =============================================================================
+
+/**
+ * Returns (creating if needed) the current member's calendar subscription
+ * token. Calendar apps fetch the feed without browser cookies, so the URL
+ * carries this secret instead.
+ */
+export async function getPortalCalendarFeedTokenAction(input: {
+  portalId: string;
+}): Promise<ActionResult<{ token: string }>> {
+  const access = await requirePortalAccess(input.portalId).catch(
+    (e) => e as PortalAccessError,
+  );
+  if (access instanceof PortalAccessError) {
+    return { ok: false, error: mapAccessError(access) };
+  }
+
+  const admin = getAdminSupabase();
+  const { data: existing } = await admin
+    .from("portal_members")
+    .select("calendar_feed_token")
+    .eq("portal_id", input.portalId)
+    .eq("user_id", access.userId)
+    .maybeSingle();
+
+  const current = (existing as { calendar_feed_token: string | null } | null)
+    ?.calendar_feed_token;
+  if (current) return { ok: true, data: { token: current } };
+
+  const token = crypto.randomUUID().replace(/-/g, "") + crypto.randomUUID().replace(/-/g, "");
+  const { error } = await admin
+    .from("portal_members")
+    .update({ calendar_feed_token: token } as never)
+    .eq("portal_id", input.portalId)
+    .eq("user_id", access.userId);
+  if (error) return { ok: false, error: error.message };
+
+  return { ok: true, data: { token } };
 }
 
 // =============================================================================

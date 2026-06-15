@@ -21,6 +21,7 @@ import {
 } from "@/features/portals/server";
 import { requireFeature } from "@/features/subscription/server";
 import { limitFor } from "@/features/subscription/features";
+import { effectivePortalStorageCap } from "@/features/portals/storage";
 import {
   portalClientHome,
   portalDashboardDetail,
@@ -85,7 +86,7 @@ export async function POST(
   }
 
   // Hard quota re-check now that we know the actual on-disk size.
-  const cap = limitFor(sub, "storage_bytes");
+  const cap = effectivePortalStorageCap(limitFor(sub, "storage_bytes"));
   const admin = getAdminSupabase();
   if (Number.isFinite(cap)) {
     const { data: usageRow } = await admin
@@ -105,7 +106,7 @@ export async function POST(
       return NextResponse.json(
         {
           ok: false,
-          error: "Upload would exceed your portal storage quota.",
+          error: "This portal is full. Remove some files to free up space.",
         },
         { status: 402 },
       );

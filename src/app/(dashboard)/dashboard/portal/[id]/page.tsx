@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import { requireFeature } from "@/features/subscription/server";
 import { limitFor } from "@/features/subscription/features";
+import { effectivePortalStorageCap } from "@/features/portals/storage";
 import {
   PortalAccessError,
   getPortalSnapshot,
@@ -235,7 +236,11 @@ export default async function PortalDetailPage({
         meetings={snapshot.meetings}
         timeByProject={snapshot.timeByProject}
         storageUsage={snapshot.storageUsage}
-        storageCap={limitFor(sub, "storage_bytes")}
+        storageCap={effectivePortalStorageCap(limitFor(sub, "storage_bytes"))}
+        lastSeenAt={null}
+        welcomeVideoUrl={portal.welcome_video_url ?? null}
+        welcomeMessage={portal.welcome_message ?? null}
+        brandLogoUrl={null}
         r2Enabled={isR2Configured()}
       />
     </div>

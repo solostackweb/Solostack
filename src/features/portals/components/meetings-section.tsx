@@ -5,10 +5,11 @@ import { useRouter } from "next/navigation";
 import {
   Video, Plus, Loader2, CheckCircle2, XCircle,
   CalendarDays, Link2, ExternalLink, ChevronDown, ChevronUp,
-  Clock,
+  Clock, CalendarPlus, Rss, Check,
 } from "lucide-react";
 import { sharePortalMeetingOnWhatsApp } from "@/lib/whatsapp";
 import { portalClientHome } from "../routes";
+import { buildCalendarLinks } from "../calendar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -19,11 +20,15 @@ import {
   DialogTitle, DialogDescription,
 } from "@/components/ui/dialog";
 import {
+  DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem,
+} from "@/components/ui/dropdown-menu";
+import {
   requestPortalMeetingAction,
   acceptPortalMeetingAction,
   declinePortalMeetingAction,
   completePortalMeetingAction,
   cancelPortalMeetingAction,
+  getPortalCalendarFeedTokenAction,
 } from "../actions-meetings";
 import type { PortalMeetingRow, PortalMeetingStatus } from "@/lib/supabase/types";
 
@@ -124,6 +129,7 @@ function MeetingCard({
   // Confirmed time is now a real date+time picker. We hold an ISO-ish
   // `datetime-local` value and format it to a readable string on submit.
   const [confirmedAt, setConfirmedAt] = React.useState("");
+  const [durationMinutes, setDurationMinutes] = React.useState(30);
   const [pending, setPending] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
 
@@ -154,6 +160,8 @@ function MeetingCard({
       portalId, meetingId: meeting.id,
       meetLink: meetLink.trim() || undefined,
       proposedTime: formattedTime || undefined,
+      scheduledAt: confirmedAt ? new Date(confirmedAt).toISOString() : undefined,
+      durationMinutes,
     });
     setPending(false);
     if (!res.ok) { setError(res.error ?? "Could not confirm."); return; }
@@ -329,13 +337,20 @@ function MeetingCard({
               </Button>
             )}
 
+            {/* Add to calendar — confirmed meetings with a real scheduled time */}
+            {isConfirmed && meeting.scheduled_at && (
+              <div className="ml-auto">
+                <AddToCalendarMenu meeting={meeting} portalId={portalId} />
+              </div>
+            )}
+
             {/* WhatsApp share — confirmed meetings with a link */}
             {isConfirmed && meeting.meet_link && (
               <button
                 type="button"
                 aria-label="Share meeting via WhatsApp"
                 title="Share via WhatsApp"
-                className="ml-auto inline-flex items-center gap-1 text-[11px] text-muted-foreground transition-colors hover:text-[#25D366]"
+                className="inline-flex items-center gap-1 text-[11px] text-muted-foreground transition-colors hover:text-[#25D366]"
                 onClick={() => {
                   const portalUrl = `${typeof window !== "undefined" ? window.location.origin : ""}${portalClientHome(portalId)}#portal-meetings`;
                   sharePortalMeetingOnWhatsApp({
@@ -364,41 +379,56 @@ function MeetingCard({
           <DialogHeader>
             <DialogTitle>Confirm meeting</DialogTitle>
             <DialogDescription>
-              Set a time and add a Google Meet link before confirming.
+              Set a date and time. Leave the link blank and we&apos;ll create a
+              built-in video room automatically.
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleAccept} className="space-y-4">
-            <div className="space-y-1.5">
-              <Label htmlFor="accept-time" className="text-xs">Confirmed date &amp; time</Label>
-              <Input
-                id="accept-time"
-                type="datetime-local"
-                value={confirmedAt}
-                onChange={(e) => setConfirmedAt(e.target.value)}
-              />
-              {meeting.proposed_time && !confirmedAt && (
-                <p className="text-[11px] text-muted-foreground">
-                  Client proposed: {meeting.proposed_time}
-                </p>
-              )}
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+              <div className="space-y-1.5 sm:col-span-2">
+                <Label htmlFor="accept-time" className="text-xs">Confirmed date &amp; time</Label>
+                <Input
+                  id="accept-time"
+                  type="datetime-local"
+                  value={confirmedAt}
+                  onChange={(e) => setConfirmedAt(e.target.value)}
+                />
+                {meeting.proposed_time && !confirmedAt && (
+                  <p className="text-[11px] text-muted-foreground">
+                    Client proposed: {meeting.proposed_time}
+                  </p>
+                )}
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="accept-duration" className="text-xs">Duration</Label>
+                <select
+                  id="accept-duration"
+                  value={durationMinutes}
+                  onChange={(e) => setDurationMinutes(Number(e.target.value))}
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  <option value={15}>15 min</option>
+                  <option value={30}>30 min</option>
+                  <option value={45}>45 min</option>
+                  <option value={60}>1 hour</option>
+                  <option value={90}>1.5 hours</option>
+                  <option value={120}>2 hours</option>
+                </select>
+              </div>
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="accept-link" className="text-xs">Google Meet link</Label>
+              <Label htmlFor="accept-link" className="text-xs">
+                Video link <span className="text-muted-foreground">(optional)</span>
+              </Label>
               <Input
                 id="accept-link"
-                placeholder="https://meet.google.com/xxx-xxxx-xxx"
+                placeholder="Leave blank for a built-in room, or paste Zoom / Meet"
                 value={meetLink}
                 onChange={(e) => setMeetLink(e.target.value)}
               />
-              <a
-                href="https://meet.google.com/new"
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground"
-              >
-                <ExternalLink className="h-3 w-3" />
-                Create a new Google Meet
-              </a>
+              <p className="text-[11px] text-muted-foreground">
+                A built-in video room is created automatically if you leave this empty.
+              </p>
             </div>
             {error && (
               <p className="rounded-md bg-destructive/10 p-2 text-xs text-destructive">
@@ -422,6 +452,103 @@ function MeetingCard({
         </DialogContent>
       </Dialog>
     </li>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Add-to-calendar menu (per confirmed meeting)
+// ---------------------------------------------------------------------------
+
+function AddToCalendarMenu({
+  meeting, portalId,
+}: {
+  meeting: MeetingWithData;
+  portalId: string;
+}) {
+  if (!meeting.scheduled_at) return null;
+  const icsHref = `/api/portals/${portalId}/meetings/${meeting.id}/calendar.ics`;
+  const links = buildCalendarLinks(
+    {
+      uid: meeting.id,
+      title: meeting.topic,
+      startIso: meeting.scheduled_at,
+      durationMinutes: meeting.duration_minutes ?? 30,
+      description: meeting.notes,
+      url: meeting.meet_link,
+      location: meeting.meet_link,
+    },
+    icsHref,
+  );
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button
+          type="button"
+          className="inline-flex items-center gap-1 text-[11px] text-muted-foreground transition-colors hover:text-foreground"
+        >
+          <CalendarPlus className="h-3 w-3" />
+          Add to calendar
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-44">
+        <DropdownMenuItem asChild>
+          <a href={links.google} target="_blank" rel="noreferrer">Google Calendar</a>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <a href={links.outlook} target="_blank" rel="noreferrer">Outlook</a>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <a href={links.ics} download>Apple / .ics file</a>
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Subscribe-to-calendar button (whole portal feed)
+// ---------------------------------------------------------------------------
+
+function SubscribeCalendarButton({ portalId }: { portalId: string }) {
+  const [pending, setPending] = React.useState(false);
+  const [copied, setCopied] = React.useState(false);
+
+  async function onSubscribe() {
+    setPending(true);
+    const res = await getPortalCalendarFeedTokenAction({ portalId });
+    setPending(false);
+    if (!res.ok || !res.data) return;
+    const origin = typeof window !== "undefined" ? window.location.origin : "";
+    const httpUrl = `${origin}/api/portals/${portalId}/calendar.ics?key=${res.data.token}`;
+    const webcalUrl = httpUrl.replace(/^https?:\/\//, "webcal://");
+    try {
+      await navigator.clipboard.writeText(webcalUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2500);
+    } catch {
+      window.open(webcalUrl, "_blank");
+    }
+  }
+
+  return (
+    <Button
+      type="button"
+      variant="ghost"
+      size="sm"
+      className="h-8 text-xs"
+      onClick={onSubscribe}
+      disabled={pending}
+      title="Subscribe in your calendar app — future meetings sync automatically"
+    >
+      {pending ? (
+        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+      ) : copied ? (
+        <Check className="h-3.5 w-3.5" />
+      ) : (
+        <Rss className="h-3.5 w-3.5" />
+      )}
+      {copied ? "Link copied" : "Subscribe"}
+    </Button>
   );
 }
 
@@ -622,7 +749,10 @@ export function MeetingsSection({
             </span>
           )}
         </CardTitle>
-        <RequestMeetingDialog portalId={portalId} />
+        <div className="flex items-center gap-1">
+          <SubscribeCalendarButton portalId={portalId} />
+          <RequestMeetingDialog portalId={portalId} />
+        </div>
       </CardHeader>
 
       <CardContent className="space-y-3">

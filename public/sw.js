@@ -174,3 +174,47 @@ self.addEventListener("fetch", (event) => {
 
   // Everything else: just hit the network. SaaS data is never cached here.
 });
+
+/* ---------------------------------------------------------------------------
+ * Web Push
+ * -------------------------------------------------------------------------*/
+
+self.addEventListener("push", (event) => {
+  let data = {};
+  try {
+    data = event.data ? event.data.json() : {};
+  } catch {
+    data = { title: "Stackivo", body: event.data ? event.data.text() : "" };
+  }
+  const title = data.title || "Stackivo";
+  const options = {
+    body: data.body || "",
+    tag: data.tag || undefined,
+    data: { url: data.url || "/" },
+    icon: "/icon.svg",
+    badge: "/icon.svg",
+  };
+  event.waitUntil(self.registration.showNotification(title, options));
+});
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const target = (event.notification.data && event.notification.data.url) || "/";
+  event.waitUntil(
+    (async () => {
+      const all = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
+      for (const client of all) {
+        if ("focus" in client) {
+          try {
+            await client.focus();
+            if ("navigate" in client) await client.navigate(target);
+            return;
+          } catch {
+            /* fall through to openWindow */
+          }
+        }
+      }
+      if (self.clients.openWindow) await self.clients.openWindow(target);
+    })(),
+  );
+});

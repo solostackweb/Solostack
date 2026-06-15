@@ -2,6 +2,9 @@ import "server-only";
 
 import { notFound } from "next/navigation";
 import { isR2Configured } from "@/lib/r2/client";
+import { PORTAL_STORAGE_CAP_BYTES } from "@/features/portals/storage";
+import { getAdminSupabase } from "@/lib/supabase/admin";
+import { createSignedStorageUrl } from "@/features/profile/storage";
 import {
   PortalAccessError,
   getPortalSnapshot,
@@ -18,6 +21,26 @@ export async function getClientPortalProps(portalId: string): Promise<ViewProps>
   }
 
   const { access } = snapshot;
+
+  // Current member's previous visit time (for "what's new since last visit").
+  const { data: memberRow } = await getAdminSupabase()
+    .from("portal_members")
+    .select("last_seen_at")
+    .eq("portal_id", portalId)
+    .eq("user_id", access.userId)
+    .maybeSingle();
+  const lastSeenAt = (memberRow as { last_seen_at: string | null } | null)?.last_seen_at ?? null;
+
+  // Freelancer's brand logo (set once in Branding settings) — signed via the
+  // admin client so the client viewer can display it without storage-RLS issues.
+  const admin = getAdminSupabase();
+  const { data: ownerProfile } = await admin
+    .from("user_profiles")
+    .select("logo_url")
+    .eq("id", access.portal.owner_user_id)
+    .maybeSingle();
+  const logoPath = (ownerProfile as { logo_url: string | null } | null)?.logo_url ?? null;
+  const brandLogoUrl = await createSignedStorageUrl("branding-assets", logoPath, admin);
 
   return {
     portalId,
@@ -52,7 +75,11 @@ export async function getClientPortalProps(portalId: string): Promise<ViewProps>
     meetings: snapshot.meetings,
     timeByProject: snapshot.timeByProject,
     storageUsage: snapshot.storageUsage,
-    storageCap: Number.POSITIVE_INFINITY,
+    storageCap: PORTAL_STORAGE_CAP_BYTES,
     r2Enabled: isR2Configured(),
+    lastSeenAt,
+    welcomeVideoUrl: access.portal.welcome_video_url ?? null,
+    welcomeMessage: access.portal.welcome_message ?? null,
+    brandLogoUrl,
   };
 }

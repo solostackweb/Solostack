@@ -29,6 +29,7 @@ import {
 } from "@/features/portals/server";
 import { requireFeature } from "@/features/subscription/server";
 import { limitFor } from "@/features/subscription/features";
+import { effectivePortalStorageCap } from "@/features/portals/storage";
 import crypto from "node:crypto";
 
 export const runtime = "nodejs";
@@ -77,7 +78,7 @@ export async function POST(
 
   // Soft quota check — the COMMIT step re-checks against the actual
   // uploaded size, so this is best-effort UX.
-  const cap = limitFor(sub, "storage_bytes");
+  const cap = effectivePortalStorageCap(limitFor(sub, "storage_bytes"));
   if (Number.isFinite(cap)) {
     const admin = getAdminSupabase();
     const { data: usageRow } = await admin
@@ -90,7 +91,7 @@ export async function POST(
       return NextResponse.json(
         {
           ok: false,
-          error: `This upload would exceed your ${formatMb(cap)} portal storage quota. Free up space or upgrade your plan.`,
+          error: `This portal is full (${formatMb(cap)} limit). Remove some files to free up space.`,
         },
         { status: 402 },
       );

@@ -62,15 +62,20 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { usePortalMessages } from "../hooks/use-portal-messages";
+import { storageTone } from "../storage";
+import { DocumentCommentsThread } from "./document-comments";
+import { EnablePushButton } from "./enable-push-button";
+import { PortalQrCard } from "./portal-qr-card";
 import {
   invitePortalMemberAction,
-  postPortalMessageAction,
   deletePortalFileAction,
   revokePortalMemberAction,
   attachContractToPortalAction,
   attachInvoiceToPortalAction,
   archivePortalAction,
   deletePortalAction,
+  updatePortalOnboardingAction,
 } from "../actions";
 import { attachWelcomeToPortalAction } from "@/features/welcome-documents/actions";
 import { PORTAL_DASHBOARD_INDEX } from "@/features/portals/routes";
@@ -155,6 +160,13 @@ export interface ViewProps {
   storageUsage: { totalBytes: number; fileCount: number };
   storageCap: number;
   r2Enabled: boolean;
+  /** Current member's previous visit time — powers "what's new since last visit". */
+  lastSeenAt: string | null;
+  /** Branded onboarding (owner-set). */
+  welcomeVideoUrl: string | null;
+  welcomeMessage: string | null;
+  /** Freelancer's brand logo (signed URL) — shown on the client portal. */
+  brandLogoUrl: string | null;
   updates: Array<
     PortalUpdateRow & {
       author: { full_name: string | null; email: string | null } | null;
@@ -217,18 +229,21 @@ export function PortalView(props: ViewProps) {
         available={props.availableContracts}
         isOwner={isOwner}
         portalId={props.portalId}
+        currentUserId={props.currentUserId}
       />
       <InvoicesSection
         invoices={props.invoices}
         available={props.availableInvoices}
         isOwner={isOwner}
         portalId={props.portalId}
+        currentUserId={props.currentUserId}
       />
       <WelcomeDocumentsSection
         documents={props.welcomeDocuments}
         available={props.availableWelcomeDocuments}
         isOwner={isOwner}
         portalId={props.portalId}
+        currentUserId={props.currentUserId}
       />
       <FilesSection
         portalId={props.portalId}
@@ -242,6 +257,7 @@ export function PortalView(props: ViewProps) {
       <MessagesSection
         portalId={props.portalId}
         messages={props.messages}
+        currentUserId={props.currentUserId}
       />
     </>
   ) : (
@@ -265,18 +281,21 @@ export function PortalView(props: ViewProps) {
         available={props.availableInvoices}
         isOwner={isOwner}
         portalId={props.portalId}
+        currentUserId={props.currentUserId}
       />
       <ContractsSection
         contracts={props.contracts}
         available={props.availableContracts}
         isOwner={isOwner}
         portalId={props.portalId}
+        currentUserId={props.currentUserId}
       />
       <WelcomeDocumentsSection
         documents={props.welcomeDocuments}
         available={props.availableWelcomeDocuments}
         isOwner={isOwner}
         portalId={props.portalId}
+        currentUserId={props.currentUserId}
       />
       <FilesSection
         portalId={props.portalId}
@@ -290,6 +309,7 @@ export function PortalView(props: ViewProps) {
       <MessagesSection
         portalId={props.portalId}
         messages={props.messages}
+        currentUserId={props.currentUserId}
       />
     </>
   );
@@ -317,6 +337,12 @@ export function PortalView(props: ViewProps) {
               clientEmail={props.clientEmail ?? null}
             />
             <PortalTimeSection items={props.timeByProject} />
+            <OnboardingSettingsSection
+              portalId={props.portalId}
+              welcomeVideoUrl={props.welcomeVideoUrl}
+              welcomeMessage={props.welcomeMessage}
+            />
+            <PortalQrCard portalId={props.portalId} />
             <ActivitySection activity={props.activity} />
             {/* Settings last — destructive actions should be out of the way */}
             <PortalSettingsSection
@@ -508,6 +534,7 @@ function ClientPortalExperience(props: ViewProps) {
         members={props.members}
         messages={props.messages}
         portalId={props.portalId}
+        currentUserId={props.currentUserId}
       />
 
       <ClientBottomNav />
@@ -973,11 +1000,13 @@ function ClientMorePanel({
   members,
   messages,
   portalId,
+  currentUserId,
 }: {
   portalName: string;
   members: ViewProps["members"];
   messages: ViewProps["messages"];
   portalId: string;
+  currentUserId: string;
 }) {
   const client = members.find((member) => member.role === "client") ?? members[0] ?? null;
 
@@ -992,7 +1021,7 @@ function ClientMorePanel({
           <MoreRow icon={Info} title="Portal information" meta={portalName} />
         </div>
       </div>
-      <MessagesSection portalId={portalId} messages={messages} />
+      <MessagesSection portalId={portalId} messages={messages} currentUserId={currentUserId} />
     </section>
   );
 }
@@ -1183,11 +1212,13 @@ function WelcomeDocumentsSection({
   available,
   isOwner,
   portalId,
+  currentUserId,
 }: {
   documents: ViewProps["welcomeDocuments"];
   available: ViewProps["availableWelcomeDocuments"];
   isOwner: boolean;
   portalId: string;
+  currentUserId: string;
 }) {
   return (
     <Card id="portal-welcome" className="scroll-mt-24">
@@ -1222,38 +1253,47 @@ function WelcomeDocumentsSection({
             {documents.map((d) => {
               const needsAck = d.acknowledgement_required && d.status !== "acknowledged";
               return (
-                <li key={d.id} className="flex items-center justify-between gap-3 px-3 py-3">
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-medium">{d.title}</p>
-                    <p className="mt-0.5 text-[11px] capitalize text-muted-foreground">
-                      {d.status.replace(/_/g, " ")}
-                      {d.acknowledgement_required ? " · acknowledgement required" : ""}
-                    </p>
-                  </div>
-                  {isOwner ? (
-                    // Freelancer: open the welcome doc in the dashboard — never
-                    // the client-facing "Read & acknowledge".
-                    <Button asChild size="sm" variant="outline" className="h-8 shrink-0">
-                      <Link href={`/dashboard/welcome/${d.id}`}>
-                        View
-                        <ExternalLink className="h-3.5 w-3.5" />
-                      </Link>
-                    </Button>
-                  ) : (
-                    d.public_token && (
-                      <Button
-                        asChild
-                        size="sm"
-                        variant={needsAck ? "default" : "outline"}
-                        className="h-8 shrink-0"
-                      >
-                        <Link href={`/w/${d.public_token}`} target="_blank">
-                          {needsAck ? "Read & acknowledge" : "Read guide"}
+                <li key={d.id} className="px-3 py-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-medium">{d.title}</p>
+                      <p className="mt-0.5 text-[11px] capitalize text-muted-foreground">
+                        {d.status.replace(/_/g, " ")}
+                        {d.acknowledgement_required ? " · acknowledgement required" : ""}
+                      </p>
+                    </div>
+                    {isOwner ? (
+                      // Freelancer: open the welcome doc in the dashboard — never
+                      // the client-facing "Read & acknowledge".
+                      <Button asChild size="sm" variant="outline" className="h-8 shrink-0">
+                        <Link href={`/dashboard/welcome/${d.id}`}>
+                          View
                           <ExternalLink className="h-3.5 w-3.5" />
                         </Link>
                       </Button>
-                    )
-                  )}
+                    ) : (
+                      d.public_token && (
+                        <Button
+                          asChild
+                          size="sm"
+                          variant={needsAck ? "default" : "outline"}
+                          className="h-8 shrink-0"
+                        >
+                          <Link href={`/w/${d.public_token}`} target="_blank">
+                            {needsAck ? "Read & acknowledge" : "Read guide"}
+                            <ExternalLink className="h-3.5 w-3.5" />
+                          </Link>
+                        </Button>
+                      )
+                    )}
+                  </div>
+                  <DocumentCommentsThread
+                    portalId={portalId}
+                    docType="welcome"
+                    docId={d.id}
+                    currentUserId={currentUserId}
+                    isOwner={isOwner}
+                  />
                 </li>
               );
             })}
@@ -1273,11 +1313,13 @@ function ContractsSection({
   available,
   isOwner,
   portalId,
+  currentUserId,
 }: {
   contracts: ViewProps["contracts"];
   available: ViewProps["availableContracts"];
   isOwner: boolean;
   portalId: string;
+  currentUserId: string;
 }) {
   const pendingCount = contracts.filter(
     (c) => c.status !== "signed" && c.status !== "declined",
@@ -1321,37 +1363,46 @@ function ContractsSection({
             {contracts.map((c) => {
               const needsSign = c.status !== "signed" && c.status !== "declined";
               return (
-                <li key={c.id} className="flex items-center justify-between gap-3 px-3 py-3">
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-medium">{c.title}</p>
-                    <p className="mt-0.5 text-[11px] capitalize text-muted-foreground">
-                      {c.status.replace(/_/g, " ")}
-                    </p>
-                  </div>
-                  {isOwner ? (
-                    // Freelancer: manage the contract in the dashboard — never
-                    // the client-facing "Review & sign" action.
-                    <Button asChild size="sm" variant="outline" className="h-8 shrink-0">
-                      <Link href={`/dashboard/contracts/${c.id}`}>
-                        View
-                        <ExternalLink className="h-3.5 w-3.5" />
-                      </Link>
-                    </Button>
-                  ) : (
-                    c.public_token && (
-                      <Button
-                        asChild
-                        size="sm"
-                        variant={needsSign ? "default" : "outline"}
-                        className="h-8 shrink-0"
-                      >
-                        <Link href={`/c/${c.public_token}`} target="_blank">
-                          {needsSign ? "Review & sign" : "View"}
+                <li key={c.id} className="px-3 py-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-medium">{c.title}</p>
+                      <p className="mt-0.5 text-[11px] capitalize text-muted-foreground">
+                        {c.status.replace(/_/g, " ")}
+                      </p>
+                    </div>
+                    {isOwner ? (
+                      // Freelancer: manage the contract in the dashboard — never
+                      // the client-facing "Review & sign" action.
+                      <Button asChild size="sm" variant="outline" className="h-8 shrink-0">
+                        <Link href={`/dashboard/contracts/${c.id}`}>
+                          View
                           <ExternalLink className="h-3.5 w-3.5" />
                         </Link>
                       </Button>
-                    )
-                  )}
+                    ) : (
+                      c.public_token && (
+                        <Button
+                          asChild
+                          size="sm"
+                          variant={needsSign ? "default" : "outline"}
+                          className="h-8 shrink-0"
+                        >
+                          <Link href={`/c/${c.public_token}`} target="_blank">
+                            {needsSign ? "Review & sign" : "View"}
+                            <ExternalLink className="h-3.5 w-3.5" />
+                          </Link>
+                        </Button>
+                      )
+                    )}
+                  </div>
+                  <DocumentCommentsThread
+                    portalId={portalId}
+                    docType="contract"
+                    docId={c.id}
+                    currentUserId={currentUserId}
+                    isOwner={isOwner}
+                  />
                 </li>
               );
             })}
@@ -1371,11 +1422,13 @@ function InvoicesSection({
   available,
   isOwner,
   portalId,
+  currentUserId,
 }: {
   invoices: ViewProps["invoices"];
   available: ViewProps["availableInvoices"];
   isOwner: boolean;
   portalId: string;
+  currentUserId: string;
 }) {
   const unpaidCount = invoices.filter(
     (i) => i.status !== "paid" && i.status !== "cancelled",
@@ -1420,51 +1473,60 @@ function InvoicesSection({
               const paid = i.status === "paid";
               const cancelled = i.status === "cancelled";
               return (
-                <li key={i.id} className="flex items-center justify-between gap-3 px-3 py-3">
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-medium">{i.invoice_number}</p>
-                    <p className="mt-0.5 text-[11px] text-muted-foreground">
-                      <span className="font-medium tabular-nums text-foreground">
-                        {formatPortalCurrency(i.currency, i.total_amount)}
-                      </span>
-                      {" · "}
-                      <span
-                        className={
-                          paid
-                            ? "font-medium capitalize text-emerald-600 dark:text-emerald-400"
-                            : cancelled
-                              ? "capitalize text-muted-foreground line-through"
-                              : "capitalize"
-                        }
-                      >
-                        {i.status.replace(/_/g, " ")}
-                      </span>
-                    </p>
-                  </div>
-                  {isOwner ? (
-                    // Freelancer: open the invoice in the dashboard — never the
-                    // client-facing "Pay now". Always available, every invoice.
-                    <Button asChild size="sm" variant="outline" className="h-8 shrink-0">
-                      <Link href={`/dashboard/invoices/${i.id}`}>
-                        View
-                        <ExternalLink className="h-3.5 w-3.5" />
-                      </Link>
-                    </Button>
-                  ) : (
-                    i.public_token && (
-                      <Button
-                        asChild
-                        size="sm"
-                        variant={paid || cancelled ? "outline" : "default"}
-                        className="h-8 shrink-0"
-                      >
-                        <Link href={`/i/${i.public_token}`} target="_blank">
-                          {paid ? "View receipt" : cancelled ? "View" : "Pay now"}
+                <li key={i.id} className="px-3 py-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-medium">{i.invoice_number}</p>
+                      <p className="mt-0.5 text-[11px] text-muted-foreground">
+                        <span className="font-medium tabular-nums text-foreground">
+                          {formatPortalCurrency(i.currency, i.total_amount)}
+                        </span>
+                        {" · "}
+                        <span
+                          className={
+                            paid
+                              ? "font-medium capitalize text-emerald-600 dark:text-emerald-400"
+                              : cancelled
+                                ? "capitalize text-muted-foreground line-through"
+                                : "capitalize"
+                          }
+                        >
+                          {i.status.replace(/_/g, " ")}
+                        </span>
+                      </p>
+                    </div>
+                    {isOwner ? (
+                      // Freelancer: open the invoice in the dashboard — never the
+                      // client-facing "Pay now". Always available, every invoice.
+                      <Button asChild size="sm" variant="outline" className="h-8 shrink-0">
+                        <Link href={`/dashboard/invoices/${i.id}`}>
+                          View
                           <ExternalLink className="h-3.5 w-3.5" />
                         </Link>
                       </Button>
-                    )
-                  )}
+                    ) : (
+                      i.public_token && (
+                        <Button
+                          asChild
+                          size="sm"
+                          variant={paid || cancelled ? "outline" : "default"}
+                          className="h-8 shrink-0"
+                        >
+                          <Link href={`/i/${i.public_token}`} target="_blank">
+                            {paid ? "View receipt" : cancelled ? "View" : "Pay now"}
+                            <ExternalLink className="h-3.5 w-3.5" />
+                          </Link>
+                        </Button>
+                      )
+                    )}
+                  </div>
+                  <DocumentCommentsThread
+                    portalId={portalId}
+                    docType="invoice"
+                    docId={i.id}
+                    currentUserId={currentUserId}
+                    isOwner={isOwner}
+                  />
                 </li>
               );
             })}
@@ -1532,9 +1594,16 @@ function FilesSection({
 }) {
   const router = useRouter();
   const confirm = useConfirm();
+  const [sortByLargest, setSortByLargest] = React.useState(false);
   const usagePct = Number.isFinite(cap) && cap > 0
     ? Math.min(100, (usage.totalBytes / cap) * 100)
     : 0;
+  const tone = storageTone(usage.totalBytes, cap);
+  const barColor =
+    tone === "full" ? "bg-destructive" : tone === "warn" ? "bg-amber-500" : "bg-primary";
+  const displayFiles = sortByLargest
+    ? [...files].sort((a, b) => (b.size_bytes ?? 0) - (a.size_bytes ?? 0))
+    : files;
 
   async function onDelete(fileId: string, fileName: string) {
     const ok = await confirm({
@@ -1562,19 +1631,36 @@ function FilesSection({
         {r2Enabled && <FileUploadButton portalId={portalId} />}
       </CardHeader>
       <CardContent className="space-y-3">
-        {/* Storage bar */}
+        {/* Storage bar + usage */}
         {Number.isFinite(cap) && (
-          <div
-            className="h-1.5 w-full overflow-hidden rounded-full bg-muted"
-            role="progressbar"
-            aria-valuenow={usagePct}
-            aria-valuemin={0}
-            aria-valuemax={100}
-          >
+          <div className="space-y-1.5">
             <div
-              className={`h-full rounded-full transition-[width] ${usagePct > 90 ? "bg-destructive" : "bg-primary"}`}
-              style={{ width: `${usagePct}%` }}
-            />
+              className="h-1.5 w-full overflow-hidden rounded-full bg-muted"
+              role="progressbar"
+              aria-valuenow={usagePct}
+              aria-valuemin={0}
+              aria-valuemax={100}
+            >
+              <div
+                className={`h-full rounded-full transition-[width] ${barColor}`}
+                style={{ width: `${usagePct}%` }}
+              />
+            </div>
+            <div className="flex items-center justify-between gap-2">
+              <span className={`text-[11px] ${tone === "full" ? "text-destructive" : tone === "warn" ? "text-amber-600 dark:text-amber-400" : "text-muted-foreground"}`}>
+                {formatBytes(usage.totalBytes)} of {formatBytes(cap)} used
+                {tone !== "ok" && " — free up space"}
+              </span>
+              {files.length > 1 && (
+                <button
+                  type="button"
+                  onClick={() => setSortByLargest((v) => !v)}
+                  className="text-[11px] text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+                >
+                  {sortByLargest ? "Sort by newest" : "Largest first"}
+                </button>
+              )}
+            </div>
           </div>
         )}
 
@@ -1598,7 +1684,7 @@ function FilesSection({
           />
         ) : (
           <ul className="divide-y rounded-lg border">
-            {files.map((f) => {
+            {displayFiles.map((f) => {
               const catLabel = CATEGORY_LABEL[f.category ?? "misc"] ?? "";
               const catStyle = CATEGORY_STYLE[f.category ?? "misc"] ?? "";
               return (
@@ -1749,29 +1835,35 @@ function FileUploadButton({ portalId }: { portalId: string }) {
 function MessagesSection({
   portalId,
   messages,
+  currentUserId,
 }: {
   portalId: string;
   messages: ViewProps["messages"];
+  currentUserId: string;
 }) {
-  const router = useRouter();
+  const {
+    messages: live, peerOnline, peerTyping, peerReadAt, pending, error, send, notifyTyping,
+  } = usePortalMessages({ portalId, currentUserId, initialMessages: messages });
   const [body, setBody] = React.useState("");
-  const [pending, setPending] = React.useState(false);
-  const [error, setError] = React.useState<string | null>(null);
+  const listRef = React.useRef<HTMLUListElement>(null);
+
+  React.useEffect(() => {
+    listRef.current?.scrollTo({ top: listRef.current.scrollHeight, behavior: "smooth" });
+  }, [live.length, peerTyping]);
+
+  const myLast = [...live].reverse().find((m) => m.author_id === currentUserId);
+  const seen = Boolean(
+    myLast && !myLast.pending && peerReadAt &&
+      Date.parse(peerReadAt) >= Date.parse(myLast.created_at),
+  );
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (pending || body.trim().length === 0) return;
-    setPending(true);
-    setError(null);
-    const res = await postPortalMessageAction({ portalId, body: body.trim() });
-    setPending(false);
-    if (!res.ok) { setError(res.error); return; }
+    if (!body.trim()) return;
+    const text = body;
     setBody("");
-    router.refresh();
+    await send(text);
   }
-
-  // Server returns newest-first → render oldest-first for natural chat reading
-  const ordered = [...messages].reverse();
 
   return (
     <Card id="portal-chat" className="scroll-mt-24">
@@ -1780,8 +1872,57 @@ function MessagesSection({
           <MessageSquare className="h-4 w-4 text-muted-foreground" />
           Chat
         </CardTitle>
+        <span
+          className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-medium ${
+            peerOnline
+              ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+              : "bg-muted text-muted-foreground"
+          }`}
+        >
+          <span className={`h-1.5 w-1.5 rounded-full ${peerOnline ? "bg-emerald-500" : "bg-muted-foreground/40"}`} />
+          {peerTyping ? "Typing…" : peerOnline ? "Online" : "Offline"}
+        </span>
       </CardHeader>
       <CardContent className="space-y-4">
+        {/* Message thread */}
+        {live.length === 0 ? (
+          <EmptyState
+            icon={<MessageSquare className="h-7 w-7 text-muted-foreground/30" />}
+            message="No messages yet."
+            hint="Use the form below to start the conversation."
+          />
+        ) : (
+          <ul ref={listRef} className="max-h-[46svh] space-y-2.5 overflow-y-auto">
+            {live.map((m) => {
+              const mine = m.author_id === currentUserId;
+              return (
+                <li
+                  key={m.id}
+                  className={`rounded-lg border p-3 ${mine ? "border-primary/30 bg-primary/5" : "bg-card"} ${m.pending ? "opacity-70" : ""}`}
+                >
+                  <div className="mb-1.5 flex items-center gap-2 text-[11px] text-muted-foreground">
+                    <span className="font-semibold text-foreground">
+                      {mine ? "You" : m.author?.full_name ?? m.author?.email ?? "Client"}
+                    </span>
+                    <span aria-hidden>·</span>
+                    <time dateTime={m.created_at} className="tabular-nums">
+                      {getRelativeTime(m.created_at)}
+                    </time>
+                  </div>
+                  <p className="whitespace-pre-wrap text-sm leading-relaxed">
+                    {m.body}
+                  </p>
+                </li>
+              );
+            })}
+            {peerTyping && (
+              <li className="rounded-lg border bg-card px-3 py-2 text-xs text-muted-foreground">
+                Typing…
+              </li>
+            )}
+          </ul>
+        )}
+
         {/* Compose */}
         <div className="rounded-lg border bg-muted/20 p-3">
           <form onSubmit={onSubmit} className="space-y-2.5">
@@ -1789,10 +1930,15 @@ function MessagesSection({
               id="portal-message"
               placeholder="Write a message, ask a question, or share a quick note…"
               value={body}
-              onChange={(e) => setBody(e.target.value)}
+              onChange={(e) => { setBody(e.target.value); notifyTyping(); }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  void onSubmit(e as unknown as React.FormEvent);
+                }
+              }}
               maxLength={8000}
               rows={3}
-              required
               aria-label="Message"
             />
             {error && (
@@ -1802,7 +1948,7 @@ function MessagesSection({
             )}
             <div className="flex items-center justify-between gap-2">
               <p className="text-[11px] text-muted-foreground">
-                For files, use the Files section above.
+                {myLast && !myLast.pending ? (seen ? "Seen" : "Sent") : "For files, use the Files section above."}
               </p>
               <Button
                 type="submit"
@@ -1819,34 +1965,93 @@ function MessagesSection({
             </div>
           </form>
         </div>
+      </CardContent>
+    </Card>
+  );
+}
 
-        {/* Message thread */}
-        {ordered.length === 0 ? (
-          <EmptyState
-            icon={<MessageSquare className="h-7 w-7 text-muted-foreground/30" />}
-            message="No messages yet."
-            hint="Use the form above to start the conversation."
+// ============================================================================
+// Section: Onboarding (owner only — branded welcome video + message)
+// ============================================================================
+
+function OnboardingSettingsSection({
+  portalId,
+  welcomeVideoUrl,
+  welcomeMessage,
+}: {
+  portalId: string;
+  welcomeVideoUrl: string | null;
+  welcomeMessage: string | null;
+}) {
+  const router = useRouter();
+  const [videoUrl, setVideoUrl] = React.useState(welcomeVideoUrl ?? "");
+  const [message, setMessage] = React.useState(welcomeMessage ?? "");
+  const [pending, setPending] = React.useState(false);
+  const [saved, setSaved] = React.useState(false);
+  const [error, setError] = React.useState<string | null>(null);
+
+  async function onSave() {
+    setPending(true);
+    setError(null);
+    setSaved(false);
+    const res = await updatePortalOnboardingAction({
+      portalId,
+      welcomeVideoUrl: videoUrl.trim(),
+      welcomeMessage: message.trim(),
+    });
+    setPending(false);
+    if (!res.ok) { setError(res.error ?? "Could not save."); return; }
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2500);
+    router.refresh();
+  }
+
+  const dirty =
+    videoUrl.trim() !== (welcomeVideoUrl ?? "") ||
+    message.trim() !== (welcomeMessage ?? "");
+
+  return (
+    <Card>
+      <CardHeader className="pb-3">
+        <CardTitle className="text-sm font-semibold text-muted-foreground">
+          Onboarding
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        <p className="text-xs text-muted-foreground">
+          A welcome video + note greets your client on their portal home.
+        </p>
+        <div className="space-y-1.5">
+          <Label htmlFor="welcome-video" className="text-xs">Welcome video link</Label>
+          <Input
+            id="welcome-video"
+            placeholder="Loom or YouTube link (optional)"
+            value={videoUrl}
+            onChange={(e) => setVideoUrl(e.target.value)}
           />
-        ) : (
-          <ul className="space-y-2.5">
-            {ordered.map((m) => (
-              <li key={m.id} className="rounded-lg border bg-card p-3">
-                <div className="mb-1.5 flex items-center gap-2 text-[11px] text-muted-foreground">
-                  <span className="font-semibold text-foreground">
-                    {m.author?.full_name ?? m.author?.email ?? "Someone"}
-                  </span>
-                  <span aria-hidden>·</span>
-                  <time dateTime={m.created_at} className="tabular-nums">
-                    {getRelativeTime(m.created_at)}
-                  </time>
-                </div>
-                <p className="whitespace-pre-wrap text-sm leading-relaxed">
-                  {m.body}
-                </p>
-              </li>
-            ))}
-          </ul>
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="welcome-message" className="text-xs">Welcome message</Label>
+          <Textarea
+            id="welcome-message"
+            placeholder="A short, warm intro for your client…"
+            value={message}
+            onChange={(e) => setMessage(e.target.value)}
+            rows={3}
+            maxLength={2000}
+          />
+        </div>
+        {error && (
+          <p className="rounded-md bg-destructive/10 p-2 text-xs text-destructive">{error}</p>
         )}
+        <Button
+          size="sm"
+          className="w-full"
+          onClick={onSave}
+          disabled={pending || !dirty}
+        >
+          {pending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : saved ? "Saved" : "Save onboarding"}
+        </Button>
       </CardContent>
     </Card>
   );
@@ -1912,6 +2117,12 @@ function PortalSettingsSection({
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
+        <div className="flex items-center justify-between gap-2 rounded-md border bg-muted/20 p-2.5">
+          <p className="text-xs text-muted-foreground">
+            Get push alerts for new messages &amp; meetings.
+          </p>
+          <EnablePushButton className="h-8 shrink-0" />
+        </div>
         <p className="text-xs text-muted-foreground">
           Deactivate to pause client access. Delete to permanently remove the
           portal and all attachments.

@@ -82,6 +82,10 @@ export const env = {
   // and `/help` page to deep-link customers to KB articles. Unset →
   // the "Browse help articles" affordance hides itself.
   zohoDeskHelpUrl: optional(process.env.NEXT_PUBLIC_ZOHO_DESK_HELP_URL) ?? "",
+  // Web Push public VAPID key. Browser-safe (it is the *public* key).
+  // Unset → the portal's "Enable notifications" affordance hides itself and
+  // push silently no-ops, exactly like the other optional integrations.
+  vapidPublicKey: optional(process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY) ?? "",
 } as const;
 
 export type PublicEnv = typeof env;
@@ -118,6 +122,11 @@ export function requireServerEnv() {
     razorpayPlanBusinessYearly: optional(
       process.env.RAZORPAY_PLAN_BUSINESS_YEARLY,
     ),
+    // Web Push (VAPID). All optional — push gracefully no-ops when unset.
+    vapidPublicKey: optional(process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY),
+    vapidPrivateKey: optional(process.env.VAPID_PRIVATE_KEY),
+    vapidSubject:
+      optional(process.env.VAPID_SUBJECT) ?? "mailto:support@stackivo.me",
     brevoTransport:
       process.env.BREVO_TRANSPORT === "smtp" ? "smtp" : "api",
     brevoApiKey: optional(process.env.BREVO_API_KEY),

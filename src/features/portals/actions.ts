@@ -18,6 +18,7 @@ import crypto from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { getServerSupabase } from "@/lib/supabase/server";
+import { sendPushToPortal } from "./push";
 import { getAdminSupabase } from "@/lib/supabase/admin";
 import { requireFeature } from "@/features/subscription/server";
 import {
@@ -527,9 +528,103 @@ export async function postPortalMessageAction(
     payload: { messageId, preview: parsed.data.body.slice(0, 80) },
   });
 
+  // Fire-and-forget push to the other side (no-ops if push isn't configured).
+  void sendPushToPortal(parsed.data.portalId, access.userId, {
+    title: "New message",
+    body: parsed.data.body.slice(0, 120),
+    url: portalClientHome(parsed.data.portalId) + "/chat",
+    tag: `portal-chat-${parsed.data.portalId}`,
+  });
+
   revalidatePath(portalClientHome(parsed.data.portalId));
   revalidatePath(portalDashboardDetail(parsed.data.portalId));
   return { ok: true, data: { messageId } };
+}
+
+// =============================================================================
+// READ RECEIPTS — mark the current member's last_read_at for a portal
+// =============================================================================
+
+export async function markPortalReadAction(input: {
+  portalId: string;
+}): Promise<ActionResult<{ at: string }>> {
+  const access = await requirePortalAccess(input.portalId).catch(
+    (e) => e as PortalAccessError,
+  );
+  if (access instanceof PortalAccessError) {
+    return { ok: false, error: accessErrorMessage(access) };
+  }
+  const at = new Date().toISOString();
+  const supabase = await getServerSupabase();
+  const { error } = await supabase
+    .from("portal_members")
+    .update({ last_read_at: at } as never)
+    .eq("portal_id", input.portalId)
+    .eq("user_id", access.userId);
+  if (error) return { ok: false, error: error.message };
+  return { ok: true, data: { at } };
+}
+
+// =============================================================================
+// ONBOARDING — owner sets a welcome video + message for the client
+// =============================================================================
+
+const onboardingSchema = z.object({
+  portalId: z.string().uuid(),
+  welcomeVideoUrl: z.string().trim().max(500).optional().or(z.literal("")),
+  welcomeMessage: z.string().trim().max(2000).optional().or(z.literal("")),
+});
+
+export async function updatePortalOnboardingAction(
+  input: z.infer<typeof onboardingSchema>,
+): Promise<ActionResult> {
+  const parsed = onboardingSchema.safeParse(input);
+  if (!parsed.success) {
+    return { ok: false, error: "Invalid input." };
+  }
+  const access = await requirePortalAccess(parsed.data.portalId, {
+    requireRole: "owner",
+  }).catch((e) => e as PortalAccessError);
+  if (access instanceof PortalAccessError) {
+    return { ok: false, error: accessErrorMessage(access) };
+  }
+  const supabase = await getServerSupabase();
+  const { error } = await supabase
+    .from("portals")
+    .update({
+      welcome_video_url: parsed.data.welcomeVideoUrl || null,
+      welcome_message: parsed.data.welcomeMessage || null,
+      updated_at: new Date().toISOString(),
+    } as never)
+    .eq("id", parsed.data.portalId);
+  if (error) return { ok: false, error: error.message };
+
+  revalidatePath(portalClientHome(parsed.data.portalId));
+  revalidatePath(portalDashboardDetail(parsed.data.portalId));
+  return { ok: true, message: "Onboarding updated." };
+}
+
+// =============================================================================
+// VISIT MARKER — update last_seen_at (powers "what's new since last visit")
+// =============================================================================
+
+export async function markPortalSeenAction(input: {
+  portalId: string;
+}): Promise<ActionResult> {
+  const access = await requirePortalAccess(input.portalId).catch(
+    (e) => e as PortalAccessError,
+  );
+  if (access instanceof PortalAccessError) {
+    return { ok: false, error: accessErrorMessage(access) };
+  }
+  const supabase = await getServerSupabase();
+  const { error } = await supabase
+    .from("portal_members")
+    .update({ last_seen_at: new Date().toISOString() } as never)
+    .eq("portal_id", input.portalId)
+    .eq("user_id", access.userId);
+  if (error) return { ok: false, error: error.message };
+  return { ok: true };
 }
 
 // =============================================================================

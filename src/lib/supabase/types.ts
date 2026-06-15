@@ -712,6 +712,8 @@ export interface PortalRow {
   client_id: string | null;
   brand_color: string | null;
   status: PortalStatus;
+  welcome_video_url: string | null;
+  welcome_message: string | null;
   created_at: string;
   updated_at: string;
   deleted_at: string | null;
@@ -724,6 +726,32 @@ export interface PortalMemberRow {
   invited_at: string;
   joined_at: string | null;
   revoked_at: string | null;
+  last_read_at: string | null;
+  last_seen_at: string | null;
+  calendar_feed_token: string | null;
+}
+
+export interface PushSubscriptionRow {
+  id: string;
+  user_id: string;
+  endpoint: string;
+  p256dh: string;
+  auth: string;
+  user_agent: string | null;
+  created_at: string;
+}
+
+export type PortalDocumentType = "contract" | "invoice" | "welcome";
+
+export interface PortalDocumentCommentRow {
+  id: string;
+  portal_id: string;
+  doc_type: PortalDocumentType;
+  doc_id: string;
+  author_id: string;
+  body: string;
+  resolved_at: string | null;
+  created_at: string;
 }
 
 export interface PortalInvitationRow {
@@ -799,6 +827,9 @@ export interface PortalMeetingRow {
   meet_link: string | null;
   notes: string | null;
   status: PortalMeetingStatus;
+  scheduled_at: string | null;
+  duration_minutes: number;
+  timezone: string;
   created_at: string;
   updated_at: string;
 }
@@ -1168,6 +1199,18 @@ export interface Database {
         Insert: Partial<PortalMessageRow> &
           Pick<PortalMessageRow, "portal_id" | "author_id" | "body">;
         Update: Partial<PortalMessageRow>;
+      };
+      portal_document_comments: {
+        Row: PortalDocumentCommentRow;
+        Insert: Partial<PortalDocumentCommentRow> &
+          Pick<PortalDocumentCommentRow, "portal_id" | "doc_type" | "doc_id" | "author_id" | "body">;
+        Update: Partial<PortalDocumentCommentRow>;
+      };
+      push_subscriptions: {
+        Row: PushSubscriptionRow;
+        Insert: Partial<PushSubscriptionRow> &
+          Pick<PushSubscriptionRow, "user_id" | "endpoint" | "p256dh" | "auth">;
+        Update: Partial<PushSubscriptionRow>;
       };
       portal_activity: {
         Row: PortalActivityRow;
