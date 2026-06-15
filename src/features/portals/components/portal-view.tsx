@@ -346,6 +346,7 @@ export function PortalView(props: ViewProps) {
               clientId={props.clientId ?? null}
               clientEmail={props.clientEmail ?? null}
             />
+            <PortalTimeSection items={props.timeByProject} />
             <ActivitySection activity={props.activity} />
             {/* Settings last — destructive actions should be out of the way */}
             <PortalSettingsSection
@@ -2241,6 +2242,57 @@ function getActivityDotColor(type: string): string {
   if (type.startsWith("invoice."))      return "bg-emerald-500";
   if (type.startsWith("portal.member")) return "bg-pink-500";
   return "bg-muted-foreground/40";
+}
+
+function portalHours(totalSeconds: number): string {
+  const h = Math.floor(totalSeconds / 3600);
+  const m = Math.floor((totalSeconds % 3600) / 60);
+  if (h === 0 && m === 0) return "0m";
+  if (h === 0) return `${m}m`;
+  if (m === 0) return `${h}h`;
+  return `${h}h ${m}m`;
+}
+
+/** Owner-side time-tracked summary, grouped per project. */
+function PortalTimeSection({ items }: { items: ViewProps["timeByProject"] }) {
+  if (!items || items.length === 0) return null;
+  const grandTotal = items.reduce((sum, p) => sum + p.totalSeconds, 0);
+
+  return (
+    <Card>
+      <CardHeader className="pb-3">
+        <CardTitle className="flex items-center gap-2 text-sm font-semibold">
+          <Clock3 className="h-4 w-4 text-muted-foreground" />
+          Time tracked
+          <span className="ml-auto text-[11px] font-normal text-muted-foreground">
+            {portalHours(grandTotal)}
+            {items.length > 1 ? ` · ${items.length} projects` : ""}
+          </span>
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-2">
+        {items.map((p) => (
+          <div
+            key={p.projectId ?? "none"}
+            className="flex items-center justify-between gap-3 rounded-lg border bg-muted/20 px-3 py-2"
+          >
+            <div className="min-w-0">
+              <p className="truncate text-sm font-medium">{p.projectName}</p>
+              <p className="mt-0.5 text-[11px] text-muted-foreground">
+                {portalHours(p.totalSeconds)}
+                {p.billableSeconds > 0 ? ` · ${portalHours(p.billableSeconds)} billable` : ""}
+              </p>
+            </div>
+            {p.billableAmount > 0 && (
+              <span className="shrink-0 font-mono text-xs font-semibold tabular-nums">
+                {formatPortalCurrency(p.currency, p.billableAmount)}
+              </span>
+            )}
+          </div>
+        ))}
+      </CardContent>
+    </Card>
+  );
 }
 
 function ActivitySection({ activity }: { activity: ViewProps["activity"] }) {
