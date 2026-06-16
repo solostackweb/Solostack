@@ -88,6 +88,58 @@ export async function listTimeEntries(
   return (data as unknown as TimeEntryRow[]).map(mapTimeEntryRow);
 }
 
+export interface PagedTimeEntries {
+  entries: TimeEntryRecord[];
+  total: number;
+}
+
+export interface ListTimeEntriesPagedOptions {
+  q?: string;
+  projectId?: string | null; // null = "no project"
+  status?: "all" | "billable" | "non_billable" | "unbilled" | "invoiced";
+  from?: string;
+  to?: string;
+  page?: number;
+  pageSize?: number;
+}
+
+/**
+ * Server-side filtered + paginated entries with an exact total count.
+ * Completed entries only.
+ */
+export async function listTimeEntriesPaged(
+  opts: ListTimeEntriesPagedOptions = {},
+): Promise<PagedTimeEntries> {
+  const supabase = await getServerSupabase();
+  const page = Math.max(1, opts.page ?? 1);
+  const pageSize = Math.min(200, Math.max(1, opts.pageSize ?? 50));
+  const fromIdx = (page - 1) * pageSize;
+
+  let q = supabase
+    .from("time_entries")
+    .select("*", { count: "exact" })
+    .not("ended_at", "is", null)
+    .order("started_at", { ascending: false });
+
+  if (opts.q && opts.q.trim()) q = q.ilike("description", `%${opts.q.trim()}%`);
+  if (opts.projectId === null) q = q.is("project_id", null);
+  else if (opts.projectId) q = q.eq("project_id", opts.projectId);
+
+  if (opts.status === "billable") q = q.eq("billable", true);
+  else if (opts.status === "non_billable") q = q.eq("billable", false);
+  else if (opts.status === "unbilled") q = q.eq("billable", true).is("invoice_id", null);
+  else if (opts.status === "invoiced") q = q.not("invoice_id", "is", null);
+
+  if (opts.from) q = q.gte("started_at", opts.from);
+  if (opts.to) q = q.lte("started_at", opts.to);
+
+  q = q.range(fromIdx, fromIdx + pageSize - 1);
+
+  const { data, count } = await q;
+  const entries = ((data as unknown as TimeEntryRow[]) ?? []).map(mapTimeEntryRow);
+  return { entries, total: count ?? 0 };
+}
+
 /**
  * The currently-running timer for the authenticated user, if any.
  * (`ended_at IS NULL` — there should be at most one.)

@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { MoreHorizontal, Trash2, FileText } from "lucide-react";
+import { MoreHorizontal, Trash2, FileText, Pencil, IndianRupee, CircleSlash } from "lucide-react";
 import { toast } from "sonner";
 
 import { Card, CardContent } from "@/components/ui/card";
@@ -18,7 +18,7 @@ import { formatINR } from "@/lib/format";
 
 import { dateKeyFromISO, formatDuration } from "../types";
 import type { TimeEntryRecord } from "../server";
-import { deleteTimeEntryAction } from "../actions";
+import { deleteTimeEntryAction, bulkUpdateTimeEntriesAction } from "../actions";
 
 export interface TimeEntryLookup {
   projectById: Map<string, { name: string }>;
@@ -29,6 +29,7 @@ interface TimeEntriesTableProps {
   entries: TimeEntryRecord[];
   lookup: TimeEntryLookup;
   className?: string;
+  onEdit?: (entry: TimeEntryRecord) => void;
 }
 
 /**
@@ -40,8 +41,40 @@ export function TimeEntriesTable({
   entries,
   lookup,
   className,
+  onEdit,
 }: TimeEntriesTableProps) {
+  const router = useRouter();
   const grouped = React.useMemo(() => groupByDate(entries), [entries]);
+  const [selected, setSelected] = React.useState<Set<string>>(new Set());
+  const [bulkPending, startBulk] = React.useTransition();
+
+  React.useEffect(() => {
+    setSelected((prev) => {
+      const ids = new Set(entries.map((e) => e.id));
+      const next = new Set([...prev].filter((id) => ids.has(id)));
+      return next.size === prev.size ? prev : next;
+    });
+  }, [entries]);
+
+  const toggle = (id: string) =>
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+
+  const runBulk = (action: "delete" | "billable" | "non_billable") => {
+    const ids = [...selected];
+    if (ids.length === 0) return;
+    startBulk(async () => {
+      const res = await bulkUpdateTimeEntriesAction({ ids, action });
+      if (!res.ok) { toast.error(res.error); return; }
+      toast.success(res.message ?? "Done");
+      setSelected(new Set());
+      router.refresh();
+    });
+  };
 
   if (grouped.length === 0) {
     return (
@@ -58,6 +91,25 @@ export function TimeEntriesTable({
 
   return (
     <Card className={className}>
+      {selected.size > 0 && (
+        <div className="flex flex-wrap items-center gap-2 border-b bg-muted/40 px-4 py-2.5">
+          <span className="text-xs font-semibold">{selected.size} selected</span>
+          <div className="ml-auto flex flex-wrap items-center gap-1.5">
+            <Button size="sm" variant="outline" className="h-7" disabled={bulkPending} onClick={() => runBulk("billable")}>
+              <IndianRupee className="h-3.5 w-3.5" /> Billable
+            </Button>
+            <Button size="sm" variant="outline" className="h-7" disabled={bulkPending} onClick={() => runBulk("non_billable")}>
+              <CircleSlash className="h-3.5 w-3.5" /> Non-billable
+            </Button>
+            <Button size="sm" variant="outline" className="h-7 text-destructive hover:text-destructive" disabled={bulkPending} onClick={() => runBulk("delete")}>
+              <Trash2 className="h-3.5 w-3.5" /> Delete
+            </Button>
+            <Button size="sm" variant="ghost" className="h-7" onClick={() => setSelected(new Set())}>
+              Clear
+            </Button>
+          </div>
+        </div>
+      )}
       <CardContent className="p-0">
         <ul className="divide-y">
           {grouped.map((group) => {
@@ -77,7 +129,14 @@ export function TimeEntriesTable({
                 </div>
                 <ul className="divide-y">
                   {group.entries.map((e) => (
-                    <EntryRow key={e.id} entry={e} lookup={lookup} />
+                    <EntryRow
+                      key={e.id}
+                      entry={e}
+                      lookup={lookup}
+                      onEdit={onEdit}
+                      selected={selected.has(e.id)}
+                      onToggle={() => toggle(e.id)}
+                    />
                   ))}
                 </ul>
               </li>
@@ -92,9 +151,15 @@ export function TimeEntriesTable({
 function EntryRow({
   entry,
   lookup,
+  onEdit,
+  selected,
+  onToggle,
 }: {
   entry: TimeEntryRecord;
   lookup: TimeEntryLookup;
+  onEdit?: (entry: TimeEntryRecord) => void;
+  selected: boolean;
+  onToggle: () => void;
 }) {
   const router = useRouter();
   const [, startTransition] = React.useTransition();
@@ -116,7 +181,14 @@ function EntryRow({
   };
 
   return (
-    <li className="flex flex-col gap-1 px-4 py-3 hover:bg-muted/20 sm:flex-row sm:items-center sm:gap-4 sm:px-5">
+    <li className="flex items-start gap-3 px-4 py-3 hover:bg-muted/20 sm:items-center sm:gap-4 sm:px-5">
+      <input
+        type="checkbox"
+        checked={selected}
+        onChange={onToggle}
+        aria-label="Select entry"
+        className="mt-1 h-4 w-4 shrink-0 cursor-pointer rounded border-input accent-primary sm:mt-0"
+      />
       {/* Description + metadata */}
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm font-medium">
@@ -185,6 +257,18 @@ function EntryRow({
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
+            {onEdit && (
+              <DropdownMenuItem
+                disabled={Boolean(entry.invoiceId)}
+                onSelect={(e) => {
+                  e.preventDefault();
+                  onEdit(entry);
+                }}
+              >
+                <Pencil className="h-3.5 w-3.5" />
+                {entry.invoiceId ? "On an invoice" : "Edit"}
+              </DropdownMenuItem>
+            )}
             <DropdownMenuItem
               className="text-destructive focus:text-destructive"
               disabled={Boolean(entry.invoiceId)}

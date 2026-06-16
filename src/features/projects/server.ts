@@ -56,6 +56,8 @@ export interface ProjectRecord {
   status: ProjectStatusRow;
   startDate: string | null;
   dueDate: string | null;
+  billingEnabled: boolean;
+  hourlyRate: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -69,6 +71,8 @@ export function mapProjectRow(row: ProjectRow): ProjectRecord {
     status: row.status,
     startDate: row.start_date,
     dueDate: row.due_date,
+    billingEnabled: row.billing_enabled,
+    hourlyRate: row.hourly_rate,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };

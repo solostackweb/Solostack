@@ -38,7 +38,7 @@ export const manualTimeEntrySchema = z.object({
   billable: z
     .union([z.boolean(), z.literal("true"), z.literal("false")])
     .transform((v) => v === true || v === "true")
-    .default(true),
+    .default(false),
   hourlyRate: z.coerce.number().min(0).default(0),
   tags: z
     .union([z.string(), z.array(z.string())])
@@ -62,9 +62,24 @@ export const startTimerSchema = z.object({
   billable: z
     .union([z.boolean(), z.literal("true"), z.literal("false")])
     .transform((v) => v === true || v === "true")
-    .default(true),
+    .default(false),
 });
 
 export type StartTimerInput = z.infer<typeof startTimerSchema>;
 
 export const timeEntryIdSchema = z.string().uuid("Invalid time entry id");
+
+/** Edit an existing entry — same shape as manual entry plus the id. */
+export const updateTimeEntrySchema = manualTimeEntrySchema.extend({
+  id: timeEntryIdSchema,
+});
+
+export type UpdateTimeEntryInput = z.infer<typeof updateTimeEntrySchema>;
+
+/** Bulk operations over a set of owned entries. */
+export const bulkTimeActionSchema = z.object({
+  ids: z.array(z.string().uuid()).min(1).max(500),
+  action: z.enum(["delete", "billable", "non_billable"]),
+});
+
+export type BulkTimeActionInput = z.infer<typeof bulkTimeActionSchema>;

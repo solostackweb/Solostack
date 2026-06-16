@@ -1,8 +1,19 @@
 "use client";
 
 import * as React from "react";
-import { ArrowRight, Plus, Search } from "lucide-react";
+import {
+  ArrowRight,
+  BarChart3,
+  ChevronLeft,
+  ChevronRight,
+  Clock,
+  Download,
+  FileText,
+  Plus,
+  Search,
+} from "lucide-react";
 import Link from "next/link";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,17 +30,18 @@ import { formatINR } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 import {
-  dateKeyFromISO,
   formatDuration,
   secondsToHours,
 } from "../types";
 import type { TimeEntryRecord } from "../server";
+import type { TimeAnalytics } from "../analytics";
 import {
   ActiveTimerWidget,
   type TimerProjectOption,
 } from "./active-timer-widget";
 import { ManualEntryDialog } from "./manual-entry-dialog";
 import { TimeSummaryCards } from "./time-summary-cards";
+import { TimeAnalyticsView } from "./time-analytics";
 import {
   TimeEntriesTable,
   type TimeEntryLookup,
@@ -42,30 +54,80 @@ import type { AiTimeEntryDraft } from "@/features/ai-workflows/types";
 
 interface TimeDashboardViewProps {
   entries: TimeEntryRecord[];
+  summaryEntries: TimeEntryRecord[];
+  total: number;
+  page: number;
+  pageSize: number;
+  filters: { q: string; project: string; status: string; from: string; to: string };
+  unbilled: { seconds: number; amount: number };
   runningTimer: TimeEntryRecord | null;
+  analytics: TimeAnalytics;
   projects: TimerProjectOption[];
   clients: Array<{ id: string; name: string }>;
   defaultHourlyRate?: number;
 }
 
 /**
- * Top-level Time dashboard: header + summary KPIs + live timer + project
- * breakdown + entries table. Initial state comes from the server page;
- * mutations go through server actions and a `router.refresh()` re-hydrates
- * the snapshot.
+ * Top-level Time dashboard: a Tracker view (timer + entries) and a Reports
+ * view (analytics + exports), both driven by URL filters. Mutations go
+ * through server actions and a `router.refresh()` re-hydrates the snapshot.
  */
 export function TimeDashboardView({
   entries,
+  summaryEntries,
+  total,
+  page,
+  pageSize,
+  filters,
+  unbilled,
   runningTimer,
+  analytics,
   projects,
   clients,
   defaultHourlyRate = 0,
 }: TimeDashboardViewProps) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const [manualOpen, setManualOpen] = React.useState(false);
+  const [editingEntry, setEditingEntry] = React.useState<TimeEntryRecord | null>(null);
   const [aiOpen, setAiOpen] = React.useState(false);
   const [aiDraft, setAiDraft] = React.useState<AiTimeEntryDraft | null>(null);
-  const [search, setSearch] = React.useState("");
-  const [projectFilter, setProjectFilter] = React.useState<string>("all");
+  const [search, setSearch] = React.useState(filters.q);
+  const [tab, setTab] = React.useState<"tracker" | "reports">("tracker");
+
+  const setParam = React.useCallback(
+    (updates: Record<string, string | null>) => {
+      const sp = new URLSearchParams(searchParams.toString());
+      for (const [k, v] of Object.entries(updates)) {
+        if (v === null || v === "" || v === "all") sp.delete(k);
+        else sp.set(k, v);
+      }
+      sp.delete("page");
+      router.replace(`${pathname}?${sp.toString()}`);
+    },
+    [router, pathname, searchParams],
+  );
+
+  React.useEffect(() => {
+    if (search === filters.q) return;
+    const t = setTimeout(() => setParam({ q: search || null }), 400);
+    return () => clearTimeout(t);
+  }, [search, filters.q, setParam]);
+
+  const goToPage = (next: number) => {
+    const sp = new URLSearchParams(searchParams.toString());
+    if (next <= 1) sp.delete("page");
+    else sp.set("page", String(next));
+    router.replace(`${pathname}?${sp.toString()}`);
+  };
+
+  const exportHref = (format: "csv" | "pdf") => {
+    const sp = new URLSearchParams(searchParams.toString());
+    sp.delete("page");
+    sp.set("format", format);
+    return `/api/time/export?${sp.toString()}`;
+  };
 
   const lookup: TimeEntryLookup = React.useMemo(() => {
     const projectById = new Map(projects.map((p) => [p.id, { name: p.name }]));
@@ -73,28 +135,19 @@ export function TimeDashboardView({
     return { projectById, clientById };
   }, [projects, clients]);
 
-  const filtered = React.useMemo(() => {
-    const term = search.trim().toLowerCase();
-    return entries.filter((e) => {
-      if (projectFilter !== "all") {
-        const target = projectFilter === "__none__" ? null : projectFilter;
-        if (e.projectId !== target) return false;
-      }
-      if (!term) return true;
-      return (e.description ?? "").toLowerCase().includes(term);
-    });
-  }, [entries, search, projectFilter]);
-
-  // Scope summaries to the last 7 days so "this week" feels accurate.
-  const weekCutoff = React.useMemo(() => {
-    const d = new Date();
-    d.setDate(d.getDate() - 6);
-    return d.toISOString().slice(0, 10);
-  }, []);
-  const thisWeek = React.useMemo(
-    () => entries.filter((e) => dateKeyFromISO(e.startedAt) >= weekCutoff),
-    [entries, weekCutoff],
+  const projectName = React.useCallback(
+    (id: string | null) =>
+      id ? (lookup.projectById.get(id)?.name ?? "Unknown project") : "No project",
+    [lookup],
   );
+  const clientName = React.useCallback(
+    (id: string | null) =>
+      id ? (lookup.clientById.get(id)?.name ?? "Unknown client") : "No client",
+    [lookup],
+  );
+
+  const thisWeek = summaryEntries;
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
   const perProject = React.useMemo(() => {
     const map = new Map<string, { seconds: number; amount: number }>();
@@ -140,6 +193,35 @@ export function TimeDashboardView({
         }
       />
 
+      {/* View switcher */}
+      <div className="inline-flex rounded-lg border bg-muted/40 p-0.5 text-sm">
+        <button
+          type="button"
+          onClick={() => setTab("tracker")}
+          className={cn(
+            "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 font-medium transition",
+            tab === "tracker"
+              ? "bg-background shadow-sm"
+              : "text-muted-foreground hover:text-foreground",
+          )}
+        >
+          <Clock className="h-3.5 w-3.5" /> Tracker
+        </button>
+        <button
+          type="button"
+          onClick={() => setTab("reports")}
+          className={cn(
+            "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 font-medium transition",
+            tab === "reports"
+              ? "bg-background shadow-sm"
+              : "text-muted-foreground hover:text-foreground",
+          )}
+        >
+          <BarChart3 className="h-3.5 w-3.5" /> Reports
+        </button>
+      </div>
+
+      {tab === "tracker" && (
       <div
         className={cn(
           "grid items-start gap-6",
@@ -147,7 +229,7 @@ export function TimeDashboardView({
         )}
       >
         <div className="min-w-0 space-y-6">
-      <UnbilledBanner entries={entries} />
+      <UnbilledBanner seconds={unbilled.seconds} amount={unbilled.amount} />
 
       <TimeSummaryCards entries={thisWeek} />
 
@@ -161,7 +243,7 @@ export function TimeDashboardView({
         {/* Entries */}
         <div className="space-y-3">
           <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
-            <div className="relative w-full sm:flex-1 sm:max-w-md">
+            <div className="relative w-full sm:flex-1 sm:min-w-[180px]">
               <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
               <Input
                 placeholder="Search entries…"
@@ -170,13 +252,13 @@ export function TimeDashboardView({
                 className="h-9 pl-9"
               />
             </div>
-            <Select value={projectFilter} onValueChange={setProjectFilter}>
-              <SelectTrigger className="h-9 w-full sm:w-[200px]">
+            <Select value={filters.project} onValueChange={(v) => setParam({ project: v })}>
+              <SelectTrigger className="h-9 w-full sm:w-[180px]">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All projects</SelectItem>
-                <SelectItem value="__none__">No project</SelectItem>
+                <SelectItem value="none">No project</SelectItem>
                 {projects.map((p) => (
                   <SelectItem key={p.id} value={p.id}>
                     {p.name}
@@ -184,8 +266,35 @@ export function TimeDashboardView({
                 ))}
               </SelectContent>
             </Select>
+            <Select value={filters.status} onValueChange={(v) => setParam({ status: v })}>
+              <SelectTrigger className="h-9 w-full sm:w-[160px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All time</SelectItem>
+                <SelectItem value="billable">Billable</SelectItem>
+                <SelectItem value="non_billable">Non-billable</SelectItem>
+                <SelectItem value="unbilled">Unbilled</SelectItem>
+                <SelectItem value="invoiced">Invoiced</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
-          <TimeEntriesTable entries={filtered} lookup={lookup} />
+          <TimeEntriesTable entries={entries} lookup={lookup} onEdit={setEditingEntry} />
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between gap-2 pt-1">
+              <span className="text-[11px] text-muted-foreground">
+                Page {page} of {totalPages} · {total} entries
+              </span>
+              <div className="flex items-center gap-1">
+                <Button size="sm" variant="outline" className="h-8" disabled={page <= 1} onClick={() => goToPage(page - 1)}>
+                  <ChevronLeft className="h-3.5 w-3.5" /> Prev
+                </Button>
+                <Button size="sm" variant="outline" className="h-8" disabled={page >= totalPages} onClick={() => goToPage(page + 1)}>
+                  Next <ChevronRight className="h-3.5 w-3.5" />
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Project breakdown */}
@@ -249,14 +358,102 @@ export function TimeDashboardView({
           }}
         />
       </div>
+      )}
+
+      {tab === "reports" && (
+        <div className="space-y-6">
+          <ReportsToolbar
+            filters={filters}
+            projects={projects}
+            setParam={setParam}
+            exportHref={exportHref}
+          />
+          <TimeAnalyticsView
+            analytics={analytics}
+            projectName={projectName}
+            clientName={clientName}
+          />
+        </div>
+      )}
 
       <ManualEntryDialog
-        open={manualOpen}
-        onOpenChange={setManualOpen}
+        open={manualOpen || editingEntry !== null}
+        onOpenChange={(o) => {
+          if (!o) {
+            setManualOpen(false);
+            setEditingEntry(null);
+          } else {
+            setManualOpen(true);
+          }
+        }}
         projects={projects}
         defaultHourlyRate={defaultHourlyRate}
         initialAiDraft={aiDraft}
+        editing={editingEntry}
       />
+    </div>
+  );
+}
+
+function ReportsToolbar({
+  filters,
+  projects,
+  setParam,
+  exportHref,
+}: {
+  filters: { project: string; status: string; from: string; to: string };
+  projects: TimerProjectOption[];
+  setParam: (updates: Record<string, string | null>) => void;
+  exportHref: (format: "csv" | "pdf") => string;
+}) {
+  return (
+    <div className="flex flex-col gap-3 rounded-xl border bg-card p-3 sm:flex-row sm:flex-wrap sm:items-end">
+      <div className="grid grid-cols-2 gap-2 sm:flex sm:items-end">
+        <label className="space-y-1">
+          <span className="text-[11px] font-medium text-muted-foreground">From</span>
+          <Input
+            type="date"
+            value={filters.from}
+            onChange={(e) => setParam({ from: e.target.value || null })}
+            className="h-9 w-full sm:w-[150px]"
+          />
+        </label>
+        <label className="space-y-1">
+          <span className="text-[11px] font-medium text-muted-foreground">To</span>
+          <Input
+            type="date"
+            value={filters.to}
+            onChange={(e) => setParam({ to: e.target.value || null })}
+            className="h-9 w-full sm:w-[150px]"
+          />
+        </label>
+      </div>
+      <Select value={filters.project} onValueChange={(v) => setParam({ project: v })}>
+        <SelectTrigger className="h-9 w-full sm:w-[180px]">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="all">All projects</SelectItem>
+          <SelectItem value="none">No project</SelectItem>
+          {projects.map((p) => (
+            <SelectItem key={p.id} value={p.id}>
+              {p.name}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      <div className="flex items-center gap-2 sm:ml-auto">
+        <Button asChild size="sm" variant="outline" className="h-9">
+          <a href={exportHref("csv")}>
+            <Download className="h-3.5 w-3.5" /> CSV
+          </a>
+        </Button>
+        <Button asChild size="sm" variant="outline" className="h-9">
+          <a href={exportHref("pdf")} target="_blank" rel="noopener noreferrer">
+            <FileText className="h-3.5 w-3.5" /> PDF
+          </a>
+        </Button>
+      </div>
     </div>
   );
 }
@@ -265,12 +462,7 @@ export function TimeDashboardView({
  * Strip surfacing total uninvoiced billable value with a one-click path to
  * invoice it. Hidden when everything is billed.
  */
-function UnbilledBanner({ entries }: { entries: TimeEntryRecord[] }) {
-  const unbilled = entries.filter(
-    (e) => e.billable && !e.invoiceId && e.endedAt,
-  );
-  const seconds = unbilled.reduce((s, e) => s + e.durationSeconds, 0);
-  const amount = unbilled.reduce((s, e) => s + (Number(e.amount) || 0), 0);
+function UnbilledBanner({ seconds, amount }: { seconds: number; amount: number }) {
   if (seconds === 0 || amount === 0) return null;
   return (
     <div className="flex flex-col gap-3 rounded-xl border border-primary/20 bg-primary/[0.04] px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between">

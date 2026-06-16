@@ -55,6 +55,11 @@ export const projectCrudSchema = z.object({
   status: projectStatusSchema.default("planning"),
   startDate: optionalDate,
   dueDate: optionalDate,
+  billingEnabled: z
+    .union([z.boolean(), z.literal("true"), z.literal("false")])
+    .transform((v) => v === true || v === "true")
+    .default(false),
+  hourlyRate: z.coerce.number().min(0).default(0),
 });
 
 export type ProjectCrudInput = z.infer<typeof projectCrudSchema>;

@@ -266,6 +266,8 @@ export interface ProjectRow {
   status: ProjectStatusRow;
   start_date: string | null;
   due_date: string | null;
+  billing_enabled: boolean;
+  hourly_rate: number;
   created_at: string;
   updated_at: string;
 }

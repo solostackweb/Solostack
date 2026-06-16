@@ -31,9 +31,20 @@ export function secondsToHours(seconds: number) {
 }
 
 /**
- * Derive a YYYY-MM-DD "local" date for grouping from an ISO timestamp.
- * Uses UTC to stay deterministic across timezones / server vs client.
+ * Group by the viewer's LOCAL calendar day (YYYY-MM-DD), not the UTC day.
  */
 export function dateKeyFromISO(iso: string): string {
-  return iso.slice(0, 10);
+  const d = new Date(iso);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+/** Today's date key in the viewer's local timezone (YYYY-MM-DD). */
+export function localDateKey(date: Date = new Date()): string {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
 }

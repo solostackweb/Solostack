@@ -22,6 +22,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 
 import type { ProjectRecord } from "../server";
 import {
@@ -63,11 +64,15 @@ export function ProjectFormDialog({
   const [clientId, setClientId] = React.useState<string>(
     project?.clientId ?? NO_CLIENT,
   );
+  const [billingEnabled, setBillingEnabled] = React.useState<boolean>(
+    project?.billingEnabled ?? false,
+  );
 
   React.useEffect(() => {
     if (open) {
       setState(undefined);
       setClientId(project?.clientId ?? NO_CLIENT);
+      setBillingEnabled(project?.billingEnabled ?? false);
     }
   }, [open, project]);
 
@@ -78,6 +83,8 @@ export function ProjectFormDialog({
     if (clientId !== NO_CLIENT) formData.set("clientId", clientId);
     else formData.set("clientId", "");
     if (isEdit) formData.set("id", project.id);
+    formData.set("billingEnabled", billingEnabled ? "true" : "false");
+    if (!billingEnabled) formData.set("hourlyRate", "0");
 
     startTransition(async () => {
       const res = isEdit
@@ -156,6 +163,30 @@ export function ProjectFormDialog({
               Status is changed inline from the project header.
             </p>
           )}
+
+          <div className="space-y-3 rounded-lg border p-3">
+            <div className="flex items-center justify-between gap-2">
+              <div>
+                <p className="text-sm font-medium">Bill time on this project</p>
+                <p className="text-xs text-muted-foreground">
+                  Off = track time only. On = time can be billable and invoiced.
+                </p>
+              </div>
+              <Switch checked={billingEnabled} onCheckedChange={setBillingEnabled} />
+            </div>
+            {billingEnabled && (
+              <Field label="Default hourly rate (₹)" error={errs?.hourlyRate?.[0]}>
+                <Input
+                  type="number"
+                  name="hourlyRate"
+                  min="0"
+                  step="50"
+                  defaultValue={project?.hourlyRate ?? 0}
+                  className="tabular-nums"
+                />
+              </Field>
+            )}
+          </div>
 
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="Start date" error={errs?.startDate?.[0]}>

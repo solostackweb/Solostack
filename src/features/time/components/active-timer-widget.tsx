@@ -24,6 +24,8 @@ export interface TimerProjectOption {
   id: string;
   name: string;
   clientId: string | null;
+  billingEnabled?: boolean;
+  hourlyRate?: number;
 }
 
 interface ActiveTimerWidgetProps {
@@ -93,8 +95,13 @@ export function ActiveTimerWidget({
       const p = projects.find((x) => x.id === projectId);
       if (p?.clientId) fd.set("clientId", p.clientId);
     }
-    fd.set("billable", "true");
-    fd.set("hourlyRate", String(defaultHourlyRate));
+    // Billing is opt-in per project: a timer is billable only when the chosen
+    // project has billing enabled, using that project's rate.
+    const billProj =
+      projectId !== NO_PROJECT ? projects.find((x) => x.id === projectId) : undefined;
+    const willBill = !!billProj?.billingEnabled;
+    fd.set("billable", willBill ? "true" : "false");
+    fd.set("hourlyRate", String(willBill ? (billProj?.hourlyRate || defaultHourlyRate) : 0));
     // Optimistic: show the running timer instantly.
     const optimisticDesc = description.trim();
     const optimisticProject = projectId !== NO_PROJECT ? projectId : null;

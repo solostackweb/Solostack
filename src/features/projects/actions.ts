@@ -40,6 +40,8 @@ function parse(formData: FormData) {
     status: formData.get("status") ?? "planning",
     startDate: formData.get("startDate"),
     dueDate: formData.get("dueDate"),
+    billingEnabled: formData.get("billingEnabled") ?? "false",
+    hourlyRate: formData.get("hourlyRate") ?? 0,
   });
 }
 
@@ -67,6 +69,8 @@ export async function createProjectAction(
     status: parsed.data.status,
     start_date: parsed.data.startDate ?? null,
     due_date: parsed.data.dueDate ?? null,
+    billing_enabled: parsed.data.billingEnabled,
+    hourly_rate: parsed.data.hourlyRate,
   };
 
   const { data, error } = await supabase
@@ -128,6 +132,8 @@ export async function updateProjectAction(
     status: parsed.data.status,
     start_date: parsed.data.startDate ?? null,
     due_date: parsed.data.dueDate ?? null,
+    billing_enabled: parsed.data.billingEnabled,
+    hourly_rate: parsed.data.hourlyRate,
   };
   const { error } = await supabase
     .from("projects")

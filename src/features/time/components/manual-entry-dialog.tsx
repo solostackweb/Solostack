@@ -23,10 +23,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { manualTimeEntryAction } from "../actions";
+import { manualTimeEntryAction, updateTimeEntryAction } from "../actions";
 import { useSubscription } from "@/features/subscription/hooks/use-subscription";
 import { Sparkles } from "lucide-react";
 import type { TimerProjectOption } from "./active-timer-widget";
+import type { TimeEntryRecord } from "../server";
 import { GuidedAiWorkflowSheet } from "@/features/ai-workflows/components/guided-ai-workflow-sheet";
 import type { AiTimeEntryDraft } from "@/features/ai-workflows/types";
 
@@ -36,6 +37,7 @@ interface ManualEntryDialogProps {
   projects: TimerProjectOption[];
   defaultHourlyRate?: number;
   initialAiDraft?: AiTimeEntryDraft | null;
+  editing?: TimeEntryRecord | null;
 }
 
 const NO_PROJECT = "__none__";
@@ -60,8 +62,10 @@ export function ManualEntryDialog({
   projects,
   defaultHourlyRate = 0,
   initialAiDraft,
+  editing,
 }: ManualEntryDialogProps) {
   const router = useRouter();
+  const isEditing = Boolean(editing);
   const [pending, startTransition] = React.useTransition();
   const [values, setValues] = React.useState<FormState>(() => ({
     description: "",
@@ -69,20 +73,32 @@ export function ManualEntryDialog({
     date: new Date().toISOString().slice(0, 10),
     hours: 1,
     minutes: 0,
-    billable: true,
+    billable: false,
     hourlyRate: defaultHourlyRate,
   }));
 
   React.useEffect(() => {
-    if (open) {
+    if (!open) return;
+    if (editing) {
+      setValues({
+        description: editing.description ?? "",
+        projectId: editing.projectId ?? NO_PROJECT,
+        date: editing.startedAt.slice(0, 10),
+        hours: Math.floor(editing.durationSeconds / 3600),
+        minutes: Math.floor((editing.durationSeconds % 3600) / 60),
+        billable: editing.billable,
+        hourlyRate: editing.hourlyRate,
+      });
+    } else {
       setValues((v) => ({
         ...v,
         description: "",
+        billable: false,
         date: new Date().toISOString().slice(0, 10),
         hourlyRate: defaultHourlyRate,
       }));
     }
-  }, [open, defaultHourlyRate]);
+  }, [open, defaultHourlyRate, editing]);
 
   const handleSubmit = () => {
     if (!values.description.trim()) {
@@ -99,6 +115,7 @@ export function ManualEntryDialog({
     const startedAt = new Date(`${values.date}T12:00:00`).toISOString();
 
     const fd = new FormData();
+    if (editing) fd.set("id", editing.id);
     fd.set("description", values.description.trim());
     if (values.projectId !== NO_PROJECT) {
       fd.set("projectId", values.projectId);
@@ -111,12 +128,14 @@ export function ManualEntryDialog({
     fd.set("hourlyRate", String(values.billable ? values.hourlyRate : 0));
 
     startTransition(async () => {
-      const res = await manualTimeEntryAction(undefined, fd);
+      const res = editing
+        ? await updateTimeEntryAction(undefined, fd)
+        : await manualTimeEntryAction(undefined, fd);
       if (!res.ok) {
         toast.error(res.error);
         return;
       }
-      toast.success(res.message ?? "Time entry added");
+      toast.success(res.message ?? (editing ? "Entry updated" : "Time entry added"));
       onOpenChange(false);
       router.refresh();
     });
@@ -146,11 +165,14 @@ export function ManualEntryDialog({
         <DialogHeader>
           <div className="flex items-start justify-between gap-3">
             <div>
-              <DialogTitle>Log time</DialogTitle>
+              <DialogTitle>{isEditing ? "Edit time entry" : "Log time"}</DialogTitle>
               <DialogDescription>
-                Back-date an entry or log time you forgot to track live.
+                {isEditing
+                  ? "Update the details of this time entry."
+                  : "Back-date an entry or log time you forgot to track live."}
               </DialogDescription>
             </div>
+            {!isEditing && (
             <GuidedAiWorkflowSheet<AiTimeEntryDraft>
               workflow="time_entry"
               title="Let's log your time"
@@ -161,6 +183,7 @@ export function ManualEntryDialog({
               defaultHourlyRate={defaultHourlyRate}
               onApplyDraft={applyAiDraft}
             />
+            )}
           </div>
         </DialogHeader>
 
@@ -181,9 +204,16 @@ export function ManualEntryDialog({
           <Field label="Project">
             <Select
               value={values.projectId}
-              onValueChange={(v) =>
-                setValues((prev) => ({ ...prev, projectId: v }))
-              }
+              onValueChange={(v) => {
+                const proj = projects.find((x) => x.id === v);
+                const bill = !!proj?.billingEnabled;
+                setValues((prev) => ({
+                  ...prev,
+                  projectId: v,
+                  billable: bill,
+                  hourlyRate: bill ? (proj?.hourlyRate || defaultHourlyRate) : prev.hourlyRate,
+                }));
+              }}
             >
               <SelectTrigger>
                 <SelectValue />
@@ -247,6 +277,9 @@ export function ManualEntryDialog({
           <BillableField
             billable={values.billable}
             hourlyRate={values.hourlyRate}
+            projectBillingEnabled={
+              !!projects.find((x) => x.id === values.projectId)?.billingEnabled
+            }
             onBillableChange={(v) => setValues((prev) => ({ ...prev, billable: v }))}
             onRateChange={(v) => setValues((prev) => ({ ...prev, hourlyRate: v }))}
           />
@@ -261,7 +294,7 @@ export function ManualEntryDialog({
             Cancel
           </Button>
           <Button onClick={handleSubmit} disabled={pending}>
-            {pending ? "Saving…" : "Save entry"}
+            {pending ? "Saving…" : isEditing ? "Save changes" : "Save entry"}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -289,16 +322,26 @@ function Field({
 function BillableField({
   billable,
   hourlyRate,
+  projectBillingEnabled,
   onBillableChange,
   onRateChange,
 }: {
   billable: boolean;
   hourlyRate: number;
+  projectBillingEnabled: boolean;
   onBillableChange: (v: boolean) => void;
   onRateChange: (v: number) => void;
 }) {
   const { canUse } = useSubscription();
   const canUseBillable = canUse("time.billable_rates");
+
+  if (!projectBillingEnabled) {
+    return (
+      <p className="rounded-md border bg-muted/30 px-3 py-2.5 text-xs text-muted-foreground">
+        Tracking-only project. Enable time billing on the project to bill this time.
+      </p>
+    );
+  }
 
   if (!canUseBillable) {
     return (
