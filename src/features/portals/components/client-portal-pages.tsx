@@ -848,6 +848,7 @@ export function ClientPortalChat({ data }: { data: ClientPortalProps }) {
         portalId={data.portalId}
         messages={data.messages}
         currentUserId={data.currentUserId}
+        brandColor={data.brandColor}
       />
     </ClientPortalShell>
   );
@@ -1088,10 +1089,12 @@ function MessagesPanel({
   portalId,
   messages,
   currentUserId,
+  brandColor,
 }: {
   portalId: string;
   messages: ClientPortalProps["messages"];
   currentUserId: string;
+  brandColor: string;
 }) {
   const {
     messages: live, peerOnline, peerTyping, peerReadAt, pending, error, send, notifyTyping,
@@ -1158,15 +1161,16 @@ function MessagesPanel({
             return (
               <li
                 key={message.id}
-                className={`max-w-[86%] rounded-2xl border p-3 ${
+                style={mine ? { backgroundColor: brandColor } : undefined}
+                className={`w-fit max-w-[86%] rounded-2xl border p-3 ${
                   mine
-                    ? "ml-auto border-primary/30 bg-primary text-primary-foreground"
-                    : "mr-auto bg-background"
+                    ? "ml-auto rounded-br-sm border-transparent text-white"
+                    : "mr-auto rounded-bl-sm bg-background"
                 } ${message.pending ? "opacity-70" : ""}`}
               >
                 <p
                   className={`text-[11px] font-semibold ${
-                    mine ? "text-primary-foreground/75" : "text-muted-foreground"
+                    mine ? "text-white/75" : "text-muted-foreground"
                   }`}
                 >
                   {mine
