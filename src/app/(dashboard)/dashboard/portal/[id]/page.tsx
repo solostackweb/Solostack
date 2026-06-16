@@ -91,7 +91,7 @@ export default async function PortalDetailPage({
             <PortalMoneyStat label="Open" value={money(openAmount)} />
             <PortalMoneyStat label="Paid" value={money(paidAmount)} />
             <PortalMoneyStat label="Files" value={String(snapshot.files.length)} />
-            <Button asChild size="sm" className="h-9 shrink-0 gap-1.5 self-center">
+            <Button asChild variant="outline" size="sm" className="h-9 shrink-0 gap-1.5 self-center">
               <Link href={portalClientHome(id)} target="_blank">
                 View as client <ExternalLink className="h-3.5 w-3.5" />
               </Link>
@@ -285,7 +285,7 @@ function PortalMetric({
 
 function PortalMoneyStat({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-lg border bg-background/70 px-3 py-2">
+    <div className="min-w-[7rem] shrink-0 rounded-lg border bg-background/70 px-3 py-2">
       <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
         {label}
       </p>
