@@ -15,7 +15,6 @@ import {
   dispatchPortalMeetingRequestedComms,
   dispatchPortalMeetingConfirmedComms,
 } from "./email";
-import { buildJitsiRoom } from "./video";
 import { sendPushToPortal } from "./push";
 
 // =============================================================================
@@ -117,11 +116,10 @@ export async function acceptPortalMeetingAction(
     return { ok: false, error: mapAccessError(access) };
   }
 
-  // Auto-provision a built-in video room when the owner didn't paste a link,
-  // so every confirmed meeting has a working "Join" button.
-  const meetLink =
-    parsed.data.meetLink?.trim() ||
-    buildJitsiRoom(parsed.data.portalId, parsed.data.meetingId);
+  // The owner supplies the video link (Google Meet / Zoom). We no longer
+  // auto-generate a public Jitsi room — meet.jit.si now requires a logged-in
+  // moderator, so anonymous rooms get stuck "waiting for a moderator".
+  const meetLink = parsed.data.meetLink?.trim() || null;
 
   const admin = getAdminSupabase();
   const { error } = await admin

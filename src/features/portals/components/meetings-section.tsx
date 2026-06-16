@@ -306,6 +306,19 @@ function MeetingCard({
                 Decline
               </Button>
             )}
+            {/* Owner: Edit link / time of a confirmed meeting */}
+            {isOwner && meeting.status === "accepted" && (
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-8"
+                onClick={() => { setError(null); setAcceptOpen(true); }}
+                disabled={pending}
+              >
+                <Link2 className="h-3.5 w-3.5" />
+                Edit
+              </Button>
+            )}
             {/* Owner: Mark completed */}
             {isOwner && meeting.status === "accepted" && (
               <Button
@@ -377,10 +390,11 @@ function MeetingCard({
       >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Confirm meeting</DialogTitle>
+            <DialogTitle>
+              {meeting.status === "accepted" ? "Edit meeting" : "Confirm meeting"}
+            </DialogTitle>
             <DialogDescription>
-              Set a date and time. Leave the link blank and we&apos;ll create a
-              built-in video room automatically.
+              Set a date and time, and add a video call link (Google Meet or Zoom).
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleAccept} className="space-y-4">
@@ -418,17 +432,23 @@ function MeetingCard({
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="accept-link" className="text-xs">
-                Video link <span className="text-muted-foreground">(optional)</span>
+                Video call link
               </Label>
               <Input
                 id="accept-link"
-                placeholder="Leave blank for a built-in room, or paste Zoom / Meet"
+                placeholder="https://meet.google.com/xxx-xxxx-xxx"
                 value={meetLink}
                 onChange={(e) => setMeetLink(e.target.value)}
               />
-              <p className="text-[11px] text-muted-foreground">
-                A built-in video room is created automatically if you leave this empty.
-              </p>
+              <a
+                href="https://meet.google.com/new"
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground"
+              >
+                <ExternalLink className="h-3 w-3" />
+                Create a new Google Meet
+              </a>
             </div>
             {error && (
               <p className="rounded-md bg-destructive/10 p-2 text-xs text-destructive">
@@ -445,7 +465,13 @@ function MeetingCard({
                 Cancel
               </Button>
               <Button type="submit" disabled={pending}>
-                {pending ? <Loader2 className="animate-spin" /> : "Confirm meeting"}
+                {pending ? (
+                  <Loader2 className="animate-spin" />
+                ) : meeting.status === "accepted" ? (
+                  "Save changes"
+                ) : (
+                  "Confirm meeting"
+                )}
               </Button>
             </DialogFooter>
           </form>
