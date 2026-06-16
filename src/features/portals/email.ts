@@ -23,6 +23,7 @@ import {
   renderPortalUpdateApprovedEmail,
   renderPortalRevisionRequestedEmail,
   renderPortalFileUploadedEmail,
+  renderPortalWeeklyDigestEmail,
 } from "@/features/email/templates";
 import { portalClientHome, portalDashboardDetail } from "./routes";
 
@@ -569,5 +570,103 @@ export async function dispatchPortalFileUploadedComms(opts: {
     });
   } catch {
     // Fire-and-forget
+  }
+}
+
+/**
+ * Weekly digest → client. Summarises the last 7 days of activity and emails
+ * the client. Skips silently when there's nothing to report (no empty digests)
+ * or no client address. Returns whether an email was dispatched.
+ */
+export async function dispatchPortalWeeklyDigest(opts: {
+  portalId: string;
+  idempotencyKey: string;
+}): Promise<{ sent: boolean }> {
+  try {
+    const ctx = await getPortalCommsContext(opts.portalId);
+    if (!ctx || !ctx.clientEmail) return { sent: false };
+
+    const admin = getAdminSupabase();
+    const sinceIso = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+    const nowIso = new Date().toISOString();
+
+    const [updatesRes, filesRes, messagesRes, meetingsRes] = await Promise.all([
+      admin
+        .from("portal_updates")
+        .select("id", { count: "exact", head: true })
+        .eq("portal_id", opts.portalId)
+        .is("deleted_at", null)
+        .gte("created_at", sinceIso),
+      admin
+        .from("portal_files")
+        .select("id", { count: "exact", head: true })
+        .eq("portal_id", opts.portalId)
+        .is("deleted_at", null)
+        .gte("created_at", sinceIso),
+      admin
+        .from("portal_messages")
+        .select("id", { count: "exact", head: true })
+        .eq("portal_id", opts.portalId)
+        .is("deleted_at", null)
+        .neq("author_id", ctx.clientUserId ?? "00000000-0000-0000-0000-000000000000")
+        .gte("created_at", sinceIso),
+      admin
+        .from("portal_meetings")
+        .select("id", { count: "exact", head: true })
+        .eq("portal_id", opts.portalId)
+        .eq("status", "accepted")
+        .gte("scheduled_at", nowIso),
+    ]);
+
+    const newUpdates = updatesRes.count ?? 0;
+    const newFiles = filesRes.count ?? 0;
+    const newMessages = messagesRes.count ?? 0;
+    const upcomingMeetings = meetingsRes.count ?? 0;
+
+    const facts: { label: string; value: string }[] = [];
+    if (newUpdates) facts.push({ label: "New updates", value: String(newUpdates) });
+    if (newFiles) facts.push({ label: "Files shared", value: String(newFiles) });
+    if (newMessages) facts.push({ label: "New messages", value: String(newMessages) });
+    if (upcomingMeetings) facts.push({ label: "Upcoming meetings", value: String(upcomingMeetings) });
+
+    // Nothing happened — don't send an empty digest.
+    if (facts.length === 0) return { sent: false };
+
+    const portalUrl = `${process.env.NEXT_PUBLIC_APP_URL ?? ""}${portalClientHome(opts.portalId)}`;
+    const brand = buildEmailBrand({
+      businessName: ctx.ownerBusinessName ?? ctx.ownerName,
+      brandColor: ctx.ownerBrandColor,
+      logoUrl: ctx.ownerLogoUrl,
+      businessEmail: ctx.ownerContactEmail,
+      businessPhone: ctx.ownerContactPhone,
+      website: ctx.ownerWebsite,
+    });
+
+    const rendered = renderPortalWeeklyDigestEmail({
+      portalName: ctx.portalName,
+      clientName: ctx.clientName,
+      senderName: ctx.ownerName,
+      senderEmail: ctx.ownerEmail ?? undefined,
+      facts,
+      portalUrl,
+      brand,
+    });
+
+    const res = await dispatchDelivery({
+      userId: ctx.ownerUserId,
+      kind: "portal_digest",
+      entityType: "portal",
+      entityId: opts.portalId,
+      senderType: "connect",
+      to: { email: ctx.clientEmail, name: ctx.clientName ?? undefined },
+      subject: rendered.subject,
+      html: rendered.html,
+      text: rendered.text,
+      idempotencyKey: opts.idempotencyKey,
+      tags: ["portal", "portal_digest"],
+    });
+    return { sent: res.ok };
+  } catch {
+    return { sent: false };
   }
 }

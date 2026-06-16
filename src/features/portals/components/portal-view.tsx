@@ -67,6 +67,7 @@ import { storageTone } from "../storage";
 import { DocumentCommentsThread } from "./document-comments";
 import { EnablePushButton } from "./enable-push-button";
 import { PortalQrCard } from "./portal-qr-card";
+import { TypingDots } from "./typing-dots";
 import {
   invitePortalMemberAction,
   deletePortalFileAction,
@@ -1873,14 +1874,29 @@ function MessagesSection({
           Chat
         </CardTitle>
         <span
-          className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-medium ${
-            peerOnline
-              ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
-              : "bg-muted text-muted-foreground"
+          className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-semibold ${
+            peerTyping
+              ? "bg-primary/10 text-primary"
+              : peerOnline
+                ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                : "bg-muted text-muted-foreground"
           }`}
         >
-          <span className={`h-1.5 w-1.5 rounded-full ${peerOnline ? "bg-emerald-500" : "bg-muted-foreground/40"}`} />
-          {peerTyping ? "Typing…" : peerOnline ? "Online" : "Offline"}
+          {peerTyping ? (
+            <>
+              <TypingDots /> typing
+            </>
+          ) : (
+            <>
+              <span className="relative flex h-1.5 w-1.5">
+                {peerOnline && (
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-500 opacity-75" />
+                )}
+                <span className={`relative inline-flex h-1.5 w-1.5 rounded-full ${peerOnline ? "bg-emerald-500" : "bg-muted-foreground/40"}`} />
+              </span>
+              {peerOnline ? "Online" : "Offline"}
+            </>
+          )}
         </span>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -1892,32 +1908,35 @@ function MessagesSection({
             hint="Use the form below to start the conversation."
           />
         ) : (
-          <ul ref={listRef} className="max-h-[46svh] space-y-2.5 overflow-y-auto">
+          <ul ref={listRef} className="max-h-[46svh] space-y-3 overflow-y-auto">
             {live.map((m) => {
               const mine = m.author_id === currentUserId;
               return (
                 <li
                   key={m.id}
-                  className={`rounded-lg border p-3 ${mine ? "border-primary/30 bg-primary/5" : "bg-card"} ${m.pending ? "opacity-70" : ""}`}
+                  className={`max-w-[86%] rounded-2xl border p-3 ${
+                    mine
+                      ? "ml-auto rounded-br-sm border-primary/30 bg-primary text-primary-foreground"
+                      : "mr-auto rounded-bl-sm bg-background"
+                  } ${m.pending ? "opacity-70" : ""}`}
                 >
-                  <div className="mb-1.5 flex items-center gap-2 text-[11px] text-muted-foreground">
-                    <span className="font-semibold text-foreground">
-                      {mine ? "You" : m.author?.full_name ?? m.author?.email ?? "Client"}
-                    </span>
-                    <span aria-hidden>·</span>
-                    <time dateTime={m.created_at} className="tabular-nums">
-                      {getRelativeTime(m.created_at)}
-                    </time>
-                  </div>
-                  <p className="whitespace-pre-wrap text-sm leading-relaxed">
+                  <p
+                    className={`text-[11px] font-semibold ${
+                      mine ? "text-primary-foreground/75" : "text-muted-foreground"
+                    }`}
+                  >
+                    {mine ? "You" : m.author?.full_name ?? m.author?.email ?? "Client"}{" "}
+                    · {getRelativeTime(m.created_at)}
+                  </p>
+                  <p className="mt-1 whitespace-pre-wrap text-sm leading-relaxed">
                     {m.body}
                   </p>
                 </li>
               );
             })}
             {peerTyping && (
-              <li className="rounded-lg border bg-card px-3 py-2 text-xs text-muted-foreground">
-                Typing…
+              <li className="mr-auto flex w-fit items-center rounded-2xl rounded-bl-sm border bg-background px-3.5 py-2.5 text-muted-foreground">
+                <TypingDots />
               </li>
             )}
           </ul>

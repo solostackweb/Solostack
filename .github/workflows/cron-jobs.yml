@@ -22,6 +22,8 @@ on:
     - cron: "0 * * * *"
     # ── Operational monitor (every 15 min) ──────────────────────────────
     - cron: "*/15 * * * *"
+    # ── Weekly portal digest (Mondays 04:00 UTC = 9:30 AM IST) ───────────
+    - cron: "0 4 * * 1"
   # Manual trigger from Actions tab
   workflow_dispatch:
     inputs:
@@ -35,6 +37,7 @@ on:
           - invoices-due-soon
           - admin-export
           - monitor
+          - portal-digest
 
 # Shared curl helper — defined once, reused by every job via env
 env:
@@ -122,6 +125,28 @@ jobs:
           HTTP_CODE=$(curl -s -L --location-trusted -o /tmp/body.txt -w "%{http_code}" \
             -H "Authorization: Bearer $SECRET" \
             "$BASE_URL/api/cron/monitor")
+          BODY=$(cat /tmp/body.txt)
+          echo "HTTP status : $HTTP_CODE"
+          echo "Response    : $BODY"
+          if [ "$HTTP_CODE" -lt 200 ] || [ "$HTTP_CODE" -ge 300 ]; then
+            echo "::error::Endpoint returned HTTP $HTTP_CODE — $BODY"
+            exit 1
+          fi
+
+  # ── Weekly portal digest (Mondays 04:00 UTC) ──────────────────────────────
+  portal-digest:
+    name: Weekly portal digest
+    runs-on: ubuntu-latest
+    if: >-
+      (github.event_name == 'workflow_dispatch' && github.event.inputs.job == 'portal-digest') ||
+      (github.event_name == 'schedule' && github.event.schedule == '0 4 * * 1')
+    steps:
+      - name: Call /api/cron/portal-digest
+        run: |
+          echo "Calling: $BASE_URL/api/cron/portal-digest"
+          HTTP_CODE=$(curl -s -L --location-trusted -o /tmp/body.txt -w "%{http_code}" \
+            -H "Authorization: Bearer $SECRET" \
+            "$BASE_URL/api/cron/portal-digest")
           BODY=$(cat /tmp/body.txt)
           echo "HTTP status : $HTTP_CODE"
           echo "Response    : $BODY"

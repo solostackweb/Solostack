@@ -106,6 +106,29 @@ export function usePortalMessages({
           });
         },
       )
+      .on("broadcast", { event: "message" }, (payload) => {
+        // Primary live-delivery path: the sender broadcasts the row directly,
+        // so it works regardless of the postgres_changes publication / RLS.
+        const row = payload.payload as Partial<PortalMessageRow> | undefined;
+        if (!row?.id || !row.author_id || row.author_id === currentUserId) return;
+        setMessages((prev) => {
+          if (prev.some((m) => m.id === row.id)) return prev;
+          const next: PortalChatMessage = {
+            id: row.id!,
+            portal_id: portalId,
+            parent_id: row.parent_id ?? null,
+            author_id: row.author_id!,
+            body: row.body ?? "",
+            attachments: null,
+            created_at: row.created_at ?? new Date().toISOString(),
+            edited_at: null,
+            deleted_at: null,
+            author: null,
+          };
+          setTimeout(() => markRead(), 400);
+          return sortAsc([...prev, next]);
+        });
+      })
       .on("broadcast", { event: "typing" }, (payload) => {
         const userId = (payload.payload as { userId?: string })?.userId;
         if (!userId || userId === currentUserId) return;
@@ -180,6 +203,7 @@ export function usePortalMessages({
       }
       // Reconcile: give the optimistic row its real id (realtime echo dedupes).
       const realId = res.data.messageId;
+      const createdAt = optimistic.created_at;
       setMessages((prev) =>
         prev.some((m) => m.id === realId)
           ? prev.filter((m) => m.id !== tempId)
@@ -187,6 +211,19 @@ export function usePortalMessages({
               m.id === tempId ? { ...m, id: realId, pending: false } : m,
             ),
       );
+      // Broadcast the message so the other side gets it live without relying on
+      // the postgres_changes publication / RLS.
+      channelRef.current?.send({
+        type: "broadcast",
+        event: "message",
+        payload: {
+          id: realId,
+          portal_id: portalId,
+          author_id: currentUserId,
+          body: trimmed,
+          created_at: createdAt,
+        },
+      });
     },
     [portalId, currentUserId, pending],
   );

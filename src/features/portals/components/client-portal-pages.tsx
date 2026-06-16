@@ -31,6 +31,7 @@ import { DocumentCommentsThread } from "./document-comments";
 import { EnablePushButton } from "./enable-push-button";
 import { SaveContactButton, SharePortalButton } from "./portal-share-buttons";
 import { MilestoneTimeline } from "./milestone-timeline";
+import { TypingDots } from "./typing-dots";
 import { UpdatesSection } from "./updates-section";
 import { MeetingsSection } from "./meetings-section";
 import type { ViewProps } from "./portal-view";
@@ -1179,18 +1180,31 @@ function MessagesPanel({
       <div className="flex items-center justify-between gap-2 border-b px-4 py-3">
         <div className="min-w-0">
           <h2 className="text-sm font-semibold">Conversation</h2>
-          <p className="text-xs text-muted-foreground">
-            {peerTyping ? "Typing…" : peerOnline ? "Online now" : "Messages stay inside this portal"}
-          </p>
+          <div className="flex h-4 items-center text-xs text-muted-foreground">
+            {peerTyping ? (
+              <span className="flex items-center gap-1.5 text-primary">
+                <TypingDots /> typing
+              </span>
+            ) : peerOnline ? (
+              "Online now"
+            ) : (
+              "Messages stay inside this portal"
+            )}
+          </div>
         </div>
         <span
-          className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-medium ${
+          className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-semibold ${
             peerOnline
               ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
               : "bg-muted text-muted-foreground"
           }`}
         >
-          <span className={`h-1.5 w-1.5 rounded-full ${peerOnline ? "bg-emerald-500" : "bg-muted-foreground/40"}`} />
+          <span className="relative flex h-1.5 w-1.5">
+            {peerOnline && (
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-500 opacity-75" />
+            )}
+            <span className={`relative inline-flex h-1.5 w-1.5 rounded-full ${peerOnline ? "bg-emerald-500" : "bg-muted-foreground/40"}`} />
+          </span>
           {peerOnline ? "Online" : "Offline"}
         </span>
       </div>
@@ -1223,8 +1237,8 @@ function MessagesPanel({
             );
           })}
           {peerTyping && (
-            <li className="mr-auto max-w-[86%] rounded-2xl border bg-background px-3 py-2 text-xs text-muted-foreground">
-              Typing…
+            <li className="mr-auto flex max-w-[86%] items-center rounded-2xl rounded-bl-sm border bg-background px-3.5 py-2.5 text-muted-foreground">
+              <TypingDots />
             </li>
           )}
         </ul>

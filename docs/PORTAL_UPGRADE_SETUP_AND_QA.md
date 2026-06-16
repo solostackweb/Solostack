@@ -66,12 +66,17 @@ NEXT_PUBLIC one so the browser can subscribe.
 
 ---
 
-## 4. Scheduling (GitHub Actions) — no action needed
+## 4. Scheduling (GitHub Actions)
 
-The existing `.github/workflows/cron-jobs.yml` already runs `/api/cron/monitor` every 15
-minutes, which touches the DB and **keeps the free Supabase project from pausing** — the
-prerequisite for realtime. No new workflow required. (Vercel Cron is intentionally not
-used — it's not on the free plan.)
+`.github/workflows/cron-jobs.yml`:
+- The existing `/api/cron/monitor` job runs every 15 minutes — touches the DB and **keeps
+  the free Supabase project from pausing** (prerequisite for realtime). No action needed.
+- **New: weekly portal digest** — a `portal-digest` job runs Mondays 04:00 UTC, hitting
+  `/api/cron/portal-digest`. It reuses the existing `APP_URL` + `CRON_SECRET` GitHub repo
+  secrets (already configured for the other cron jobs — nothing new to add). You can also
+  trigger it manually from the Actions tab → "Run workflow" → `portal-digest`.
+
+(Vercel Cron is intentionally not used — it's not on the free plan.)
 
 ---
 
@@ -162,6 +167,13 @@ Tip: test with **two browsers** (freelancer + client) side by side for the realt
 1. Client → Updates tab → "Project timeline" lists updates chronologically with
    type icons, dates, and green checks on approved items. ✅
 
+**Weekly digest email**
+1. Post an update / share a file in a portal that has a client with an email.
+2. Actions tab → run the `portal-digest` workflow (or wait for Monday).
+3. The client receives a "Your weekly update — {portal}" email summarising the last 7
+   days (updates / files / messages / upcoming meetings). Portals with no activity are
+   skipped (no empty emails); a same-day re-run does not double-send (idempotent). ✅
+
 **Portal QR**
 1. Freelancer right rail → **Portal QR** → Show QR → scan with a phone → opens the client
    portal link. Download saves the PNG. ✅
@@ -182,7 +194,6 @@ Tip: test with **two browsers** (freelancer + client) side by side for the realt
 ---
 
 ## 8. Deferred (planned, not built)
-- **Weekly digest email** (Brevo + cron) — real-time push already covers re-engagement.
 - **Hindi localization** — explicitly descoped.
 - **Per-portal logo override** — currently uses the freelancer's single brand logo.
 

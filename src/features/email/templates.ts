@@ -749,6 +749,50 @@ export function renderPortalUpdatePostedEmail(
   };
 }
 
+// --- Portal weekly digest (owner → client) -------------------------------
+
+export interface PortalWeeklyDigestInput {
+  portalName: string;
+  clientName: string | null;
+  senderName: string;
+  senderEmail?: string;
+  /** Summary lines, e.g. "New updates" → "2". */
+  facts: { label: string; value: string }[];
+  portalUrl: string;
+  brand?: EmailBrand;
+}
+
+export function renderPortalWeeklyDigestEmail(
+  input: PortalWeeklyDigestInput,
+): EmailRender {
+  const greeting = input.clientName ? `Hi ${input.clientName},` : "Hello,";
+  const paragraphs: string[] = [
+    greeting,
+    `Here's what moved in your "${input.portalName}" workspace this past week.`,
+  ];
+
+  return {
+    subject: `Your weekly update — ${input.portalName}`,
+    html: envelope({
+      preheader: `This week in ${input.portalName}`,
+      eyebrow: "Weekly Digest",
+      heading: "This week's progress",
+      subheading: input.portalName,
+      paragraphs,
+      facts: input.facts,
+      cta: { label: "Open your portal", href: input.portalUrl },
+      signature: formatSenderSignature(input.senderName, input.senderEmail),
+      brand: input.brand,
+    }),
+    text: plain(
+      paragraphs,
+      { label: "Open your portal", href: input.portalUrl },
+      formatSenderSignature(input.senderName, input.senderEmail),
+      input.facts,
+    ),
+  };
+}
+
 // --- Portal meeting requested (client → owner) ---------------------------
 
 export interface PortalMeetingRequestedInput {
