@@ -260,7 +260,6 @@ export function PortalView(props: ViewProps) {
         portalId={props.portalId}
         messages={props.messages}
         currentUserId={props.currentUserId}
-        brandColor={props.brandColor}
       />
     </>
   ) : (
@@ -313,7 +312,6 @@ export function PortalView(props: ViewProps) {
         portalId={props.portalId}
         messages={props.messages}
         currentUserId={props.currentUserId}
-        brandColor={props.brandColor}
       />
     </>
   );
@@ -539,7 +537,6 @@ function ClientPortalExperience(props: ViewProps) {
         messages={props.messages}
         portalId={props.portalId}
         currentUserId={props.currentUserId}
-        brandColor={props.brandColor}
       />
 
       <ClientBottomNav />
@@ -1016,14 +1013,12 @@ function ClientMorePanel({
   messages,
   portalId,
   currentUserId,
-  brandColor,
 }: {
   portalName: string;
   members: ViewProps["members"];
   messages: ViewProps["messages"];
   portalId: string;
   currentUserId: string;
-  brandColor: string;
 }) {
   const client = members.find((member) => member.role === "client") ?? members[0] ?? null;
 
@@ -1038,7 +1033,7 @@ function ClientMorePanel({
           <MoreRow icon={Info} title="Portal information" meta={portalName} />
         </div>
       </div>
-      <MessagesSection portalId={portalId} messages={messages} currentUserId={currentUserId} brandColor={brandColor} />
+      <MessagesSection portalId={portalId} messages={messages} currentUserId={currentUserId} />
     </section>
   );
 }
@@ -1778,12 +1773,10 @@ function MessagesSection({
   portalId,
   messages,
   currentUserId,
-  brandColor,
 }: {
   portalId: string;
   messages: ViewProps["messages"];
   currentUserId: string;
-  brandColor: string;
 }) {
   const {
     messages: live, peerOnline, peerTyping, peerReadAt, pending, error, send, notifyTyping,
@@ -1857,16 +1850,15 @@ function MessagesSection({
               return (
                 <li
                   key={m.id}
-                  style={mine ? { backgroundColor: brandColor } : undefined}
                   className={`w-fit max-w-[86%] rounded-2xl border p-3 ${
                     mine
-                      ? "ml-auto rounded-br-sm border-transparent text-white"
+                      ? "ml-auto rounded-br-sm border-primary/30 bg-primary text-primary-foreground"
                       : "mr-auto rounded-bl-sm bg-background"
                   } ${m.pending ? "opacity-70" : ""}`}
                 >
                   <p
                     className={`text-[11px] font-semibold ${
-                      mine ? "text-white/75" : "text-muted-foreground"
+                      mine ? "text-primary-foreground/75" : "text-muted-foreground"
                     }`}
                   >
                     {mine ? "You" : m.author?.full_name ?? m.author?.email ?? "Client"}{" "}
