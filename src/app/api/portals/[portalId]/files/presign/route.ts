@@ -27,9 +27,7 @@ import {
   PortalAccessError,
   requirePortalAccess,
 } from "@/features/portals/server";
-import { requireFeature } from "@/features/subscription/server";
-import { limitFor } from "@/features/subscription/features";
-import { effectivePortalStorageCap } from "@/features/portals/storage";
+import { PORTAL_STORAGE_CAP_BYTES } from "@/features/portals/storage";
 import crypto from "node:crypto";
 
 export const runtime = "nodejs";
@@ -53,10 +51,10 @@ export async function POST(
 
   const { portalId } = await ctx.params;
 
-  // Plan + access guards. Order matters: feature first so a Free-plan user
-  // gets a "Upgrade to Pro" message rather than a 403 leak.
-  const sub = await requireFeature("clients.portal");
-
+  // Access guard only. We do NOT gate on the uploader's plan feature here —
+  // the client (a portal member, not the plan owner) must be able to upload,
+  // and requireFeature() redirects (returns HTML) for non-owners, which broke
+  // the JSON upload flow. The per-portal cap below bounds storage instead.
   const access = await requirePortalAccess(portalId).catch(
     (e) => e as PortalAccessError,
   );
@@ -78,7 +76,7 @@ export async function POST(
 
   // Soft quota check — the COMMIT step re-checks against the actual
   // uploaded size, so this is best-effort UX.
-  const cap = effectivePortalStorageCap(limitFor(sub, "storage_bytes"));
+  const cap = PORTAL_STORAGE_CAP_BYTES;
   if (Number.isFinite(cap)) {
     const admin = getAdminSupabase();
     const { data: usageRow } = await admin

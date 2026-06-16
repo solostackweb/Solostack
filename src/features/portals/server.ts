@@ -13,6 +13,10 @@ import "server-only";
 import { redirect } from "next/navigation";
 import { getServerSupabase } from "@/lib/supabase/server";
 import { getAdminSupabase } from "@/lib/supabase/admin";
+import {
+  ensureInvoicePublicToken,
+  ensureContractPublicToken,
+} from "@/features/share/server";
 import { AUTH_LOGIN_ROUTE } from "@/features/auth/routes";
 import type {
   PortalRow,
@@ -529,6 +533,21 @@ export async function getPortalSnapshot(
     };
   })
   .filter((i) => i.status !== "draft");
+
+  // Backfill public share tokens so the client can always open shared docs.
+  // ensure*PublicToken is idempotent — it only writes when the token is null.
+  await Promise.all([
+    ...contracts
+      .filter((c) => !c.public_token)
+      .map(async (c) => {
+        c.public_token = await ensureContractPublicToken(c.id);
+      }),
+    ...invoices
+      .filter((i) => !i.public_token)
+      .map(async (i) => {
+        i.public_token = await ensureInvoicePublicToken(i.id);
+      }),
+  ]);
 
   const welcomeDocuments = ((welcomeDocsRes.data ?? []) as Array<{
     document_id: string;

@@ -19,9 +19,7 @@ import {
   recordPortalActivity,
   requirePortalAccess,
 } from "@/features/portals/server";
-import { requireFeature } from "@/features/subscription/server";
-import { limitFor } from "@/features/subscription/features";
-import { effectivePortalStorageCap } from "@/features/portals/storage";
+import { PORTAL_STORAGE_CAP_BYTES } from "@/features/portals/storage";
 import {
   portalClientHome,
   portalDashboardDetail,
@@ -55,7 +53,8 @@ export async function POST(
   }
 
   const { portalId } = await ctx.params;
-  const sub = await requireFeature("clients.portal");
+  // Access-only guard (see presign route): clients must be able to upload, and
+  // requireFeature() redirects to HTML for non-owners.
   const access = await requirePortalAccess(portalId).catch(
     (e) => e as PortalAccessError,
   );
@@ -86,7 +85,7 @@ export async function POST(
   }
 
   // Hard quota re-check now that we know the actual on-disk size.
-  const cap = effectivePortalStorageCap(limitFor(sub, "storage_bytes"));
+  const cap = PORTAL_STORAGE_CAP_BYTES;
   const admin = getAdminSupabase();
   if (Number.isFinite(cap)) {
     const { data: usageRow } = await admin

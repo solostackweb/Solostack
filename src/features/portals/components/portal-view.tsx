@@ -1748,6 +1748,16 @@ function FileUploadButton({ portalId }: { portalId: string }) {
     if (!filelist || filelist.length === 0) return;
     setPending(true);
     setError(null);
+    const readJson = async (res: Response) => {
+      const text = await res.text();
+      try {
+        return JSON.parse(text);
+      } catch {
+        throw new Error(
+          res.ok ? "Unexpected server response." : `Request failed (${res.status}).`,
+        );
+      }
+    };
     try {
       for (const file of Array.from(filelist)) {
         // Step 1: presign
@@ -1760,7 +1770,7 @@ function FileUploadButton({ portalId }: { portalId: string }) {
             sizeBytes: file.size,
           }),
         });
-        const presign = (await presignRes.json()) as
+        const presign = (await readJson(presignRes)) as
           | { ok: true; fileId: string; key: string; putUrl: string }
           | { ok: false; error: string };
         if (!presign.ok) throw new Error(presign.error);
@@ -1784,7 +1794,7 @@ function FileUploadButton({ portalId }: { portalId: string }) {
             mimeType: file.type || "application/octet-stream",
           }),
         });
-        const commit = (await commitRes.json()) as
+        const commit = (await readJson(commitRes)) as
           | { ok: true }
           | { ok: false; error: string };
         if (!commit.ok) throw new Error(commit.error);
