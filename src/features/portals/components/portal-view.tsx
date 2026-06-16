@@ -327,7 +327,7 @@ export function PortalView(props: ViewProps) {
         {/* Right rail — owner-only admin chrome. Sticky on desktop so it stays
             visible while the main column scrolls. */}
         {isOwner && (
-          <div className="space-y-4 lg:sticky lg:top-20 lg:self-start lg:max-h-[calc(100dvh-6rem)] lg:overflow-y-auto lg:pb-2 lg:pr-1 scrollbar-thin">
+          <div className="space-y-4 lg:sticky lg:top-20 lg:self-start">
             {/* Members first — most actionable for the freelancer */}
             <MembersSection
               portalId={props.portalId}
@@ -1250,7 +1250,7 @@ function WelcomeDocumentsSection({
             message={isOwner ? "Attach a welcome guide to onboard your client." : "No onboarding guides attached yet."}
           />
         ) : (
-          <ul className="divide-y rounded-lg border">
+          <ul className={`divide-y rounded-lg border ${documents.length > 5 ? "max-h-[28rem] overflow-y-auto scrollbar-thin" : ""}`}>
             {documents.map((d) => {
               const needsAck = d.acknowledgement_required && d.status !== "acknowledged";
               return (
@@ -1360,7 +1360,7 @@ function ContractsSection({
             message="No contracts attached yet."
           />
         ) : (
-          <ul className="divide-y rounded-lg border">
+          <ul className={`divide-y rounded-lg border ${contracts.length > 5 ? "max-h-[28rem] overflow-y-auto scrollbar-thin" : ""}`}>
             {contracts.map((c) => {
               const needsSign = c.status !== "signed" && c.status !== "declined";
               return (
@@ -1469,7 +1469,7 @@ function InvoicesSection({
             message="No invoices attached yet."
           />
         ) : (
-          <ul className="divide-y rounded-lg border">
+          <ul className={`divide-y rounded-lg border ${invoices.length > 5 ? "max-h-[28rem] overflow-y-auto scrollbar-thin" : ""}`}>
             {invoices.map((i) => {
               const paid = i.status === "paid";
               const cancelled = i.status === "cancelled";
@@ -1684,7 +1684,7 @@ function FilesSection({
             hint={r2Enabled ? "Upload files to share them with your client." : undefined}
           />
         ) : (
-          <ul className="divide-y rounded-lg border">
+          <ul className={`divide-y rounded-lg border ${displayFiles.length > 5 ? "max-h-80 overflow-y-auto scrollbar-thin" : ""}`}>
             {displayFiles.map((f) => {
               const catLabel = CATEGORY_LABEL[f.category ?? "misc"] ?? "";
               const catStyle = CATEGORY_STYLE[f.category ?? "misc"] ?? "";

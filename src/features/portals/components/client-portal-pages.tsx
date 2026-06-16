@@ -669,7 +669,13 @@ export function ClientPortalFiles({ data }: { data: ClientPortalProps }) {
           data.welcomeDocuments.length > 0) && (
           <section className="rounded-2xl border bg-card p-4 shadow-sm">
             <h2 className="text-sm font-semibold">Project documents</h2>
-            <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
+            <div
+              className={`mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2 ${
+                data.invoices.length + data.contracts.length + data.welcomeDocuments.length > 6
+                  ? "max-h-[34rem] overflow-y-auto scrollbar-thin pr-1"
+                  : ""
+              }`}
+            >
               {data.invoices.map((invoice) => (
                 <DocumentExternalCard
                   key={invoice.id}
@@ -760,7 +766,11 @@ export function ClientPortalFiles({ data }: { data: ClientPortalProps }) {
               text="When your freelancer uploads delivery files, they will appear here."
             />
           ) : (
-            <div className="mt-4 space-y-5">
+            <div
+              className={`mt-4 space-y-5 ${
+                data.files.length > 5 ? "max-h-[30rem] overflow-y-auto scrollbar-thin pr-1" : ""
+              }`}
+            >
               {categories.map((category) => {
                 const grouped = data.files.filter(
                   (file) => (file.category ?? "misc") === category,

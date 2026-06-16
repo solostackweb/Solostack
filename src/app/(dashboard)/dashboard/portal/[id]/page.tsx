@@ -91,7 +91,7 @@ export default async function PortalDetailPage({
             <PortalMoneyStat label="Open" value={money(openAmount)} />
             <PortalMoneyStat label="Paid" value={money(paidAmount)} />
             <PortalMoneyStat label="Files" value={String(snapshot.files.length)} />
-            <Button asChild variant="outline" size="sm" className="h-full shrink-0">
+            <Button asChild size="sm" className="h-9 shrink-0 gap-1.5 self-center">
               <Link href={portalClientHome(id)} target="_blank">
                 View as client <ExternalLink className="h-3.5 w-3.5" />
               </Link>

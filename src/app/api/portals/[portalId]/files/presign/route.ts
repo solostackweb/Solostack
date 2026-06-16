@@ -17,7 +17,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import {
-  presignPut,
   buildPortalFileKey,
   isR2Configured,
   R2_MAX_OBJECT_BYTES,
@@ -103,18 +102,15 @@ export async function POST(
     filename: parsed.data.filename,
   });
 
-  const presigned = await presignPut({
-    key,
-    contentType: parsed.data.mimeType,
-    contentLength: parsed.data.sizeBytes,
-  });
-
+  // Upload through the same-origin Cloudflare Worker (route: /api/files/*),
+  // which streams the body straight into the R2 bucket. This avoids the
+  // browser→R2 CORS problem entirely (the PUT is same-origin). The key is
+  // already sanitised to URL-safe characters by buildPortalFileKey.
   return NextResponse.json({
     ok: true,
     fileId,
     key,
-    putUrl: presigned.url,
-    expiresAt: presigned.expiresAt,
+    putUrl: `/api/files/${key}`,
   });
 }
 

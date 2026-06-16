@@ -14,7 +14,6 @@ import {
 } from "./auth-form-shell";
 import { FieldError } from "./field-error";
 import { GoogleOAuthButton } from "./google-oauth-button";
-import { ArrowRight } from "lucide-react";
 
 export function LoginForm({
   next,
@@ -95,19 +94,6 @@ export function LoginForm({
 
           <SubmitButton />
         </form>
-      </div>
-
-      {/* Client portal access — clean link, not an embedded form */}
-      <div className="border-t pt-5">
-        <p className="text-[13px] text-muted-foreground">
-          Invited as a client?{" "}
-          <Link
-            href="/portal-access"
-            className="inline-flex items-center gap-1 font-medium text-foreground underline-offset-4 hover:underline"
-          >
-            Access your portal <ArrowRight className="h-3 w-3" />
-          </Link>
-        </p>
       </div>
     </div>
   );
