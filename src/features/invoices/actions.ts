@@ -282,6 +282,24 @@ export async function updateInvoiceAction(
   const userId = await requireUserId();
   const supabase = await getServerSupabase();
 
+  // Safety: only draft invoices may be edited. Once an invoice has been sent
+  // the client may already hold a copy, so mutating it would undermine its
+  // credibility and legal standing. Corrections go through "Duplicate as draft".
+  const { data: existing } = await supabase
+    .from("invoices")
+    .select("status")
+    .eq("id", idParse.data)
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (!existing) return { ok: false, error: "Invoice not found." };
+  if ((existing as { status: string }).status !== "draft") {
+    return {
+      ok: false,
+      error:
+        "Only draft invoices can be edited. Duplicate this invoice to make a corrected copy.",
+    };
+  }
+
   const parties = await resolveParties(userId, parsed.data.clientId);
   const totals = calculateInvoice({
     lines: parsed.data.lines,

@@ -257,7 +257,7 @@ export function buildInvoiceColumns({
       cell: ({ row }) => {
         const inv = row.original;
         const canMarkPaid = inv.status !== "paid";
-        const canEdit = inv.status !== "paid";
+        const canEdit = inv.status === "draft";
         const canResend =
           inv.status === "sent" ||
           inv.status === "viewed" ||

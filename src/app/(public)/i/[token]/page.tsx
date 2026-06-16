@@ -105,15 +105,15 @@ export default async function PublicInvoicePage({ params }: Props) {
         ? "bg-amber-50 text-amber-700 border-amber-200"
         : "bg-slate-100 text-slate-600 border-slate-200";
 
+  // Client-facing label only — never surface internal states like
+  // "viewed"/"draft" to the recipient; they read as "Due".
   const statusLabel = isPaid
     ? "Paid"
     : isOverdue
       ? "Overdue"
       : isPartiallyPaid
         ? "Partially paid"
-        : status === "sent"
-          ? "Due"
-          : status.charAt(0).toUpperCase() + status.slice(1);
+        : "Due";
 
   return (
     <div className="min-h-svh bg-slate-50/80">
@@ -183,7 +183,9 @@ export default async function PublicInvoicePage({ params }: Props) {
                     </p>
                   ) : (
                     <p className={`mt-1.5 text-sm ${isOverdue ? "font-medium text-red-600" : "text-slate-500"}`}>
-                      Due {fmtDate(viewModel.dueDate)}
+                      {isOverdue
+                        ? `Overdue — was due ${fmtDate(viewModel.dueDate)}`
+                        : `Due ${fmtDate(viewModel.dueDate)}`}
                     </p>
                   )}
                 </div>
@@ -421,8 +423,7 @@ export default async function PublicInvoicePage({ params }: Props) {
               <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
                 <p className="text-sm font-semibold text-slate-900">Pay outside Stackivo</p>
                 <p className="mt-1.5 text-xs leading-relaxed text-slate-500">
-                  {senderName} hasn&apos;t set up online payments yet. Please pay using the
-                  bank or UPI details on the invoice and let them know once it&apos;s done.
+                  {`${senderName} hasn’t set up online payments yet. Please pay using the bank or UPI details on the invoice and let them know once it’s done.`}
                 </p>
               </div>
             )}

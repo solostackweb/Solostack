@@ -37,9 +37,11 @@ export default async function EditInvoicePage({
   const result = await getInvoice(id);
   if (!result) notFound();
 
-  // Disallow editing paid invoices — their figures must stay immutable for
-  // receipt integrity. Show the detail page instead.
-  if (result.invoice.status === "paid") {
+  // Safety: only draft invoices are editable. Sent/viewed/overdue/partially
+  // paid/paid invoices may already be in the client's hands, so editing them
+  // would undermine credibility and legal standing. Send users to the detail
+  // page, where they can "Duplicate as draft" to make a corrected copy.
+  if (result.invoice.status !== "draft") {
     redirect(`/dashboard/invoices/${id}`);
   }
 

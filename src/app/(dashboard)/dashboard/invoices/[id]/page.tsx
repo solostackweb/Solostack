@@ -13,6 +13,7 @@ import { InvoiceStatusBadge } from "@/features/invoices/components/invoice-statu
 import { MarkPaidManuallyDialog } from "@/features/invoices/components/mark-paid-manually-dialog";
 import { InvoiceShareButtons } from "@/features/invoices/components/invoice-share-buttons";
 import { SendInvoiceButton } from "@/features/invoices/components/send-invoice-button";
+import { DuplicateInvoiceButton } from "@/features/invoices/components/duplicate-invoice-button";
 import { listActivity, type ActivityRecord } from "@/features/activity/server";
 
 export const dynamic = "force-dynamic";
@@ -86,8 +87,9 @@ export default async function InvoiceDetailPage({
             />
           )}
 
-          {/* Edit button — disabled for paid invoices (receipt integrity) */}
-          {invoice.status !== "paid" && (
+          {/* Draft → Edit. Once sent, the invoice is locked for credibility +
+              legal integrity; corrections go through "Duplicate to edit". */}
+          {invoice.status === "draft" ? (
             <Button
               asChild
               variant="outline"
@@ -99,6 +101,12 @@ export default async function InvoiceDetailPage({
                 <span className="hidden sm:inline">Edit</span>
               </Link>
             </Button>
+          ) : (
+            <DuplicateInvoiceButton
+              invoiceId={invoice.id}
+              invoiceNumber={invoice.invoiceNumber}
+              label="Duplicate to edit"
+            />
           )}
 
           <InvoiceShareButtons

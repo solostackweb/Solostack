@@ -7,11 +7,6 @@ import {
   ArrowLeft,
   Plus,
   Send,
-  Banknote,
-  Smartphone,
-  CreditCard,
-  Wallet,
-  ShieldCheck,
   Eye,
   EyeOff,
 } from "lucide-react";
@@ -38,13 +33,8 @@ import {
   invoiceFormSchema,
   computeInvoiceTotals,
   GST_RATES,
-  PAYMENT_METHODS,
-  PAYMENT_METHOD_LABEL,
 } from "../../schema";
-import type {
-  InvoiceFormValues,
-  PaymentMethod,
-} from "../../schema";
+import type { InvoiceFormValues } from "../../schema";
 import { createInvoiceAction } from "../../actions";
 import { sendInvoiceAction } from "../../delivery";
 import { InvoiceItemRow, InvoiceItemsHeader } from "./invoice-item-row";
@@ -89,13 +79,6 @@ function buildDefaults(
     terms: profile?.invoiceDefaultTerms ?? "",
   };
 }
-
-const PAYMENT_ICON: Record<PaymentMethod, React.ComponentType<{ className?: string }>> = {
-  bank: Banknote,
-  upi: Smartphone,
-  card: CreditCard,
-  cash: Wallet,
-};
 
 /**
  * Orchestrates the entire "create invoice" workflow:
@@ -582,51 +565,18 @@ export function CreateInvoiceView({
                 </div>
               </SectionCard>
 
-              {/* Payment */}
+              {/* Payment — configured globally in settings */}
               <SectionCard label="Payment">
-                <div className="space-y-5">
-                  <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4 sm:gap-3">
-                    {PAYMENT_METHODS.map((method) => {
-                      const Icon = PAYMENT_ICON[method];
-                      const active = watched.paymentMethod === method;
-                      return (
-                        <button
-                          key={method}
-                          type="button"
-                          onClick={() => setValue("paymentMethod", method)}
-                          aria-pressed={active}
-                          className={cn(
-                            "flex flex-col items-center justify-center gap-1.5 rounded-lg border p-4 text-center transition-colors",
-                            active
-                              ? "border-primary bg-primary/5 text-primary"
-                              : "border-border text-muted-foreground hover:bg-muted/50 hover:text-foreground",
-                          )}
-                        >
-                          <Icon className="h-4 w-4" />
-                          <span className="text-[11px] font-semibold uppercase tracking-wider">
-                            {PAYMENT_METHOD_LABEL[method]}
-                          </span>
-                        </button>
-                      );
-                    })}
-                  </div>
-
-                  {watched.paymentMethod === "bank" && (
-                    <div className="flex items-start gap-3 rounded-md border bg-muted/40 p-3">
-                      <div className="flex h-9 w-9 items-center justify-center rounded-md bg-background">
-                        <ShieldCheck className="h-4 w-4 text-primary" />
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <p className="text-sm font-medium">
-                          Bank transfer instructions
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          Add bank details in payment settings before sending.
-                        </p>
-                      </div>
-                    </div>
-                  )}
-                </div>
+                <p className="text-xs leading-relaxed text-muted-foreground">
+                  Clients pay using the method set in your{" "}
+                  <Link
+                    href="/dashboard/settings/invoice"
+                    className="font-medium text-primary hover:underline"
+                  >
+                    payment settings
+                  </Link>
+                  . It appears automatically on the invoice and the public payment page.
+                </p>
               </SectionCard>
 
               {/* Notes + Terms */}

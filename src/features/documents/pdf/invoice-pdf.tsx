@@ -484,6 +484,9 @@ export function InvoicePdf({
             {brand.contact.email ? (
               <Text style={s.partyLine}>{brand.contact.email}</Text>
             ) : null}
+            {brand.contact.phone ? (
+              <Text style={s.partyLine}>{brand.contact.phone}</Text>
+            ) : null}
             {brand.gstin ? (
               <Text style={s.partyLine}>GSTIN: {brand.gstin}</Text>
             ) : null}

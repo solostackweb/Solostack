@@ -366,7 +366,13 @@ export function renderInvoiceSentEmail(input: InvoiceSentInput): EmailRender {
 // --- Invoice reminder ----------------------------------------------------
 
 export interface InvoiceReminderInput extends InvoiceSentInput {
+  /**
+   * Days relative to the due date. Positive = overdue (D+n); -1 = due
+   * tomorrow; <= -2 = due in n days (pre-due heads-up); 0 = due today.
+   */
   daysOverdue: number;
+  /** When true, this overdue reminder is framed as the final notice. */
+  finalNotice?: boolean;
 }
 
 export function renderInvoiceReminderEmail(
@@ -375,29 +381,42 @@ export function renderInvoiceReminderEmail(
   const isOverdue = input.daysOverdue > 0;
   const isDueToday = input.daysOverdue === 0;
   const isDueTomorrow = input.daysOverdue === -1;
+  const isDueSoon = input.daysOverdue <= -2;
+  const daysUntil = isDueSoon ? -input.daysOverdue : 0;
+  const isFinal = isOverdue && input.finalNotice === true;
 
   const overdueLine = isOverdue
-    ? `Invoice ${input.invoiceNumber} is ${input.daysOverdue} day${input.daysOverdue === 1 ? "" : "s"} past due. The amount and pay link below are still valid.`
+    ? isFinal
+      ? `Final reminder: invoice ${input.invoiceNumber} is ${input.daysOverdue} days past due. Please arrange payment as soon as possible — the amount and pay link below are still valid.`
+      : `Invoice ${input.invoiceNumber} is ${input.daysOverdue} day${input.daysOverdue === 1 ? "" : "s"} past due. The amount and pay link below are still valid.`
     : isDueTomorrow
       ? `Just a heads-up — invoice ${input.invoiceNumber} is due tomorrow (${input.dueDate}). Please arrange payment at your earliest convenience.`
       : isDueToday
         ? `Invoice ${input.invoiceNumber} is due today. Please arrange payment to avoid a late mark.`
-        : `This is a friendly reminder that invoice ${input.invoiceNumber} is due ${input.dueDate}.`;
+        : isDueSoon
+          ? `A friendly heads-up — invoice ${input.invoiceNumber} is due in ${daysUntil} days (${input.dueDate}). No action needed yet; sharing early so it's on your radar.`
+          : `This is a friendly reminder that invoice ${input.invoiceNumber} is due ${input.dueDate}.`;
 
   const paragraphs = [`Hi ${input.clientName},`, overdueLine];
   if (input.message?.trim()) paragraphs.push(input.message.trim());
 
   const subjectLine = isOverdue
-    ? `Reminder: invoice ${input.invoiceNumber} is overdue (${input.amountFormatted})`
+    ? isFinal
+      ? `Final reminder: invoice ${input.invoiceNumber} is overdue (${input.amountFormatted})`
+      : `Reminder: invoice ${input.invoiceNumber} is overdue (${input.amountFormatted})`
     : isDueTomorrow
       ? `Invoice ${input.invoiceNumber} is due tomorrow — ${input.amountFormatted}`
       : isDueToday
         ? `Invoice ${input.invoiceNumber} is due today — ${input.amountFormatted}`
-        : `Reminder: invoice ${input.invoiceNumber} (${input.amountFormatted})`;
+        : isDueSoon
+          ? `Invoice ${input.invoiceNumber} is due in ${daysUntil} days — ${input.amountFormatted}`
+          : `Reminder: invoice ${input.invoiceNumber} (${input.amountFormatted})`;
 
   const eyebrow = isOverdue
-    ? "Overdue invoice"
-    : isDueTomorrow || isDueToday
+    ? isFinal
+      ? "Final notice"
+      : "Overdue invoice"
+    : isDueTomorrow || isDueToday || isDueSoon
       ? "Payment due soon"
       : "Payment reminder";
 
@@ -407,7 +426,9 @@ export function renderInvoiceReminderEmail(
       ? `Due tomorrow`
       : isDueToday
         ? `Due today`
-        : `Friendly reminder`;
+        : isDueSoon
+          ? `Due in ${daysUntil} days`
+          : `Friendly reminder`;
 
   const dueDateLabel = isOverdue ? "Days overdue" : "Due date";
   const dueDateValue = isOverdue ? String(input.daysOverdue) : input.dueDate;

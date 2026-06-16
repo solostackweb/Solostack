@@ -6,10 +6,6 @@ import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
   Save,
-  Banknote,
-  Smartphone,
-  CreditCard,
-  Wallet,
   Eye,
   EyeOff,
 } from "lucide-react";
@@ -36,8 +32,6 @@ import {
   invoiceFormSchema,
   computeInvoiceTotals,
   GST_RATES,
-  PAYMENT_METHODS,
-  PAYMENT_METHOD_LABEL,
 } from "../../schema";
 import type { InvoiceFormValues, PaymentMethod } from "../../schema";
 import type { InvoiceRecord, InvoiceItemRecord } from "../../server";
@@ -89,13 +83,6 @@ function buildEditDefaults(
     terms: invoice.terms ?? "",
   };
 }
-
-const PAYMENT_ICON: Record<PaymentMethod, React.ComponentType<{ className?: string }>> = {
-  bank: Banknote,
-  upi: Smartphone,
-  card: CreditCard,
-  cash: Wallet,
-};
 
 interface EditInvoiceViewProps {
   invoice: InvoiceRecord;
@@ -465,34 +452,18 @@ export function EditInvoiceView({
                 </div>
               </SectionCard>
 
-              {/* Payment method */}
-              <SectionCard label="Payment method">
-                <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-                  {PAYMENT_METHODS.map((method) => {
-                    const Icon = PAYMENT_ICON[method];
-                    const active = watched.paymentMethod === method;
-                    return (
-                      <button
-                        key={method}
-                        type="button"
-                        onClick={() =>
-                          setValue("paymentMethod", method, {
-                            shouldValidate: true,
-                          })
-                        }
-                        className={cn(
-                          "flex flex-col items-center gap-1.5 rounded-xl border p-3 text-xs font-medium transition-all",
-                          active
-                            ? "border-primary bg-primary/8 text-primary ring-1 ring-primary/30"
-                            : "text-muted-foreground hover:border-border hover:text-foreground",
-                        )}
-                      >
-                        <Icon className="h-5 w-5" />
-                        {PAYMENT_METHOD_LABEL[method]}
-                      </button>
-                    );
-                  })}
-                </div>
+              {/* Payment — configured globally in settings */}
+              <SectionCard label="Payment">
+                <p className="text-xs leading-relaxed text-muted-foreground">
+                  Clients pay using the method set in your{" "}
+                  <Link
+                    href="/dashboard/settings/invoice"
+                    className="font-medium text-primary hover:underline"
+                  >
+                    payment settings
+                  </Link>
+                  .
+                </p>
               </SectionCard>
 
               {/* Notes + Terms */}
