@@ -102,6 +102,13 @@ export async function requirePortalAccess(
     throw new PortalAccessError("forbidden");
   }
 
+  // Deactivating (status="archived") pauses client access — the owner keeps
+  // access (handled by the early owner return above) but members are locked
+  // out until the portal is reactivated.
+  if (portal.status !== "active") {
+    throw new PortalAccessError("forbidden");
+  }
+
   return { userId: user.id, portal, role: member.role, member };
 }
 
@@ -149,7 +156,8 @@ export async function listPortalsForCurrentUser(): Promise<{
     portals: PortalRow | PortalRow[] | null;
   }>) {
     const p = Array.isArray(row.portals) ? row.portals[0] : row.portals;
-    if (p && !p.deleted_at) memberPortals.push(p);
+    // Clients only see active portals — archived (paused) / deleted are hidden.
+    if (p && !p.deleted_at && p.status === "active") memberPortals.push(p);
   }
 
   return {

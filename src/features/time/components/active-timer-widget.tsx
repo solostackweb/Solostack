@@ -57,18 +57,29 @@ export function ActiveTimerWidget({
   const [elapsed, setElapsed] = React.useState(0);
   const [pending, startTransition] = React.useTransition();
 
+  // Optimistic override so start/stop reflect instantly without waiting for the
+  // page to refetch. `undefined` = use the server prop; `null` = just stopped;
+  // an object = just started. Resets whenever fresh server data arrives.
+  type ActiveView = Pick<
+    NonNullable<typeof running>,
+    "id" | "startedAt" | "description" | "projectId"
+  >;
+  const [override, setOverride] = React.useState<ActiveView | null | undefined>(undefined);
+  React.useEffect(() => setOverride(undefined), [running]);
+  const active: ActiveView | null = override === undefined ? running : override;
+
   // Seed / tick the elapsed-seconds counter from the running row's start time.
   React.useEffect(() => {
-    if (!running) {
+    if (!active) {
       setElapsed(0);
       return;
     }
-    const startMs = new Date(running.startedAt).getTime();
+    const startMs = new Date(active.startedAt).getTime();
     const tick = () => setElapsed(Math.max(0, Math.floor((Date.now() - startMs) / 1000)));
     tick();
     const id = setInterval(tick, 1000);
     return () => clearInterval(id);
-  }, [running]);
+  }, [active]);
 
   const handleStart = () => {
     if (!description.trim()) {
@@ -84,22 +95,35 @@ export function ActiveTimerWidget({
     }
     fd.set("billable", "true");
     fd.set("hourlyRate", String(defaultHourlyRate));
+    // Optimistic: show the running timer instantly.
+    const optimisticDesc = description.trim();
+    const optimisticProject = projectId !== NO_PROJECT ? projectId : null;
+    setOverride({
+      id: "optimistic",
+      startedAt: new Date().toISOString(),
+      description: optimisticDesc,
+      projectId: optimisticProject,
+    });
+    setDescription("");
     startTransition(async () => {
       const res = await startTimerAction(undefined, fd);
       if (!res.ok) {
         toast.error(res.error);
+        setOverride(undefined); // revert
+        setDescription(optimisticDesc);
         return;
       }
-      setDescription("");
       router.refresh();
     });
   };
 
   const handleStop = () => {
+    setOverride(null); // optimistic: hide immediately
     startTransition(async () => {
       const res = await stopTimerAction();
       if (!res.ok) {
         toast.error(res.error);
+        setOverride(undefined); // revert
         return;
       }
       toast.success(res.message ?? "Timer stopped");
@@ -107,7 +131,7 @@ export function ActiveTimerWidget({
     });
   };
 
-  const isRunning = !!running;
+  const isRunning = !!active;
 
   return (
     <Card
@@ -146,7 +170,7 @@ export function ActiveTimerWidget({
             />
           </span>
           <Input
-            value={isRunning ? (running.description ?? "") : description}
+            value={isRunning ? (active?.description ?? "") : description}
             onChange={(e) => setDescription(e.target.value)}
             placeholder={isRunning ? "Timing…" : "What are you working on?"}
             disabled={isRunning}
@@ -155,7 +179,7 @@ export function ActiveTimerWidget({
         </div>
 
         <Select
-          value={isRunning ? (running.projectId ?? NO_PROJECT) : projectId}
+          value={isRunning ? (active?.projectId ?? NO_PROJECT) : projectId}
           onValueChange={setProjectId}
           disabled={isRunning}
         >

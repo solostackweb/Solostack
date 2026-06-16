@@ -67,6 +67,7 @@ import { storageTone } from "../storage";
 import { DocumentCommentsThread } from "./document-comments";
 import { EnablePushButton } from "./enable-push-button";
 import { PortalQrCard } from "./portal-qr-card";
+import { PortalFileUploadButton } from "./file-upload-button";
 import { TypingDots } from "./typing-dots";
 import {
   invitePortalMemberAction,
@@ -765,6 +766,8 @@ function ClientFilesPanel({
   onOpenDocument: (document: PortalDocument) => void;
 }) {
   const [view, setView] = React.useState<"list" | "grid">("list");
+  const [localFiles, setLocalFiles] = React.useState(files);
+  React.useEffect(() => setLocalFiles(files), [files]);
   const categories = ["deliverable", "contract", "invoice", "asset", "meeting_note", "misc"];
 
   return (
@@ -794,7 +797,15 @@ function ClientFilesPanel({
         </div>
       </div>
 
-      {r2Enabled && <div className="mb-4"><FileUploadButton portalId={portalId} /></div>}
+      {r2Enabled && (
+        <div className="mb-4 flex justify-end">
+          <PortalFileUploadButton
+            portalId={portalId}
+            currentUserId={currentUserId}
+            onUploaded={(f) => setLocalFiles((prev) => [f, ...prev])}
+          />
+        </div>
+      )}
 
       {(invoices.length > 0 || contracts.length > 0 || welcomeDocuments.length > 0) && (
         <div className="mb-5 space-y-2">
@@ -855,7 +866,7 @@ function ClientFilesPanel({
         </div>
       )}
 
-      {files.length === 0 ? (
+      {localFiles.length === 0 ? (
         <EmptyState
           icon={<Files className="h-7 w-7 text-muted-foreground/30" />}
           message="No files shared yet."
@@ -864,7 +875,7 @@ function ClientFilesPanel({
       ) : (
         <div className="space-y-5">
           {categories.map((category) => {
-            const grouped = files.filter((file) => (file.category ?? "misc") === category);
+            const grouped = localFiles.filter((file) => (file.category ?? "misc") === category);
             if (grouped.length === 0) return null;
             return (
               <div key={category} className="space-y-2">
@@ -1596,15 +1607,22 @@ function FilesSection({
   const router = useRouter();
   const confirm = useConfirm();
   const [sortByLargest, setSortByLargest] = React.useState(false);
+  // Local copy so uploads/deletes reflect instantly; re-synced from server props.
+  const [localFiles, setLocalFiles] = React.useState(files);
+  React.useEffect(() => setLocalFiles(files), [files]);
+  const liveUsage = {
+    totalBytes: localFiles.reduce((sum, f) => sum + (f.size_bytes ?? 0), 0),
+    fileCount: localFiles.length,
+  };
   const usagePct = Number.isFinite(cap) && cap > 0
-    ? Math.min(100, (usage.totalBytes / cap) * 100)
+    ? Math.min(100, (liveUsage.totalBytes / cap) * 100)
     : 0;
-  const tone = storageTone(usage.totalBytes, cap);
+  const tone = storageTone(liveUsage.totalBytes, cap);
   const barColor =
     tone === "full" ? "bg-destructive" : tone === "warn" ? "bg-amber-500" : "bg-primary";
   const displayFiles = sortByLargest
-    ? [...files].sort((a, b) => (b.size_bytes ?? 0) - (a.size_bytes ?? 0))
-    : files;
+    ? [...localFiles].sort((a, b) => (b.size_bytes ?? 0) - (a.size_bytes ?? 0))
+    : localFiles;
 
   async function onDelete(fileId: string, fileName: string) {
     const ok = await confirm({
@@ -1614,6 +1632,7 @@ function FilesSection({
       variant: "destructive",
     });
     if (!ok) return;
+    setLocalFiles((prev) => prev.filter((f) => f.id !== fileId)); // optimistic
     await deletePortalFileAction({ portalId, fileId });
     router.refresh();
   }
@@ -1625,11 +1644,18 @@ function FilesSection({
           <Files className="h-4 w-4 text-muted-foreground" />
           Files
           <span className="text-[11px] font-normal text-muted-foreground">
-            {formatBytes(usage.totalBytes)}
+            {formatBytes(liveUsage.totalBytes)}
             {Number.isFinite(cap) ? ` / ${formatBytes(cap)}` : ""}
           </span>
         </CardTitle>
-        {r2Enabled && <FileUploadButton portalId={portalId} />}
+        {r2Enabled && (
+          <PortalFileUploadButton
+            portalId={portalId}
+            currentUserId={currentUserId}
+            onUploaded={(f) => setLocalFiles((prev) => [f, ...prev])}
+            className="h-8"
+          />
+        )}
       </CardHeader>
       <CardContent className="space-y-3">
         {/* Storage bar + usage */}
@@ -1649,10 +1675,10 @@ function FilesSection({
             </div>
             <div className="flex items-center justify-between gap-2">
               <span className={`text-[11px] ${tone === "full" ? "text-destructive" : tone === "warn" ? "text-amber-600 dark:text-amber-400" : "text-muted-foreground"}`}>
-                {formatBytes(usage.totalBytes)} of {formatBytes(cap)} used
+                {formatBytes(liveUsage.totalBytes)} of {formatBytes(cap)} used
                 {tone !== "ok" && " — free up space"}
               </span>
-              {files.length > 1 && (
+              {localFiles.length > 1 && (
                 <button
                   type="button"
                   onClick={() => setSortByLargest((v) => !v)}
@@ -1677,7 +1703,7 @@ function FilesSection({
           </p>
         )}
 
-        {files.length === 0 ? (
+        {localFiles.length === 0 ? (
           <EmptyState
             icon={<Files className="h-7 w-7 text-muted-foreground/30" />}
             message="No files shared yet."
@@ -1738,106 +1764,6 @@ function FilesSection({
   );
 }
 
-function FileUploadButton({ portalId }: { portalId: string }) {
-  const router = useRouter();
-  const inputRef = React.useRef<HTMLInputElement>(null);
-  const [pending, setPending] = React.useState(false);
-  const [error, setError] = React.useState<string | null>(null);
-
-  async function onFiles(filelist: FileList | null) {
-    if (!filelist || filelist.length === 0) return;
-    setPending(true);
-    setError(null);
-    const readJson = async (res: Response) => {
-      const text = await res.text();
-      try {
-        return JSON.parse(text);
-      } catch {
-        throw new Error(
-          res.ok ? "Unexpected server response." : `Request failed (${res.status}).`,
-        );
-      }
-    };
-    try {
-      for (const file of Array.from(filelist)) {
-        // Step 1: presign
-        const presignRes = await fetch(`/api/portals/${portalId}/files/presign`, {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({
-            filename: file.name,
-            mimeType: file.type || "application/octet-stream",
-            sizeBytes: file.size,
-          }),
-        });
-        const presign = (await readJson(presignRes)) as
-          | { ok: true; fileId: string; key: string; putUrl: string }
-          | { ok: false; error: string };
-        if (!presign.ok) throw new Error(presign.error);
-
-        // Step 2: PUT direct to R2
-        const putRes = await fetch(presign.putUrl, {
-          method: "PUT",
-          body: file,
-          headers: { "content-type": file.type || "application/octet-stream" },
-        });
-        if (!putRes.ok) throw new Error(`Upload failed (${putRes.status})`);
-
-        // Step 3: commit
-        const commitRes = await fetch(`/api/portals/${portalId}/files/commit`, {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({
-            fileId: presign.fileId,
-            key: presign.key,
-            filename: file.name,
-            mimeType: file.type || "application/octet-stream",
-          }),
-        });
-        const commit = (await readJson(commitRes)) as
-          | { ok: true }
-          | { ok: false; error: string };
-        if (!commit.ok) throw new Error(commit.error);
-      }
-      router.refresh();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Upload failed.");
-    } finally {
-      setPending(false);
-      if (inputRef.current) inputRef.current.value = "";
-    }
-  }
-
-  return (
-    <div className="flex items-center gap-2">
-      <input
-        ref={inputRef}
-        type="file"
-        multiple
-        hidden
-        onChange={(e) => onFiles(e.target.files)}
-      />
-      <Button
-        size="sm"
-        variant="outline"
-        className="h-8"
-        onClick={() => inputRef.current?.click()}
-        disabled={pending}
-      >
-        {pending ? (
-          <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Uploading…</>
-        ) : (
-          <><Upload className="h-3.5 w-3.5" /> Upload</>
-        )}
-      </Button>
-      {error && (
-        <span className="max-w-[140px] truncate text-[11px] text-destructive">
-          {error}
-        </span>
-      )}
-    </div>
-  );
-}
 
 // ============================================================================
 // Section: Chat
@@ -2140,18 +2066,13 @@ function PortalSettingsSection({
 
   return (
     <Card>
-      <CardHeader className="pb-3">
+      <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-3">
         <CardTitle className="text-sm font-semibold text-muted-foreground">
           Portal settings
         </CardTitle>
+        <EnablePushButton className="h-8 shrink-0" />
       </CardHeader>
       <CardContent className="space-y-3">
-        <div className="flex items-center justify-between gap-2 rounded-md border bg-muted/20 p-2.5">
-          <p className="text-xs text-muted-foreground">
-            Get push alerts for new messages &amp; meetings.
-          </p>
-          <EnablePushButton className="h-8 shrink-0" />
-        </div>
         <p className="text-xs text-muted-foreground">
           Deactivate to pause client access. Delete to permanently remove the
           portal and all attachments.
@@ -2429,8 +2350,6 @@ function MembersSection({
 // Section: Activity feed (timeline style)
 // ============================================================================
 
-const ACTIVITY_LIMIT = 12;
-
 function getActivityDotColor(type: string): string {
   if (type.startsWith("meeting."))      return "bg-violet-500";
   if (type.startsWith("update."))       return "bg-sky-500";
@@ -2496,8 +2415,42 @@ function ActivitySection({ activity }: { activity: ViewProps["activity"] }) {
   const ordered = [...activity].sort(
     (a, b) => Date.parse(b.created_at) - Date.parse(a.created_at),
   );
-  const visible = ordered.slice(0, ACTIVITY_LIMIT);
-  const hiddenCount = ordered.length - visible.length;
+  const top = ordered.slice(0, 5);
+  const older = ordered.slice(5);
+
+  const renderItem = (
+    item: ViewProps["activity"][number],
+    isLast: boolean,
+  ) => {
+    const title = formatActivityTitle(item);
+    const description = formatActivityDescription(item);
+    return (
+      <li key={item.id} className="relative flex gap-3 pb-4 last:pb-0">
+        {!isLast && (
+          <div className="absolute left-[6px] top-[14px] bottom-0 w-px bg-border" />
+        )}
+        <div
+          className={`relative z-10 mt-[3px] h-3.5 w-3.5 shrink-0 rounded-full ${getActivityDotColor(item.type)}`}
+        />
+        <div className="min-w-0 flex-1 pb-0">
+          <div className="flex items-start justify-between gap-2">
+            <p className="text-xs font-medium leading-tight">{title}</p>
+            <time
+              dateTime={item.created_at}
+              className="shrink-0 text-[10px] tabular-nums text-muted-foreground"
+            >
+              {getRelativeTime(item.created_at)}
+            </time>
+          </div>
+          {description && (
+            <p className="mt-0.5 truncate text-[11px] text-muted-foreground">
+              {description}
+            </p>
+          )}
+        </div>
+      </li>
+    );
+  };
 
   return (
     <Card>
@@ -2508,7 +2461,7 @@ function ActivitySection({ activity }: { activity: ViewProps["activity"] }) {
         </CardTitle>
       </CardHeader>
       <CardContent>
-        {visible.length === 0 ? (
+        {top.length === 0 ? (
           <EmptyState
             icon={<ShieldCheck className="h-7 w-7 text-muted-foreground/30" />}
             message="No activity yet."
@@ -2516,45 +2469,23 @@ function ActivitySection({ activity }: { activity: ViewProps["activity"] }) {
         ) : (
           <>
             <ol className="relative space-y-0">
-              {visible.map((item, index) => {
-                const title = formatActivityTitle(item);
-                const description = formatActivityDescription(item);
-                const isLast = index === visible.length - 1 && hiddenCount === 0;
-                return (
-                  <li key={item.id} className="relative flex gap-3 pb-4 last:pb-0">
-                    {/* Connecting line */}
-                    {!isLast && (
-                      <div className="absolute left-[6px] top-[14px] bottom-0 w-px bg-border" />
-                    )}
-                    {/* Colored dot */}
-                    <div
-                      className={`relative z-10 mt-[3px] h-3.5 w-3.5 shrink-0 rounded-full ${getActivityDotColor(item.type)}`}
-                    />
-                    {/* Content */}
-                    <div className="min-w-0 flex-1 pb-0">
-                      <div className="flex items-start justify-between gap-2">
-                        <p className="text-xs font-medium leading-tight">{title}</p>
-                        <time
-                          dateTime={item.created_at}
-                          className="shrink-0 text-[10px] tabular-nums text-muted-foreground"
-                        >
-                          {getRelativeTime(item.created_at)}
-                        </time>
-                      </div>
-                      {description && (
-                        <p className="mt-0.5 truncate text-[11px] text-muted-foreground">
-                          {description}
-                        </p>
-                      )}
-                    </div>
-                  </li>
-                );
-              })}
+              {top.map((item, index) =>
+                renderItem(item, index === top.length - 1 && older.length === 0),
+              )}
             </ol>
-            {hiddenCount > 0 && (
-              <p className="mt-3 text-[11px] text-muted-foreground">
-                + {hiddenCount} older event{hiddenCount > 1 ? "s" : ""}
-              </p>
+            {older.length > 0 && (
+              <div className="mt-3 border-t pt-3">
+                <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                  Older activity
+                </p>
+                <div className="max-h-56 overflow-y-auto pr-1 scrollbar-thin">
+                  <ol className="relative space-y-0">
+                    {older.map((item, index) =>
+                      renderItem(item, index === older.length - 1),
+                    )}
+                  </ol>
+                </div>
+              </div>
             )}
           </>
         )}
@@ -2749,30 +2680,4 @@ function formatActivityTitle(item: PortalActivityRow): string {
     case "file.deleted":              return "File deleted";
     case "update.posted":             return "Update posted";
     case "update.acknowledged":       return "Update acknowledged";
-    case "update.approved":           return "Update approved";
-    case "update.revision_requested": return "Revision requested";
-    case "update.comment":            return "Comment added";
-    case "meeting.requested":         return "Meeting requested";
-    case "meeting.accepted":          return "Meeting confirmed";
-    case "meeting.declined":          return "Meeting declined";
-    case "meeting.completed":         return "Meeting completed";
-    default:
-      return item.type.replace(/[._]/g, " ");
-  }
-}
-
-function formatActivityDescription(item: PortalActivityRow): string | null {
-  const payload = parsePayload(item.payload);
-  if (typeof payload.name === "string")    return payload.name;
-  if (typeof payload.title === "string")   return payload.title;
-  if (typeof payload.topic === "string")   return payload.topic;
-  if (typeof payload.email === "string")   return payload.email;
-  if (typeof payload.number === "string")  return `Invoice ${payload.number}`;
-  if (typeof payload.preview === "string") return `"${payload.preview}"`;
-  return null;
-}
-
-function parsePayload(payload: PortalActivityRow["payload"]): Record<string, unknown> {
-  if (!payload || typeof payload !== "object" || Array.isArray(payload)) return {};
-  return payload as Record<string, unknown>;
-}
+    case "update.approved":   

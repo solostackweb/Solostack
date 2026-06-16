@@ -115,13 +115,14 @@ function relativeTime(iso: string): string {
 // ---------------------------------------------------------------------------
 
 function MeetingCard({
-  meeting, isOwner, currentUserId, portalId, portalName,
+  meeting, isOwner, currentUserId, portalId, portalName, onPatch,
 }: {
   meeting: MeetingWithData;
   isOwner: boolean;
   currentUserId: string;
   portalId: string;
   portalName: string;
+  onPatch: (id: string, patch: Partial<MeetingWithData>) => void;
 }) {
   const router = useRouter();
   const [acceptOpen, setAcceptOpen] = React.useState(false);
@@ -166,6 +167,12 @@ function MeetingCard({
     setPending(false);
     if (!res.ok) { setError(res.error ?? "Could not confirm."); return; }
     setAcceptOpen(false);
+    onPatch(meeting.id, {
+      status: "accepted",
+      meet_link: meetLink.trim() || meeting.meet_link,
+      proposed_time: formattedTime ?? meeting.proposed_time,
+      scheduled_at: confirmedAt ? new Date(confirmedAt).toISOString() : meeting.scheduled_at,
+    });
     router.refresh();
   }
 
@@ -174,6 +181,7 @@ function MeetingCard({
     const res = await declinePortalMeetingAction({ portalId, meetingId: meeting.id });
     setPending(false);
     if (!res.ok) { setError(res.error ?? "Could not decline."); return; }
+    onPatch(meeting.id, { status: "declined" });
     router.refresh();
   }
 
@@ -182,6 +190,7 @@ function MeetingCard({
     const res = await completePortalMeetingAction({ portalId, meetingId: meeting.id });
     setPending(false);
     if (!res.ok) { setError(res.error ?? "Could not complete."); return; }
+    onPatch(meeting.id, { status: "completed" });
     router.refresh();
   }
 
@@ -190,6 +199,7 @@ function MeetingCard({
     const res = await cancelPortalMeetingAction({ portalId, meetingId: meeting.id });
     setPending(false);
     if (!res.ok) { setError(res.error ?? "Could not cancel."); return; }
+    onPatch(meeting.id, { status: "cancelled" });
     router.refresh();
   }
 
@@ -582,7 +592,15 @@ function SubscribeCalendarButton({ portalId }: { portalId: string }) {
 // Request meeting dialog
 // ---------------------------------------------------------------------------
 
-function RequestMeetingDialog({ portalId }: { portalId: string }) {
+function RequestMeetingDialog({
+  portalId,
+  currentUserId,
+  onCreated,
+}: {
+  portalId: string;
+  currentUserId: string;
+  onCreated: (meeting: MeetingWithData) => void;
+}) {
   const router = useRouter();
   const [open, setOpen] = React.useState(false);
   const [topic, setTopic] = React.useState("");
@@ -621,6 +639,22 @@ function RequestMeetingDialog({ portalId }: { portalId: string }) {
     });
     setPending(false);
     if (!res.ok) { setError(res.error ?? "Could not request meeting."); return; }
+    onCreated({
+      id: res.data?.meetingId ?? `optimistic-${Date.now()}`,
+      portal_id: portalId,
+      requested_by: currentUserId,
+      topic: topic.trim(),
+      proposed_time: formattedTime ?? null,
+      meet_link: link.trim() || null,
+      notes: notes.trim() || null,
+      status: "pending",
+      scheduled_at: null,
+      duration_minutes: 30,
+      timezone: "Asia/Kolkata",
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      requester: null,
+    });
     reset();
     setOpen(false);
     router.refresh();
@@ -751,9 +785,22 @@ function WhatsAppIcon({ className }: { className?: string }) {
 }
 
 export function MeetingsSection({
-  portalId, portalName, meetings, isOwner, currentUserId,
+  portalId, portalName, meetings: meetingsProp, isOwner, currentUserId,
 }: MeetingsSectionProps) {
   const [showHistory, setShowHistory] = React.useState(false);
+  // Local copy so create/confirm/decline/etc. reflect instantly; re-synced from props.
+  const [meetings, setMeetings] = React.useState(meetingsProp);
+  React.useEffect(() => setMeetings(meetingsProp), [meetingsProp]);
+
+  const patchMeeting = React.useCallback(
+    (id: string, patch: Partial<MeetingWithData>) =>
+      setMeetings((prev) => prev.map((m) => (m.id === id ? { ...m, ...patch } : m))),
+    [],
+  );
+  const addMeeting = React.useCallback(
+    (m: MeetingWithData) => setMeetings((prev) => [m, ...prev]),
+    [],
+  );
 
   const active  = meetings.filter((m) => m.status === "pending" || m.status === "accepted");
   const history = meetings.filter(
@@ -777,7 +824,11 @@ export function MeetingsSection({
         </CardTitle>
         <div className="flex items-center gap-1">
           <SubscribeCalendarButton portalId={portalId} />
-          <RequestMeetingDialog portalId={portalId} />
+          <RequestMeetingDialog
+            portalId={portalId}
+            currentUserId={currentUserId}
+            onCreated={addMeeting}
+          />
         </div>
       </CardHeader>
 
@@ -824,6 +875,7 @@ export function MeetingsSection({
                 currentUserId={currentUserId}
                 portalId={portalId}
                 portalName={portalName}
+                onPatch={patchMeeting}
               />
             ))}
           </ul>
@@ -854,6 +906,7 @@ export function MeetingsSection({
                     currentUserId={currentUserId}
                     portalId={portalId}
                     portalName={portalName}
+                    onPatch={patchMeeting}
                   />
                 ))}
               </ul>

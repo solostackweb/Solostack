@@ -98,9 +98,9 @@ export function PortalAccessForm() {
                 id="portal-code"
                 name="portalCode"
                 inputMode="numeric"
-                pattern="[0-9]{6,8}"
+                pattern="[0-9]{8}"
                 maxLength={8}
-                placeholder="6-digit code"
+                placeholder="8-digit code"
                 required
                 className="h-11 pl-10 tracking-[0.25em] font-mono"
               />

@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import {
   ArrowRight,
   CheckCircle2,
@@ -17,7 +17,6 @@ import {
   Receipt,
   Send,
   BookOpen,
-  Upload,
   Video,
   Wallet,
 } from "lucide-react";
@@ -28,6 +27,7 @@ import { markPortalSeenAction } from "../actions";
 import { storageTone } from "../storage";
 import { buildVideoEmbed } from "../video-embed";
 import { DocumentCommentsThread } from "./document-comments";
+import { PortalFileUploadButton } from "./file-upload-button";
 import { EnablePushButton } from "./enable-push-button";
 import { SaveContactButton, SharePortalButton } from "./portal-share-buttons";
 import { MilestoneTimeline } from "./milestone-timeline";
@@ -648,10 +648,16 @@ export function ClientPortalFiles({ data }: { data: ClientPortalProps }) {
   const categories = [
     "deliverable",
     "contract",
+    "invoice",
     "asset",
     "meeting_note",
     "misc",
   ];
+
+  // Local copy so a freshly-uploaded file shows instantly; re-synced from props.
+  const [localFiles, setLocalFiles] = React.useState(data.files);
+  React.useEffect(() => setLocalFiles(data.files), [data.files]);
+  const usedBytes = localFiles.reduce((sum, f) => sum + (f.size_bytes ?? 0), 0);
 
   return (
     <ClientPortalShell
@@ -736,7 +742,13 @@ export function ClientPortalFiles({ data }: { data: ClientPortalProps }) {
                 Deliverables, assets, contracts, and meeting notes.
               </p>
             </div>
-            {data.r2Enabled && <FileUploadButton portalId={data.portalId} />}
+            {data.r2Enabled && (
+              <PortalFileUploadButton
+                portalId={data.portalId}
+                currentUserId={data.currentUserId}
+                onUploaded={(f) => setLocalFiles((prev) => [f, ...prev])}
+              />
+            )}
           </div>
 
           {Number.isFinite(data.storageCap) && data.storageCap > 0 && (
@@ -744,22 +756,22 @@ export function ClientPortalFiles({ data }: { data: ClientPortalProps }) {
               <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
                 <div
                   className={`h-full rounded-full transition-[width] ${
-                    storageTone(data.storageUsage.totalBytes, data.storageCap) === "full"
+                    storageTone(usedBytes, data.storageCap) === "full"
                       ? "bg-destructive"
-                      : storageTone(data.storageUsage.totalBytes, data.storageCap) === "warn"
+                      : storageTone(usedBytes, data.storageCap) === "warn"
                         ? "bg-amber-500"
                         : "bg-primary"
                   }`}
-                  style={{ width: `${Math.min(100, (data.storageUsage.totalBytes / data.storageCap) * 100)}%` }}
+                  style={{ width: `${Math.min(100, (usedBytes / data.storageCap) * 100)}%` }}
                 />
               </div>
               <p className="text-[11px] text-muted-foreground">
-                {formatBytes(data.storageUsage.totalBytes)} of {formatBytes(data.storageCap)} used
+                {formatBytes(usedBytes)} of {formatBytes(data.storageCap)} used
               </p>
             </div>
           )}
 
-          {data.files.length === 0 ? (
+          {localFiles.length === 0 ? (
             <EmptyBlock
               icon={Files}
               title="No files shared yet"
@@ -768,11 +780,11 @@ export function ClientPortalFiles({ data }: { data: ClientPortalProps }) {
           ) : (
             <div
               className={`mt-4 space-y-5 ${
-                data.files.length > 5 ? "max-h-[30rem] overflow-y-auto scrollbar-thin pr-1" : ""
+                localFiles.length > 5 ? "max-h-[30rem] overflow-y-auto scrollbar-thin pr-1" : ""
               }`}
             >
               {categories.map((category) => {
-                const grouped = data.files.filter(
+                const grouped = localFiles.filter(
                   (file) => (file.category ?? "misc") === category,
                 );
                 if (grouped.length === 0) return null;
@@ -1071,96 +1083,6 @@ function FileRow({ portalId, file }: { portalId: string; file: PortalFileRow }) 
   );
 }
 
-function FileUploadButton({ portalId }: { portalId: string }) {
-  const router = useRouter();
-  const inputRef = React.useRef<HTMLInputElement>(null);
-  const [pending, setPending] = React.useState(false);
-  const [error, setError] = React.useState<string | null>(null);
-
-  async function onFiles(filelist: FileList | null) {
-    if (!filelist || filelist.length === 0) return;
-    setPending(true);
-    setError(null);
-    const readJson = async (res: Response) => {
-      const text = await res.text();
-      try {
-        return JSON.parse(text);
-      } catch {
-        throw new Error(
-          res.ok ? "Unexpected server response." : `Request failed (${res.status}).`,
-        );
-      }
-    };
-    try {
-      for (const file of Array.from(filelist)) {
-        const presignRes = await fetch(`/api/portals/${portalId}/files/presign`, {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({
-            filename: file.name,
-            mimeType: file.type || "application/octet-stream",
-            sizeBytes: file.size,
-          }),
-        });
-        const presign = (await readJson(presignRes)) as
-          | { ok: true; fileId: string; key: string; putUrl: string }
-          | { ok: false; error: string };
-        if (!presign.ok) throw new Error(presign.error);
-
-        const putRes = await fetch(presign.putUrl, {
-          method: "PUT",
-          body: file,
-          headers: { "content-type": file.type || "application/octet-stream" },
-        });
-        if (!putRes.ok) throw new Error(`Upload failed (${putRes.status})`);
-
-        const commitRes = await fetch(`/api/portals/${portalId}/files/commit`, {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({
-            fileId: presign.fileId,
-            key: presign.key,
-            filename: file.name,
-            mimeType: file.type || "application/octet-stream",
-          }),
-        });
-        const commit = (await readJson(commitRes)) as
-          | { ok: true }
-          | { ok: false; error: string };
-        if (!commit.ok) throw new Error(commit.error);
-      }
-      router.refresh();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Upload failed.");
-    } finally {
-      setPending(false);
-      if (inputRef.current) inputRef.current.value = "";
-    }
-  }
-
-  return (
-    <div className="flex items-center gap-2">
-      <input
-        ref={inputRef}
-        type="file"
-        multiple
-        hidden
-        onChange={(e) => onFiles(e.target.files)}
-      />
-      <Button
-        size="sm"
-        variant="outline"
-        className="h-9 rounded-full"
-        onClick={() => inputRef.current?.click()}
-        disabled={pending}
-      >
-        <Upload className="h-3.5 w-3.5" />
-        {pending ? "Uploading" : "Upload"}
-      </Button>
-      {error && <p className="max-w-[140px] truncate text-[11px] text-destructive">{error}</p>}
-    </div>
-  );
-}
 
 function MessagesPanel({
   portalId,
@@ -1354,38 +1276,4 @@ function formatHours(totalSeconds: number): string {
   if (h === 0 && m === 0) return "0m";
   if (h === 0) return `${m}m`;
   if (m === 0) return `${h}h`;
-  return `${h}h ${m}m`;
-}
-
-function formatBytes(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`;
-  const units = ["KB", "MB", "GB", "TB"] as const;
-  let value = bytes / 1024;
-  let index = 0;
-  while (value >= 1024 && index < units.length - 1) {
-    value /= 1024;
-    index += 1;
-  }
-  return `${value.toFixed(value >= 10 ? 0 : 1)} ${units[index]}`;
-}
-
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
-}
-
-function relativeTime(iso: string): string {
-  const diffMs = Date.now() - Date.parse(iso);
-  const diffMins = Math.floor(diffMs / 60_000);
-  if (diffMins < 1) return "just now";
-  if (diffMins < 60) return `${diffMins}m ago`;
-  const diffHours = Math.floor(diffMins / 60);
-  if (diffHours < 24) return `${diffHours}h ago`;
-  const diffDays = Math.floor(diffHours / 24);
-  if (diffDays === 1) return "yesterday";
-  if (diffDays < 7) return `${diffDays}d ago`;
-  return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric" });
-}
+  re
