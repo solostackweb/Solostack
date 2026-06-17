@@ -142,6 +142,7 @@ export const invoiceDefaultsSchema = z.object({
       message: "Select a valid GST rate",
     })
     .default(18),
+  invoiceDefaultHsnSac: optionalText(20),
   invoiceDefaultDueDays: z.coerce.number().int().min(0).max(365).default(14),
   invoiceDefaultNotes: optionalText(500),
   invoiceDefaultTerms: optionalText(2000),

@@ -3,13 +3,13 @@
  *
  *   GET /api/cron/invoices-due-soon
  *
- * Runs once per day. Finds every invoice whose `due_date` is exactly
- * tomorrow and whose status is `sent` or `viewed`, then emails the
- * client a friendly "due tomorrow" heads-up.
+ * Runs once per day. Finds every invoice whose `due_date` is 3 days or
+ * 1 day away and whose status is `sent` or `viewed`, then emails the
+ * client a friendly pre-due heads-up.
  *
  * This is the complement of `invoices-overdue`, which fires AFTER the
  * due date. Together they bracket the due date:
- *   Day -1 → due-soon email (this route)
+ *   Day -3, -1 → due-soon emails (this route)
  *   Day +1, +7, +14 → overdue reminders (invoices-overdue route)
  *
  * Authentication: `Authorization: Bearer <CRON_SECRET>`.
@@ -55,10 +55,15 @@ export async function GET(req: Request): Promise<Response> {
 
   const admin = getAdminSupabase();
 
-  // Calculate tomorrow's date string (UTC) to match against due_date.
-  const tomorrow = new Date();
-  tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
-  const tomorrowIso = tomorrow.toISOString().slice(0, 10);
+  // Pre-due reminders fire at D-3 and D-1 (3 days before and the day before
+  // the due date). Compute both target date strings (UTC) and match due_date
+  // against either.
+  const todayIso = new Date().toISOString().slice(0, 10);
+  const targetDates = [1, 3].map((offset) => {
+    const d = new Date();
+    d.setUTCDate(d.getUTCDate() + offset);
+    return d.toISOString().slice(0, 10);
+  });
 
   const { data: rows, error } = await admin
     .from("invoices")
@@ -66,7 +71,7 @@ export async function GET(req: Request): Promise<Response> {
       "id, user_id, client_id, invoice_number, currency, total_amount, due_date, public_token, status",
     )
     .in("status", ["sent", "viewed"])
-    .eq("due_date", tomorrowIso)
+    .in("due_date", targetDates)
     .limit(1000);
 
   if (error) {
@@ -130,7 +135,9 @@ export async function GET(req: Request): Promise<Response> {
       inv.currency,
     );
 
-    // daysOverdue = -1 signals "due tomorrow" to the template renderer.
+    // Negative daysOverdue signals a pre-due heads-up: -1 = due tomorrow,
+    // -3 = due in 3 days. Derived from this invoice's own due date.
+    const daysUntil = daysBetween(todayIso, inv.due_date);
     const rendered = renderInvoiceReminderEmail({
       invoiceNumber: inv.invoice_number,
       amountFormatted,
@@ -140,7 +147,7 @@ export async function GET(req: Request): Promise<Response> {
       senderEmail: getEmailSender("billing").email,
       message: null,
       publicUrl: getInvoiceShareUrl(inv.public_token),
-      daysOverdue: -1,
+      daysOverdue: -daysUntil,
     });
 
     const dispatch = await dispatchDelivery({
@@ -154,11 +161,11 @@ export async function GET(req: Request): Promise<Response> {
       subject: rendered.subject,
       html: rendered.html,
       text: rendered.text,
-      metadata: { invoiceId: inv.id, daysOverdue: -1, dueDate: inv.due_date },
+      metadata: { invoiceId: inv.id, daysOverdue: -daysUntil, dueDate: inv.due_date },
       tags: ["invoice_due_soon", "billing"],
-      // Keyed on the due_date so that cron reruns on the same UTC day
-      // cannot double-send.
-      idempotencyKey: `invoice-due-soon:${inv.id}:${inv.due_date}`,
+      // Keyed on invoice + due_date + offset so the D-3 and D-1 reminders are
+      // distinct, while a same-day cron rerun cannot double-send either one.
+      idempotencyKey: `invoice-due-soon:${inv.id}:${inv.due_date}:d${daysUntil}`,
     });
 
     if (dispatch.ok) {
@@ -173,7 +180,7 @@ export async function GET(req: Request): Promise<Response> {
   }
 
   log.info("cron.invoices_due_soon.summary", {
-    targetDate: tomorrowIso,
+    targetDates,
     scanned: invoices.length,
     remindersSent,
     remindersFailed,
@@ -182,7 +189,7 @@ export async function GET(req: Request): Promise<Response> {
 
   return NextResponse.json({
     ok: true,
-    targetDate: tomorrowIso,
+    targetDates,
     scanned: invoices.length,
     remindersSent,
     remindersFailed,
@@ -197,4 +204,12 @@ function formatCurrency(value: number, currency: string): string {
     maximumFractionDigits: 2,
   }).format(value);
   return `${currency} ${amount}`;
+}
+
+/** Whole days from `fromIso` to `toIso` (UTC midnights). */
+function daysBetween(fromIso: string, toIso: string): number {
+  const from = Date.parse(fromIso);
+  const to = Date.parse(toIso);
+  if (Number.isNaN(from) || Number.isNaN(to)) return 0;
+  return Math.round((to - from) / 86_400_000);
 }

@@ -32,3 +32,21 @@ export const CONTRACT_KIND_LABEL: Record<ContractKindRow, string> = {
   proposal: "Proposal",
   contract: "Contract",
 };
+
+/**
+ * Client-facing contract status label. Internal pre-signature states
+ * (draft/sent/viewed) all read as "Awaiting signature". Used by the public
+ * signing page and the client portal for consistency.
+ */
+export function clientFacingContractStatus(status: string): string {
+  switch (status) {
+    case "signed":
+      return "Signed";
+    case "declined":
+      return "Declined";
+    case "expired":
+      return "Expired";
+    default:
+      return "Awaiting signature";
+  }
+}

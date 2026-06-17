@@ -61,6 +61,7 @@ export const invoiceFormSchema = z
       .nonnegative("Discount cannot be negative")
       .default(0),
     paymentMethod: z.enum(PAYMENT_METHODS),
+    hsnSac: z.string().max(20, "HSN/SAC is too long").optional().or(z.literal("")),
     notes: z.string().max(1000, "Notes are too long").optional().or(z.literal("")),
     terms: z.string().max(1000, "Terms are too long").optional().or(z.literal("")),
   })

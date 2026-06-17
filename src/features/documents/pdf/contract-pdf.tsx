@@ -45,6 +45,7 @@ import {
   SignatureBlock,
   formatCurrency,
   formatDate,
+  formatDateTime,
   type BadgeTone,
   type SignatureData,
 } from "./primitives";
@@ -77,6 +78,8 @@ export interface ContractPdfData {
         signedAt: string | null;
         signerEmail: string | null;
         signedIp: string | null;
+        signedUserAgent: string | null;
+        snapshotHash: string | null;
       })
     | null;
   publicUrl: string | null;
@@ -283,6 +286,36 @@ const s = StyleSheet.create({
     marginTop: pdfSpacing["2xl"],
     justifyContent: "space-between",
   },
+  auditBox: {
+    marginTop: 16,
+    borderWidth: 0.5,
+    borderColor: pdfColors.borderStrong,
+    backgroundColor: pdfColors.surfaceMuted,
+    borderRadius: pdfRadii.sm,
+    padding: 10,
+  },
+  auditTitle: {
+    fontFamily: pdfFonts.bold,
+    fontSize: pdfSizes.eyebrow,
+    textTransform: "uppercase",
+    letterSpacing: pdfTracking.wider,
+    color: pdfColors.mutedForeground,
+    marginBottom: 6,
+  },
+  auditRow: {
+    flexDirection: "row",
+    marginBottom: 2,
+  },
+  auditLabel: {
+    width: 120,
+    fontSize: pdfSizes.xs,
+    color: pdfColors.mutedForeground,
+  },
+  auditValue: {
+    flex: 1,
+    fontSize: pdfSizes.xs,
+    color: pdfColors.foreground,
+  },
   signatureSpacer: { width: pdfSpacing.lg },
   signatureSlot: { flex: 1 },
 });
@@ -482,6 +515,37 @@ export function ContractPdf({
           </View>
         </View>
 
+        {/* ── 6b. SIGNATURE AUDIT CERTIFICATE (signed contracts) ─── */}
+        {isContract && data.clientSignature && data.signedAt ? (
+          <View style={s.auditBox} wrap={false}>
+            <Text style={s.auditTitle}>Signature audit record</Text>
+            <AuditRow label="Signed by" value={data.clientSignature.legalName ?? data.signerName ?? "—"} />
+            {data.clientSignature.signerEmail ? (
+              <AuditRow label="Email" value={data.clientSignature.signerEmail} />
+            ) : null}
+            <AuditRow label="Signed at" value={formatDateTime(data.signedAt)} />
+            {data.clientSignature.signedIp ? (
+              <AuditRow label="IP address" value={data.clientSignature.signedIp} />
+            ) : null}
+            {data.clientSignature.signedUserAgent ? (
+              <AuditRow
+                label="Device"
+                value={data.clientSignature.signedUserAgent.slice(0, 90)}
+              />
+            ) : null}
+            {data.clientSignature.snapshotHash ? (
+              <AuditRow
+                label="Document hash"
+                value={`SHA-256 ${data.clientSignature.snapshotHash.slice(0, 32)}…`}
+              />
+            ) : null}
+            <Text style={[s.auditValue, { marginTop: 6, color: pdfColors.mutedForeground }]}>
+              Electronically signed with consent and intent to be legally bound. This record
+              is retained as evidence of execution.
+            </Text>
+          </View>
+        ) : null}
+
         {/* ── 7. FOOTER (fixed on every page) ───────────────── */}
         <DocumentFooter
           brand={brand}
@@ -495,6 +559,15 @@ export function ContractPdf({
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
+
+function AuditRow({ label, value }: { label: string; value: string }) {
+  return (
+    <View style={s.auditRow}>
+      <Text style={s.auditLabel}>{label}</Text>
+      <Text style={s.auditValue}>{value}</Text>
+    </View>
+  );
+}
 
 function coerceSignature(
   ref: ContractSignatureReference & { type: ContractSignatureType },

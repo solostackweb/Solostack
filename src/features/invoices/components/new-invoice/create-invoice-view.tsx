@@ -75,6 +75,7 @@ function buildDefaults(
     gstRate,
     discount: 0,
     paymentMethod: "bank",
+    hsnSac: profile?.invoiceDefaultHsnSac ?? "",
     notes: profile?.invoiceDefaultNotes ?? "",
     terms: profile?.invoiceDefaultTerms ?? "",
   };
@@ -232,6 +233,7 @@ export function CreateInvoiceView({
         discount: Number(values.discount) || 0,
         notes: values.notes || undefined,
         terms: values.terms || undefined,
+        hsnSac: gstEnabled ? (values.hsnSac || "").trim() || undefined : undefined,
         lines: totalsForLines,
         timeEntryIds: Object.values(addedTime)
           .filter((meta) =>
@@ -547,6 +549,15 @@ export function CreateInvoiceView({
                       </SelectContent>
                     </Select>
                   </Field>
+                  ) : null}
+
+                  {gstEnabled ? (
+                    <Field label="HSN / SAC code" error={errors.hsnSac?.message}>
+                      <Input
+                        {...register("hsnSac")}
+                        placeholder="e.g. 998314 (services)"
+                      />
+                    </Field>
                   ) : null}
 
                   <Field

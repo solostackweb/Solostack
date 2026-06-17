@@ -211,6 +211,8 @@ export async function getPulseAnalytics(opts: {
     if (r.tax_mode && r.tax_mode !== "non_gst") hasGstInvoices = true;
     const total = Number(r.total_amount) || 0;
 
+    // Cancelled invoices are voided documents — excluded from issued/funnel.
+    if (r.status === "cancelled") continue;
     if (r.status !== "draft") {
       issuedCount += 1;
       issuedTotal += total;

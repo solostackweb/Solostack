@@ -145,7 +145,8 @@ export async function buildContractPdfData(
     contract.client_id ? fetchClient(contract.client_id) : null,
   ]);
   const signature = await fetchLatestContractSignature(contract.id);
-  const logoUrl = await fetchBrandMarkDataUrl(seller, supabase);
+  const customBranding = await userCanCustomizeBranding(user.id, supabase);
+  const logoUrl = customBranding ? await fetchBrandMarkDataUrl(seller, supabase) : null;
   return assembleContractPdfData({
     contract,
     seller,
@@ -153,6 +154,7 @@ export async function buildContractPdfData(
     logoUrl,
     signature,
     supabase,
+    customBranding,
   });
 }
 
@@ -173,7 +175,8 @@ export async function buildContractPdfDataByToken(
     contract.client_id ? fetchClient(contract.client_id, admin) : null,
     fetchLatestContractSignature(contract.id, admin),
   ]);
-  const logoUrl = await fetchBrandMarkDataUrl(seller, admin);
+  const customBranding = await userCanCustomizeBranding(contract.user_id, admin);
+  const logoUrl = customBranding ? await fetchBrandMarkDataUrl(seller, admin) : null;
   return assembleContractPdfData({
     contract,
     seller,
@@ -181,6 +184,7 @@ export async function buildContractPdfDataByToken(
     logoUrl,
     signature,
     supabase: admin,
+    customBranding,
   });
 }
 
@@ -326,6 +330,7 @@ async function assembleInvoicePdfData(args: {
     notes: invoice.notes,
     terms: invoice.terms,
     footerNote: invoice.footer_note,
+    hsnSac: invoice.hsn_sac,
     paymentLink: invoice.payment_link,
     publicUrl,
     brandColor: customBranding ? (seller?.brand_color ?? null) : null,
@@ -392,8 +397,9 @@ async function assembleContractPdfData(args: {
   logoUrl: string | null;
   signature: ContractSignatureRow | null;
   supabase: AnySupabase;
+  customBranding?: boolean;
 }): Promise<ContractPdfData> {
-  const { contract, seller, client, logoUrl, signature, supabase } = args;
+  const { contract, seller, client, logoUrl, signature, supabase, customBranding } = args;
   // Resolve every signature image up-front. The DB column may hold a
   // data: URL, a Supabase storage path, or a fully-qualified https URL.
   // normalizeImageForPdf collapses all three into a base64 data URL the
@@ -451,6 +457,8 @@ async function assembleContractPdfData(args: {
           signedAt: signature.signed_at,
           signerEmail: client?.email ?? null,
           signedIp: signature.signed_ip,
+          signedUserAgent: signature.signed_user_agent ?? null,
+          snapshotHash: signature.pdf_snapshot_hash ?? contract.pdf_snapshot_hash ?? null,
         }
       : contract.signature_type
         ? {
@@ -462,10 +470,12 @@ async function assembleContractPdfData(args: {
             signedAt: contract.signed_at,
             signerEmail: client?.email ?? null,
             signedIp: null,
+            signedUserAgent: null,
+            snapshotHash: contract.pdf_snapshot_hash ?? null,
           }
         : null,
     publicUrl,
-    brandColor: seller?.brand_color ?? null,
+    brandColor: customBranding ? (seller?.brand_color ?? null) : null,
     seller: {
       businessName:
         seller?.business_name ??
@@ -539,7 +549,8 @@ export async function buildWelcomeDocumentPdfData(
     fetchSellerProfile(user.id),
     doc.client_id ? fetchClient(doc.client_id) : null,
   ]);
-  const logoUrl = await fetchBrandMarkDataUrl(seller, supabase);
+  const canBrand = await userCanCustomizeBranding(user.id, supabase);
+  const logoUrl = canBrand ? await fetchBrandMarkDataUrl(seller, supabase) : null;
   return assembleWelcomePdfData({ doc, seller, client, logoUrl });
 }
 
@@ -560,7 +571,8 @@ export async function buildWelcomeDocumentPdfDataByToken(
     fetchSellerProfile(doc.user_id, admin),
     doc.client_id ? fetchClient(doc.client_id, admin) : null,
   ]);
-  const logoUrl = await fetchBrandMarkDataUrl(seller, admin);
+  const canBrand = await userCanCustomizeBranding(doc.user_id, admin);
+  const logoUrl = canBrand ? await fetchBrandMarkDataUrl(seller, admin) : null;
   return assembleWelcomePdfData({ doc, seller, client, logoUrl });
 }
 

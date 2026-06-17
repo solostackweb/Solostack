@@ -71,6 +71,7 @@ export interface BusinessProfile {
   invoiceResetYearly: boolean;
   invoiceDefaultTaxMode: "intra" | "inter";
   invoiceDefaultGstRate: number;
+  invoiceDefaultHsnSac: string | null;
   invoiceSendReminders: boolean;
   invoiceDefaultDueDays: number;
   invoiceDefaultNotes: string | null;
@@ -201,6 +202,7 @@ export function mapProfileRow(row: UserProfileRow): BusinessProfile {
     invoiceResetYearly: row.invoice_reset_yearly,
     invoiceDefaultTaxMode: row.invoice_default_tax_mode,
     invoiceDefaultGstRate: row.invoice_default_gst_rate,
+    invoiceDefaultHsnSac: row.invoice_default_hsn_sac ?? null,
     invoiceSendReminders: row.invoice_send_reminders,
     invoiceDefaultDueDays: row.invoice_default_due_days,
     invoiceDefaultNotes: row.invoice_default_notes,

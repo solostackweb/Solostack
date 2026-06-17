@@ -49,7 +49,8 @@ export type InvoiceStatusRow =
   | "viewed"
   | "paid"
   | "overdue"
-  | "partially_paid";
+  | "partially_paid"
+  | "cancelled";
 
 export type ContractStatusRow =
   | "draft"
@@ -152,6 +153,7 @@ export interface UserProfileRow {
   invoice_number_padding: number;
   invoice_reset_yearly: boolean;
   invoice_default_tax_mode: "intra" | "inter";
+  invoice_default_hsn_sac: string | null;
   invoice_default_gst_rate: number;
   invoice_send_reminders: boolean;
   invoice_default_due_days: number;
@@ -294,6 +296,7 @@ export interface InvoiceRow {
   seller_state_code: string | null;
   client_state_code: string | null;
   footer_note: string | null;
+  hsn_sac: string | null;
   payment_link: string | null;
   payment_status: string | null;
   payment_method: string | null;

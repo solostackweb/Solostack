@@ -16,6 +16,7 @@ const STATUS_STYLES: Record<InvoiceStatusRow, string> = {
   paid: "bg-emerald-500/10 text-emerald-700 ring-emerald-500/20 dark:text-emerald-400",
   overdue: "bg-destructive/10 text-destructive ring-destructive/20",
   partially_paid: "bg-amber-500/10 text-amber-700 ring-amber-500/20 dark:text-amber-400",
+  cancelled: "bg-muted text-muted-foreground ring-border line-through",
 };
 
 const STATUS_DOT: Record<InvoiceStatusRow, string> = {
@@ -25,6 +26,7 @@ const STATUS_DOT: Record<InvoiceStatusRow, string> = {
   paid: "bg-emerald-500",
   overdue: "bg-destructive",
   partially_paid: "bg-amber-500",
+  cancelled: "bg-muted-foreground/40",
 };
 
 export function InvoiceStatusBadge({

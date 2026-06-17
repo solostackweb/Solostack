@@ -55,6 +55,7 @@ export const invoiceStatusSchema = z.enum([
   "paid",
   "overdue",
   "partially_paid",
+  "cancelled",
 ]);
 
 export const invoiceCrudSchema = z.object({
@@ -72,6 +73,7 @@ export const invoiceCrudSchema = z.object({
   discount: z.coerce.number().min(0, "Discount cannot be negative").default(0),
   notes: optionalText(2000),
   terms: optionalText(2000),
+  hsnSac: optionalText(20),
   lines: z.array(invoiceLineSchema).min(1, "Add at least one line item"),
   /** Billable time entries this invoice covers — marked invoiced on create. */
   timeEntryIds: z.array(z.string().uuid()).max(500).optional(),

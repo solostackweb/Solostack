@@ -105,6 +105,7 @@ export async function getInvoiceLedger(opts: {
     .gte("issue_date", opts.from)
     .lte("issue_date", opts.to)
     .neq("status", "draft")
+    .neq("status", "cancelled")
     .order("issue_date", { ascending: true })
     .limit(5000);
 

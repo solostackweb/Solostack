@@ -56,4 +56,5 @@ export interface WelcomeDocumentRecord {
   uniqueViewers: number;
   acknowledgementCount: number;
   acknowledgedAt: string | null;
+  acknowledgements: Array<{ name: string; email: string | null; at: string }>;
 }

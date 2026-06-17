@@ -49,6 +49,7 @@ export interface InvoiceRecord {
   sellerStateCode: string | null;
   clientStateCode: string | null;
   footerNote: string | null;
+  hsnSac: string | null;
   notes: string | null;
   terms: string | null;
   paymentLink: string | null;
@@ -103,6 +104,7 @@ function mapInvoiceRow(row: InvoiceRow): InvoiceRecord {
     sellerStateCode: row.seller_state_code,
     clientStateCode: row.client_state_code,
     footerNote: row.footer_note,
+    hsnSac: row.hsn_sac ?? null,
     notes: row.notes,
     terms: row.terms,
     paymentLink: row.payment_link,

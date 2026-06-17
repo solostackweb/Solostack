@@ -391,13 +391,17 @@ function ContractRow({
                   {contract.status === "draft" ? "Send for signature" : "Resend"}
                 </DropdownMenuItem>
               )}
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
-                onSelect={onDelete}
-                className="text-destructive focus:text-destructive"
-              >
-                <Trash2 className="h-3.5 w-3.5" /> Delete
-              </DropdownMenuItem>
+              {contract.status !== "signed" && (
+                <>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    onSelect={onDelete}
+                    className="text-destructive focus:text-destructive"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" /> Delete
+                  </DropdownMenuItem>
+                </>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
         </div>

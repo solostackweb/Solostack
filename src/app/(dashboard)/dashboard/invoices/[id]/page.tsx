@@ -14,6 +14,7 @@ import { MarkPaidManuallyDialog } from "@/features/invoices/components/mark-paid
 import { InvoiceShareButtons } from "@/features/invoices/components/invoice-share-buttons";
 import { SendInvoiceButton } from "@/features/invoices/components/send-invoice-button";
 import { DuplicateInvoiceButton } from "@/features/invoices/components/duplicate-invoice-button";
+import { CancelInvoiceButton } from "@/features/invoices/components/cancel-invoice-button";
 import { listActivity, type ActivityRecord } from "@/features/activity/server";
 
 export const dynamic = "force-dynamic";
@@ -143,12 +144,22 @@ export default async function InvoiceDetailPage({
               </a>
             </Button>
           )}
-          <MarkPaidManuallyDialog
-            invoiceId={invoice.id}
-            invoiceNumber={invoice.invoiceNumber}
-            amountLabel={formatINR(invoice.totalAmount)}
-            alreadyPaid={invoice.status === "paid"}
-          />
+          {(invoice.status === "sent" ||
+            invoice.status === "viewed" ||
+            invoice.status === "overdue") && (
+            <CancelInvoiceButton
+              invoiceId={invoice.id}
+              invoiceNumber={invoice.invoiceNumber}
+            />
+          )}
+          {invoice.status !== "cancelled" && (
+            <MarkPaidManuallyDialog
+              invoiceId={invoice.id}
+              invoiceNumber={invoice.invoiceNumber}
+              amountLabel={formatINR(invoice.totalAmount)}
+              alreadyPaid={invoice.status === "paid"}
+            />
+          )}
         </div>
       </div>
 

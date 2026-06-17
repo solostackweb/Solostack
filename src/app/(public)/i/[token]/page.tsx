@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import { getSharedInvoice, recordInvoiceView } from "@/features/share/server";
 import { buildInvoicePdfDataByToken } from "@/features/documents/builders";
 import { getInvoicePdfShareUrl } from "@/features/documents/urls";
+import { amountInWordsINR } from "@/lib/number-to-words";
+import { clientFacingInvoiceStatus } from "@/features/invoices/status";
 import { getUserPaymentMethod } from "@/features/billing/payment-methods";
 import { PublicPaymentPanel } from "@/features/invoices/components/public-payment-panel";
 import { PublicUpiPanel } from "@/features/invoices/components/public-upi-panel";
@@ -44,6 +46,7 @@ export default async function PublicInvoicePage({ params }: Props) {
   const status = shared.invoice.status;
   const isPaid = status === "paid";
   const isOverdue = status === "overdue";
+  const isCancelled = status === "cancelled";
 
   const senderName = viewModel.seller.businessName ?? "Stackivo";
   const accent = viewModel.brandColor ?? "#0F172A";
@@ -87,7 +90,14 @@ export default async function PublicInvoicePage({ params }: Props) {
         })
       : "—";
 
-  const docLabel = viewModel.taxMode === "non_gst" ? "Invoice" : "Tax Invoice";
+  const isGstRegistered = Boolean(viewModel.seller.gstin);
+  const isBillOfSupply = viewModel.taxMode === "non_gst" && isGstRegistered;
+  const docLabel =
+    viewModel.taxMode !== "non_gst"
+      ? "Tax Invoice"
+      : isGstRegistered
+        ? "Bill of Supply"
+        : "Invoice";
   const pdfUrl = getInvoicePdfShareUrl(token);
 
   const isPartiallyPaid = status === "partially_paid";
@@ -97,7 +107,9 @@ export default async function PublicInvoicePage({ params }: Props) {
       : 0;
   const balanceDue = Number(shared.invoice.total_amount) - paidSoFar;
 
-  const statusChip = isPaid
+  const statusChip = isCancelled
+    ? "bg-slate-200 text-slate-500 border-slate-300 line-through"
+    : isPaid
     ? "bg-emerald-50 text-emerald-700 border-emerald-200"
     : isOverdue
       ? "bg-red-50 text-red-700 border-red-200"
@@ -105,15 +117,7 @@ export default async function PublicInvoicePage({ params }: Props) {
         ? "bg-amber-50 text-amber-700 border-amber-200"
         : "bg-slate-100 text-slate-600 border-slate-200";
 
-  // Client-facing label only — never surface internal states like
-  // "viewed"/"draft" to the recipient; they read as "Due".
-  const statusLabel = isPaid
-    ? "Paid"
-    : isOverdue
-      ? "Overdue"
-      : isPartiallyPaid
-        ? "Partially paid"
-        : "Due";
+  const statusLabel = clientFacingInvoiceStatus(status);
 
   return (
     <div className="min-h-svh bg-slate-50/80">
@@ -139,7 +143,7 @@ export default async function PublicInvoicePage({ params }: Props) {
             )}
             <div className="min-w-0">
               <p className="truncate text-sm font-semibold text-slate-900">{senderName}</p>
-              <p className="text-xs text-slate-500">Sent you {docLabel.toLowerCase() === "invoice" ? "an invoice" : "a tax invoice"}</p>
+              <p className="text-xs text-slate-500">Sent you {/^[aeiou]/i.test(docLabel) ? "an" : "a"} {docLabel.toLowerCase()}</p>
             </div>
           </div>
           <Button asChild variant="outline" size="sm" className="shrink-0">
@@ -367,6 +371,25 @@ export default async function PublicInvoicePage({ params }: Props) {
                 </dl>
               </div>
 
+              {/* Legal — amount in words, HSN/SAC, reverse charge */}
+              <div className="mt-6 space-y-1 border-t border-slate-100 pt-4 text-[11px] text-slate-500">
+                <p>
+                  Amount in words:{" "}
+                  <span className="font-medium text-slate-700">
+                    {amountInWordsINR(viewModel.totalAmount)}
+                  </span>
+                </p>
+                {viewModel.taxMode !== "non_gst" ? (
+                  <p>
+                    {viewModel.hsnSac ? `HSN/SAC: ${viewModel.hsnSac}  ·  ` : ""}
+                    Tax payable on reverse charge: No
+                  </p>
+                ) : null}
+                {isBillOfSupply ? (
+                  <p>This is a Bill of Supply. No GST is charged on this document.</p>
+                ) : null}
+              </div>
+
               {/* Notes / Terms */}
               {(viewModel.notes || viewModel.terms) && (
                 <div className="mt-6 grid gap-4 border-t border-slate-100 pt-6 sm:grid-cols-2">
@@ -397,7 +420,15 @@ export default async function PublicInvoicePage({ params }: Props) {
 
           {/* ── SIDEBAR ──────────────────────────────────────────────── */}
           <aside className="space-y-4">
-            {method?.type === "stackivo_managed" ? (
+            {isCancelled ? (
+              <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+                <p className="text-sm font-semibold text-slate-900">Invoice cancelled</p>
+                <p className="mt-1.5 text-xs leading-relaxed text-slate-500">
+                  This invoice has been cancelled by {senderName} and is no longer
+                  payable. If you have questions, reply to the email it came from.
+                </p>
+              </div>
+            ) : method?.type === "stackivo_managed" ? (
               <PublicPaymentPanel
                 token={token}
                 amountFormatted={amountFormatted}

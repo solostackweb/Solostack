@@ -190,6 +190,7 @@ export async function createInvoiceAction(
     seller_state_code: parties.seller.stateCode,
     client_state_code: parties.client.stateCode,
     footer_note: totals.decision.footerNote,
+    hsn_sac: parsed.data.hsnSac ?? null,
     payment_amount: parsed.data.status === "paid" ? totals.total : null,
     payment_recorded_at:
       parsed.data.status === "paid" ? new Date().toISOString() : null,
@@ -330,6 +331,7 @@ export async function updateInvoiceAction(
     seller_state_code: parties.seller.stateCode,
     client_state_code: parties.client.stateCode,
     footer_note: totals.decision.footerNote,
+    hsn_sac: parsed.data.hsnSac ?? null,
   };
 
   const { error } = await supabase
@@ -364,12 +366,95 @@ export async function deleteInvoiceAction(
 ): Promise<ActionResult> {
   const idParse = invoiceIdSchema.safeParse(formData.get("id"));
   if (!idParse.success) return { ok: false, error: "Invalid invoice id." };
-  await requireUserId();
+  const userId = await requireUserId();
   const supabase = await getServerSupabase();
-  const { error } = await supabase.from("invoices").delete().eq("id", idParse.data);
+
+  // Only drafts may be hard-deleted. Issued invoices must be retained for the
+  // consecutive-numbering audit trail — they are cancelled, not deleted.
+  const { data: existing } = await supabase
+    .from("invoices")
+    .select("status")
+    .eq("id", idParse.data)
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (!existing) return { ok: false, error: "Invoice not found." };
+  if ((existing as { status: string }).status !== "draft") {
+    return {
+      ok: false,
+      error:
+        "Only draft invoices can be deleted. Cancel this invoice instead to keep your records intact.",
+    };
+  }
+
+  const { error } = await supabase
+    .from("invoices")
+    .delete()
+    .eq("id", idParse.data)
+    .eq("user_id", userId);
   if (error) return { ok: false, error: error.message };
   revalidatePath("/dashboard/invoices");
   return { ok: true, message: "Invoice deleted." };
+}
+
+/**
+ * Cancel (void) an issued invoice. The row + its number are retained and
+ * flagged `cancelled` so the audit trail stays intact; any billed time
+ * entries are released so they can be re-invoiced. Drafts should be deleted,
+ * and paid / partially-paid invoices need a refund or credit note instead.
+ */
+export async function cancelInvoiceAction(
+  _prev: ActionResult | undefined,
+  formData: FormData,
+): Promise<ActionResult> {
+  const idParse = invoiceIdSchema.safeParse(formData.get("id"));
+  if (!idParse.success) return { ok: false, error: "Invalid invoice id." };
+  const userId = await requireUserId();
+  const supabase = await getServerSupabase();
+
+  const { data: existing } = await supabase
+    .from("invoices")
+    .select("status, invoice_number")
+    .eq("id", idParse.data)
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (!existing) return { ok: false, error: "Invoice not found." };
+  const row = existing as { status: string; invoice_number: string };
+  if (row.status === "draft") {
+    return { ok: false, error: "Delete draft invoices instead of cancelling them." };
+  }
+  if (row.status === "paid" || row.status === "partially_paid") {
+    return {
+      ok: false,
+      error: "Paid invoices can't be cancelled. Issue a refund or credit note instead.",
+    };
+  }
+  if (row.status === "cancelled") {
+    return { ok: false, error: "This invoice is already cancelled." };
+  }
+
+  const { error } = await supabase
+    .from("invoices")
+    .update({ status: "cancelled" } as never)
+    .eq("id", idParse.data)
+    .eq("user_id", userId);
+  if (error) return { ok: false, error: error.message };
+
+  // Release any time entries this invoice had claimed so they can be re-billed.
+  await supabase
+    .from("time_entries")
+    .update({ invoice_id: null, invoiced_at: null } as never)
+    .eq("invoice_id", idParse.data);
+
+  await recordActivity({
+    kind: "invoice_cancelled",
+    entityType: "invoice",
+    entityId: idParse.data,
+    title: `Invoice ${row.invoice_number} cancelled`,
+  });
+
+  revalidatePath("/dashboard/invoices");
+  revalidatePath(`/dashboard/invoices/${idParse.data}`);
+  return { ok: true, message: "Invoice cancelled." };
 }
 
 // --- Status transitions ----------------------------------------------------
@@ -507,6 +592,7 @@ export async function duplicateInvoiceAction(
       seller_state_code: orig.seller_state_code,
       client_state_code: orig.client_state_code,
       footer_note: orig.footer_note,
+      hsn_sac: orig.hsn_sac,
     } as never)
     .select("id")
     .single();

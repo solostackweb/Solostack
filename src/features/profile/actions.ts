@@ -307,6 +307,7 @@ export async function updateInvoiceDefaults(
       invoice_default_due_days: parsed.data.invoiceDefaultDueDays,
       invoice_default_notes: parsed.data.invoiceDefaultNotes ?? null,
       invoice_default_terms: parsed.data.invoiceDefaultTerms ?? null,
+      invoice_default_hsn_sac: parsed.data.invoiceDefaultHsnSac ?? null,
       default_currency: parsed.data.defaultCurrency,
       invoice_send_reminders: parsed.data.invoiceSendReminders,
     } as never)

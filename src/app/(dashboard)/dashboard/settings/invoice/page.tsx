@@ -36,6 +36,7 @@ export default function InvoiceSettingsPage() {
       invoiceResetYearly: profile?.invoiceResetYearly ?? false,
       invoiceDefaultTaxMode: profile?.invoiceDefaultTaxMode ?? "intra",
       invoiceDefaultGstRate: profile?.invoiceDefaultGstRate ?? 18,
+      invoiceDefaultHsnSac: profile?.invoiceDefaultHsnSac ?? "",
       invoiceDefaultDueDays: profile?.invoiceDefaultDueDays ?? 14,
       invoiceDefaultNotes: profile?.invoiceDefaultNotes ?? "",
       invoiceDefaultTerms: profile?.invoiceDefaultTerms ?? "",
@@ -200,6 +201,15 @@ export default function InvoiceSettingsPage() {
                 ))}
               </SelectContent>
             </Select>
+          </SettingsField>
+          ) : null}
+          {gstEnabled ? (
+          <SettingsField
+            label="Default HSN / SAC code"
+            hint="Pre-fills new GST invoices (e.g. 998314 for IT services)"
+            error={errors.invoiceDefaultHsnSac?.message}
+          >
+            <Input {...form.register("invoiceDefaultHsnSac")} placeholder="e.g. 998314" />
           </SettingsField>
           ) : null}
           <SettingsField label="Default currency" error={errors.defaultCurrency?.message}>

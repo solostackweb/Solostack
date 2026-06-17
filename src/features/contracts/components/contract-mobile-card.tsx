@@ -132,16 +132,20 @@ export function ContractMobileCard({
                   <Send className="h-3.5 w-3.5" /> {sendLabel}
                 </DropdownMenuItem>
               ) : null}
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
-                onSelect={(e) => {
-                  e.preventDefault();
-                  onDelete();
-                }}
-                className="text-destructive focus:text-destructive"
-              >
-                <Trash2 className="h-3.5 w-3.5" /> Delete
-              </DropdownMenuItem>
+              {contract.status !== "signed" && (
+                <>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    onSelect={(e) => {
+                      e.preventDefault();
+                      onDelete();
+                    }}
+                    className="text-destructive focus:text-destructive"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" /> Delete
+                  </DropdownMenuItem>
+                </>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
 

@@ -105,8 +105,27 @@ export async function updateContractAction(
       fieldErrors: parsed.error.flatten().fieldErrors,
     };
   }
-  await requireUserId();
+  const userId = await requireUserId();
   const supabase = await getServerSupabase();
+
+  // Integrity: a signed (or declined) agreement is an executed/closed legal
+  // record — never editable. Corrections go through "Duplicate as draft".
+  const { data: existing } = await supabase
+    .from("contracts")
+    .select("status")
+    .eq("id", idParse.data)
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (!existing) return { ok: false, error: "Contract not found." };
+  const curStatus = (existing as { status: string }).status;
+  if (curStatus === "signed" || curStatus === "declined") {
+    return {
+      ok: false,
+      error:
+        "Signed or declined contracts can't be edited. Duplicate this contract to make a revised draft.",
+    };
+  }
+
   const update = {
     kind: parsed.data.kind,
     title: parsed.data.title,
@@ -121,7 +140,8 @@ export async function updateContractAction(
   const { error } = await supabase
     .from("contracts")
     .update(update as never)
-    .eq("id", idParse.data);
+    .eq("id", idParse.data)
+    .eq("user_id", userId);
   if (error) return { ok: false, error: error.message };
   revalidatePath("/dashboard/contracts");
   revalidatePath(`/dashboard/contracts/${idParse.data}`);
@@ -134,12 +154,86 @@ export async function deleteContractAction(
 ): Promise<ActionResult> {
   const idParse = contractIdSchema.safeParse(formData.get("id"));
   if (!idParse.success) return { ok: false, error: "Invalid contract id." };
-  await requireUserId();
+  const userId = await requireUserId();
   const supabase = await getServerSupabase();
-  const { error } = await supabase.from("contracts").delete().eq("id", idParse.data);
+
+  // A signed contract is binding legal evidence (with its signature + PDF
+  // snapshot) — it must never be deleted.
+  const { data: existing } = await supabase
+    .from("contracts")
+    .select("status")
+    .eq("id", idParse.data)
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (!existing) return { ok: false, error: "Contract not found." };
+  if ((existing as { status: string }).status === "signed") {
+    return {
+      ok: false,
+      error: "Signed contracts can't be deleted — they are part of your legal records.",
+    };
+  }
+
+  const { error } = await supabase
+    .from("contracts")
+    .delete()
+    .eq("id", idParse.data)
+    .eq("user_id", userId);
   if (error) return { ok: false, error: error.message };
   revalidatePath("/dashboard/contracts");
   return { ok: true, message: "Deleted." };
+}
+
+/**
+ * Clone a contract (content + metadata) into a fresh draft. The safe way to
+ * revise an already-signed agreement without touching the executed original.
+ */
+export async function duplicateContractAction(
+  _prev: ActionResult | undefined,
+  formData: FormData,
+): Promise<ActionResult<{ id: string }>> {
+  const idParse = contractIdSchema.safeParse(formData.get("id"));
+  if (!idParse.success) return { ok: false, error: "Invalid contract id." };
+  const userId = await requireUserId();
+  const supabase = await getServerSupabase();
+
+  const { data: original } = await supabase
+    .from("contracts")
+    .select("*")
+    .eq("id", idParse.data)
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (!original) return { ok: false, error: "Contract not found." };
+  const o = original as Record<string, unknown>;
+
+  const insertRow = {
+    user_id: userId,
+    kind: o.kind,
+    title: `${(o.title as string) ?? "Contract"} (copy)`,
+    content: o.content ?? null,
+    client_id: o.client_id ?? null,
+    project_id: o.project_id ?? null,
+    status: "draft",
+    currency: o.currency ?? "INR",
+    value_amount: o.value_amount ?? null,
+    expires_at: null,
+  };
+  const { data, error } = await supabase
+    .from("contracts")
+    .insert(insertRow as never)
+    .select("id")
+    .single();
+  if (error || !data) {
+    return { ok: false, error: error?.message ?? "Could not duplicate contract." };
+  }
+  const newId = (data as { id: string }).id;
+  await recordActivity({
+    kind: `${String(o.kind)}_created`,
+    entityType: "contract",
+    entityId: newId,
+    title: `Duplicated contract: ${insertRow.title}`,
+  });
+  revalidatePath("/dashboard/contracts");
+  return { ok: true, data: { id: newId }, message: "Contract duplicated as a draft." };
 }
 
 /**

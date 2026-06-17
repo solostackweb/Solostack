@@ -48,6 +48,7 @@ import {
   type TableColumn,
 } from "./primitives";
 import type { UserProfileRow } from "@/lib/supabase/types";
+import { amountInWordsINR } from "@/lib/number-to-words";
 
 // ---------------------------------------------------------------------------
 // Data shapes (unchanged contract with builders.ts)
@@ -110,6 +111,7 @@ export interface InvoicePdfData {
   notes: string | null;
   terms: string | null;
   footerNote: string | null;
+  hsnSac: string | null;
   paymentLink: string | null;
   publicUrl: string | null;
   items: InvoicePdfItem[];
@@ -306,6 +308,23 @@ const s = StyleSheet.create({
   notesRight: {
     flex: 1,
   },
+  legal: {
+    marginTop: 14,
+    paddingTop: 10,
+    borderTopWidth: 0.5,
+    borderTopColor: pdfColors.border,
+  },
+  legalLine: {
+    fontSize: pdfSizes.xs,
+    color: pdfColors.text,
+    marginBottom: 3,
+  },
+  legalDecl: {
+    fontSize: pdfSizes.xs,
+    color: pdfColors.mutedForeground,
+    lineHeight: pdfLineHeights.relaxed,
+    marginTop: 3,
+  },
 });
 
 // ---------------------------------------------------------------------------
@@ -322,20 +341,29 @@ export function InvoicePdf({
   logoDataUrl?: string | null;
 }) {
   const brand = buildBrandFromData(data, seller, logoDataUrl);
-  const docLabel = data.taxMode === "non_gst" ? "Invoice" : "Tax Invoice";
+  const isGstRegistered = Boolean(data.seller.gstin);
+  const isBillOfSupply = data.taxMode === "non_gst" && isGstRegistered;
+  const docLabel =
+    data.taxMode !== "non_gst"
+      ? "Tax Invoice"
+      : isGstRegistered
+        ? "Bill of Supply"
+        : "Invoice";
   const totals = resolveTotals(data);
   const isPaid = data.status === "paid";
   const isOverdue = data.status === "overdue";
 
+  const isCancelled = data.status === "cancelled";
   const statusTone: BadgeTone = isPaid
     ? "success"
     : isOverdue
       ? "danger"
-      : data.status === "draft"
+      : data.status === "draft" || isCancelled
         ? "neutral"
         : "brand";
-  const statusLabel =
-    data.status === "partially_paid"
+  const statusLabel = isCancelled
+    ? "Cancelled"
+    : data.status === "partially_paid"
       ? "Partially paid"
       : data.status.replace(/_/g, " ");
 
@@ -537,6 +565,27 @@ export function InvoicePdf({
             ),
           }}
         />
+
+        {/* ── 6b. LEGAL BLOCK — words, HSN/SAC, reverse charge, declaration ── */}
+        <View style={s.legal}>
+          <Text style={s.legalLine}>
+            Amount in words: {amountInWordsINR(data.totalAmount)}
+          </Text>
+          {data.taxMode !== "non_gst" ? (
+            <Text style={s.legalLine}>
+              {data.hsnSac ? `HSN/SAC: ${data.hsnSac}   ·   ` : ""}Tax payable on reverse charge: No
+            </Text>
+          ) : null}
+          {isBillOfSupply ? (
+            <Text style={s.legalLine}>
+              This is a Bill of Supply. No GST is charged on this document.
+            </Text>
+          ) : null}
+          <Text style={s.legalDecl}>
+            Declaration: We declare that this {docLabel.toLowerCase()} shows the actual price
+            of the goods / services described and that all particulars are true and correct.
+          </Text>
+        </View>
 
         {/* ── 7+8. CLOSING BLOCK (kept together) ─────────────── */}
         <View wrap={false}>

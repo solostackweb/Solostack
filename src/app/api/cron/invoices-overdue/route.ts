@@ -176,6 +176,9 @@ export async function GET(req: Request): Promise<Response> {
       message: null,
       publicUrl: getInvoiceShareUrl(inv.public_token),
       daysOverdue,
+      // The last threshold in REMINDER_DAYS is framed as the final notice;
+      // no further client reminders are sent after it.
+      finalNotice: daysOverdue >= Math.max(...REMINDER_DAYS),
     });
 
     const dispatch = await dispatchDelivery({

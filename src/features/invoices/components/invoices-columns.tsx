@@ -3,6 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import {
+  Ban,
   MoreHorizontal,
   Eye,
   Trash2,
@@ -38,6 +39,7 @@ export interface InvoiceColumnLookup {
 interface ColumnActions {
   onMarkPaid: (invoice: InvoiceRecord) => void;
   onDelete: (invoice: InvoiceRecord) => void;
+  onCancel: (invoice: InvoiceRecord) => void;
   onDuplicate: (invoice: InvoiceRecord) => void;
   onResend: (invoice: InvoiceRecord) => void;
   lookup: InvoiceColumnLookup;
@@ -87,6 +89,7 @@ function formatDueLabel(invoice: InvoiceRecord) {
 export function buildInvoiceColumns({
   onMarkPaid,
   onDelete,
+  onCancel,
   onDuplicate,
   onResend,
   lookup,
@@ -256,8 +259,13 @@ export function buildInvoiceColumns({
       enableHiding: false,
       cell: ({ row }) => {
         const inv = row.original;
-        const canMarkPaid = inv.status !== "paid";
+        const canMarkPaid = inv.status !== "paid" && inv.status !== "cancelled";
         const canEdit = inv.status === "draft";
+        const canDelete = inv.status === "draft";
+        const canCancel =
+          inv.status === "sent" ||
+          inv.status === "viewed" ||
+          inv.status === "overdue";
         const canResend =
           inv.status === "sent" ||
           inv.status === "viewed" ||
@@ -304,12 +312,22 @@ export function buildInvoiceColumns({
                 <DropdownMenuItem onClick={() => onDuplicate(inv)}>
                   <Copy /> Duplicate
                 </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={() => onDelete(inv)}
-                  className="text-destructive focus:text-destructive"
-                >
-                  <Trash2 /> Delete
-                </DropdownMenuItem>
+                {canCancel && (
+                  <DropdownMenuItem
+                    onClick={() => onCancel(inv)}
+                    className="text-destructive focus:text-destructive"
+                  >
+                    <Ban /> Cancel invoice
+                  </DropdownMenuItem>
+                )}
+                {canDelete && (
+                  <DropdownMenuItem
+                    onClick={() => onDelete(inv)}
+                    className="text-destructive focus:text-destructive"
+                  >
+                    <Trash2 /> Delete
+                  </DropdownMenuItem>
+                )}
               </DropdownMenuContent>
             </DropdownMenu>
           </div>

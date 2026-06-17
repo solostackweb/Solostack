@@ -83,9 +83,10 @@ async function hydrate(
       .eq("document_id", row.id),
     admin
       .from("welcome_document_acknowledgements")
-      .select("acknowledged_at")
+      .select("viewer_name, viewer_email, acknowledged_at")
       .eq("document_id", row.id)
-      .order("acknowledged_at", { ascending: false }),
+      .order("acknowledged_at", { ascending: false })
+      .limit(200),
   ]);
 
   const client = clientRes.data as
@@ -93,7 +94,11 @@ async function hydrate(
     | null;
   const project = projectRes.data as { name?: string | null } | null;
   const views = (viewsRes.data ?? []) as Array<{ view_count: number }>;
-  const acks = (acksRes.data ?? []) as Array<{ acknowledged_at: string }>;
+  const acks = (acksRes.data ?? []) as Array<{
+    viewer_name: string;
+    viewer_email: string | null;
+    acknowledged_at: string;
+  }>;
 
   return {
     id: row.id,
@@ -120,6 +125,11 @@ async function hydrate(
     uniqueViewers: views.length,
     acknowledgementCount: acks.length,
     acknowledgedAt: acks[0]?.acknowledged_at ?? null,
+    acknowledgements: acks.slice(0, 100).map((a) => ({
+      name: a.viewer_name,
+      email: a.viewer_email,
+      at: a.acknowledged_at,
+    })),
   };
 }
 

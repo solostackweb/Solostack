@@ -8,6 +8,7 @@ import {
   Send,
   MoreHorizontal,
   Trash2,
+  Copy,
   CheckCircle2,
   XCircle,
   Link2,
@@ -42,6 +43,7 @@ import { CONTRACT_KIND_LABEL } from "../status";
 import { ContractStatusBadge } from "./contract-status-badge";
 import {
   deleteContractAction,
+  duplicateContractAction,
   setContractStatusAction,
   updateContractAction,
 } from "../actions";
@@ -296,6 +298,18 @@ export function ContractDetailView({
     });
   };
 
+  const handleDuplicate = () => {
+    const fd = new FormData();
+    fd.set("id", contract.id);
+    runStatusAction(async () => {
+      const res = await duplicateContractAction(undefined, fd);
+      if (!res.ok) throw new Error(res.error);
+      toast.success("Duplicated as a draft");
+      if (res.data?.id) router.push(`/dashboard/contracts/${res.data.id}`);
+      router.refresh();
+    });
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -403,13 +417,20 @@ export function ContractDetailView({
                       <XCircle className="h-3.5 w-3.5" /> Mark declined
                     </DropdownMenuItem>
                   )}
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem
-                    className="text-destructive focus:text-destructive"
-                    onSelect={() => setDeleteOpen(true)}
-                  >
-                    <Trash2 className="h-3.5 w-3.5" /> Delete…
+                  <DropdownMenuItem onSelect={() => handleDuplicate()}>
+                    <Copy className="h-3.5 w-3.5" /> Duplicate as draft
                   </DropdownMenuItem>
+                  {contract.status !== "signed" && (
+                    <>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem
+                        className="text-destructive focus:text-destructive"
+                        onSelect={() => setDeleteOpen(true)}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" /> Delete…
+                      </DropdownMenuItem>
+                    </>
+                  )}
                 </DropdownMenuContent>
               </DropdownMenu>
             </>

@@ -79,6 +79,7 @@ function buildEditDefaults(
     gstRate,
     discount: invoice.discount,
     paymentMethod,
+    hsnSac: invoice.hsnSac ?? "",
     notes: invoice.notes ?? "",
     terms: invoice.terms ?? "",
   };
@@ -178,6 +179,7 @@ export function EditInvoiceView({
         discount: Number(values.discount) || 0,
         notes: values.notes || undefined,
         terms: values.terms || undefined,
+        hsnSac: gstEnabled ? (values.hsnSac || "").trim() || undefined : undefined,
         lines: totalsForLines,
       };
       const fd = new FormData();
@@ -437,6 +439,12 @@ export function EditInvoiceView({
                             ))}
                           </SelectContent>
                         </Select>
+                      </Field>
+                      <Field label="HSN / SAC code" error={errors.hsnSac?.message}>
+                        <Input
+                          {...register("hsnSac")}
+                          placeholder="e.g. 998314 (services)"
+                        />
                       </Field>
                     </>
                   )}

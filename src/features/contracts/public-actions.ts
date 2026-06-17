@@ -159,6 +159,44 @@ export async function signContractPublicAction(
         signed_ip: metadata.signed_ip,
       },
     } as never);
+
+    // --- Immutable signed-PDF snapshot (best-effort) -----------------------
+    // Render the contract exactly as signed and store it in the (private)
+    // `contracts` bucket as the legal artifact. The content hash + audit row
+    // are already saved above, so a failure here never blocks the signing.
+    try {
+      const [{ buildContractPdfDataByToken }, { renderPdfToBuffer }, { ContractPdf }] =
+        await Promise.all([
+          import("@/features/documents/builders"),
+          import("@/features/documents/pdf/render"),
+          import("@/features/documents/pdf/contract-pdf"),
+        ]);
+      const pdfData = await buildContractPdfDataByToken(token);
+      if (pdfData) {
+        const buffer = await renderPdfToBuffer(ContractPdf({ data: pdfData }));
+        const bytes = new Uint8Array(buffer);
+        // Hash the actual rendered bytes — a stronger immutability proof than
+        // hashing the raw text.
+        const snapshotHash = crypto.createHash("sha256").update(bytes).digest("hex");
+        const path = `${contract.user_id}/signed/${contract.id}_${now.replace(/[:.]/g, "-")}.pdf`;
+        const { error: upErr } = await admin.storage
+          .from("contracts")
+          .upload(path, bytes, { contentType: "application/pdf", upsert: false });
+        if (!upErr) {
+          await admin
+            .from("contracts")
+            .update({ pdf_snapshot_url: path, pdf_snapshot_hash: snapshotHash } as never)
+            .eq("id", contract.id);
+          await admin
+            .from("contract_signatures")
+            .update({ pdf_snapshot_url: path, pdf_snapshot_hash: snapshotHash } as never)
+            .eq("contract_id", contract.id)
+            .is("pdf_snapshot_url", null);
+        }
+      }
+    } catch {
+      // Snapshot is an enhancement; the signature + content hash already stand.
+    }
   }
 
   return { ok: true };

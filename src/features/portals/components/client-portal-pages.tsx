@@ -21,6 +21,8 @@ import {
   Wallet,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { clientFacingInvoiceStatus } from "@/features/invoices/status";
+import { clientFacingContractStatus } from "@/features/contracts/status";
 import { Textarea } from "@/components/ui/textarea";
 import { usePortalMessages } from "../hooks/use-portal-messages";
 import { markPortalSeenAction } from "../actions";
@@ -632,7 +634,7 @@ export function ClientPortalInvoices({ data }: { data: ClientPortalProps }) {
                   key={invoice.id}
                   icon={Receipt}
                   title={invoice.invoice_number}
-                  meta={`${formatPortalCurrency(invoice.currency, invoice.total_amount)} - ${invoice.status.replace(/_/g, " ")}`}
+                  meta={`${formatPortalCurrency(invoice.currency, invoice.total_amount)} - ${clientFacingInvoiceStatus(invoice.status)}`}
                   href={invoice.public_token ? `/i/${invoice.public_token}` : null}
                 />
               ))}
@@ -687,7 +689,7 @@ export function ClientPortalFiles({ data }: { data: ClientPortalProps }) {
                   key={invoice.id}
                   icon={Receipt}
                   title={invoice.invoice_number}
-                  meta={`${formatPortalCurrency(invoice.currency, invoice.total_amount)} • ${invoice.status.replace(/_/g, " ")}`}
+                  meta={`${formatPortalCurrency(invoice.currency, invoice.total_amount)} • ${clientFacingInvoiceStatus(invoice.status)}`}
                   href={invoice.public_token ? `/i/${invoice.public_token}` : null}
                   comments={{
                     portalId: data.portalId,
@@ -703,7 +705,7 @@ export function ClientPortalFiles({ data }: { data: ClientPortalProps }) {
                   key={contract.id}
                   icon={FileText}
                   title={contract.title}
-                  meta={contract.status.replace(/_/g, " ")}
+                  meta={clientFacingContractStatus(contract.status)}
                   href={contract.public_token ? `/c/${contract.public_token}` : null}
                   comments={{
                     portalId: data.portalId,
@@ -719,7 +721,7 @@ export function ClientPortalFiles({ data }: { data: ClientPortalProps }) {
                   key={doc.id}
                   icon={BookOpen}
                   title={doc.title}
-                  meta={`${doc.status.replace(/_/g, " ")}${doc.acknowledgement_required ? " • acknowledgement required" : ""}`}
+                  meta={doc.acknowledgement_required ? "Welcome guide • acknowledgement required" : "Welcome guide"}
                   href={doc.public_token ? `/w/${doc.public_token}` : null}
                   comments={{
                     portalId: data.portalId,

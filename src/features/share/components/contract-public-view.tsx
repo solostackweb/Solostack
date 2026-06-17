@@ -4,6 +4,7 @@ import type { ContractPdfData } from "@/features/documents/pdf/contract-pdf";
 import { SignatureMark } from "@/features/contracts/components/signature-mark";
 import { parseContractContent } from "@/features/contracts/content";
 import { hasSignatureReference } from "@/features/contracts/signatures";
+import { clientFacingContractStatus } from "@/features/contracts/status";
 import { cn } from "@/lib/utils";
 
 interface Props {
@@ -156,7 +157,7 @@ function StatusPill({ signed, status }: { signed: boolean; status: string }) {
       )}
     >
       {signed ? <CheckCircle2 className="h-3.5 w-3.5" /> : <Clock3 className="h-3.5 w-3.5" />}
-      {signed ? "Signed" : status}
+      {clientFacingContractStatus(status)}
     </span>
   );
 }

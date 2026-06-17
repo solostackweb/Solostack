@@ -12,6 +12,7 @@ export const INVOICE_STATUSES: InvoiceStatusRow[] = [
   "paid",
   "overdue",
   "partially_paid",
+  "cancelled",
 ];
 
 export const INVOICE_STATUS_LABEL: Record<InvoiceStatusRow, string> = {
@@ -21,4 +22,25 @@ export const INVOICE_STATUS_LABEL: Record<InvoiceStatusRow, string> = {
   paid: "Paid",
   overdue: "Overdue",
   partially_paid: "Partially paid",
+  cancelled: "Cancelled",
 };
+
+/**
+ * Client-facing status label. Never surfaces internal states (draft/sent/
+ * viewed) to a recipient — those all read as "Due". Used by the public
+ * invoice page and the client portal so both stay consistent.
+ */
+export function clientFacingInvoiceStatus(status: string): string {
+  switch (status) {
+    case "paid":
+      return "Paid";
+    case "overdue":
+      return "Overdue";
+    case "partially_paid":
+      return "Partially paid";
+    case "cancelled":
+      return "Cancelled";
+    default:
+      return "Due";
+  }
+}

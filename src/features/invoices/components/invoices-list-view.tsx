@@ -35,6 +35,7 @@ import { InvoicesBulkActions } from "./invoices-bulk-actions";
 import { InvoiceMobileCard } from "./invoice-mobile-card";
 import {
   deleteInvoiceAction,
+  cancelInvoiceAction,
   setInvoiceStatusAction,
   duplicateInvoiceAction,
 } from "../actions";
@@ -59,6 +60,7 @@ export function InvoicesListView({
   const router = useRouter();
   const [pendingDeleteIds, setPendingDeleteIds] = React.useState<string[]>([]);
   const [bulkDeleteOpen, setBulkDeleteOpen] = React.useState(false);
+  const [cancelTarget, setCancelTarget] = React.useState<InvoiceRecord | null>(null);
   const [, startTransition] = React.useTransition();
 
   const lookup: InvoiceColumnLookup = React.useMemo(
@@ -106,6 +108,27 @@ export function InvoicesListView({
   const handleDelete = (invoice: InvoiceRecord) => {
     setPendingDeleteIds([invoice.id]);
     setBulkDeleteOpen(true);
+  };
+
+  const handleCancel = (invoice: InvoiceRecord) => {
+    setCancelTarget(invoice);
+  };
+
+  const confirmCancel = () => {
+    const target = cancelTarget;
+    if (!target) return;
+    const fd = new FormData();
+    fd.set("id", target.id);
+    startTransition(async () => {
+      const res = await cancelInvoiceAction(undefined, fd);
+      if (!res.ok) {
+        toast.error(res.error);
+      } else {
+        toast.success(`${target.invoiceNumber} cancelled`);
+      }
+      setCancelTarget(null);
+      router.refresh();
+    });
   };
 
   const handleDuplicate = (invoice: InvoiceRecord) => {
@@ -165,6 +188,7 @@ export function InvoicesListView({
       buildInvoiceColumns({
         onMarkPaid: handleMarkPaid,
         onDelete: handleDelete,
+        onCancel: handleCancel,
         onDuplicate: handleDuplicate,
         onResend: handleResend,
         lookup,
@@ -332,6 +356,37 @@ export function InvoicesListView({
               className={cn(buttonVariants({ variant: "destructive" }))}
             >
               Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog
+        open={cancelTarget !== null}
+        onOpenChange={(o) => {
+          if (!o) setCancelTarget(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              Cancel invoice {cancelTarget?.invoiceNumber}?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              The invoice is kept and its number retained for your records, but
+              marked Cancelled — it stops counting toward revenue and any billed
+              time is released. This can&rsquo;t be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setCancelTarget(null)}>
+              Keep invoice
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmCancel}
+              className={cn(buttonVariants({ variant: "destructive" }))}
+            >
+              Cancel invoice
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

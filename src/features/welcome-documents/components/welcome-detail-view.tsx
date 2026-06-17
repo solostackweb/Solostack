@@ -193,6 +193,40 @@ export function WelcomeDetailView({ doc, clients }: Props) {
         />
       </div>
 
+      {!editing && doc.acknowledgements.length > 0 && (
+        <Card>
+          <CardContent className="space-y-3 p-5">
+            <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
+              Acknowledgement record
+            </p>
+            <ul className="divide-y">
+              {doc.acknowledgements.map((a, i) => (
+                <li
+                  key={i}
+                  className="flex items-center justify-between gap-3 py-2 text-sm"
+                >
+                  <div className="min-w-0">
+                    <p className="truncate font-medium">{a.name}</p>
+                    {a.email && (
+                      <p className="truncate text-xs text-muted-foreground">{a.email}</p>
+                    )}
+                  </div>
+                  <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
+                    {new Date(a.at).toLocaleString("en-IN", {
+                      day: "2-digit",
+                      month: "short",
+                      year: "numeric",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </CardContent>
+        </Card>
+      )}
+
       {editing ? (
         <WelcomeEditor
           mode="edit"
