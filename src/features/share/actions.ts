@@ -40,9 +40,26 @@ export async function ensureInvoicePublicTokenAction(
 ): Promise<ActionResult<{ token: string }>> {
   const parsed = invoiceTokenSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: "Invalid input." };
-  await requireUserId();
+  const userId = await requireUserId();
   const token = await ensureInvoicePublicToken(parsed.data.invoiceId);
   if (!token) return { ok: false, error: "Could not create share link." };
+
+  // Sharing the public link is an explicit "send to client" action, so a
+  // draft becomes issued ('sent'). This keeps invoices that are delivered via
+  // link / WhatsApp (instead of email) from being stuck on draft — which made
+  // their PDF show DRAFT. Never touch non-draft invoices.
+  try {
+    const supabase = await getServerSupabase();
+    await supabase
+      .from("invoices")
+      .update({ status: "sent", sent_at: new Date().toISOString() } as never)
+      .eq("id", parsed.data.invoiceId)
+      .eq("user_id", userId)
+      .eq("status", "draft");
+  } catch {
+    // Best-effort — the share link still works even if the status flip fails.
+  }
+
   return { ok: true, data: { token } };
 }
 

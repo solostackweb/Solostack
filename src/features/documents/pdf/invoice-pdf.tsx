@@ -354,6 +354,10 @@ export function InvoicePdf({
   const isOverdue = data.status === "overdue";
 
   const isCancelled = data.status === "cancelled";
+  // A clean issued invoice carries no workflow pill — "sent"/"viewed" are
+  // internal states, not something the client should see stamped on the doc.
+  // Drafts keep a DRAFT marker (safety); paid/overdue/partial/cancelled show.
+  const showStatusBadge = data.status !== "sent" && data.status !== "viewed";
   const statusTone: BadgeTone = isPaid
     ? "success"
     : isOverdue
@@ -448,7 +452,9 @@ export function InvoicePdf({
               {docLabel.toUpperCase()}
             </Text>
             <Text style={s.invoiceNumber}>{data.invoiceNumber}</Text>
-            <Badge tone={statusTone} brandAccent={brand.accent} label={statusLabel} />
+            {showStatusBadge ? (
+              <Badge tone={statusTone} brandAccent={brand.accent} label={statusLabel} />
+            ) : null}
           </View>
         </View>
 

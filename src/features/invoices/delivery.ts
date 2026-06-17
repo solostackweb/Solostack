@@ -175,9 +175,13 @@ export async function sendInvoiceAction(
     tags: ["invoice_sent", "billing"],
   });
 
-  // Mark as 'sent' (NOT 'paid'!) and stamp sent_at on success.
-  // Don't downgrade an already-paid invoice.
-  if (dispatch.ok && record.invoice.status !== "paid") {
+  // Mark the invoice as issued ('sent') regardless of whether the *email*
+  // delivery succeeded. Issuance is the freelancer's intent — email is just
+  // one delivery channel (they may also share the link / WhatsApp). Coupling
+  // status to email success left invoices stuck on "draft" (and the PDF
+  // showing DRAFT) whenever email wasn't configured. We never downgrade a
+  // paid invoice, and we keep a 'viewed' invoice as 'viewed'.
+  if (record.invoice.status !== "paid") {
     await supabase
       .from("invoices")
       .update({
