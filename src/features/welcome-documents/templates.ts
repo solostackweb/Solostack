@@ -171,4 +171,247 @@ export const BUILTIN_WELCOME_TEMPLATES: WelcomeDocumentTemplate[] = [
       },
     ],
   },
+  {
+    id: "__builtin_designer",
+    title: "Designer onboarding",
+    description:
+      "A premium welcome packet for design clients - covers process, communication, revisions, and approvals.",
+    intro:
+      "Welcome aboard! I'm thrilled we're working together on your project. This guide walks you through how I work, what to expect at each stage, and how we'll communicate. Read this once at the start - it answers the questions clients usually ask along the way.",
+    category: "Designer",
+    isSystem: true,
+    sections: [
+      {
+        id: "s_1",
+        heading: "How we'll work together",
+        body: "Every project follows the same four phases: Discovery, Design, Refinement, and Delivery. You'll always know which phase we're in and what comes next. I block focused design time in the mornings and reserve afternoons for client communication and reviews.",
+      },
+      {
+        id: "s_2",
+        heading: "Communication & response times",
+        body: "Email is the primary channel for anything that needs a paper trail. For quick questions, the Client Portal comments thread is faster. I respond within one business day (Mon-Fri, IST). I don't check messages on weekends - please don't expect replies until Monday.",
+      },
+      {
+        id: "s_3",
+        heading: "The revision flow",
+        body: "Each design round includes two rounds of revisions. Please consolidate feedback from your team before sending - it keeps momentum and avoids contradictory edits. Use comments directly on the Figma file or attach screenshots in the portal.",
+      },
+      {
+        id: "s_4",
+        heading: "Project stages & milestones",
+        body: "You'll see status changes in your portal as we move through the project. Each milestone requires your written approval before we proceed. This protects both of us.",
+      },
+      {
+        id: "s_5",
+        heading: "Approvals",
+        body: "Approvals happen in writing - either in the portal comments or by email. A simple \"Approved\" or \"Approved with comments below\" is enough. Verbal approvals on calls always need a follow-up confirmation in writing.",
+      },
+      {
+        id: "s_6",
+        heading: "Payments",
+        body: "You'll receive invoices via email and inside your portal. Payment is via UPI or bank transfer unless we agree otherwise. Invoices are due within [7] days. The kickoff payment locks in your project slot - design work begins after it clears.",
+      },
+      {
+        id: "s_7",
+        heading: "Files & deliverables",
+        body: "All working files, exports, and brand assets live in your portal. Final deliverables are pushed to a dedicated folder labelled \"Final\". You'll get full ownership of the deliverables once the final invoice is paid.",
+      },
+      {
+        id: "s_8",
+        heading: "What I need from you",
+        body: "To keep things moving: prompt feedback within [3] business days of each delivery, consolidated team feedback, and clear approval at each milestone. The smoother this loop, the faster we ship.",
+      },
+      {
+        id: "s_9",
+        heading: "If something goes wrong",
+        body: "If you're unhappy with anything - pace, direction, communication - please tell me directly. I'd rather adjust mid-project than disappoint you at delivery. The same goes for me: I'll flag risks early.",
+      },
+      {
+        id: "s_10",
+        heading: "Let's begin",
+        body: "Once you've read this, drop a comment in your portal so I know we're aligned. I'm looking forward to a great project together.",
+      },
+    ],
+  },
+  {
+    id: "__builtin_developer",
+    title: "Developer onboarding",
+    description:
+      "For software / web development engagements. Sets ground rules around scope, code reviews, deployments, and bugs.",
+    intro:
+      "Welcome to the project! This guide explains how I run development work - sprint cadence, code reviews, deployments, bug handling, and what counts as in-scope vs out-of-scope. Skim this once now; you can always come back to it.",
+    category: "Developer",
+    isSystem: true,
+    sections: [
+      {
+        id: "s_1",
+        heading: "Engagement model",
+        body: "This project runs in focused sprints. At the start of each sprint we agree on a small, shippable scope. At the end of the sprint you'll receive a demo and a written changelog. Anything that doesn't fit moves to the next sprint.",
+      },
+      {
+        id: "s_2",
+        heading: "Communication",
+        body: "Slack, WhatsApp, or portal comments work best for quick questions. Email is for anything that needs a record. I respond during business hours, Mon-Fri 10:00-18:00 IST. Urgent issues should be flagged clearly.",
+      },
+      {
+        id: "s_3",
+        heading: "What counts as in scope",
+        body: "In scope means the user stories agreed for the current sprint or milestone. Out of scope means anything that emerges later and wasn't in the original plan. Out-of-scope items go into the backlog and are quoted before work begins.",
+      },
+      {
+        id: "s_4",
+        heading: "Code reviews & quality",
+        body: "Every meaningful change goes through review. I follow clear commit messages, write tests for new logic where appropriate, and run the linter and type-checker before shipping.",
+      },
+      {
+        id: "s_5",
+        heading: "Deployments",
+        body: "Code ships behind a feature flag where possible. Production deployments happen during agreed windows. After each deploy I send a short note with what changed and how to verify it.",
+      },
+      {
+        id: "s_6",
+        heading: "Bugs vs new work",
+        body: "A bug is something that was agreed, built, and is not working as intended. A new feature, even a small one, counts as new work and goes through planning. This distinction keeps timelines and budgets fair.",
+      },
+      {
+        id: "s_7",
+        heading: "Access & credentials",
+        body: "I'll need invite-only access to the repo, hosting, database, and third-party APIs in use. Please use a password manager or secure invite flow - never paste secrets in chat. Access can be rotated at project end.",
+      },
+      {
+        id: "s_8",
+        heading: "Payments",
+        body: "Sprint or milestone work is invoiced as agreed and due within [5-7] days. The next sprint starts once the previous invoice is paid unless we agree otherwise in writing.",
+      },
+      {
+        id: "s_9",
+        heading: "Handoff & ownership",
+        body: "All approved code is yours and is pushed to your repo. At project end I provide notes covering how to run, deploy, and extend the codebase.",
+      },
+      {
+        id: "s_10",
+        heading: "Ready to begin",
+        body: "Reply in your portal once you've read this - that's our handshake to kick off the first sprint.",
+      },
+    ],
+  },
+  {
+    id: "__builtin_writer",
+    title: "Writer / content creator onboarding",
+    description:
+      "For copywriting, content strategy, and editorial engagements.",
+    intro:
+      "Welcome - I'm excited to work on this with you. Writing is collaborative, and the smoother our process, the better the words. This guide explains how I work end-to-end so you know what to expect.",
+    category: "Writer",
+    isSystem: true,
+    sections: [
+      {
+        id: "s_1",
+        heading: "Our writing process",
+        body: "Every piece goes through five steps: Brief, Outline, Draft, Revisions, and Polish. You approve at the Brief and Outline stages so we're aligned before I draft.",
+      },
+      {
+        id: "s_2",
+        heading: "Briefs",
+        body: "For each piece, I'll send a short brief covering audience, goal, tone, key takeaways, length, and SEO targets if relevant. You confirm or tweak before I outline.",
+      },
+      {
+        id: "s_3",
+        heading: "Revisions",
+        body: "Each piece includes two revision rounds. Please consolidate edits from your team into one document - fragmented feedback from multiple stakeholders is the main cause of slow turnaround.",
+      },
+      {
+        id: "s_4",
+        heading: "Tone & voice",
+        body: "During discovery I'll capture your brand voice in a short style guide. Once approved, every piece references it. If your voice evolves mid-project, just tell me.",
+      },
+      {
+        id: "s_5",
+        heading: "Turnaround",
+        body: "Typical turnaround is [3-5] business days for long-form pieces and [2] days for shorter copy. Rush jobs are possible at a surcharge, agreed in writing first.",
+      },
+      {
+        id: "s_6",
+        heading: "Communication",
+        body: "Email works best for briefs and final deliverables. Portal comments work for in-progress questions. I don't take edits over phone calls - always send edits in writing.",
+      },
+      {
+        id: "s_7",
+        heading: "Approvals",
+        body: "Each piece needs written approval before it's considered final and invoiced. \"Approved\" in the portal or email is enough. Once approved, future edits are out of scope.",
+      },
+      {
+        id: "s_8",
+        heading: "Ownership & credit",
+        body: "You own all final approved content. I retain the right to mention the engagement in my portfolio without internal or confidential details unless we agree otherwise.",
+      },
+      {
+        id: "s_9",
+        heading: "Payments",
+        body: "Per-piece or monthly retainer work is invoiced as agreed. Payment is via UPI or bank transfer and due within [7] days. Final delivery happens after the invoice clears for one-off projects.",
+      },
+      {
+        id: "s_10",
+        heading: "Let's begin",
+        body: "Acknowledge this guide in your portal and I'll send across the first brief within 24 hours.",
+      },
+    ],
+  },
+  {
+    id: "__builtin_generic_freelancer",
+    title: "Generic freelancer onboarding",
+    description:
+      "A neutral, all-purpose onboarding guide. Edit any section to match your craft.",
+    intro:
+      "Welcome! I'm glad we're working together. This document covers the practical side of our engagement - how I communicate, how revisions and approvals work, and what to expect at each stage. A 5-minute read now saves us both time later.",
+    category: "General",
+    isSystem: true,
+    sections: [
+      {
+        id: "s_1",
+        heading: "How we'll work together",
+        body: "Every engagement runs through the same shape: Discovery, Work, Review, and Delivery. I'll let you know which stage we're in and what's next.",
+      },
+      {
+        id: "s_2",
+        heading: "Communication",
+        body: "I respond within one business day, Monday to Friday. For routine updates use the portal comments; for anything formal, use email. I don't reply on weekends or public holidays.",
+      },
+      {
+        id: "s_3",
+        heading: "Project stages",
+        body: "You'll see status updates as we move through the work. Each stage has a clear deliverable and approval gate before we move on.",
+      },
+      {
+        id: "s_4",
+        heading: "Revisions",
+        body: "Each round includes [two] revision passes. Send consolidated, written feedback. After the included rounds, additional revisions are billed at my hourly rate.",
+      },
+      {
+        id: "s_5",
+        heading: "Approvals",
+        body: "Approvals happen in writing - either in the portal or by email. \"Approved\" is enough. Approvals on calls need a follow-up confirmation.",
+      },
+      {
+        id: "s_6",
+        heading: "Payments",
+        body: "Invoices are sent via email and the portal. Payment is due within [7] days unless we've agreed otherwise. Work pauses if an invoice is more than [14] days overdue.",
+      },
+      {
+        id: "s_7",
+        heading: "What I need from you",
+        body: "Quick decisions, consolidated feedback, and a clear single point of contact on your side. The fewer hands the work passes through, the better the outcome.",
+      },
+      {
+        id: "s_8",
+        heading: "If anything goes wrong",
+        body: "Tell me. I'd rather hear \"this isn't working\" early than discover it at delivery. Same goes for me - I'll flag risks the moment I see them.",
+      },
+      {
+        id: "s_9",
+        heading: "Ready when you are",
+        body: "That's everything. Acknowledge this in the portal and we'll get started.",
+      },
+    ],
+  },
 ];

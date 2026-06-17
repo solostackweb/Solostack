@@ -189,9 +189,16 @@ export function WelcomeNewView({
     );
   }
 
-  // Always show built-in templates; DB system templates are merged in
-  // (deduplicated by id) and appear after the built-ins.
-  const dbSystem = templates.filter((t) => t.isSystem);
+  // Always show code-owned built-ins first. Some older DB seed rows overlap
+  // with these titles, so hide those stale duplicates and keep personal
+  // templates separate below.
+  const builtinTitles = new Set(BUILTIN_TEMPLATES.map((t) => t.title));
+  const dbSystem = templates.filter(
+    (t) =>
+      t.isSystem &&
+      t.title !== "Blank document" &&
+      !builtinTitles.has(t.title),
+  );
   const dbSystemIds = new Set(dbSystem.map((t) => t.id));
   const system = [
     ...BUILTIN_TEMPLATES.filter((t) => !dbSystemIds.has(t.id)),

@@ -28,6 +28,7 @@ import type {
   WelcomeDocumentRecord,
   WelcomeDocumentTemplate,
 } from "./types";
+import { BUILTIN_WELCOME_TEMPLATES } from "./templates";
 
 /** Hex token shape — same generator as invoices/contracts. */
 const TOKEN_RE = /^[a-f0-9]{32}$/i;
@@ -201,6 +202,9 @@ export async function listWelcomeTemplates(): Promise<
 export async function getWelcomeTemplate(
   id: string,
 ): Promise<WelcomeDocumentTemplate | null> {
+  const builtin = BUILTIN_WELCOME_TEMPLATES.find((template) => template.id === id);
+  if (builtin) return builtin;
+
   const supabase = await getServerSupabase();
   const { data } = await supabase
     .from("welcome_document_templates")
