@@ -286,6 +286,15 @@
     padding-right: 0 !important;
     margin-right: 0 !important;
   }
+  /* Radix Select uses react-remove-scroll internally even for ordinary
+     dropdowns. When a select opens on scroll-heavy dashboard pages, that
+     global body lock can remove/re-add the page scrollbar and disturb the
+     shell layout. Keep select menus scroll-contained instead of locking the
+     whole app; dialogs and sheets still use their normal modal scroll lock. */
+  html body[data-scroll-locked]:has([data-radix-select-content]) {
+    overflow-x: clip !important;
+    overflow-y: scroll !important;
+  }
   html .with-scroll-bars-hidden {
     padding-right: 0 !important;
   }
