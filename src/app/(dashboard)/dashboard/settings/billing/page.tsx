@@ -123,6 +123,45 @@ export default async function BillingSettingsPage({
       >
         <PaymentHistory payments={payments} />
       </SettingsSection>
+
+      <SettingsSection
+        title="Billing help & policies"
+        description="How autopay works, and where to get help."
+      >
+        <div className="space-y-3 text-sm text-muted-foreground">
+          <p>
+            Paid plans renew automatically until you cancel. As required, you&rsquo;ll
+            receive a notification at least 24 hours before each auto-debit (sent via
+            Razorpay), plus an earlier reminder from us &mdash; and you can cancel anytime
+            from the plan card above. Cancelling stops future charges; you keep access
+            until the end of the current period.
+          </p>
+          <p>
+            Questions or a billing dispute? Email{" "}
+            <a
+              href="mailto:billing@stackivo.me"
+              className="font-medium text-primary hover:underline"
+            >
+              billing@stackivo.me
+            </a>{" "}
+            and we&rsquo;ll help.
+          </p>
+          <p className="flex flex-wrap gap-x-4 gap-y-1">
+            <Link href="/terms" className="font-medium text-primary hover:underline">
+              Terms
+            </Link>
+            <Link
+              href="/refund-policy"
+              className="font-medium text-primary hover:underline"
+            >
+              Refund &amp; cancellation policy
+            </Link>
+            <Link href="/privacy" className="font-medium text-primary hover:underline">
+              Privacy
+            </Link>
+          </p>
+        </div>
+      </SettingsSection>
     </>
   );
 }

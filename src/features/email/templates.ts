@@ -1139,3 +1139,53 @@ export function buildEmailBrand(input: {
     },
   };
 }
+
+
+// ---------------------------------------------------------------------------
+// Subscription renewal reminder (autopay pre-debit courtesy notice)
+// ---------------------------------------------------------------------------
+
+export interface SubscriptionRenewalInput {
+  planName: string;
+  amountFormatted: string;
+  /** Pre-formatted renewal / next-charge date. */
+  renewsOn: string;
+  manageUrl: string;
+  senderEmail: string;
+}
+
+/**
+ * Sent ~3 days before an autopay renewal. The mandatory 24h pre-debit
+ * notification is sent by Razorpay (the payment aggregator); this is an
+ * earlier courtesy heads-up with the amount, date, and a manage/cancel link.
+ */
+export function renderSubscriptionRenewalEmail(
+  input: SubscriptionRenewalInput,
+): EmailRender {
+  const paragraphs = [
+    "Hi,",
+    `This is a heads-up that your Stackivo ${input.planName} subscription will auto-renew on ${input.renewsOn} for ${input.amountFormatted}.`,
+    "No action is needed to continue. If you'd like to make changes, you can update or cancel your subscription any time before the renewal date — you'll keep access until the current period ends.",
+    "Questions about a charge? Reply to this email and we'll help.",
+  ];
+  const cta = { label: "Manage subscription", href: input.manageUrl };
+  const signature = formatSenderSignature("Stackivo Billing", input.senderEmail);
+  return {
+    subject: `Your Stackivo ${input.planName} renews on ${input.renewsOn} — ${input.amountFormatted}`,
+    html: envelope({
+      preheader: `Upcoming renewal · ${input.amountFormatted} on ${input.renewsOn}`,
+      eyebrow: "Upcoming renewal",
+      heading: `Your ${input.planName} plan renews soon`,
+      subheading: `${input.amountFormatted} · ${input.renewsOn}`,
+      paragraphs,
+      facts: [
+        { label: "Plan", value: input.planName },
+        { label: "Amount", value: input.amountFormatted },
+        { label: "Renews on", value: input.renewsOn },
+      ],
+      cta,
+      signature,
+    }),
+    text: plain(paragraphs, cta, signature),
+  };
+}

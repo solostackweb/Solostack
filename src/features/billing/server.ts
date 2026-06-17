@@ -281,22 +281,12 @@ export async function reactivateCurrentSubscription(): Promise<
   const sub = await getBillingSubscription();
   if (!sub) throw new Error("No subscription to reactivate.");
 
-  if (
-    sub.razorpaySubscriptionId &&
-    (sub.status === "active" || sub.status === "trialing") &&
-    sub.cancelAtPeriodEnd
-  ) {
-    // We can't truly un-cancel on Razorpay's side, but we can clear our
-    // local hint and prompt the user to confirm via a fresh checkout if
-    // they actually allowed the cycle to end.
-    const admin = getAdminSupabase();
-    await admin
-      .from("subscriptions")
-      .update({ cancel_at_period_end: false, canceled_at: null } as never)
-      .eq("user_id", sub.userId);
-    return { status: "kept", subscription: (await getBillingSubscription())! };
-  }
-
+  // Razorpay has no API to un-cancel a subscription — not even one merely
+  // scheduled to cancel at cycle end. Clearing our local flag would leave the
+  // remote mandate still cancelling, so the user would silently lose access at
+  // period end. Reactivation therefore always means a fresh subscription +
+  // mandate via checkout. (The old, cancel-scheduled subscription does not
+  // charge again, so there is no double-debit at its cycle end.)
   const checkout = await startCheckout({
     plan: sub.plan === "free" ? "pro" : sub.plan,
     cycle: sub.billingCycle,

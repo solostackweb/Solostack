@@ -38,6 +38,12 @@ export function PlanCard({ subscription }: Props) {
   const cancelDate = lifecycle.isCanceledAtPeriodEnd
     ? subscription?.currentPeriodEnd
     : subscription?.endedAt;
+  // Recurring amount + the actual next auto-debit date (autopay transparency).
+  const recurringPaise =
+    subscription?.billingCycle === "yearly"
+      ? plan.priceYearlyPaise ?? 0
+      : plan.priceMonthlyPaise ?? 0;
+  const nextChargeDate = subscription?.nextChargeAt ?? subscription?.currentPeriodEnd;
 
   return (
     <Card>
@@ -112,17 +118,33 @@ export function PlanCard({ subscription }: Props) {
 
         {/* Meta row */}
         <dl className="grid gap-4 border-t pt-5 sm:grid-cols-3">
-          <Stat
-            label={
-              lifecycle.isCanceledAtPeriodEnd ? "Ends on" : "Renews on"
-            }
-            value={renewsOn ?? "—"}
-            hint={
-              !isFree
-                ? `Billed ${subscription?.billingCycle ?? "monthly"}`
-                : undefined
-            }
-          />
+          {lifecycle.isCanceledAtPeriodEnd ? (
+            <Stat
+              label="Ends on"
+              value={renewsOn ?? "—"}
+              hint="Paid features stay active until this date"
+            />
+          ) : !isFree && status === "active" ? (
+            <Stat
+              label="Next charge"
+              value={
+                nextChargeDate
+                  ? `${formatCurrency(recurringPaise)} · ${formatDate(nextChargeDate)}`
+                  : "—"
+              }
+              hint={`Auto-debit · billed ${subscription?.billingCycle ?? "monthly"}`}
+            />
+          ) : (
+            <Stat
+              label="Renews on"
+              value={renewsOn ?? "—"}
+              hint={
+                !isFree
+                  ? `Billed ${subscription?.billingCycle ?? "monthly"}`
+                  : undefined
+              }
+            />
+          )}
           <Stat
             label="Last payment"
             value={

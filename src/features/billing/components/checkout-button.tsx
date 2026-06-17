@@ -3,8 +3,21 @@
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import Script from "next/script";
+import Link from "next/link";
 import { toast } from "sonner";
+import { Loader2, Lock, ShieldCheck } from "lucide-react";
+
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { formatINR } from "@/lib/format";
+import { PLANS } from "@/features/subscription/plans";
 import { startCheckoutAction } from "../actions";
 import type { BillingCycle, CheckoutSession } from "../types";
 
@@ -32,14 +45,9 @@ function getRazorpayErrorMessage(payload: unknown): string {
 }
 
 /**
- * One-click upgrade button.
- *
- * 1. Calls `startCheckoutAction` (server) to create the Razorpay
- *    subscription + Razorpay customer if needed.
- * 2. Opens the Razorpay Checkout popup via the JS SDK.
- * 3. On success, refreshes the page so the new state lands. The webhook
- *    is the source of truth for unlocking features — the on-success
- *    handler just gives instant feedback.
+ * Upgrade flow: branded pre-checkout summary (price + autopay mandate
+ * consent + policy links) -> Razorpay popup (SDK preloaded to avoid the
+ * white-flash). Webhook is the source of truth for unlocking.
  */
 export function CheckoutButton({
   plan,
@@ -51,17 +59,27 @@ export function CheckoutButton({
   disabled,
 }: CheckoutButtonProps) {
   const router = useRouter();
+  const [open, setOpen] = React.useState(false);
   const [loading, setLoading] = React.useState(false);
+
+  const planDef = PLANS[plan];
+  const planName = planDef.name;
+  const pricePaise =
+    cycle === "yearly" ? planDef.priceYearlyPaise : planDef.priceMonthlyPaise;
+  const priceRupees = pricePaise / 100;
+  const perLabel = cycle === "yearly" ? "year" : "month";
+  const monthlyEquivalent =
+    cycle === "yearly" ? Math.round(planDef.priceYearlyPaise / 12 / 100) : null;
 
   const launch = React.useCallback(
     (session: CheckoutSession) => {
       if (typeof window === "undefined" || !window.Razorpay) {
-        // SDK still loading — fall back to hosted page if available.
         if (session.shortUrl) {
           window.location.href = session.shortUrl;
           return;
         }
         toast.error("Checkout failed to load. Please refresh and try again.");
+        setLoading(false);
         return;
       }
 
@@ -69,14 +87,12 @@ export function CheckoutButton({
         key: session.keyId,
         subscription_id: session.subscriptionId,
         name: "Stackivo",
-        description: `${plan === "pro" ? "Pro" : "Business"} · ${cycle === "yearly" ? "Yearly" : "Monthly"}`,
+        description: `${planName} · ${cycle === "yearly" ? "Yearly" : "Monthly"}`,
         prefill: session.prefill,
         notes: session.notes,
         theme: { color: "#2563eb" },
         handler: () => {
           toast.success("Payment received. Activating your plan…");
-          // Webhook will set status=active. Refresh after a short delay
-          // to give it time to land; user will also see the polling state.
           setTimeout(() => router.refresh(), 1500);
         },
         modal: {
@@ -89,10 +105,10 @@ export function CheckoutButton({
       });
       rzp.open();
     },
-    [plan, cycle, router],
+    [planName, cycle, router],
   );
 
-  const onClick = React.useCallback(async () => {
+  const onProceed = React.useCallback(async () => {
     setLoading(true);
     const result = await startCheckoutAction({ plan, cycle });
     if (!result.ok) {
@@ -100,6 +116,7 @@ export function CheckoutButton({
       toast.error(result.error);
       return;
     }
+    setOpen(false);
     launch(result.data);
   }, [plan, cycle, launch]);
 
@@ -107,7 +124,7 @@ export function CheckoutButton({
     <>
       <Script
         src="https://checkout.razorpay.com/v1/checkout.js"
-        strategy="lazyOnload"
+        strategy="afterInteractive"
       />
       <Button
         type="button"
@@ -115,12 +132,100 @@ export function CheckoutButton({
         size={size}
         className={className}
         disabled={disabled || loading}
-        onClick={onClick}
+        onClick={() => setOpen(true)}
       >
-        {loading
-          ? "Opening checkout…"
-          : label ?? `Upgrade to ${plan === "pro" ? "Pro" : "Business"}`}
+        {label ?? `Upgrade to ${planName}`}
       </Button>
+
+      <Dialog open={open} onOpenChange={(o) => !loading && setOpen(o)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Upgrade to {planName}</DialogTitle>
+            <DialogDescription>{planDef.description}</DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="flex items-end justify-between rounded-lg border bg-muted/30 px-4 py-3">
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                  {cycle === "yearly" ? "Billed yearly" : "Billed monthly"}
+                </p>
+                <p className="mt-0.5 text-2xl font-bold tabular-nums">
+                  {formatINR(priceRupees)}
+                  <span className="text-sm font-normal text-muted-foreground">
+                    {" "}
+                    / {perLabel}
+                  </span>
+                </p>
+              </div>
+              {monthlyEquivalent !== null ? (
+                <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">
+                  ≈ {formatINR(monthlyEquivalent)}/mo · 2 months free
+                </span>
+              ) : null}
+            </div>
+
+            <div className="flex gap-2.5 rounded-lg border border-primary/15 bg-primary/[0.03] px-3.5 py-3 text-xs leading-relaxed text-muted-foreground">
+              <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+              <div className="space-y-1.5">
+                <p>
+                  By continuing, you authorise Stackivo to auto-debit{" "}
+                  <span className="font-semibold text-foreground">
+                    {formatINR(priceRupees)}
+                  </span>{" "}
+                  every {perLabel} until you cancel. You can{" "}
+                  <span className="font-medium text-foreground">cancel anytime</span>{" "}
+                  from Settings → Billing, and we&rsquo;ll remind you before each charge.
+                </p>
+                <p>
+                  Prices in INR; taxes as applicable. Payments are secured by Razorpay
+                  &mdash; Stackivo never sees your card details.
+                </p>
+                <p className="flex flex-wrap gap-x-3 gap-y-0.5 pt-0.5">
+                  <PolicyLink href="/terms">Terms</PolicyLink>
+                  <PolicyLink href="/refund-policy">Refund &amp; cancellation</PolicyLink>
+                  <PolicyLink href="/privacy">Privacy</PolicyLink>
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter className="gap-2 sm:gap-2">
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => setOpen(false)}
+              disabled={loading}
+            >
+              Not now
+            </Button>
+            <Button type="button" onClick={onProceed} disabled={loading}>
+              {loading ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" /> Opening…
+                </>
+              ) : (
+                <>
+                  <Lock className="h-4 w-4" /> Proceed to secure payment
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
+  );
+}
+
+function PolicyLink({ href, children }: { href: string; children: React.ReactNode }) {
+  return (
+    <Link
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="font-medium text-primary hover:underline"
+    >
+      {children}
+    </Link>
   );
 }
