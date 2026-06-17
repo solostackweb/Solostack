@@ -189,21 +189,10 @@ export function WelcomeNewView({
     );
   }
 
-  // Always show code-owned built-ins first. Some older DB seed rows overlap
-  // with these titles, so hide those stale duplicates and keep personal
-  // templates separate below.
-  const builtinTitles = new Set(BUILTIN_TEMPLATES.map((t) => t.title));
-  const dbSystem = templates.filter(
-    (t) =>
-      t.isSystem &&
-      t.title !== "Blank document" &&
-      !builtinTitles.has(t.title),
-  );
-  const dbSystemIds = new Set(dbSystem.map((t) => t.id));
-  const system = [
-    ...BUILTIN_TEMPLATES.filter((t) => !dbSystemIds.has(t.id)),
-    ...dbSystem,
-  ];
+  // System templates are code-owned now. DB rows are kept only for users'
+  // saved personal templates, so stale seeded templates cannot override or
+  // duplicate the curated set.
+  const system = BUILTIN_TEMPLATES;
   const personal = templates.filter((t) => !t.isSystem);
 
   return (

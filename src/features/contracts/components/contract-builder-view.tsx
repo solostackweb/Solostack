@@ -11,6 +11,7 @@ import {
   Send,
   Eye,
   GripVertical,
+  CircleAlert,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -44,6 +45,7 @@ import { ContractPreview } from "./contract-preview";
 import type { AiContractDraft } from "@/features/ai-workflows/types";
 
 type Step = "template" | "build";
+const PLACEHOLDER_PATTERN = /\[[^\]\n]{2,80}\]/;
 
 function newSectionId() {
   return `s_${Math.random().toString(36).slice(2, 9)}`;
@@ -167,6 +169,12 @@ export function ContractBuilderView({
       }
       if (!client.email?.trim()) {
         toast.error("Add an email to the selected client before sending.");
+        return;
+      }
+      if (hasUnresolvedPlaceholders(title, sections)) {
+        toast.error(
+          "Review the template placeholders before sending. Replace bracketed text like [date], [amount], or [client name].",
+        );
         return;
       }
     }
@@ -352,6 +360,20 @@ export function ContractBuilderView({
           label="Preview"
         />
       </div>
+
+      {template && (
+        <div className="flex gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-amber-950 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-100">
+          <CircleAlert className="mt-0.5 h-4 w-4 shrink-0" />
+          <div className="space-y-1 text-sm">
+            <p className="font-medium">Review this template before sending</p>
+            <p className="text-xs leading-5 text-amber-900/80 dark:text-amber-100/80">
+              Replace all bracketed placeholders, check names, dates, fees, scope,
+              payment terms, and revision limits. You can save a draft anytime,
+              but sending is blocked while bracketed placeholders remain.
+            </p>
+          </div>
+        </div>
+      )}
 
       <div className="grid gap-6 lg:grid-cols-2">
         {/* EDITOR */}
@@ -599,4 +621,12 @@ function Field({
       {children}
     </div>
   );
+}
+
+function hasUnresolvedPlaceholders(
+  title: string,
+  sections: ContractSection[],
+): boolean {
+  return [title, ...sections.flatMap((section) => [section.heading, section.body])]
+    .some((value) => PLACEHOLDER_PATTERN.test(value));
 }
