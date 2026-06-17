@@ -55,6 +55,7 @@ function buildDefaults(
     invoiceDefaultDueDays: number;
     invoiceDefaultNotes: string | null;
     invoiceDefaultTerms: string | null;
+    invoiceDefaultHsnSac: string | null;
     invoiceDefaultTaxMode: "intra" | "inter";
     invoiceDefaultGstRate: number;
     gstRegistered: boolean;
