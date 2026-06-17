@@ -49,6 +49,7 @@ import {
 } from "./primitives";
 import type { UserProfileRow } from "@/lib/supabase/types";
 import { amountInWordsINR } from "@/lib/number-to-words";
+import { getStateName } from "@/features/gst/state-codes";
 
 // ---------------------------------------------------------------------------
 // Data shapes (unchanged contract with builders.ts)
@@ -231,13 +232,20 @@ const s = StyleSheet.create({
   },
   dateGrid: {
     flexDirection: "row",
-    width: 250,
+    width: 286,
     borderWidth: 0.5,
     borderColor: pdfColors.borderStrong,
     backgroundColor: pdfColors.surfaceMuted,
   },
   dateCell: {
     flex: 1,
+    paddingVertical: 8,
+    paddingHorizontal: 8,
+    borderLeftWidth: 0.5,
+    borderLeftColor: pdfColors.border,
+  },
+  dateCellSupply: {
+    flex: 1.35,
     paddingVertical: 8,
     paddingHorizontal: 8,
     borderLeftWidth: 0.5,
@@ -309,7 +317,7 @@ const s = StyleSheet.create({
     flex: 1,
   },
   legal: {
-    marginTop: 14,
+    marginTop: 12,
     paddingTop: 10,
     borderTopWidth: 0.5,
     borderTopColor: pdfColors.border,
@@ -317,12 +325,21 @@ const s = StyleSheet.create({
   legalLine: {
     fontSize: pdfSizes.xs,
     color: pdfColors.text,
-    marginBottom: 3,
+    lineHeight: pdfLineHeights.snug,
+    marginBottom: 5,
+  },
+  legalMetaRow: {
+    flexDirection: "row",
+    marginTop: 1,
+    marginBottom: 5,
+  },
+  legalMetaItem: {
+    marginRight: 16,
   },
   legalDecl: {
     fontSize: pdfSizes.xs,
     color: pdfColors.mutedForeground,
-    lineHeight: pdfLineHeights.relaxed,
+    lineHeight: pdfLineHeights.snug,
     marginTop: 3,
   },
 });
@@ -402,7 +419,7 @@ export function InvoicePdf({
     ? `Paid on ${formatDate(data.paidAt ?? data.paymentRecordedAt)}${paidMethodSuffix ? ` · ${paidMethodSuffix}` : ""}`
     : paidSoFar > 0
       ? `${formatCurrency(paidSoFar, data.currency)} received · balance due ${formatDate(data.dueDate)}`
-      : `Due ${formatDate(data.dueDate)}`;
+      : null;
 
   return (
     <Document
@@ -434,14 +451,8 @@ export function InvoicePdf({
               {brand.legalName ? (
                 <Text style={s.headerLine}>{brand.legalName}</Text>
               ) : null}
-              {brand.contact.email ? (
-                <Text style={s.headerLine}>{brand.contact.email}</Text>
-              ) : null}
               {brand.contact.phone ? (
                 <Text style={s.headerLine}>{brand.contact.phone}</Text>
-              ) : null}
-              {brand.gstin ? (
-                <Text style={s.headerLine}>GSTIN: {brand.gstin}</Text>
               ) : null}
             </View>
           </View>
@@ -466,9 +477,11 @@ export function InvoicePdf({
             <Text style={s.amountValue}>
               {formatCurrency(heroAmount, data.currency)}
             </Text>
-            <Text style={[s.amountSub, { color: amountSubColor }]}>
-              {amountSubText}
-            </Text>
+            {amountSubText ? (
+              <Text style={[s.amountSub, { color: amountSubColor }]}>
+                {amountSubText}
+              </Text>
+            ) : null}
           </View>
 
           {/* Dates grid */}
@@ -488,13 +501,11 @@ export function InvoicePdf({
                 {formatDate(data.dueDate)}
               </Text>
             </View>
-            <View style={s.dateCell}>
+            <View style={s.dateCellSupply}>
               {data.taxMode !== "non_gst" ? (
                 <>
                   <Text style={s.dateLabel}>Place of supply</Text>
-                  <Text style={s.dateValue}>
-                    {data.client.stateCode ? `State ${data.client.stateCode}` : "—"}
-                  </Text>
+                  <Text style={s.dateValue}>{formatPlaceOfSupply(data.client.stateCode)}</Text>
                 </>
               ) : (
                 <>
@@ -518,9 +529,6 @@ export function InvoicePdf({
             {brand.contact.email ? (
               <Text style={s.partyLine}>{brand.contact.email}</Text>
             ) : null}
-            {brand.contact.phone ? (
-              <Text style={s.partyLine}>{brand.contact.phone}</Text>
-            ) : null}
             {brand.gstin ? (
               <Text style={s.partyLine}>GSTIN: {brand.gstin}</Text>
             ) : null}
@@ -533,18 +541,15 @@ export function InvoicePdf({
             {data.client.companyName ? (
               <Text style={s.partyLine}>{data.client.companyName}</Text>
             ) : null}
+            {data.client.addressLines.slice(0, 2).map((line, i) => (
+              <Text key={i} style={s.partyLine}>{line}</Text>
+            ))}
             {data.client.email ? (
               <Text style={s.partyLine}>{data.client.email}</Text>
-            ) : null}
-            {data.client.phone ? (
-              <Text style={s.partyLine}>{data.client.phone}</Text>
             ) : null}
             {data.client.gstin ? (
               <Text style={s.partyLine}>GSTIN: {data.client.gstin}</Text>
             ) : null}
-            {data.client.addressLines.slice(0, 2).map((line, i) => (
-              <Text key={i} style={s.partyLine}>{line}</Text>
-            ))}
           </View>
         </View>
 
@@ -578,9 +583,14 @@ export function InvoicePdf({
             Amount in words: {amountInWordsINR(data.totalAmount)}
           </Text>
           {data.taxMode !== "non_gst" ? (
-            <Text style={s.legalLine}>
-              {data.hsnSac ? `HSN/SAC: ${data.hsnSac}   ·   ` : ""}Tax payable on reverse charge: No
-            </Text>
+            <View style={s.legalMetaRow}>
+              {data.hsnSac ? (
+                <Text style={[s.legalLine, s.legalMetaItem]}>
+                  HSN/SAC: {data.hsnSac}
+                </Text>
+              ) : null}
+              <Text style={s.legalLine}>Tax payable on reverse charge: No</Text>
+            </View>
           ) : null}
           {isBillOfSupply ? (
             <Text style={s.legalLine}>
@@ -594,9 +604,8 @@ export function InvoicePdf({
         </View>
 
         {/* ── 7+8. CLOSING BLOCK (kept together) ─────────────── */}
-        <View wrap={false}>
         {(data.notes || data.terms) ? (
-          <View style={s.notesRow} wrap={false}>
+          <View style={s.notesRow}>
             {data.notes ? (
               <View style={data.terms ? s.notesLeft : { flex: 1 }}>
                 <NoteBlock label="Notes" accent={brand.accent}>
@@ -622,7 +631,6 @@ export function InvoicePdf({
             fallbackName={brand.businessName}
           />
         ) : null}
-        </View>
 
       </Page>
     </Document>
@@ -724,6 +732,12 @@ function buildTotalsRows(
     });
   }
   return rows;
+}
+
+function formatPlaceOfSupply(stateCode: string | null): string {
+  if (!stateCode) return "-";
+  const stateName = getStateName(stateCode);
+  return stateName && stateName !== stateCode ? `${stateName} (${stateCode})` : stateCode;
 }
 
 // ---------------------------------------------------------------------------

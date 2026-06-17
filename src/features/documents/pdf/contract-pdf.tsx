@@ -369,9 +369,6 @@ export function ContractPdf({
               {brand.legalName ? (
                 <Text style={s.headerLine}>{brand.legalName}</Text>
               ) : null}
-              {brand.contact.email ? (
-                <Text style={s.headerLine}>{brand.contact.email}</Text>
-              ) : null}
               {brand.contact.phone ? (
                 <Text style={s.headerLine}>{brand.contact.phone}</Text>
               ) : null}
@@ -423,25 +420,16 @@ export function ContractPdf({
           <View style={s.partyCol}>
             <Text style={s.partyEyebrow}>Between</Text>
             <Text style={s.partyName}>{brand.businessName}</Text>
-            {brand.legalName ? (
-              <Text style={s.partyLine}>{brand.legalName}</Text>
-            ) : null}
-            {brand.addressLines.slice(0, 4).map((line, i) => (
+            {buildSellerPartyLines(brand).map((line, i) => (
               <Text key={i} style={s.partyLine}>{line}</Text>
             ))}
-            {brand.contact.email ? (
-              <Text style={s.partyLine}>{brand.contact.email}</Text>
-            ) : null}
-            {brand.contact.phone ? (
-              <Text style={s.partyLine}>{brand.contact.phone}</Text>
-            ) : null}
           </View>
 
           {/* Client */}
           <View style={s.partyColRight}>
             <Text style={s.partyEyebrow}>And</Text>
             <Text style={s.partyName}>{data.client.name}</Text>
-            {data.client.detailLines.slice(0, 6).map((line, i) => (
+            {formatAddressLines(data.client.detailLines).slice(0, 6).map((line, i) => (
               <Text key={i} style={s.partyLine}>{line}</Text>
             ))}
           </View>
@@ -607,11 +595,34 @@ function buildBrandFromData(
     address_line2: data.seller.addressLines[1] ?? null,
     city: data.seller.addressLines[2] ?? null,
     postal_code: data.seller.addressLines[3] ?? null,
-    country: null,
+    country: data.seller.addressLines[4] ?? null,
     gstin: null,
     gst_number: null,
     pan: null,
     state_code: null,
   } as unknown as UserProfileRow;
   return resolveBrand(shim, data.seller.logoDataUrl);
+}
+
+function buildSellerPartyLines(brand: ResolvedBrand): string[] {
+  return [
+    brand.contact.email,
+    ...formatAddressLines(brand.addressLines),
+    brand.contact.phone,
+    brand.legalName,
+  ].filter(
+    (line): line is string => typeof line === "string" && line.trim().length > 0,
+  );
+}
+
+function formatAddressLines(lines: string[]): string[] {
+  if (lines.length < 2) return lines;
+  const last = lines.at(-1);
+  const previous = lines.at(-2);
+  if (!last || !previous || !isCountryLine(last)) return lines;
+  return [...lines.slice(0, -2), `${previous}, ${last.toUpperCase()}`];
+}
+
+function isCountryLine(value: string): boolean {
+  return /^[A-Z]{2}$/i.test(value.trim());
 }

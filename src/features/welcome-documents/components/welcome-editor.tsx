@@ -35,8 +35,6 @@ import {
   updateWelcomeDocumentAction,
 } from "../actions";
 import { welcomeDocumentDetail } from "../routes";
-import { GuidedAiWorkflowSheet } from "@/features/ai-workflows/components/guided-ai-workflow-sheet";
-import type { AiWelcomeDraft } from "@/features/ai-workflows/types";
 
 interface ClientOption {
   id: string;
@@ -119,21 +117,6 @@ export function WelcomeEditor(props: Props) {
   const onRemoveSection = (idx: number) =>
     setSections((prev) => prev.filter((_, i) => i !== idx));
 
-  const applyAiDraft = React.useCallback((draft: AiWelcomeDraft) => {
-    setTitle(draft.title);
-    setIntro(draft.intro ?? "");
-    setClientId(draft.clientId || UNASSIGNED);
-    setAckRequired(draft.acknowledgementRequired);
-    setSections(
-      draft.sections.map((section, index) => ({
-        id: `s_${index + 1}_${Math.random().toString(36).slice(2, 6)}`,
-        heading: section.heading,
-        body: section.body,
-      })),
-    );
-    setShowPreview(true);
-  }, []);
-
   const onSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim()) {
@@ -186,17 +169,6 @@ export function WelcomeEditor(props: Props) {
       {/* Header / metadata */}
       <Card>
         <CardContent className="space-y-4 p-5">
-          <div className="flex justify-end">
-            <GuidedAiWorkflowSheet<AiWelcomeDraft>
-              workflow="welcome_document"
-              title="Let's create your welcome document"
-              description="Describe the onboarding experience and Stackivo AI will draft editable sections."
-              placeholder="Example: Welcome pack for a web design client, explain process, communication, feedback rounds, payments, files, and next steps"
-              clients={props.clients}
-              selectedClientId={clientId === UNASSIGNED ? "" : clientId}
-              onApplyDraft={applyAiDraft}
-            />
-          </div>
           <div>
             <Label htmlFor="wd-title" className="text-xs">
               Title

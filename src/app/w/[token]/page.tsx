@@ -1,7 +1,7 @@
 import * as React from "react";
 import { headers } from "next/headers";
 import { notFound } from "next/navigation";
-import { Sparkles, Download } from "lucide-react";
+import { BookOpen, Download } from "lucide-react";
 
 import {
   getSharedWelcomeDocument,
@@ -118,7 +118,7 @@ function WelcomeViewer({
         style={{ background: `linear-gradient(135deg, ${brand}, #0F172A)` }}
       >
         <div className="mx-auto flex max-w-3xl items-center gap-2 text-xs font-semibold uppercase tracking-[0.2em] opacity-80">
-          <Sparkles className="h-3.5 w-3.5" />
+            <BookOpen className="h-3.5 w-3.5" />
           Welcome guide
         </div>
         <h1 className="mx-auto mt-3 max-w-3xl text-3xl font-bold leading-tight tracking-tight sm:text-4xl">

@@ -83,7 +83,7 @@ export function ContractPublicView({ data }: Props) {
 
       <section className="grid gap-3 border-b px-5 py-5 sm:grid-cols-2 sm:px-8">
         <Party heading="Freelancer" name={data.seller.businessName}>
-          {data.seller.addressLines.map((line, i) => (
+          {formatAddressLines(data.seller.addressLines).map((line, i) => (
             <p key={i}>{line}</p>
           ))}
         </Party>
@@ -257,4 +257,16 @@ function formatCurrency(value: number, currency: string): string {
   } catch {
     return `${currency} ${value.toFixed(2)}`;
   }
+}
+
+function formatAddressLines(lines: string[]): string[] {
+  if (lines.length < 2) return lines;
+  const last = lines.at(-1);
+  const previous = lines.at(-2);
+  if (!last || !previous || !isCountryLine(last)) return lines;
+  return [...lines.slice(0, -2), `${previous}, ${last.toUpperCase()}`];
+}
+
+function isCountryLine(value: string): boolean {
+  return /^[A-Z]{2}$/i.test(value.trim());
 }

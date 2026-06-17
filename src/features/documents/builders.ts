@@ -512,10 +512,10 @@ async function assembleContractPdfData(args: {
     client: {
       name: client?.full_name ?? "Client",
       detailLines: composeAddress(
-        client?.business_name ?? client?.company_name,
         client?.email,
-        client?.phone,
         client?.billing_address ?? client?.address,
+        client?.phone,
+        client?.business_name ?? client?.company_name,
       ),
     },
   };

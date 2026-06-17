@@ -28,7 +28,6 @@ import { useSubscription } from "@/features/subscription/hooks/use-subscription"
 import { Sparkles } from "lucide-react";
 import type { TimerProjectOption } from "./active-timer-widget";
 import type { TimeEntryRecord } from "../server";
-import { GuidedAiWorkflowSheet } from "@/features/ai-workflows/components/guided-ai-workflow-sheet";
 import type { AiTimeEntryDraft } from "@/features/ai-workflows/types";
 
 interface ManualEntryDialogProps {
@@ -163,28 +162,12 @@ export function ManualEntryDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <DialogTitle>{isEditing ? "Edit time entry" : "Log time"}</DialogTitle>
-              <DialogDescription>
-                {isEditing
-                  ? "Update the details of this time entry."
-                  : "Back-date an entry or log time you forgot to track live."}
-              </DialogDescription>
-            </div>
-            {!isEditing && (
-            <GuidedAiWorkflowSheet<AiTimeEntryDraft>
-              workflow="time_entry"
-              title="Let's log your time"
-              description="Describe the work and Stackivo AI will draft the time entry."
-              placeholder="Example: 2 hours today on landing page revisions for the Acme website project, billable"
-              projects={projects}
-              selectedProjectId={values.projectId === NO_PROJECT ? "" : values.projectId}
-              defaultHourlyRate={defaultHourlyRate}
-              onApplyDraft={applyAiDraft}
-            />
-            )}
-          </div>
+          <DialogTitle>{isEditing ? "Edit time entry" : "Log time"}</DialogTitle>
+          <DialogDescription>
+            {isEditing
+              ? "Update the details of this time entry."
+              : "Back-date an entry or log time you forgot to track live."}
+          </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">

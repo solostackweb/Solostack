@@ -7,7 +7,7 @@ import {
   FileCheck2,
   ShieldCheck,
   ListChecks,
-  Sparkles,
+  LayoutTemplate,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -26,7 +26,7 @@ const TEMPLATE_KIND_LABEL: Record<ContractKind, string> = {
 };
 
 const KIND_ICON: Record<ContractKind, LucideIcon> = {
-  proposal: Sparkles,
+  proposal: LayoutTemplate,
   contract: FileSignature,
   msa: ShieldCheck,
   nda: FileCheck2,

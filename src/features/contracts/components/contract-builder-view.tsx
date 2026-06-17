@@ -41,7 +41,6 @@ import { createContractAction } from "../actions";
 import { sendContractAction } from "../delivery";
 import { TemplatePicker } from "./template-picker";
 import { ContractPreview } from "./contract-preview";
-import { GuidedAiWorkflowSheet } from "@/features/ai-workflows/components/guided-ai-workflow-sheet";
 import type { AiContractDraft } from "@/features/ai-workflows/types";
 
 type Step = "template" | "build";
@@ -293,26 +292,6 @@ export function ContractBuilderView({
               Start from a polished template or a blank document.
             </p>
           </div>
-          <div className="ml-auto">
-            <GuidedAiWorkflowSheet<AiContractDraft>
-              workflow="contract"
-              title="Let's draft your contract"
-              description="Describe the agreement and Stackivo AI will create editable sections."
-              placeholder="Example: Web design agreement for Acme, fixed fee 75000, 50% upfront, two revision rounds, 4 week timeline"
-              clients={clients.map((client) => ({
-                id: client.id,
-                name: getClientDisplayName(client),
-              }))}
-              projects={projects.map((project) => ({
-                id: project.id,
-                name: project.name,
-                clientId: project.clientId,
-              }))}
-              selectedClientId={clientId}
-              selectedProjectId={projectId}
-              onApplyDraft={applyAiDraft}
-            />
-          </div>
         </div>
 
         <TemplatePicker
@@ -341,24 +320,6 @@ export function ContractBuilderView({
           </span>
         </div>
         <div className="ml-auto flex items-center gap-2">
-          <GuidedAiWorkflowSheet<AiContractDraft>
-            workflow="contract"
-            title="Let's draft your contract"
-            description="Describe the agreement and Stackivo AI will create editable sections."
-            placeholder="Example: Monthly social media retainer for Acme, 12 posts, analytics report, payment due monthly"
-            clients={clients.map((c) => ({
-              id: c.id,
-              name: getClientDisplayName(c),
-            }))}
-            projects={projects.map((p) => ({
-              id: p.id,
-              name: p.name,
-              clientId: p.clientId,
-            }))}
-            selectedClientId={clientId}
-            selectedProjectId={projectId}
-            onApplyDraft={applyAiDraft}
-          />
           <Button
             variant="outline"
             size="sm"

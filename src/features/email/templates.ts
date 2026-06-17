@@ -510,6 +510,58 @@ export function renderContractSentEmail(
   };
 }
 
+// --- Contract signed copy ------------------------------------------------
+
+export interface ContractSignedCopyInput {
+  title: string;
+  clientName: string;
+  senderName: string;
+  senderEmail?: string;
+  signedAt: string;
+  publicUrl: string;
+  brand?: EmailBrand;
+}
+
+export function renderContractSignedCopyEmail(
+  input: ContractSignedCopyInput,
+): EmailRender {
+  const subject = `Signed copy: ${input.title}`;
+  const paragraphs = [
+    `Hi ${input.clientName},`,
+    `Your signed copy of "${input.title}" is attached for your records.`,
+    `You can also open the signed contract online using the link below.`,
+  ];
+  const facts = [
+    { label: "Contract", value: input.title },
+    { label: "Signed on", value: input.signedAt },
+  ];
+
+  return {
+    subject,
+    html: envelope({
+      preheader: `Signed copy · ${input.title}`,
+      successBanner: "Signed and recorded",
+      eyebrow: "Contract",
+      heading: `Signed copy`,
+      subheading: input.title,
+      paragraphs,
+      facts,
+      cta: { label: "View signed contract", href: input.publicUrl },
+      secondaryParagraphs: [
+        "Keep the attached PDF with your project records.",
+      ],
+      signature: formatSenderSignature(input.senderName, input.senderEmail),
+      brand: input.brand,
+    }),
+    text: plain(
+      paragraphs,
+      { label: "View signed contract", href: input.publicUrl },
+      formatSenderSignature(input.senderName, input.senderEmail),
+      facts,
+    ),
+  };
+}
+
 // --- Invoice paid / Receipt ---------------------------------------------
 
 export interface InvoicePaidInput {

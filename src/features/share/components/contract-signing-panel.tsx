@@ -63,21 +63,21 @@ export function ContractSigningPanel({
 
   return (
     <>
-      <Card className="mx-5 mb-5 border-dashed bg-muted/20 sm:mx-8 sm:mb-8">
+      <Card className="mx-5 mb-8 border-dashed bg-muted/20 sm:mx-8 sm:mb-10">
         <CardContent className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
           <div className="flex gap-3">
             <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
               {signed ? <LockKeyhole className="h-4 w-4" /> : <PenLine className="h-4 w-4" />}
             </div>
             <div className="space-y-1">
-            <p className="text-sm font-semibold">
-              {signed ? "Already signed" : "Ready to sign"}
-            </p>
-            <p className="text-xs text-muted-foreground">
-              {signed
-                ? "This agreement has already been signed and is locked for recordkeeping."
-                : "Review the agreement and sign it securely using the button below."}
-            </p>
+              <p className="text-sm font-semibold">
+                {signed ? "Already signed" : "Ready to sign"}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                {signed
+                  ? "This agreement has already been signed and is locked for recordkeeping."
+                  : "Review the agreement and sign it securely using the button below."}
+              </p>
             </div>
           </div>
 

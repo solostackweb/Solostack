@@ -29,7 +29,7 @@ export const contractTemplates: ContractTemplate[] = [
       {
         id: "s4",
         heading: "Investment",
-        body: "Total: INR 2,40,000, invoiced 40% at kickoff, 30% at design sign-off, 30% on launch.",
+        body: "Total: Add project fee here. Payment schedule: define the kickoff, milestone, and final payment terms.",
       },
       {
         id: "s5",
