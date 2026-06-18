@@ -1189,3 +1189,112 @@ export function renderSubscriptionRenewalEmail(
     text: plain(paragraphs, cta, signature),
   };
 }
+// --- Support: ticket received (to customer) ------------------------------
+
+export interface SupportTicketReceivedInput {
+  customerName?: string | null;
+  subject: string;
+  slaLabel: string;
+  threadUrl: string;
+  senderEmail: string;
+}
+
+/** Auto-acknowledgement when a new support ticket is created. */
+export function renderSupportTicketReceivedEmail(
+  input: SupportTicketReceivedInput,
+): EmailRender {
+  const hi = input.customerName ? `Hi ${input.customerName},` : "Hi,";
+  const paragraphs = [
+    hi,
+    `Thanks for reaching out — we've received your request and created a support ticket. Our typical first response: ${input.slaLabel}.`,
+    `You can view the conversation and add anything you forgot using the link below. You can also just reply to this email and it will be added to the same thread.`,
+  ];
+  const cta = { label: "View your ticket", href: input.threadUrl };
+  const signature = formatSenderSignature("Stackivo Support", input.senderEmail);
+  return {
+    subject: `We got your message: ${input.subject}`,
+    html: envelope({
+      preheader: `Ticket received · ${input.subject}`,
+      eyebrow: "Support",
+      heading: "We've got your request",
+      subheading: input.subject,
+      paragraphs,
+      facts: [{ label: "Typical first response", value: input.slaLabel }],
+      cta,
+      signature,
+    }),
+    text: plain(paragraphs, cta, signature),
+  };
+}
+
+// --- Support: agent reply (to customer) ----------------------------------
+
+export interface SupportReplyInput {
+  customerName?: string | null;
+  subject: string;
+  replyBody: string;
+  threadUrl: string;
+  senderName: string;
+  senderEmail: string;
+}
+
+/** Sent to the customer when the founder/agent replies to their ticket. */
+export function renderSupportReplyEmail(input: SupportReplyInput): EmailRender {
+  const hi = input.customerName ? `Hi ${input.customerName},` : "Hi,";
+  const paragraphs = [hi, input.replyBody, "Reply to this email to continue the conversation."];
+  const cta = { label: "Open the conversation", href: input.threadUrl };
+  const signature = formatSenderSignature(input.senderName, input.senderEmail);
+  return {
+    subject: `Re: ${input.subject}`,
+    html: envelope({
+      preheader: `Reply · ${input.subject}`,
+      eyebrow: "Support",
+      heading: "A reply to your request",
+      subheading: input.subject,
+      paragraphs,
+      cta,
+      signature,
+    }),
+    text: plain(paragraphs, cta, signature),
+  };
+}
+
+// --- Support: new ticket alert (to founder) ------------------------------
+
+export interface SupportAdminAlertInput {
+  subject: string;
+  category: string;
+  plan: string;
+  fromEmail: string;
+  excerpt: string;
+  adminUrl: string;
+}
+
+/** Internal heads-up to the founder when a new ticket arrives. */
+export function renderSupportAdminAlertEmail(
+  input: SupportAdminAlertInput,
+): EmailRender {
+  const paragraphs = [
+    `New ${input.plan} support ticket from ${input.fromEmail}.`,
+    input.excerpt,
+  ];
+  const cta = { label: "Open in admin", href: input.adminUrl };
+  const signature = "Stackivo";
+  return {
+    subject: `[${input.plan}/${input.category}] ${input.subject}`,
+    html: envelope({
+      preheader: `New ticket · ${input.fromEmail}`,
+      eyebrow: "New support ticket",
+      heading: input.subject,
+      paragraphs,
+      facts: [
+        { label: "From", value: input.fromEmail },
+        { label: "Plan", value: input.plan },
+        { label: "Category", value: input.category },
+      ],
+      cta,
+      signature,
+    }),
+    text: plain(paragraphs, cta, signature),
+  };
+}

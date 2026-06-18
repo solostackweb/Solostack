@@ -15,9 +15,8 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import Link from "next/link";
 import { cancelSubscriptionAction } from "../actions";
-import { env } from "@/config/env";
-import { crisp } from "@/features/support/crisp-provider";
 
 interface Props {
   /** Date the user keeps Pro until (current_period_end). */
@@ -59,17 +58,6 @@ export function CancelSubscriptionButton({ cancelsOn, className }: Props) {
     router.refresh();
   };
 
-  const chatAvailable = env.crispWebsiteId !== "";
-
-  const onChatFirst = () => {
-    crisp.event("cancel_flow_chat_diverted");
-    crisp.message(
-      "Hi — saw you're on the cancel page. Got 60 seconds? I'm the founder; if there's a feature missing or something not working, I'd love to fix it before you go.",
-    );
-    crisp.open();
-    setOpen(false);
-  };
-
   return (
     <AlertDialog open={open} onOpenChange={setOpen}>
       <AlertDialogTrigger asChild>
@@ -93,26 +81,23 @@ export function CancelSubscriptionButton({ cancelsOn, className }: Props) {
           </AlertDialogDescription>
         </AlertDialogHeader>
 
-        {chatAvailable ? (
-          <div className="rounded-md border border-emerald-500/30 bg-emerald-500/5 p-3 text-xs">
-            <div className="font-medium text-emerald-700 dark:text-emerald-300">
-              Before you go — got 60 seconds?
-            </div>
-            <p className="mt-1 text-muted-foreground">
-              Stackivo is built by a solo founder. If something&apos;s missing
-              or broken, chat with us first — we may fix it on the spot or
-              offer a discount.
-            </p>
-            <button
-              type="button"
-              onClick={onChatFirst}
-              disabled={loading}
-              className="mt-2 inline-flex h-7 items-center rounded-md bg-emerald-600 px-3 text-[11px] font-medium text-white hover:bg-emerald-700 disabled:opacity-50"
-            >
-              Chat with the founder
-            </button>
+        <div className="rounded-md border border-emerald-500/30 bg-emerald-500/5 p-3 text-xs">
+          <div className="font-medium text-emerald-700 dark:text-emerald-300">
+            Before you go — got 60 seconds?
           </div>
-        ) : null}
+          <p className="mt-1 text-muted-foreground">
+            Stackivo is built by a solo founder. If something&apos;s missing or
+            broken, talk to us first — we may fix it on the spot or offer a
+            discount.
+          </p>
+          <Link
+            href="/help"
+            onClick={() => setOpen(false)}
+            className="mt-2 inline-flex h-7 items-center rounded-md bg-emerald-600 px-3 text-[11px] font-medium text-white hover:bg-emerald-700"
+          >
+            Chat with the founder
+          </Link>
+        </div>
 
         <AlertDialogFooter>
           <AlertDialogCancel disabled={loading}>Keep subscription</AlertDialogCancel>

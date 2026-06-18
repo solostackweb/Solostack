@@ -2,7 +2,6 @@ import { MarketingHeader } from "@/components/marketing/marketing-header";
 import { MarketingFooter } from "@/components/marketing/marketing-footer";
 import { getMarketingAuthState } from "@/features/marketing/auth-state";
 import { siteConfig } from "@/config/site";
-import { DashboardSupportLayer } from "@/features/support/dashboard-support";
 import { StickyMobileCta } from "@/components/marketing/sticky-mobile-cta";
 import { GlobalCtaTracker } from "@/components/marketing/global-cta-tracker";
 import { ExitIntentModal } from "@/components/marketing/exit-intent-modal";
@@ -12,10 +11,9 @@ import { ExitIntentModal } from "@/components/marketing/exit-intent-modal";
  * + footer; auth + dashboard + onboarding live in their own route groups
  * with their own chrome.
  *
- * The support layer (Crisp chat + floating help button) mounts here too so
- * marketing visitors can open chat / send a bug report without signing up
- * first. Identity is intentionally `null` for anon visitors — Crisp accepts
- * that and the dashboard layout re-identifies once they log in.
+ * Marketing visitors reach support via the /contact form (which opens a
+ * first-party guest ticket); the live chat widget is mounted only on the
+ * authenticated dashboard.
  */
 export default async function MarketingLayout({
   children,
@@ -66,15 +64,6 @@ export default async function MarketingLayout({
       <MarketingHeader authState={authState} />
       <main className="flex-1">{children}</main>
       <MarketingFooter authState={authState} />
-      <DashboardSupportLayer
-        identity={{
-          email: null,
-          nickname: null,
-          userId: null,
-          plan: null,
-          mrr: null,
-        }}
-      />
       <StickyMobileCta authState={authState} />
       <GlobalCtaTracker />
       <ExitIntentModal />

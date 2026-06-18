@@ -25,8 +25,6 @@ import { runAdminAction, VIEW_AS_COOKIE } from "./server";
 import { recordSuppression } from "@/features/email/suppressions";
 import { log } from "@/lib/logger";
 import { sendAdminReceipt } from "./receipts";
-import { deleteCrispPerson } from "@/features/support/crisp-client";
-import { deleteZohoContactByEmail } from "@/features/support/zoho-client";
 
 // ---------------------------------------------------------------------------
 // Result envelope
@@ -362,33 +360,10 @@ export async function adminSoftDeleteUserAction(
       } as never);
 
       // Suppress the email so we never accidentally mail them again.
+      // Support data is first-party (support_tickets) and is removed with the
+      // user's account — no external vendor fan-out needed.
       if (oldEmail) {
         await recordSuppression({ email: oldEmail, reason: "manual" });
-
-        // DPDP fan-out to support vendors. Best-effort — both helpers
-        // swallow their own errors; we just log if anything came back.
-        const [crispRes, zohoRes] = await Promise.all([
-          deleteCrispPerson(oldEmail).catch((err: unknown) => ({
-            ok: false,
-            error: err instanceof Error ? err.message : String(err),
-          })),
-          deleteZohoContactByEmail(oldEmail).catch((err: unknown) => ({
-            ok: false,
-            error: err instanceof Error ? err.message : String(err),
-          })),
-        ]);
-        if (!crispRes.ok && crispRes.error !== "not_configured") {
-          log.warn("admin.soft_delete.crisp_fanout_failed", {
-            email: oldEmail,
-            error: crispRes.error,
-          });
-        }
-        if (!zohoRes.ok && zohoRes.error !== "not_configured") {
-          log.warn("admin.soft_delete.zoho_fanout_failed", {
-            email: oldEmail,
-            error: zohoRes.error,
-          });
-        }
       }
 
       // Audit captured via `runAdminAction()` wrapper above. Receipt

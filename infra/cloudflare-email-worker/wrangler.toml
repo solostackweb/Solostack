@@ -1,0 +1,11 @@
+name = "stackivo-support-inbound"
+main = "worker.js"
+compatibility_date = "2024-11-01"
+
+# Vars (non-secret). Set the real value here or in the dashboard.
+[vars]
+STACKIVO_INBOUND_URL = "https://stackivo.me/api/support/inbound"
+# FORWARD_TO = "you@yourworkspace.com"   # optional: copy to a human mailbox
+
+# Secrets (do NOT put values here — set with `wrangler secret put`):
+#   wrangler secret put SUPPORT_INBOUND_SECRET

@@ -138,8 +138,8 @@ export default function PrivacyPage() {
           extension.
         </li>
         <li>
-          <strong>Support</strong>: Crisp chat sets a cookie to associate your
-          support conversation with your account.
+          <strong>Support</strong>: your support conversations are stored
+          first-party within Stackivo and linked to your account.
         </li>
         <li>
           We do <strong>not</strong> place any third-party advertising or
@@ -232,12 +232,10 @@ export default function PrivacyPage() {
           Credentials and sensitive values are scrubbed before transmission.
         </li>
         <li>
-          <strong>Crisp</strong> (EU) — in-product live chat for support.
-          Conversations you start are stored by Crisp.
-        </li>
-        <li>
-          <strong>Zoho Desk</strong> (India/EU) — support ticket management.
-          Support requests submitted through Stackivo are processed here.
+          <strong>Cloudflare</strong> (global) — DNS and inbound email routing
+          for <code>support@stackivo.me</code>. Support conversations
+          themselves are stored first-party in Stackivo, not by a third-party
+          help-desk.
         </li>
         <li>
           <strong>Vercel</strong> (USA) — hosting and edge network. Request
@@ -275,8 +273,8 @@ export default function PrivacyPage() {
           <strong>Server and access logs</strong>: 90 days.
         </li>
         <li>
-          <strong>Support conversations</strong>: retained for 2 years in Crisp
-          and Zoho Desk to assist with follow-up.
+          <strong>Support conversations</strong>: retained for 2 years within
+          Stackivo to assist with follow-up.
         </li>
         <li>
           <strong>AI prompt logs</strong>: Stackivo does not store your AI

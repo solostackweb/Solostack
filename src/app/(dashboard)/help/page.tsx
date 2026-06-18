@@ -17,10 +17,12 @@ import {
   CreditCard,
   Briefcase,
   Settings,
+  Ticket,
 } from "lucide-react";
-import { env } from "@/config/env";
 import { getServerSupabase } from "@/lib/supabase/server";
-import { BugReportForm } from "@/features/support/bug-report-form";
+import { SupportTicketForm } from "@/features/support/components/support-ticket-form";
+import { MyTicketsList } from "@/features/support/components/my-tickets-list";
+import { listMyTickets } from "@/features/support/ticket-server";
 import { FaqAccordion } from "@/features/support/faq-accordion";
 
 export const metadata: Metadata = {
@@ -179,6 +181,7 @@ export default async function HelpPage() {
     data: { user },
   } = await supabase.auth.getUser();
   const isLoggedIn = Boolean(user);
+  const myTickets = isLoggedIn ? await listMyTickets() : [];
 
   return (
     <div className="mx-auto max-w-4xl space-y-10 py-4">
@@ -214,18 +217,16 @@ export default async function HelpPage() {
           </h2>
         </div>
         <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-          {env.crispWebsiteId ? (
-            <div className="rounded-md border bg-card p-3 text-sm">
-              <div className="flex items-center gap-2 font-medium">
-                <MessageCircle className="h-4 w-4 text-emerald-600" />
-                Chat now
-              </div>
-              <p className="mt-1 text-xs text-muted-foreground">
-                Open the chat icon at the bottom-right. Average reply: under 2
-                hours during waking hours (IST).
-              </p>
+          <div className="rounded-md border bg-card p-3 text-sm">
+            <div className="flex items-center gap-2 font-medium">
+              <MessageCircle className="h-4 w-4 text-emerald-600" />
+              Chat now
             </div>
-          ) : null}
+            <p className="mt-1 text-xs text-muted-foreground">
+              Open the chat bubble at the bottom-right to message us live. We
+              reply here and email you too.
+            </p>
+          </div>
           <div className="rounded-md border bg-card p-3 text-sm">
             <div className="flex items-center gap-2 font-medium">
               <Mail className="h-4 w-4" />
@@ -245,13 +246,31 @@ export default async function HelpPage() {
         </div>
       </section>
 
-      {/* Bug-report / contact form */}
+      {/* Your tickets */}
+      {isLoggedIn ? (
+        <section className="space-y-3">
+          <div className="flex items-center gap-2">
+            <Ticket className="h-4 w-4 text-blue-600" />
+            <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+              Your tickets
+            </h2>
+          </div>
+          <MyTicketsList tickets={myTickets} />
+        </section>
+      ) : null}
+
+      {/* Contact form — opens a tracked ticket */}
       <section className="space-y-3 rounded-lg border bg-card p-4">
-        <h2 className="text-sm font-semibold">Send a detailed report</h2>
+        <h2 className="text-sm font-semibold">Send a detailed message</h2>
         <p className="text-xs text-muted-foreground">
-          Best for bugs, feature requests, or anything that needs context.
+          Best for bugs, feature requests, or anything that needs context. You&rsquo;ll get a
+          tracked ticket and an email confirmation.
         </p>
-        <BugReportForm showEmail={!isLoggedIn} initialEmail={user?.email ?? ""} />
+        <SupportTicketForm
+          showContactFields={!isLoggedIn}
+          initialEmail={user?.email ?? ""}
+          channel="in_app"
+        />
       </section>
     </div>
   );

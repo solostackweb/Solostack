@@ -1,19 +1,22 @@
 "use client";
 
 /**
- * Dashboard support layer — single mount point for the chat widget +
- * support widget.
- *
- * Mounted from the (server) dashboard layout, fed pre-resolved
- * identity props so the client bundle never has to re-fetch them.
+ * Dashboard support layer — single mount point for the first-party live
+ * chat widget. Mounted once from the (server) dashboard layout.
+ * Replaces the old Crisp provider (removed fully in phase S6).
  */
 
-import { CrispProvider, type CrispIdentity } from "./crisp-provider";
+import { SupportWidget } from "./components/support-widget";
+import type { SupportPlan } from "./ticket-types";
 
 interface Props {
-  identity: CrispIdentity;
+  identity: { plan?: string | null };
+}
+
+function normalizePlan(plan: string | null | undefined): SupportPlan {
+  return plan === "pro" || plan === "business" ? plan : "free";
 }
 
 export function DashboardSupportLayer({ identity }: Props) {
-  return <CrispProvider identity={identity} />;
+  return <SupportWidget plan={normalizePlan(identity.plan)} />;
 }

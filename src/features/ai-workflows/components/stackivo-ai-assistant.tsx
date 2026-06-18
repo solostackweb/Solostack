@@ -112,7 +112,7 @@ import {
   ContractListBlock,
   ClientListBlock,
 } from "./assistant-previews";
-import { submitBugReportAction } from "@/features/support/actions";
+import { createTicketAction } from "@/features/support/ticket-actions";
 import {
   AI_SKIP_SENTINEL,
   NO_CLIENT_SENTINEL,
@@ -518,10 +518,11 @@ export function StackivoAiAssistant({ clients, projects }: StackivoAiAssistantPr
       const usedDocs = docs.ok && docs.data.usedDocs;
 
       if (fileTicket && !usedDocs) {
-        const ticket = await submitBugReportAction({
+        const ticket = await createTicketAction({
           category: "how-to",
-          summary: text.slice(0, 180),
-          details: text,
+          subject: text.slice(0, 180),
+          message: text,
+          channel: "chat",
           page: typeof window !== "undefined" ? window.location.pathname : undefined,
         });
         push({

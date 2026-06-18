@@ -14,10 +14,8 @@ import { listProjects } from "@/features/projects/server";
  *   - Authenticated but mid-onboarding → redirected to the persisted step.
  *   - Authenticated + onboarded → rendered through the dashboard shell.
  *
- * Mounts the support layer (Crisp chat + floating help button) once
- * for the whole authenticated surface; the layer no-ops when neither
- * `NEXT_PUBLIC_CRISP_WEBSITE_ID` nor `NEXT_PUBLIC_ZOHO_DESK_HELP_URL`
- * is set so unconfigured deploys ship without any chat chrome.
+ * Mounts the first-party live chat widget once for the whole authenticated
+ * surface (see DashboardSupportLayer).
  */
 export default async function DashboardGroupLayout({
   children,
@@ -46,15 +44,7 @@ export default async function DashboardGroupLayout({
       }))}
     >
       {children}
-      <DashboardSupportLayer
-        identity={{
-          email: profile.email,
-          nickname: profile.fullName || profile.displayName || null,
-          userId: profile.userId,
-          plan: subscription?.plan ?? "free",
-          mrr: null,
-        }}
-      />
+      <DashboardSupportLayer identity={{ plan: subscription?.plan ?? "free" }} />
     </DashboardShell>
   );
 }

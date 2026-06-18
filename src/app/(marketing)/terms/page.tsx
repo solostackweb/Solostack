@@ -352,8 +352,8 @@ export default function TermsPage() {
       <h2>9. Third-party services</h2>
       <p>
         The Service integrates with third-party services including Razorpay,
-        Supabase, Brevo, Groq, PostHog, Microsoft Clarity, Sentry, Crisp, Zoho
-        Desk, Cloudflare R2, and Vercel. Your use of these integrations is also
+        Supabase, Brevo, Groq, PostHog, Microsoft Clarity, Sentry, Cloudflare,
+        and Vercel. Your use of these integrations is also
         governed by those providers&rsquo; own terms of service and privacy
         policies. We are not responsible for the acts or omissions of
         third-party providers, nor for any downtime or data loss caused by them.

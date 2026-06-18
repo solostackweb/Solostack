@@ -61,11 +61,6 @@ export const env = {
     optional(process.env.VERCEL_ENV) ??
     process.env.NODE_ENV ??
     "development",
-  // Crisp Live Chat website id. Browser-safe by design — Crisp's
-  // identifier is part of the public widget script. Unset → the chat
-  // widget + identity bridge silently no-op so dev / preview deploys
-  // skip chat entirely.
-  crispWebsiteId: optional(process.env.NEXT_PUBLIC_CRISP_WEBSITE_ID) ?? "",
   // Microsoft Clarity project id. Free unlimited heatmaps + scroll +
   // click + session replay; complements PostHog product analytics.
   // Browser-safe by design. Unset → script never loads.
@@ -78,10 +73,6 @@ export const env = {
   // Loom demo video share URL. Embedded as an iframe at /demo. Unset
   // → /demo renders a placeholder with a sign-up CTA.
   loomDemoUrl: optional(process.env.NEXT_PUBLIC_LOOM_DEMO_URL) ?? "",
-  // Zoho Desk public help-center URL. Used by the in-app `<HelpButton/>`
-  // and `/help` page to deep-link customers to KB articles. Unset →
-  // the "Browse help articles" affordance hides itself.
-  zohoDeskHelpUrl: optional(process.env.NEXT_PUBLIC_ZOHO_DESK_HELP_URL) ?? "",
   // Web Push public VAPID key. Browser-safe (it is the *public* key).
   // Unset → the portal's "Enable notifications" affordance hides itself and
   // push silently no-ops, exactly like the other optional integrations.
@@ -151,6 +142,9 @@ export function requireServerEnv() {
     // configured on the Brevo webhook subscription. `/api/webhooks/brevo`
     // rejects any request without a timing-safe match.
     brevoWebhookSecret: optional(process.env.BREVO_WEBHOOK_SECRET),
+    // Shared secret the Cloudflare Email Worker presents (Bearer) when POSTing
+    // parsed inbound support email to /api/support/inbound.
+    supportInboundSecret: optional(process.env.SUPPORT_INBOUND_SECRET),
     // Ops / observability (all optional) -----------------------------------
     // Slack incoming webhook for cron-based failure alerts. Unset → no-op.
     opsSlackWebhookUrl: optional(process.env.OPS_SLACK_WEBHOOK_URL),
@@ -174,26 +168,6 @@ export function requireServerEnv() {
         : process.env.EMAIL_LIVE_MODE === "false"
           ? false
           : process.env.NODE_ENV === "production",
-    // -- Support system (all optional; missing config => graceful no-op) --
-    // Zoho Desk REST API credentials. The orgId scopes every API call to
-    // a single Zoho Desk org; the access token authenticates. Refresh
-    // tokens are NOT persisted here — re-run the OAuth flow to mint a
-    // long-lived access token via Self-Client. See SUPPORT_SYSTEM_SETUP.md.
-    zohoDeskOrgId: optional(process.env.ZOHO_DESK_ORG_ID),
-    zohoDeskAccessToken: optional(process.env.ZOHO_DESK_ACCESS_TOKEN),
-    zohoDeskDepartmentId: optional(process.env.ZOHO_DESK_DEPARTMENT_ID),
-    // EU = https://desk.zoho.eu, IN = https://desk.zoho.in, US = https://desk.zoho.com
-    zohoDeskApiBase:
-      optional(process.env.ZOHO_DESK_API_BASE) ?? "https://desk.zoho.in",
-    // Crisp REST API. Used ONLY for delete-on-soft-delete fan-out and
-    // optional historical message fetch from webhooks. The widget itself
-    // doesn't use these.
-    crispApiIdentifier: optional(process.env.CRISP_API_IDENTIFIER),
-    crispApiKey: optional(process.env.CRISP_API_KEY),
-    // Webhook shared secrets — verified on each inbound webhook delivery
-    // via timing-safe comparison. Missing => the route returns 404.
-    crispWebhookSecret: optional(process.env.CRISP_WEBHOOK_SECRET),
-    zohoDeskWebhookSecret: optional(process.env.ZOHO_DESK_WEBHOOK_SECRET),
     // Brevo contact list id for the marketing newsletter / lead capture
     // forms. Numeric (e.g. "12"). Unset → leads are still captured to
     // delivery_logs metadata but not added to a Brevo list, so subscription

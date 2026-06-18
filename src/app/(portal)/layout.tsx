@@ -164,11 +164,6 @@ export default async function PortalLayout({
       >
         {children}
       </main>
-      <style>{`
-        .crisp-client {
-          display: none !important;
-        }
-      `}</style>
     </div>
   );
 }

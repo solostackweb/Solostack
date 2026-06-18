@@ -45,7 +45,7 @@ const ENTRIES: Entry[] = [
       },
       {
         tag: "shipped",
-        text: "Live chat + bug-report form on every page (Crisp + Zoho Desk under the hood).",
+        text: "Built-in live chat + ticketing — first-party support, replies in-app and by email.",
       },
       {
         tag: "added",

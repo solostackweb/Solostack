@@ -51,8 +51,8 @@ export default function SecurityPage() {
           events.
         </li>
         <li>
-          <strong>Customer support:</strong> Crisp + Zoho Desk, only when you
-          choose to contact us.
+          <strong>Customer support:</strong> handled first-party within
+          Stackivo; we only see what you choose to send us.
         </li>
       </ul>
 

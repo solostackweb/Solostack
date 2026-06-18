@@ -1,10 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Mail, MessageCircle, Twitter } from "lucide-react";
+import { Mail, Twitter } from "lucide-react";
 import { ProsePage } from "@/components/marketing/prose-page";
-import { BugReportForm } from "@/features/support/bug-report-form";
+import { SupportTicketForm } from "@/features/support/components/support-ticket-form";
 import { siteConfig } from "@/config/site";
-import { env } from "@/config/env";
 
 export const metadata: Metadata = {
   title: "Contact Stackivo · Talk to the team",
@@ -22,8 +21,6 @@ export const metadata: Metadata = {
 export const dynamic = "force-static";
 
 export default function ContactPage() {
-  const chatAvailable = env.crispWebsiteId !== "";
-
   return (
     <ProsePage
       title="Talk to us"
@@ -37,14 +34,6 @@ export default function ContactPage() {
     >
       {/* Quick contact tiles */}
       <div className="not-prose grid grid-cols-1 gap-3 sm:grid-cols-2">
-        {chatAvailable ? (
-          <ContactTile
-            icon={<MessageCircle className="h-4 w-4 text-emerald-600" />}
-            title="Live chat"
-            description="Open the chat icon at the bottom-right. Online during IST waking hours."
-            cta={null}
-          />
-        ) : null}
         <ContactTile
           icon={<Mail className="h-4 w-4 text-blue-600" />}
           title="Email support"
@@ -89,7 +78,7 @@ export default function ContactPage() {
       </p>
 
       <div className="not-prose">
-        <BugReportForm showEmail={true} />
+        <SupportTicketForm showContactFields={true} channel="contact_form" />
       </div>
 
       <h2>Looking for something else?</h2>
