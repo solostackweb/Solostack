@@ -3,6 +3,7 @@ import { Bookmark, Check, CheckCircle2, ExternalLink, Mail, MessageCircle, Recei
 
 import { Button } from "@/components/ui/button";
 import { BUILTIN_WELCOME_TEMPLATES } from "@/features/welcome-documents/templates";
+import { INDIAN_STATES } from "@/features/gst/state-codes";
 import { formatAiMoney } from "./assistant-helpers";
 import type {
   AiConfirmSummary,
