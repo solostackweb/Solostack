@@ -1525,7 +1525,9 @@ export function StackivoAiAssistant({ clients, projects }: StackivoAiAssistantPr
             intent === "support" || intent === "general" || intent === "query"
               ? "general"
               : intent;
-        } else if (isSwitch) {
+        } else if (isSwitch && intent !== "query") {
+          // "query" is a data-question intent, not a workflow mode — it is
+          // short-circuited elsewhere, so never use it as a target mode.
           targetMode = intent;
         }
       } else if (mode === "general") {
