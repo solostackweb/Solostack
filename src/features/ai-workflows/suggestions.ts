@@ -1,0 +1,89 @@
+import "server-only";
+
+/**
+ * Proactive assistant suggestions ("Today" nudges).
+ *
+ * Derived from the same RLS-scoped business-facts snapshot the Q&A uses, so a
+ * single read powers both. Each suggestion carries a `prompt` that is sent
+ * straight into the assistant when tapped — turning a nudge into a one-tap
+ * action that routes through the existing intent handlers.
+ */
+
+import { getBusinessFacts } from "./business-context";
+
+export interface AssistantSuggestion {
+  id: string;
+  /** Short, action-oriented label shown on the chip. */
+  title: string;
+  /** Sent into the assistant on tap (routes via NLU to a query/workflow). */
+  prompt: string;
+  tone: "alert" | "info";
+}
+
+function inr(n: number): string {
+  return `₹${new Intl.NumberFormat("en-IN", { maximumFractionDigits: 0 }).format(n)}`;
+}
+const plural = (n: number) => (n === 1 ? "" : "s");
+
+export async function getAssistantSuggestions(): Promise<AssistantSuggestion[]> {
+  const f = await getBusinessFacts();
+  const out: AssistantSuggestion[] = [];
+
+  if (f.invoices.overdueTotal > 0) {
+    out.push({
+      id: "overdue",
+      tone: "alert",
+      title: `${inr(f.invoices.overdueTotal)} overdue across ${f.invoices.overdueCount} invoice${plural(
+        f.invoices.overdueCount,
+      )} — chase it`,
+      prompt: "Send reminders for my overdue invoices",
+    });
+  }
+
+  if (f.unbilled.totalValue > 0) {
+    out.push({
+      id: "unbilled",
+      tone: "info",
+      title: `${inr(f.unbilled.totalValue)} of unbilled time (${f.unbilled.totalHours}h) — invoice it`,
+      prompt: "Create an invoice for my unbilled time",
+    });
+  }
+
+  if (f.invoices.outstandingTotal > 0 && f.invoices.overdueTotal === 0) {
+    out.push({
+      id: "outstanding",
+      tone: "info",
+      title: `${inr(f.invoices.outstandingTotal)} outstanding across ${f.invoices.outstandingCount} invoice${plural(
+        f.invoices.outstandingCount,
+      )}`,
+      prompt: "Show my outstanding invoices",
+    });
+  }
+
+  if (f.revenue.thisMonthPaid === 0 && f.revenue.last12mPaid > 0) {
+    out.push({
+      id: "no_month_revenue",
+      tone: "info",
+      title: "No payments recorded this month yet",
+      prompt: "What's my revenue this month?",
+    });
+  }
+
+  if (
+    f.clients.revenueConcentrationTop1Pct != null &&
+    f.clients.revenueConcentrationTop1Pct >= 50
+  ) {
+    out.push({
+      id: "concentration",
+      tone: "info",
+      title: `Your top client is ${Math.round(
+        f.clients.revenueConcentrationTop1Pct,
+      )}% of revenue`,
+      prompt: "Who are my top clients?",
+    });
+  }
+
+  // Alerts first, then keep it to a tidy handful.
+  out.sort((a, b) => (a.tone === b.tone ? 0 : a.tone === "alert" ? -1 : 1));
+  return out.slice(0, 4);
+}

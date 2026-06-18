@@ -120,7 +120,7 @@ export const AI_WORKFLOWS = [
 ] as const;
 
 export type AiWorkflow = (typeof AI_WORKFLOWS)[number];
-export type AiIntent = AiWorkflow | "general";
+export type AiIntent = AiWorkflow | "general" | "query";
 
 /**
  * Canonical field map collected by the assistant. Values are kept as raw

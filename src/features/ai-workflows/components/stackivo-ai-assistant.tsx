@@ -60,7 +60,58 @@ import {
   sendWelcomeDocFromAiAction,
   welcomeDocWhatsappFromAiAction,
   answerFromDocsAction,
+  answerBusinessQuestionAction,
+  getAssistantSuggestionsAction,
+  remindOverdueInvoicesFromAiAction,
+  invoiceUnbilledTimeFromAiAction,
+  listInvoicesForAiAction,
+  markInvoicePaidFromAiAction,
+  listContractsForAiAction,
+  listClientsForAiAction,
 } from "@/features/ai-workflows/global-actions";
+import type { AssistantSuggestion } from "@/features/ai-workflows/suggestions";
+import type {
+  AiEntityOption,
+  StackivoAiAssistantProps,
+  AiMode,
+  Message,
+  AiInvoicePreview,
+  AiContractPreview,
+  AiWelcomeDocPreview,
+  AiConfirmSummary,
+} from "./assistant-types";
+import {
+  QUICK_ACTIONS,
+  MODE_PLACEHOLDERS,
+  newId,
+  formatMoney,
+  formatAiMoney,
+  modeIntro,
+  conversationalReply,
+  isInformationalQuestion,
+  isSkipReply,
+  fieldValidationError,
+  isAffirmative,
+  isNegative,
+  isAbandonFlow,
+} from "./assistant-helpers";
+import {
+  SectionList,
+  ResultBlock,
+  ConfirmBlock,
+  InvoiceDraftPreview,
+  InvoiceDeliveryActions,
+  ClientPicker,
+  ProjectPicker,
+  StatePicker,
+  WelcomeTemplatePicker,
+  ContractDraftPreview,
+  WelcomeDocDraftPreview,
+  WelcomeDocDeliveryActions,
+  InvoiceListBlock,
+  ContractListBlock,
+  ClientListBlock,
+} from "./assistant-previews";
 import { submitBugReportAction } from "@/features/support/actions";
 import {
   AI_SKIP_SENTINEL,
@@ -75,892 +126,6 @@ import {
 // Types
 // ---------------------------------------------------------------------------
 
-interface AiEntityOption {
-  id: string;
-  name: string;
-  clientId?: string | null;
-}
-
-interface StackivoAiAssistantProps {
-  clients: AiEntityOption[];
-  projects: AiEntityOption[];
-}
-
-type AiMode =
-  | "general"
-  | "invoice"
-  | "contract"
-  | "welcome_document"
-  | "client"
-  | "project"
-  | "time_entry"
-  | "support";
-
-interface Message {
-  id: string;
-  role: "assistant" | "user";
-  content: React.ReactNode;
-  /** Optional one-tap quick replies shown under an assistant message. */
-  suggestions?: string[];
-  /** Optional short professional tip shown under an assistant message. */
-  tip?: string;
-}
-
-interface AiInvoicePreview {
-  id: string;
-  invoiceNumber: string;
-  clientName: string;
-  clientEmail: string | null;
-  clientPhone: string | null;
-  description: string;
-  quantity: number;
-  unitPrice: number;
-  originalSubtotal: number;
-  discount: number;
-  subtotal: number;
-  taxTotal: number;
-  totalAmount: number;
-  currency: string;
-  dueDate: string;
-  status: string;
-  terms: string | null;
-  notes: string | null;
-}
-
-interface AiContractPreview {
-  id: string;
-  title: string;
-  kind: "contract" | "proposal";
-  clientName: string;
-  clientEmail: string | null;
-  projectName: string | null;
-  valueAmount: number | null;
-  currency: string;
-  sections: Array<{ heading: string; body: string }>;
-}
-
-interface AiWelcomeDocPreview {
-  id: string;
-  title: string;
-  intro: string | null;
-  sections: Array<{ heading: string; body: string }>;
-  acknowledgementRequired: boolean;
-  clientName: string | null;
-  clientEmail: string | null;
-  clientPhone: string | null;
-  projectName: string | null;
-}
-
-interface AiConfirmSummary {
-  kind: "client" | "project" | "time_entry";
-  title: string;
-  lines: Array<[label: string, value: string]>;
-}
-
-// ---------------------------------------------------------------------------
-// Quick actions
-// ---------------------------------------------------------------------------
-
-const QUICK_ACTIONS: Array<{
-  mode: AiMode;
-  title: string;
-  description: string;
-  icon: typeof Sparkles;
-}> = [
-  {
-    mode: "invoice",
-    title: "Create invoice",
-    description: "Draft and approve an invoice from a single prompt.",
-    icon: ReceiptText,
-  },
-  {
-    mode: "contract",
-    title: "Draft contract",
-    description: "Generate a full agreement or proposal with all clauses.",
-    icon: FileSignature,
-  },
-  {
-    mode: "welcome_document",
-    title: "Welcome doc",
-    description: "Prepare a polished onboarding guide for a client.",
-    icon: FileText,
-  },
-  {
-    mode: "client",
-    title: "Add client",
-    description: "Create a client record from a description.",
-    icon: Users,
-  },
-  {
-    mode: "project",
-    title: "Add project",
-    description: "Create a project and link it to a client.",
-    icon: LayoutDashboard,
-  },
-  {
-    mode: "time_entry",
-    title: "Log time",
-    description: "Record billable hours against a project.",
-    icon: Clock,
-  },
-  {
-    mode: "support",
-    title: "Support",
-    description: "Ask a question or submit a support request.",
-    icon: Headphones,
-  },
-];
-
-// ---------------------------------------------------------------------------
-// Per-mode placeholder hints (free-form; the NLU extracts and asks for gaps)
-// ---------------------------------------------------------------------------
-
-const MODE_PLACEHOLDERS: Partial<Record<AiMode, string>> = {
-  invoice: "Example: Invoice Acme 25000 for website redesign, due in 15 days, 5000 off",
-  contract: "Example: Service agreement for Acme — 5-page site, INR 150000, 50% upfront, 2 revisions",
-  welcome_document: "Example: Welcome doc for Acme — weekly Friday updates, feedback in one doc, warm tone",
-  client: "Example: Add Riya Sharma, Acme Encore, riya@acme.com, +91 9876543210, Mumbai",
-  project: "Example: Website Redesign for Acme — landing page + CMS, starts Monday, due end of month",
-  time_entry: "Example: Logged 2h 30m on wireframe revisions for Acme, billable",
-  support: "Ask anything — docs, privacy, terms, or raise a support ticket",
-};
-
-// ---------------------------------------------------------------------------
-// Utility
-// ---------------------------------------------------------------------------
-
-function newId() {
-  return Math.random().toString(36).slice(2, 10);
-}
-
-function formatMoney(amount: number, currency = "INR") {
-  return new Intl.NumberFormat("en-IN", {
-    style: "currency",
-    currency,
-    maximumFractionDigits: 2,
-  }).format(amount);
-}
-
-function formatAiMoney(amount: number | null | undefined, currency = "INR") {
-  if (!amount) return "";
-  return formatMoney(amount, currency);
-}
-
-function modeIntro(mode: AiMode): string {
-  switch (mode) {
-    case "invoice":
-      return "Let's create an invoice. Describe the client, work, amount, and due date.";
-    case "contract":
-      return "Let's draft a contract or proposal. I'll walk you through it.";
-    case "welcome_document":
-      return "Let's prepare a welcome document. A few questions and I'll generate the full guide.";
-    case "client":
-      return "Let's add a client. Tell me the details and I'll create the record.";
-    case "project":
-      return "Let's create a project. Tell me the name, scope, and timeline.";
-    case "time_entry":
-      return "Let's log some time. Which project and how long?";
-    case "support":
-      return "I can answer from docs, privacy, or terms — or send this to support.";
-    default:
-      return "What would you like to do?";
-  }
-}
-
-/**
- * Quick conversational replies for greetings and meta questions ("hi",
- * "can I ask you a question", "what can you do") so the assistant answers
- * naturally instead of running a docs lookup that finds nothing.
- * Returns null for substantive questions, which fall through to the docs flow.
- */
-function conversationalReply(text: string): string | null {
-  const t = text.trim().toLowerCase().replace(/[!.?,]+$/g, "");
-  // Greetings — tolerant of common typos (helo, helloo, hii, heyy, gud morning).
-  if (/^(hi+|hey+|h(e|a)l+o+|hii+|heyy+|yo+|hiya|hello+|namaste|namaskar|hii?ya|good ?(morning|afternoon|evening|day)|gud ?(morning|mrng|eve))\b/.test(t)) {
-    return "Hey! I can create invoices, contracts, and welcome docs, add clients and projects, log time, or answer questions about Stackivo. What would you like to do?";
-  }
-  if (/^(thanks?|thank ?(you|u)|thnx|thnks|thanx|thx|ty|tysm|great|perfect|awesome|cool|nice|ok+|okay|okey|k|got it|cheers|appreciate it)( (so much|a lot|you|u|man|mate|buddy|bro))?$/.test(t)) {
-    return "Anytime! Tell me the next thing you'd like to do.";
-  }
-  if (/\b(can|could|may) i ask( you)?( a| you a)? ?(question|something|doubt)?\b|^ask you|are you (there|online|here)|you there/.test(t)) {
-    return "Of course — go ahead and ask. I can help with invoices, contracts, welcome docs, clients, projects, time logs, or how Stackivo works.";
-  }
-  if (/what can you do|who are you|what are you|how can you help|what do you do|how do you work/.test(t)) {
-    return "I'm your Stackivo workflow assistant. I can draft and send invoices & contracts, prepare welcome documents, add clients and projects, log billable time, and answer questions about how Stackivo works. Just describe what you need — for example, “Invoice Acme 50000 for a landing page.”";
-  }
-  if (/how are you|how'?s it going|how do you do|how have you been|hope you('| a)re (doing )?(well|good)/.test(t)) {
-    return "Doing great, thanks for asking! What can I help you with — invoices, contracts, clients, or a quick question about Stackivo?";
-  }
-  if (/\bare you (a )?(bot|robot|ai|human|real)\b|who (made|built|created) you|are you chatgpt/.test(t)) {
-    return "I'm Stackivo's built-in AI assistant — here to help you run your freelance business. Ask me to create invoices, contracts, welcome docs, clients, or projects, log time, or anything about how Stackivo works.";
-  }
-  return null;
-}
-
-/**
- * True when a message reads like a question to answer (from docs) rather than a
- * command to create something — e.g. "what about billing?", "how do invoices
- * work". Used so the home screen answers such messages instead of opening a
- * workflow. A clear action verb ("create an invoice…") opts out.
- */
-function isInformationalQuestion(text: string): boolean {
-  const t = text.trim().toLowerCase();
-  if (/\b(create|make|draft|add|new|start|log|raise|generate|send|prepare|build|issue|set ?up)\b/.test(t)) {
-    return false;
-  }
-  if (/\?\s*$/.test(t)) return true;
-  return /^(what|whats|what'?s|what about|how|how about|why|when|where|who|which|can i|can you|could (i|you)|should i|do (i|you)|does|did|is|are|will|would|tell me|explain)\b/.test(
-    t,
-  );
-}
-
-/** Matches a short "skip"/"none" style reply to an optional prompt. */
-function isSkipReply(text: string): boolean {
-  return /^(skip|none|no|n\/a|na|nope|nah|leave it|not now|-|—)$/i.test(text.trim());
-}
-
-/**
- * Sanity-check a typed answer against the field it's meant to fill. Returns a
- * gentle correction string when the answer clearly can't work (e.g. no number
- * for an amount, no time unit for a duration, no date for a due date) so the
- * assistant can re-ask instead of silently saving nonsense. Returns null when
- * the answer looks plausible (we stay lenient — better to accept than to nag).
- */
-function fieldValidationError(field: string, text: string): string | null {
-  const t = text.trim();
-  const hasNumber = /\d/.test(t);
-  switch (field) {
-    case "amount":
-      if (!hasNumber)
-        return "I need a number for the amount — for example “50000” or “1.5L”. How much should I invoice (before tax)?";
-      return null;
-    case "duration":
-      if (!hasNumber)
-        return "Tell me how long in hours/minutes — for example “2h 30m” or “45m”. And is it billable?";
-      return null;
-    case "dueDate":
-      // A date, a relative phrase, or "skip" are all fine.
-      if (
-        !hasNumber &&
-        !/\b(today|tomorrow|week|month|monday|tuesday|wednesday|thursday|friday|saturday|sunday|eom|end of)\b/i.test(t)
-      )
-        return "When is it due? Try “in 15 days”, “next month”, a date like 2026-07-01 — or reply “skip”.";
-      return null;
-    case "email":
-      if (!/^\S+@\S+\.\S+$/.test(t))
-        return "That doesn't look like an email address — for example “name@company.com”. What's their email?";
-      return null;
-    default:
-      return null;
-  }
-}
-
-/** A short affirmative reply to a confirmation prompt ("yes", "go ahead"). */
-function isAffirmative(text: string): boolean {
-  const t = text.trim().toLowerCase().replace(/[!.]+$/g, "");
-  return /^(y|yes+|yeah|yep|yup|ok|okay|sure|confirm|confirmed|create|create it|do it|go ahead|proceed|send it|sounds good|looks good|perfect|all good|that'?s right|correct)$/.test(
-    t,
-  );
-}
-
-/** A short negative/cancel reply to a confirmation prompt. */
-function isNegative(text: string): boolean {
-  const t = text.trim().toLowerCase().replace(/[!.]+$/g, "");
-  return /^(n|no|nope|nah|cancel|stop|don'?t|do not|abort|discard|wait|never mind|nevermind)$/.test(
-    t,
-  );
-}
-
-/**
- * Detects an intent to ABANDON the current workflow ("leave it", "cancel
- * this", "let's do something else", "forget the contract", "never mind").
- * Used to gracefully exit any in-progress flow (pending question, picker, or
- * open draft) instead of re-asking. Phrased to avoid false positives on real
- * answers — it looks for explicit drop/leave/cancel language.
- */
-function isAbandonFlow(text: string): boolean {
-  const t = text.trim().toLowerCase().replace(/[!.]+$/g, "");
-  if (/^(cancel|stop|abort|forget it|never ?mind|leave it|drop it|exit|quit)$/.test(t)) {
-    return true;
-  }
-  return /\b(leave|drop|cancel|forget|skip|abandon|stop)\b.*\b(this|that|the (invoice|contract|proposal|client|project|welcome|document|doc|time)|it)\b/.test(
-    t,
-  ) ||
-    /\b(do|try|create|make|something) (something )?(else|different|other)\b/.test(t) ||
-    /\b(let'?s|lets|i want to|can we|how about we) (do|try) something else\b/.test(t) ||
-    /\bnever ?mind\b|\bforget (it|the|this|that)\b/.test(t);
-}
-
-// ---------------------------------------------------------------------------
-// Sub-components
-// ---------------------------------------------------------------------------
-
-function SectionList({
-  sections,
-  limit,
-}: {
-  sections: Array<{ heading: string; body: string }>;
-  limit?: number;
-}) {
-  const [expanded, setExpanded] = React.useState(false);
-  const shown = limit && !expanded ? sections.slice(0, limit) : sections;
-  const hasMore = limit && sections.length > limit && !expanded;
-  return (
-    <div className="space-y-3">
-      {shown.map((s, i) => (
-        <div key={i} className="rounded-lg border bg-muted/30 p-3 text-xs">
-          <p className="font-semibold text-foreground">{s.heading}</p>
-          <p className="mt-1 whitespace-pre-line leading-relaxed text-muted-foreground">
-            {s.body}
-          </p>
-        </div>
-      ))}
-      {hasMore && (
-        <button
-          type="button"
-          onClick={() => setExpanded(true)}
-          className="text-xs text-muted-foreground underline-offset-2 hover:underline"
-        >
-          Show {sections.length - (limit ?? 0)} more sections…
-        </button>
-      )}
-    </div>
-  );
-}
-
-function ResultBlock({
-  title,
-  description,
-  actionLabel,
-  onAction,
-  children,
-}: {
-  title: string;
-  description: string;
-  actionLabel: string;
-  onAction: () => void;
-  children?: React.ReactNode;
-}) {
-  return (
-    <div className="space-y-3">
-      <div>
-        <p className="font-semibold">{title}</p>
-        <p className="mt-1 text-muted-foreground">{description}</p>
-      </div>
-      {children}
-      <Button type="button" size="sm" onClick={onAction}>
-        {actionLabel}
-      </Button>
-    </div>
-  );
-}
-
-// Pre-create confirmation — shows a field summary and waits for approval.
-function ConfirmBlock({
-  summary,
-  onConfirm,
-  onCancel,
-}: {
-  summary: AiConfirmSummary;
-  onConfirm: () => void;
-  onCancel: () => void;
-}) {
-  return (
-    <div className="space-y-3">
-      <p className="font-semibold">{summary.title}</p>
-      <div className="rounded-xl border bg-muted/20 p-3 text-xs space-y-1.5">
-        {summary.lines.map(([label, value]) => (
-          <div key={label} className="flex justify-between gap-3">
-            <span className="text-muted-foreground">{label}</span>
-            <span className="text-right font-medium">{value}</span>
-          </div>
-        ))}
-      </div>
-      <div className="flex flex-wrap gap-2">
-        <Button type="button" size="sm" onClick={onConfirm}>
-          Confirm &amp; create
-        </Button>
-        <Button type="button" size="sm" variant="ghost" onClick={onCancel}>
-          Cancel
-        </Button>
-      </div>
-    </div>
-  );
-}
-
-// Invoice preview
-function InvoiceDraftPreview({
-  preview,
-  onApprove,
-  onOpen,
-}: {
-  preview: AiInvoicePreview;
-  onApprove: (preview: AiInvoicePreview) => void;
-  onOpen: () => void;
-}) {
-  return (
-    <div className="space-y-3">
-      <div>
-        <p className="font-semibold">Draft invoice ready for approval</p>
-        <p className="mt-0.5 text-xs text-muted-foreground">
-          {preview.invoiceNumber} · {preview.clientName}
-        </p>
-      </div>
-      <div className="rounded-xl border bg-muted/20 p-3 text-xs space-y-1.5">
-        <div className="flex justify-between gap-3">
-          <span className="text-muted-foreground">Work</span>
-          <span className="text-right font-medium">{preview.description}</span>
-        </div>
-        <div className="flex justify-between gap-3">
-          <span className="text-muted-foreground">Qty × Rate</span>
-          <span>
-            {preview.quantity} × {formatAiMoney(preview.unitPrice, preview.currency)}
-          </span>
-        </div>
-        {preview.discount > 0 && (
-          <div className="flex justify-between gap-3">
-            <span className="text-muted-foreground">Discount</span>
-            <span className="text-red-500">
-              −{formatAiMoney(preview.discount, preview.currency)}
-            </span>
-          </div>
-        )}
-        {preview.taxTotal > 0 && (
-          <div className="flex justify-between gap-3">
-            <span className="text-muted-foreground">Tax</span>
-            <span>{formatAiMoney(preview.taxTotal, preview.currency)}</span>
-          </div>
-        )}
-        <div className="flex justify-between gap-3 border-t pt-1.5 font-semibold">
-          <span>Total</span>
-          <span>{formatAiMoney(preview.totalAmount, preview.currency)}</span>
-        </div>
-        {preview.dueDate && (
-          <div className="flex justify-between gap-3 text-muted-foreground">
-            <span>Due</span>
-            <span>{preview.dueDate}</span>
-          </div>
-        )}
-        {preview.notes && (
-          <div className="flex justify-between gap-3 text-muted-foreground">
-            <span>Notes</span>
-            <span className="text-right">{preview.notes}</span>
-          </div>
-        )}
-      </div>
-      <div className="flex flex-wrap gap-2">
-        <Button type="button" size="sm" onClick={() => onApprove(preview)}>
-          Approve invoice
-        </Button>
-        <Button type="button" size="sm" variant="outline" onClick={onOpen}>
-          Open invoice
-        </Button>
-      </div>
-    </div>
-  );
-}
-
-function InvoiceDeliveryActions({
-  preview,
-  onDeliver,
-  onOpen,
-}: {
-  preview: AiInvoicePreview;
-  onDeliver: (preview: AiInvoicePreview, channel: "email" | "whatsapp" | "both") => void;
-  onOpen: () => void;
-}) {
-  return (
-    <div className="space-y-3">
-      <div>
-        <p className="font-semibold">Invoice approved</p>
-        <p className="mt-1 text-muted-foreground">
-          {preview.invoiceNumber} is ready to send. How would you like to deliver it?
-        </p>
-      </div>
-      <div className="rounded-xl border bg-muted/20 p-3 text-xs space-y-1">
-        <div className="flex justify-between gap-3">
-          <span className="text-muted-foreground">{preview.clientName}</span>
-          <span className="font-semibold">
-            {formatAiMoney(preview.totalAmount, preview.currency)}
-          </span>
-        </div>
-      </div>
-      <div className="flex flex-wrap gap-2">
-        <Button
-          type="button"
-          size="sm"
-          onClick={() => onDeliver(preview, "email")}
-          className="gap-1.5"
-        >
-          <Mail className="h-3.5 w-3.5" />
-          Email
-        </Button>
-        <Button
-          type="button"
-          size="sm"
-          variant="outline"
-          onClick={() => onDeliver(preview, "whatsapp")}
-          className="gap-1.5"
-        >
-          <MessageCircle className="h-3.5 w-3.5" />
-          WhatsApp
-        </Button>
-        <Button
-          type="button"
-          size="sm"
-          variant="outline"
-          onClick={() => onDeliver(preview, "both")}
-        >
-          Both
-        </Button>
-        <Button type="button" size="sm" variant="ghost" onClick={onOpen}>
-          <ExternalLink className="h-3.5 w-3.5" />
-        </Button>
-      </div>
-    </div>
-  );
-}
-
-function ClientPicker({
-  clients,
-  label,
-  allowSkip = false,
-  onSelect,
-  onSkip,
-}: {
-  clients: AiEntityOption[];
-  label: string;
-  allowSkip?: boolean;
-  onSelect: (clientId: string) => void;
-  onSkip?: () => void;
-}) {
-  const [selected, setSelected] = React.useState("");
-  return (
-    <div className="space-y-3">
-      <p className="text-sm">{label}</p>
-      <select
-        className="w-full rounded-md border bg-background px-3 py-2 text-sm"
-        value={selected}
-        onChange={(e) => setSelected(e.target.value)}
-      >
-        <option value="">Choose a client</option>
-        {clients.map((c) => (
-          <option key={c.id} value={c.id}>
-            {c.name}
-          </option>
-        ))}
-      </select>
-      <div className="flex flex-wrap gap-2">
-        <Button
-          type="button"
-          size="sm"
-          disabled={!selected}
-          onClick={() => selected && onSelect(selected)}
-        >
-          Use selected client
-        </Button>
-        {allowSkip && onSkip && (
-          <Button type="button" size="sm" variant="ghost" onClick={onSkip}>
-            No client (internal)
-          </Button>
-        )}
-      </div>
-    </div>
-  );
-}
-
-function ProjectPicker({
-  projects,
-  label,
-  allowSkip = true,
-  onSelect,
-  onSkip,
-}: {
-  projects: AiEntityOption[];
-  label: string;
-  allowSkip?: boolean;
-  onSelect: (projectId: string) => void;
-  onSkip?: () => void;
-}) {
-  const [selected, setSelected] = React.useState("");
-  return (
-    <div className="space-y-3">
-      <p className="text-sm">{label}</p>
-      <select
-        className="w-full rounded-md border bg-background px-3 py-2 text-sm"
-        value={selected}
-        onChange={(e) => setSelected(e.target.value)}
-      >
-        <option value="">Choose a project</option>
-        {projects.map((p) => (
-          <option key={p.id} value={p.id}>
-            {p.name}
-          </option>
-        ))}
-      </select>
-      <div className="flex flex-wrap gap-2">
-        <Button
-          type="button"
-          size="sm"
-          disabled={!selected}
-          onClick={() => selected && onSelect(selected)}
-        >
-          Use selected project
-        </Button>
-        {allowSkip && onSkip && (
-          <Button type="button" size="sm" variant="ghost" onClick={onSkip}>
-            No project (internal)
-          </Button>
-        )}
-      </div>
-    </div>
-  );
-}
-
-function StatePicker({
-  label,
-  onSelect,
-}: {
-  label: string;
-  onSelect: (stateName: string) => void;
-}) {
-  const [selected, setSelected] = React.useState("");
-  return (
-    <div className="space-y-3">
-      <p className="text-sm">{label}</p>
-      <select
-        className="w-full rounded-md border bg-background px-3 py-2 text-sm"
-        value={selected}
-        onChange={(e) => setSelected(e.target.value)}
-      >
-        <option value="">Choose a state</option>
-        {INDIAN_STATES.map((s) => (
-          <option key={s.code} value={s.name}>
-            {s.name}
-          </option>
-        ))}
-      </select>
-      <div className="flex flex-wrap gap-2">
-        <Button
-          type="button"
-          size="sm"
-          disabled={!selected}
-          onClick={() => selected && onSelect(selected)}
-        >
-          Use this state
-        </Button>
-      </div>
-    </div>
-  );
-}
-
-function WelcomeTemplatePicker({
-  onSelect,
-}: {
-  onSelect: (templateId: string, display: string) => void;
-}) {
-  return (
-    <div className="space-y-3">
-      <p className="text-sm">Pick a starting point for the welcome document:</p>
-      <div className="grid gap-2">
-        {BUILTIN_WELCOME_TEMPLATES.map((t) => (
-          <button
-            key={t.id}
-            type="button"
-            onClick={() => onSelect(t.id, t.title)}
-            className="rounded-lg border bg-background p-3 text-left text-sm transition-colors hover:border-primary/40 hover:bg-primary/5"
-          >
-            <span className="block font-medium">{t.title}</span>
-            {t.description ? (
-              <span className="mt-0.5 block text-xs text-muted-foreground">{t.description}</span>
-            ) : null}
-          </button>
-        ))}
-        <button
-          type="button"
-          onClick={() => onSelect("__custom__", "Custom — I'll describe it")}
-          className="rounded-lg border border-dashed bg-background p-3 text-left text-sm transition-colors hover:border-primary/40 hover:bg-primary/5"
-        >
-          <span className="block font-medium">Custom</span>
-          <span className="mt-0.5 block text-xs text-muted-foreground">
-            Describe how you work and I&apos;ll draft it for you.
-          </span>
-        </button>
-      </div>
-    </div>
-  );
-}
-
-// Contract preview — all sections
-function ContractDraftPreview({
-  preview,
-  onApproveAndSend,
-  onWhatsApp,
-  onOpen,
-}: {
-  preview: AiContractPreview;
-  onApproveAndSend: (preview: AiContractPreview) => void;
-  onWhatsApp: (preview: AiContractPreview) => void;
-  onOpen: () => void;
-}) {
-  return (
-    <div className="space-y-3">
-      <div>
-        <p className="font-semibold">
-          {preview.kind === "proposal" ? "Proposal" : "Contract"} ready
-        </p>
-        <p className="mt-0.5 text-xs text-muted-foreground">
-          {preview.title} · {preview.clientName}
-          {preview.projectName ? ` · ${preview.projectName}` : ""}
-        </p>
-        {preview.valueAmount && preview.valueAmount > 0 && (
-          <p className="mt-0.5 text-xs font-medium">
-            {formatAiMoney(preview.valueAmount, preview.currency)}
-          </p>
-        )}
-      </div>
-      <SectionList sections={preview.sections} limit={4} />
-      <p className="rounded-lg border border-dashed bg-muted/20 px-3 py-2 text-xs text-muted-foreground">
-        Want changes? Just tell me what to adjust — e.g. “change the fee to 90000”
-        or “add a confidentiality clause” — and I’ll revise this draft.
-      </p>
-      <div className="flex flex-wrap gap-2">
-        <Button
-          type="button"
-          size="sm"
-          onClick={() => onApproveAndSend(preview)}
-          className="gap-1.5"
-        >
-          <Mail className="h-3.5 w-3.5" />
-          Approve &amp; Email
-        </Button>
-        <Button
-          type="button"
-          size="sm"
-          variant="outline"
-          onClick={() => onWhatsApp(preview)}
-          className="gap-1.5"
-        >
-          <MessageCircle className="h-3.5 w-3.5" />
-          WhatsApp
-        </Button>
-        <Button type="button" size="sm" variant="outline" onClick={onOpen}>
-          Open editor
-        </Button>
-      </div>
-    </div>
-  );
-}
-
-// Welcome document preview — full sections
-function WelcomeDocDraftPreview({
-  preview,
-  onApprove,
-  onOpen,
-  onSaveTemplate,
-}: {
-  preview: AiWelcomeDocPreview;
-  onApprove: (preview: AiWelcomeDocPreview) => void;
-  onOpen: () => void;
-  onSaveTemplate: (preview: AiWelcomeDocPreview) => void;
-}) {
-  return (
-    <div className="space-y-3">
-      <div>
-        <p className="font-semibold">Welcome document ready</p>
-        <p className="mt-0.5 text-xs text-muted-foreground">
-          {preview.title}
-          {preview.clientName ? ` · ${preview.clientName}` : ""}
-          {preview.projectName ? ` · ${preview.projectName}` : ""}
-        </p>
-      </div>
-      {preview.intro && (
-        <p className="rounded-lg border bg-muted/20 p-3 text-xs leading-relaxed text-muted-foreground">
-          {preview.intro}
-        </p>
-      )}
-      <SectionList sections={preview.sections} limit={4} />
-      {preview.acknowledgementRequired && (
-        <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
-          <Check className="h-3 w-3 text-green-500" />
-          Client acknowledgement required
-        </p>
-      )}
-      <div className="flex flex-wrap gap-2">
-        <Button
-          type="button"
-          size="sm"
-          onClick={() => onApprove(preview)}
-        >
-          Approve &amp; publish
-        </Button>
-        <Button type="button" size="sm" variant="outline" onClick={onOpen}>
-          Open editor
-        </Button>
-        <Button
-          type="button"
-          size="sm"
-          variant="ghost"
-          className="gap-1.5"
-          onClick={() => onSaveTemplate(preview)}
-        >
-          <Bookmark className="h-3.5 w-3.5" />
-          Save as template
-        </Button>
-      </div>
-    </div>
-  );
-}
-
-function WelcomeDocDeliveryActions({
-  preview,
-  onDeliver,
-  onOpen,
-}: {
-  preview: AiWelcomeDocPreview;
-  onDeliver: (preview: AiWelcomeDocPreview, channel: "email" | "whatsapp") => void;
-  onOpen: () => void;
-}) {
-  return (
-    <div className="space-y-3">
-      <div>
-        <p className="font-semibold">Welcome document published</p>
-        <p className="mt-1 text-muted-foreground">
-          Ready to send to {preview.clientName ?? "the client"}. Choose a delivery channel.
-        </p>
-      </div>
-      <div className="flex flex-wrap gap-2">
-        <Button
-          type="button"
-          size="sm"
-          onClick={() => onDeliver(preview, "email")}
-          className="gap-1.5"
-        >
-          <Mail className="h-3.5 w-3.5" />
-          Email
-        </Button>
-        <Button
-          type="button"
-          size="sm"
-          variant="outline"
-          onClick={() => onDeliver(preview, "whatsapp")}
-          className="gap-1.5"
-        >
-          <MessageCircle className="h-3.5 w-3.5" />
-          WhatsApp
-        </Button>
-        <Button type="button" size="sm" variant="ghost" onClick={onOpen}>
-          <ExternalLink className="h-3.5 w-3.5" />
-        </Button>
-      </div>
-    </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Main component
-// ---------------------------------------------------------------------------
-
 export function StackivoAiAssistant({ clients, projects }: StackivoAiAssistantProps) {
   const router = useRouter();
   const [mounted, setMounted] = React.useState(false);
@@ -970,6 +135,18 @@ export function StackivoAiAssistant({ clients, projects }: StackivoAiAssistantPr
   const [panelWidth, setPanelWidth] = React.useState(440);
   const [mode, setMode] = React.useState<AiMode>("general");
   const [input, setInput] = React.useState("");
+  const [suggestions, setSuggestions] = React.useState<AssistantSuggestion[]>([]);
+  const suggestionsLoaded = React.useRef(false);
+  const submitRef = React.useRef<((text?: string) => void) | null>(null);
+
+  // Load proactive "Today" nudges once when the panel first opens.
+  React.useEffect(() => {
+    if (!open || suggestionsLoaded.current) return;
+    suggestionsLoaded.current = true;
+    void getAssistantSuggestionsAction().then((res) => {
+      if (res.ok) setSuggestions(res.data.suggestions);
+    });
+  }, [open]);
   const [collected, setCollected] = React.useState<AiFields>({});
   const [pendingField, setPendingField] = React.useState<AiMissingField | null>(null);
   const [clientId, setClientId] = React.useState("");
@@ -1358,6 +535,216 @@ export function StackivoAiAssistant({ clients, projects }: StackivoAiAssistantPr
       push({ role: "assistant", content: answer });
     },
     [push],
+  );
+
+  // ----- Data-aware Q&A (answers about the user's own business numbers) -----
+
+  const runQuery = React.useCallback(
+    async (text: string) => {
+      const res = await answerBusinessQuestionAction({
+        question: text,
+        history: transcriptRef.current.slice(0, -1),
+      });
+      push({
+        role: "assistant",
+        content: res.ok
+          ? res.data.answer
+          : "I couldn't pull that just now — give it a moment and try again, or open Pulse for the full picture.",
+      });
+    },
+    [push],
+  );
+
+  // ----- One-tap action: chase overdue invoices -----
+
+  const runRemindOverdue = React.useCallback(async () => {
+    push({ role: "assistant", content: "Sending reminders…" });
+    const res = await remindOverdueInvoicesFromAiAction();
+    if (!res.ok) {
+      push({ role: "assistant", content: res.error });
+      return;
+    }
+    const { sent, skipped, total } = res.data;
+    const summary =
+      total === 0
+        ? "Good news — you have no overdue invoices right now. 🎉"
+        : sent > 0
+          ? `Done — I emailed a payment reminder to ${sent} client${sent === 1 ? "" : "s"}.${
+              skipped > 0 ? ` ${skipped} skipped (missing client email or share link).` : ""
+            }`
+          : `I couldn't send those — ${skipped} skipped (missing a client email or share link). Add those and try again.`;
+    push({ role: "assistant", content: summary });
+    router.refresh();
+  }, [push, router]);
+
+  // ----- One-tap action: invoice unbilled tracked time -----
+
+  const runInvoiceUnbilled = React.useCallback(
+    async (cId?: string, opts?: { send?: boolean }) => {
+      push({ role: "assistant", content: "Pulling your unbilled time…" });
+      const res = await invoiceUnbilledTimeFromAiAction({ clientId: cId });
+      if (!res.ok) {
+        push({ role: "assistant", content: res.error });
+        return;
+      }
+      const d = res.data;
+      const amt = `₹${Math.round(d.totalAmount).toLocaleString("en-IN")}`;
+      let sentOk = false;
+      if (opts?.send) {
+        const sent = await emailInvoiceFromAiAction({ invoiceId: d.id });
+        sentOk = sent.ok;
+      }
+      push({
+        role: "assistant",
+        content: (
+          <span>
+            {opts?.send && sentOk ? "Created and sent" : "Created draft"} invoice{" "}
+            <strong>{d.invoiceNumber}</strong> for {d.clientName} — {amt} from {d.hours}h
+            across {d.lineCount} line{d.lineCount === 1 ? "" : "s"}.
+            {opts?.send && !sentOk ? " (Couldn't email it — open to send manually.)" : ""}{" "}
+            <a
+              href={`/dashboard/invoices/${d.id}`}
+              className="font-medium text-primary underline underline-offset-2"
+            >
+              {opts?.send && sentOk ? "Open →" : "Open to review and send →"}
+            </a>
+          </span>
+        ),
+      });
+      router.refresh();
+    },
+    [push, router],
+  );
+
+  const handleContractRowSend = React.useCallback(
+    (id: string) => {
+      startTransition(async () => {
+        const res = await sendContractFromAiAction({ contractId: id });
+        push({ role: "assistant", content: res.ok ? "Contract sent ✓" : res.error });
+        router.refresh();
+      });
+    },
+    [push, router],
+  );
+
+  const runListContracts = React.useCallback(
+    async (filter: "pending" | "all") => {
+      const res = await listContractsForAiAction({ filter });
+      if (!res.ok) {
+        push({ role: "assistant", content: res.error });
+        return;
+      }
+      const { rows } = res.data;
+      if (rows.length === 0) {
+        push({
+          role: "assistant",
+          content:
+            filter === "pending"
+              ? "No contracts are awaiting signature."
+              : "No contracts yet.",
+        });
+        return;
+      }
+      push({ role: "assistant", content: "Here are your contracts:" });
+      push({
+        role: "assistant",
+        content: <ContractListBlock rows={rows} onSend={handleContractRowSend} />,
+      });
+    },
+    [push, handleContractRowSend],
+  );
+
+  const runListClients = React.useCallback(async () => {
+    const res = await listClientsForAiAction();
+    if (!res.ok) {
+      push({ role: "assistant", content: res.error });
+      return;
+    }
+    const { rows } = res.data;
+    if (rows.length === 0) {
+      push({ role: "assistant", content: "You haven't added any clients yet." });
+      return;
+    }
+    push({ role: "assistant", content: "Here are your clients:" });
+    push({
+      role: "assistant",
+      content: (
+        <ClientListBlock
+          rows={rows}
+          onInvoice={(name) => submitRef.current?.(`Create an invoice for ${name}`)}
+        />
+      ),
+    });
+  }, [push]);
+
+  // ----- Interactive invoice list (Open / Mark paid / Remind per row) -----
+
+  const handleRowMarkPaid = React.useCallback(
+    (id: string) => {
+      startTransition(async () => {
+        const res = await markInvoicePaidFromAiAction({ invoiceId: id });
+        push({
+          role: "assistant",
+          content: res.ok ? "Marked paid ✓" : res.error,
+        });
+        router.refresh();
+      });
+    },
+    [push, router],
+  );
+
+  const handleRowRemind = React.useCallback(
+    (id: string) => {
+      startTransition(async () => {
+        const res = await emailInvoiceFromAiAction({ invoiceId: id });
+        push({
+          role: "assistant",
+          content: res.ok ? "Reminder sent ✓" : res.error || "Couldn't send that reminder.",
+        });
+        router.refresh();
+      });
+    },
+    [push, router],
+  );
+
+  const runListInvoices = React.useCallback(
+    async (filter: "unpaid" | "overdue" | "all") => {
+      const res = await listInvoicesForAiAction({ filter });
+      if (!res.ok) {
+        push({ role: "assistant", content: res.error });
+        return;
+      }
+      const { rows } = res.data;
+      if (rows.length === 0) {
+        push({
+          role: "assistant",
+          content:
+            filter === "overdue"
+              ? "No overdue invoices — you're all caught up. 🎉"
+              : filter === "all"
+                ? "No invoices yet."
+                : "No unpaid invoices right now.",
+        });
+        return;
+      }
+      push({
+        role: "assistant",
+        content: `Here ${rows.length === 1 ? "is" : "are"} your ${
+          filter === "all" ? "" : filter + " "
+        }invoice${rows.length === 1 ? "" : "s"}:`,
+      });
+      push({
+        role: "assistant",
+        content: (
+          <InvoiceListBlock
+            rows={rows}
+            onMarkPaid={handleRowMarkPaid}
+            onRemind={handleRowRemind}
+          />
+        ),
+      });
+    },
+    [push, handleRowMarkPaid, handleRowRemind],
   );
 
   // ----- Core workflow executor (structured fields → action → preview) -----
@@ -2037,6 +1424,75 @@ export function StackivoAiAssistant({ clients, projects }: StackivoAiAssistantPr
         }
       }
 
+      // 1b2. Bulk action: chase overdue invoices. Detected before the data-query
+      //      short-circuit (so "overdue" isn't read as a plain question), with a
+      //      one-tap confirm because it sends outbound email.
+      {
+        const lc = text.trim().toLowerCase();
+        if (lc === "yes, send reminders") {
+          await runRemindOverdue();
+          return;
+        }
+        if (lc === "not now" && !pendingField) {
+          push({ role: "assistant", content: "No problem — I'm here when you need." });
+          return;
+        }
+        if (
+          /\b(send|chase|remind)\b/.test(lc) &&
+          /(reminder|overdue|unpaid|outstanding|past[- ]?due)/.test(lc) &&
+          /(overdue|unpaid|outstanding|past[- ]?due|reminder)/.test(lc) &&
+          !pendingField
+        ) {
+          push({
+            role: "assistant",
+            content:
+              "Want me to email a payment reminder to every client with an overdue invoice? (Safe to run once a day — it won't double-send.)",
+            suggestions: ["Yes, send reminders", "Not now"],
+          });
+          return;
+        }
+      }
+
+      // 1b3. Bill unbilled tracked time into a draft invoice.
+      {
+        const lc = text.trim().toLowerCase();
+        if (/unbilled/.test(lc) && /\b(invoice|bill)\b/.test(lc) && !pendingField) {
+          await runInvoiceUnbilled(nlu?.clientId, { send: /\bsend\b/.test(lc) });
+          return;
+        }
+      }
+
+      // 1b4. Interactive invoice list ("show my overdue/unpaid invoices") with
+      //      per-row Open / Mark paid / Remind actions.
+      {
+        const lc = text.trim().toLowerCase();
+        if (/\b(show|list|view|see)\b/.test(lc) && /\binvoices?\b/.test(lc) && !pendingField) {
+          const f: "unpaid" | "overdue" | "all" = /overdue/.test(lc)
+            ? "overdue"
+            : /\ball\b/.test(lc)
+              ? "all"
+              : "unpaid";
+          await runListInvoices(f);
+          return;
+        }
+        if (/\b(show|list|view|see)\b/.test(lc) && /\b(contracts?|proposals?)\b/.test(lc) && !pendingField) {
+          await runListContracts(/\b(all|every)\b/.test(lc) ? "all" : "pending");
+          return;
+        }
+        if (/\b(show|list|view|see)\b/.test(lc) && /\b(clients?|customers?)\b/.test(lc) && !pendingField) {
+          await runListClients();
+          return;
+        }
+      }
+
+      // 1c. A question about the user's OWN business numbers (revenue, overdue,
+      //     who paid, unbilled, top clients…) is answered from their data, not
+      //     routed into a create workflow. Skip while answering a field prompt.
+      if (nlu?.intent === "query" && nlu.confident && (mode === "general" || !pendingField)) {
+        await runQuery(text);
+        return;
+      }
+
       // 2. Decide the target workflow.
       //    - From the home screen, an informational question ("what about
       //      billing?", "how do invoices work?") is answered from the docs
@@ -2065,7 +1521,10 @@ export function StackivoAiAssistant({ clients, projects }: StackivoAiAssistantPr
         if (mode === "general") {
           // A support/question intent is answered from docs (general handler);
           // an actionable intent opens its workflow.
-          targetMode = intent === "support" || intent === "general" ? "general" : intent;
+          targetMode =
+            intent === "support" || intent === "general" || intent === "query"
+              ? "general"
+              : intent;
         } else if (isSwitch) {
           targetMode = intent;
         }
@@ -2166,7 +1625,17 @@ export function StackivoAiAssistant({ clients, projects }: StackivoAiAssistantPr
     push,
     detectMode,
     runWorkflow,
+    runQuery,
+    runRemindOverdue,
+    runInvoiceUnbilled,
+    runListInvoices,
+    runListContracts,
+    runListClients,
   ]);
+
+  // Keep a live ref to handleSubmit so list rows (rendered as message content)
+  // can dispatch a follow-up prompt without depending on declaration order.
+  submitRef.current = handleSubmit;
 
   // ----- Render -----
 
@@ -2349,6 +1818,35 @@ export function StackivoAiAssistant({ clients, projects }: StackivoAiAssistantPr
                     </button>
                   ))}
                 </div>
+
+                {suggestions.length > 0 ? (
+                  <div className="mt-5">
+                    <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                      For you today
+                    </p>
+                    <div className="space-y-1.5">
+                      {suggestions.map((s) => (
+                        <button
+                          key={s.id}
+                          type="button"
+                          onClick={() => handleSubmit(s.prompt)}
+                          className={cn(
+                            "flex w-full items-center gap-2.5 rounded-xl border bg-background/95 p-2.5 text-left text-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/40 hover:bg-primary/5 hover:shadow-sm",
+                            s.tone === "alert" && "border-amber-500/30 bg-amber-500/[0.04]",
+                          )}
+                        >
+                          <span
+                            className={cn(
+                              "h-1.5 w-1.5 shrink-0 rounded-full",
+                              s.tone === "alert" ? "bg-amber-500" : "bg-primary",
+                            )}
+                          />
+                          <span className="min-w-0 leading-snug">{s.title}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
               </div>
             )}
 

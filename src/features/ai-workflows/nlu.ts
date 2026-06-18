@@ -70,11 +70,22 @@ function matchWorkflowKeyword(
   return null;
 }
 
+// Terms that signal the user is asking about THEIR OWN business data/numbers.
+const DATA_QUESTION =
+  /\b(how much|how many|revenue|earned?|earnings|income|turnover|sales|paid|unpaid|owe[sd]?|outstanding|overdue|unbilled|receivable|collected|this month|last month|this year|this quarter|top client|best client|made|balance due)\b/;
+const PRICING_TERMS = /\b(price|pricing|plan|plans|cost|subscription|upgrade)\b/;
+
 function detectIntentLocally(text: string): { intent: AiIntent; confident: boolean } {
   const t = text.toLowerCase().trim();
   const action = ACTION_VERB.test(t);
   const question = looksLikeQuestion(t);
   const wf = matchWorkflowKeyword(t);
+
+  // 0. A question about the user's own numbers — answer from their data, not
+  //    the product docs. Excludes pricing/plan questions (those are support).
+  if (DATA_QUESTION.test(t) && !action && !PRICING_TERMS.test(t)) {
+    return { intent: "query", confident: true };
+  }
 
   // 1. A clear command — an action verb together with a workflow keyword (e.g.
   //    "help me create a contract", "go ahead and make an invoice") — always
@@ -258,10 +269,11 @@ export async function interpretMessage(ctx: InterpretContext): Promise<AiInterpr
           "You are Stackivo's intelligence layer — the routing and extraction brain of a workflow tool for Indian freelancers and agencies.",
           "Read the user's message like a sharp human assistant: tolerate typos, slang, shorthand, casual phrasing and messy formatting. Work out the intent and pull out CLEAN, NORMALIZED structured data. Return ONLY JSON.",
           "",
-          `INTENT — choose exactly one of: ${[...AI_WORKFLOWS, "general"].join(", ")}.`,
+          `INTENT — choose exactly one of: ${[...AI_WORKFLOWS, "general", "query"].join(", ")}.`,
           "- If the user clearly asks to start or switch task ('now create a client', 'actually make an invoice'), set that intent with confident=true.",
           "- If the message only adds detail to the current workflow, keep the current workflow as the intent.",
           "- For product/help questions use 'support'; for greetings or small talk use 'general'.",
+          "- Use 'query' when the user ASKS ABOUT THEIR OWN business data/numbers — revenue, earnings, who paid / who owes, overdue or outstanding amounts, unbilled time/hours, top clients, this month / last month, GST collected, counts. ('how much did Acme pay me', 'what's overdue', 'revenue this month', 'who hasn't paid', 'unbilled hours on X'). Do NOT use 'support' for their own numbers — 'support' is only product help / how-to / pricing / plans / policy.",
           "",
           "FIELD KEYS by intent:",
           "- invoice: workDescription, amount, quantity, dueDate, discount, notes",
@@ -315,7 +327,7 @@ export async function interpretMessage(ctx: InterpretContext): Promise<AiInterpr
 
   const raw = aiJson as Record<string, unknown>;
   const intentRaw = typeof raw.intent === "string" ? raw.intent : "";
-  const intent = ([...AI_WORKFLOWS, "general"] as string[]).includes(intentRaw)
+  const intent = ([...AI_WORKFLOWS, "general", "query"] as string[]).includes(intentRaw)
     ? (intentRaw as AiIntent)
     : fallback.intent;
 
