@@ -16,7 +16,7 @@ import type { AiMode } from "./assistant-types";
  * Extracted from the main component so it stays focused on orchestration.
  */
 
-const QUICK_ACTIONS: Array<{
+export const QUICK_ACTIONS: Array<{
   mode: AiMode;
   title: string;
   description: string;
@@ -70,7 +70,7 @@ const QUICK_ACTIONS: Array<{
 // Per-mode placeholder hints (free-form; the NLU extracts and asks for gaps)
 // ---------------------------------------------------------------------------
 
-const MODE_PLACEHOLDERS: Partial<Record<AiMode, string>> = {
+export const MODE_PLACEHOLDERS: Partial<Record<AiMode, string>> = {
   invoice: "Example: Invoice Acme 25000 for website redesign, due in 15 days, 5000 off",
   contract: "Example: Service agreement for Acme — 5-page site, INR 150000, 50% upfront, 2 revisions",
   welcome_document: "Example: Welcome doc for Acme — weekly Friday updates, feedback in one doc, warm tone",
@@ -80,11 +80,11 @@ const MODE_PLACEHOLDERS: Partial<Record<AiMode, string>> = {
   support: "Ask anything — docs, privacy, terms, or raise a support ticket",
 };
 
-function newId() {
+export function newId() {
   return Math.random().toString(36).slice(2, 10);
 }
 
-function formatMoney(amount: number, currency = "INR") {
+export function formatMoney(amount: number, currency = "INR") {
   return new Intl.NumberFormat("en-IN", {
     style: "currency",
     currency,
@@ -92,12 +92,12 @@ function formatMoney(amount: number, currency = "INR") {
   }).format(amount);
 }
 
-function formatAiMoney(amount: number | null | undefined, currency = "INR") {
+export function formatAiMoney(amount: number | null | undefined, currency = "INR") {
   if (!amount) return "";
   return formatMoney(amount, currency);
 }
 
-function modeIntro(mode: AiMode): string {
+export function modeIntro(mode: AiMode): string {
   switch (mode) {
     case "invoice":
       return "Let's create an invoice. Describe the client, work, amount, and due date.";
@@ -124,7 +124,7 @@ function modeIntro(mode: AiMode): string {
  * naturally instead of running a docs lookup that finds nothing.
  * Returns null for substantive questions, which fall through to the docs flow.
  */
-function conversationalReply(text: string): string | null {
+export function conversationalReply(text: string): string | null {
   const t = text.trim().toLowerCase().replace(/[!.?,]+$/g, "");
   // Greetings — tolerant of common typos (helo, helloo, hii, heyy, gud morning).
   if (/^(hi+|hey+|h(e|a)l+o+|hii+|heyy+|yo+|hiya|hello+|namaste|namaskar|hii?ya|good ?(morning|afternoon|evening|day)|gud ?(morning|mrng|eve))\b/.test(t)) {
@@ -154,7 +154,7 @@ function conversationalReply(text: string): string | null {
  * work". Used so the home screen answers such messages instead of opening a
  * workflow. A clear action verb ("create an invoice…") opts out.
  */
-function isInformationalQuestion(text: string): boolean {
+export function isInformationalQuestion(text: string): boolean {
   const t = text.trim().toLowerCase();
   if (/\b(create|make|draft|add|new|start|log|raise|generate|send|prepare|build|issue|set ?up)\b/.test(t)) {
     return false;
@@ -166,7 +166,7 @@ function isInformationalQuestion(text: string): boolean {
 }
 
 /** Matches a short "skip"/"none" style reply to an optional prompt. */
-function isSkipReply(text: string): boolean {
+export function isSkipReply(text: string): boolean {
   return /^(skip|none|no|n\/a|na|nope|nah|leave it|not now|-|—)$/i.test(text.trim());
 }
 
@@ -177,7 +177,7 @@ function isSkipReply(text: string): boolean {
  * assistant can re-ask instead of silently saving nonsense. Returns null when
  * the answer looks plausible (we stay lenient — better to accept than to nag).
  */
-function fieldValidationError(field: string, text: string): string | null {
+export function fieldValidationError(field: string, text: string): string | null {
   const t = text.trim();
   const hasNumber = /\d/.test(t);
   switch (field) {
@@ -207,7 +207,7 @@ function fieldValidationError(field: string, text: string): string | null {
 }
 
 /** A short affirmative reply to a confirmation prompt ("yes", "go ahead"). */
-function isAffirmative(text: string): boolean {
+export function isAffirmative(text: string): boolean {
   const t = text.trim().toLowerCase().replace(/[!.]+$/g, "");
   return /^(y|yes+|yeah|yep|yup|ok|okay|sure|confirm|confirmed|create|create it|do it|go ahead|proceed|send it|sounds good|looks good|perfect|all good|that'?s right|correct)$/.test(
     t,
@@ -215,7 +215,7 @@ function isAffirmative(text: string): boolean {
 }
 
 /** A short negative/cancel reply to a confirmation prompt. */
-function isNegative(text: string): boolean {
+export function isNegative(text: string): boolean {
   const t = text.trim().toLowerCase().replace(/[!.]+$/g, "");
   return /^(n|no|nope|nah|cancel|stop|don'?t|do not|abort|discard|wait|never mind|nevermind)$/.test(
     t,
@@ -229,7 +229,7 @@ function isNegative(text: string): boolean {
  * open draft) instead of re-asking. Phrased to avoid false positives on real
  * answers — it looks for explicit drop/leave/cancel language.
  */
-function isAbandonFlow(text: string): boolean {
+export function isAbandonFlow(text: string): boolean {
   const t = text.trim().toLowerCase().replace(/[!.]+$/g, "");
   if (/^(cancel|stop|abort|forget it|never ?mind|leave it|drop it|exit|quit)$/.test(t)) {
     return true;
