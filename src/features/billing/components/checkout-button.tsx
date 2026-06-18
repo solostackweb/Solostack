@@ -65,11 +65,11 @@ export function CheckoutButton({
   const planDef = PLANS[plan];
   const planName = planDef.name;
   const pricePaise =
-    cycle === "yearly" ? planDef.priceYearlyPaise : planDef.priceMonthlyPaise;
+    (cycle === "yearly" ? planDef.priceYearlyPaise : planDef.priceMonthlyPaise) ?? 0;
   const priceRupees = pricePaise / 100;
   const perLabel = cycle === "yearly" ? "year" : "month";
   const monthlyEquivalent =
-    cycle === "yearly" ? Math.round(planDef.priceYearlyPaise / 12 / 100) : null;
+    cycle === "yearly" ? Math.round((planDef.priceYearlyPaise ?? 0) / 12 / 100) : null;
 
   const launch = React.useCallback(
     (session: CheckoutSession) => {
