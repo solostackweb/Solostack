@@ -18,6 +18,8 @@ import { getAdminSupabase } from "@/lib/supabase/admin";
 import { log } from "@/lib/logger";
 import { dispatchPortalWeeklyDigest } from "@/features/portals/email";
 
+import { recordCronRun } from "@/lib/cron/record";
+
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
@@ -32,12 +34,15 @@ export async function GET(req: Request): Promise<Response> {
   }
 
   const admin = getAdminSupabase();
+
+  const startedAtMs = Date.now();
   const { data, error } = await admin
     .from("portals")
     .select("id")
     .eq("status", "active")
     .is("deleted_at", null);
   if (error) {
+    await recordCronRun({ job: "portal-digest", status: "error", startedAtMs, error: error.message });
     return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
   }
 
@@ -56,5 +61,6 @@ export async function GET(req: Request): Promise<Response> {
   }
 
   log.info("portal_digest_cron", { portals: portals.length, sent, skipped });
+  await recordCronRun({ job: "portal-digest", status: "ok", startedAtMs });
   return NextResponse.json({ ok: true, portals: portals.length, sent, skipped });
 }

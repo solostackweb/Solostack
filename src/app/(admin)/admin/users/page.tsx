@@ -17,6 +17,8 @@
 import Link from "next/link";
 import { listUsers, type ListUsersInput } from "@/features/admin/queries";
 import { AdminPageHeader } from "@/components/admin/page-header";
+import { UsersBulk } from "@/components/admin/users-bulk";
+import { adminBulkSuppressUsersAction } from "@/features/admin/actions";
 import {
   formatIstStamp,
   formatPaiseInr,
@@ -65,6 +67,13 @@ export default async function AdminUsersPage({ searchParams }: Props) {
 
   const totalPages = Math.max(1, Math.ceil(result.total / PAGE_SIZE));
 
+  const exportParams = new URLSearchParams();
+  if (q) exportParams.set("q", q);
+  if (accountType && accountType !== "all") exportParams.set("account", accountType);
+  if (plan && plan !== "all") exportParams.set("plan", plan);
+  if (status && status !== "all") exportParams.set("status", status);
+  const exportUrl = `/api/admin/users/export${exportParams.toString() ? `?${exportParams}` : ""}`;
+
   return (
     <div className="space-y-5">
       <AdminPageHeader
@@ -74,6 +83,14 @@ export default async function AdminUsersPage({ searchParams }: Props) {
             {result.total.toLocaleString("en-IN")} accounts · page {page} /{" "}
             {totalPages}
           </span>
+        }
+        actions={
+          <a
+            href={exportUrl}
+            className="inline-flex h-8 items-center gap-1.5 rounded-md border px-3 text-xs font-medium hover:bg-accent"
+          >
+            Export CSV
+          </a>
         }
       />
 
@@ -127,10 +144,12 @@ export default async function AdminUsersPage({ searchParams }: Props) {
       </ul>
 
       {/* Desktop: table */}
+      <UsersBulk suppressAction={adminBulkSuppressUsersAction} exportUrl={exportUrl}>
       <div className="hidden overflow-hidden rounded-md border bg-card md:block">
         <table className="w-full text-sm">
           <thead className="bg-muted/40 text-left text-[11px] uppercase tracking-wider text-muted-foreground">
             <tr>
+              <th className="w-8 px-3 py-2"></th>
               <th className="px-3 py-2 font-medium">User</th>
               <th className="px-3 py-2 font-medium">Account</th>
               <th className="px-3 py-2 font-medium">Plan</th>
@@ -146,7 +165,7 @@ export default async function AdminUsersPage({ searchParams }: Props) {
             {result.rows.length === 0 ? (
               <tr>
                 <td
-                  colSpan={9}
+                  colSpan={10}
                   className="px-3 py-8 text-center text-xs text-muted-foreground"
                 >
                   No users match these filters.
@@ -158,6 +177,9 @@ export default async function AdminUsersPage({ searchParams }: Props) {
                   key={u.id}
                   className="border-t border-border/40 hover:bg-accent/30"
                 >
+                  <td className="px-3 py-2">
+                    <input type="checkbox" name="ids" value={u.id} aria-label="Select user" />
+                  </td>
                   <td className="px-3 py-2">
                     <Link
                       href={`/admin/users/${u.id}`}
@@ -205,6 +227,7 @@ export default async function AdminUsersPage({ searchParams }: Props) {
           </tbody>
         </table>
       </div>
+      </UsersBulk>
 
       <Pagination
         page={page}

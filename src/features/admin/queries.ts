@@ -262,7 +262,7 @@ export async function listUsers(
 
   let q = admin
     .from("admin_user_overview")
-    .select("*", { count: "exact" })
+    .select("*", { count: "estimated" })
     .order("signed_up_at", { ascending: false });
 
   if (input.q && input.q.trim().length > 0) {
@@ -416,7 +416,7 @@ export async function listSubscriptions(
     .from("subscriptions")
     .select(
       "id, user_id, plan, status, billing_cycle, current_period_end, canceled_at, cancel_at_period_end, razorpay_subscription_id, created_at, updated_at",
-      { count: "exact" },
+      { count: "estimated" },
     )
     .order("updated_at", { ascending: false });
 
@@ -640,7 +640,7 @@ export async function listEmails(
     .from("delivery_logs")
     .select(
       "id, user_id, kind, channel, entity_type, entity_id, to_email, subject, status, provider, provider_message_id, error, created_at",
-      { count: "exact" },
+      { count: "estimated" },
     )
     .order("created_at", { ascending: false });
 
@@ -753,7 +753,7 @@ export async function listInvoices(input: {
     .from("invoices")
     .select(
       "id, user_id, invoice_number, status, issue_date, due_date, total_amount, currency, payment_status, created_at",
-      { count: "exact" },
+      { count: "estimated" },
     )
     .order("created_at", { ascending: false });
 
@@ -892,7 +892,7 @@ export async function listContracts(input: {
     .from("contracts")
     .select(
       "id, user_id, title, kind, status, public_token, signed_at, created_at, updated_at",
-      { count: "exact" },
+      { count: "estimated" },
     )
     .order("updated_at", { ascending: false });
 
@@ -1029,7 +1029,7 @@ export async function listFiles(input: {
     .from("files")
     .select(
       "id, user_id, project_id, file_name, storage_path, file_size, mime_type, created_at",
-      { count: "exact" },
+      { count: "estimated" },
     )
     .order("created_at", { ascending: false });
 
@@ -1045,14 +1045,9 @@ export async function listFiles(input: {
     Array.from(new Set(baseRows.map((r) => r.user_id))),
   );
 
-  // Total storage cost — separate aggregate; cheap with files_user_id_idx.
-  const totalRes = await admin
-    .from("files")
-    .select("file_size")
-    .limit(10_000);
-  const totalBytes = (
-    (totalRes.data as Array<{ file_size: number }> | null) ?? []
-  ).reduce((acc, r) => acc + (r.file_size ?? 0), 0);
+  // Total storage cost — DB-side aggregate (no row fetch); see migration 0048.
+  const totalRes = await admin.rpc("admin_files_total_bytes");
+  const totalBytes = Number((totalRes.data as number | null) ?? 0);
 
   return {
     rows: baseRows.map((r) => ({
@@ -1180,7 +1175,7 @@ export async function listSecurityEvents(
 
   let q = admin
     .from("security_events")
-    .select("*", { count: "exact" })
+    .select("*", { count: "estimated" })
     .order("created_at", { ascending: false });
 
   if (input.severity && input.severity !== "all") {
@@ -1306,5 +1301,51 @@ export async function getUserTimeline(userId: string): Promise<{
         status: string;
         created_at: string;
       }> | null) ?? [],
+  };
+}
+// ---------------------------------------------------------------------------
+// Per-user product footprint (Admin hardening A5) — counts across every
+// product system so the user-detail page reflects the whole product.
+// ---------------------------------------------------------------------------
+
+export interface UserEntityCounts {
+  invoices: number;
+  contracts: number;
+  projects: number;
+  clients: number;
+  files: number;
+  timeEntries: number;
+  welcomeDocs: number;
+  portals: number;
+  tickets: number;
+}
+
+export async function getUserEntityCounts(userId: string): Promise<UserEntityCounts> {
+  const admin = getAdminSupabase();
+  const count = (table: string, col = "user_id") =>
+    admin.from(table).select("id", { count: "exact", head: true }).eq(col, userId);
+
+  const [inv, con, proj, cli, fil, te, wd, por, tk] = await Promise.all([
+    count("invoices"),
+    count("contracts"),
+    count("projects"),
+    count("clients"),
+    count("files"),
+    count("time_entries"),
+    count("welcome_documents"),
+    count("portals", "owner_user_id"),
+    count("support_tickets"),
+  ]);
+
+  return {
+    invoices: inv.count ?? 0,
+    contracts: con.count ?? 0,
+    projects: proj.count ?? 0,
+    clients: cli.count ?? 0,
+    files: fil.count ?? 0,
+    timeEntries: te.count ?? 0,
+    welcomeDocs: wd.count ?? 0,
+    portals: por.count ?? 0,
+    tickets: tk.count ?? 0,
   };
 }

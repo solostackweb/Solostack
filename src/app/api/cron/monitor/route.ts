@@ -20,6 +20,10 @@ import { requireServerEnv } from "@/config/env";
 import { getAdminSupabase } from "@/lib/supabase/admin";
 import { log } from "@/lib/logger";
 import { recordSecurityEvent } from "@/lib/security-events/server";
+import { refreshAdminMetrics } from "@/features/admin/metrics-cache";
+
+import { recordCronRun } from "@/lib/cron/record";
+import { getCronHealth } from "@/features/admin/cron-queries";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -48,6 +52,8 @@ export async function GET(req: Request): Promise<Response> {
   }
 
   const admin = getAdminSupabase();
+
+  const startedAtMs = Date.now();
   const findings: Array<{ kind: string; detail: string; count?: number }> = [];
 
   // ---- Probe 1: unprocessed billing events --------------------------------
@@ -115,6 +121,52 @@ export async function GET(req: Request): Promise<Response> {
     });
   }
 
+  // ---- Probe 4: support SLA breaches --------------------------------------
+  try {
+    const nowIso = new Date().toISOString();
+    const { count } = await admin
+      .from("support_tickets")
+      .select("id", { count: "exact", head: true })
+      .in("status", ["new", "open", "waiting_on_us"])
+      .is("first_response_at", null)
+      .not("sla_due_at", "is", null)
+      .lt("sla_due_at", nowIso);
+    if ((count ?? 0) > 0) {
+      findings.push({
+        kind: "support.sla_breach",
+        detail: `${count} support ticket(s) past SLA without a first reply`,
+        count: count ?? 0,
+      });
+    }
+  } catch (err) {
+    log.warn("cron.monitor.sla_probe_failed", {
+      error: err instanceof Error ? err.message : String(err),
+    });
+  }
+
+  // ---- Probe 5: stale / failing scheduled jobs ----------------------------
+  try {
+    const health = await getCronHealth();
+    for (const h of health) {
+      if (h.id === "monitor") continue; // self — always fresh here
+      if (h.failing || h.stale) {
+        findings.push({
+          kind: "cron.unhealthy",
+          detail: `${h.label} is ${h.failing ? "failing" : "overdue"}`,
+        });
+      }
+    }
+  } catch (err) {
+    log.warn("cron.monitor.cron_probe_failed", {
+      error: err instanceof Error ? err.message : String(err),
+    });
+  }
+
+  // ---- Refresh the founder-console metrics cache (best-effort) ------------
+  // Keeps /admin's Now page reading a single cached row instead of
+  // recomputing a dozen counts on every visit (Admin hardening A1).
+  await refreshAdminMetrics().catch(() => null);
+
   // ---- Dispatch alert -----------------------------------------------------
   if (findings.length > 0) {
     await notifySlack(env.opsSlackWebhookUrl, findings);
@@ -126,6 +178,7 @@ export async function GET(req: Request): Promise<Response> {
     log.warn("cron.monitor.findings", { findings });
   }
 
+  await recordCronRun({ job: "monitor", status: "ok", startedAtMs });
   return NextResponse.json({
     ok: true,
     findings,

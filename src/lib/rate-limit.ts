@@ -240,3 +240,20 @@ export async function emailSendLimit(key: string): Promise<LimitResult> {
     key,
   );
 }
+/**
+ * Founder-console write actions — generous ceiling that still stops a runaway
+ * script or a compromised admin session from hammering mutations. Keyed per
+ * admin (see runAdminAction). Fails open when Upstash isn't configured.
+ */
+export async function adminWriteLimit(key: string): Promise<LimitResult> {
+  return runLimiter(
+    {
+      prefix: "adminwrite",
+      limit: 120,
+      windowSeconds: 60,
+      blockedMessage:
+        "Too many admin actions in a short window. Please slow down and retry shortly.",
+    },
+    key,
+  );
+}

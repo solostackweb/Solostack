@@ -31,6 +31,7 @@ import type { User } from "@supabase/supabase-js";
 import { getServerSupabase } from "@/lib/supabase/server";
 import { getAdminSupabase } from "@/lib/supabase/admin";
 import { recordSecurityEvent } from "@/lib/security-events/server";
+import { adminWriteLimit } from "@/lib/rate-limit";
 import { redact } from "@/lib/logger/redact";
 import { log } from "@/lib/logger";
 import { AUTH_LOGIN_ROUTE } from "@/features/auth/routes";
@@ -290,6 +291,19 @@ export async function runAdminAction<T>(
 ): Promise<T> {
   const actor = await requireAdmin();
   await assertNotViewAs();
+
+  // Abuse ceiling: stop a runaway script or compromised session from hammering
+  // mutations. Generous (120/min/admin); fails open without Upstash.
+  const rl = await adminWriteLimit(`admin:${actor.id}`);
+  if (!rl.ok) {
+    await recordSecurityEvent({
+      kind: "other",
+      severity: "warn",
+      userId: actor.id,
+      metadata: { reason: "admin_rate_limit", action: descriptor.kind },
+    }).catch(() => {});
+    throw new Error(rl.message);
+  }
 
   const start = performance.now();
   try {

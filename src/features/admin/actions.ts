@@ -1156,3 +1156,50 @@ function durationFromIso(iso: string): string {
   const hours = Math.max(1, Math.round(ms / (60 * 60 * 1000)));
   return `${hours}h`;
 }
+// ---------------------------------------------------------------------------
+// Bulk actions (Admin hardening A4) — operate on a selected set of users.
+// ---------------------------------------------------------------------------
+
+const bulkIdsSchema = z.object({
+  ids: z.array(z.string().uuid()).min(1).max(5000),
+});
+
+/**
+ * Add every selected user's email to the suppression list. Server-action
+ * form handler: reads repeated `ids` fields from FormData. Audited once with
+ * a bulk count (not one audit row per email).
+ */
+export async function adminBulkSuppressUsersAction(
+  formData: FormData,
+): Promise<AdminActionResult> {
+  const ids = formData.getAll("ids").map(String).filter(Boolean);
+  const parsed = bulkIdsSchema.safeParse({ ids });
+  if (!parsed.success) return { ok: false, error: "Select at least one user." };
+
+  return await runAdminAction(
+    {
+      kind: "email.suppression.add",
+      targetType: "email",
+      targetId: null,
+      metadata: { bulk: true, count: parsed.data.ids.length },
+    },
+    async () => {
+      const admin = getAdminSupabase();
+      const { data } = await admin
+        .from("user_profiles")
+        .select("email")
+        .in("id", parsed.data.ids);
+      const emails = ((data as { email: string | null }[] | null) ?? [])
+        .map((r) => r.email)
+        .filter((e): e is string => !!e);
+      let added = 0;
+      for (const email of emails) {
+        await recordSuppression({ email, reason: "manual" });
+        added += 1;
+      }
+      revalidatePath("/admin/users");
+      revalidatePath("/admin/emails");
+      return { ok: true, message: `Suppressed ${added} email${added === 1 ? "" : "s"}.` };
+    },
+  );
+}

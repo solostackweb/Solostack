@@ -28,6 +28,8 @@ import { getEmailSender } from "@/features/email/senders";
 import { renderInvoiceReminderEmail } from "@/features/email/templates";
 import { getInvoiceShareUrl } from "@/features/documents/urls";
 
+import { recordCronRun } from "@/lib/cron/record";
+
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
@@ -55,6 +57,8 @@ export async function GET(req: Request): Promise<Response> {
 
   const admin = getAdminSupabase();
 
+  const startedAtMs = Date.now();
+
   // Pre-due reminders fire at D-3 and D-1 (3 days before and the day before
   // the due date). Compute both target date strings (UTC) and match due_date
   // against either.
@@ -76,6 +80,7 @@ export async function GET(req: Request): Promise<Response> {
 
   if (error) {
     log.error("cron.invoices_due_soon.query_failed", { error: error.message });
+    await recordCronRun({ job: "invoices-due-soon", status: "error", startedAtMs, error: error.message });
     return NextResponse.json(
       { ok: false, error: error.message },
       { status: 500 },
@@ -187,6 +192,7 @@ export async function GET(req: Request): Promise<Response> {
     skipped,
   });
 
+  await recordCronRun({ job: "invoices-due-soon", status: "ok", startedAtMs });
   return NextResponse.json({
     ok: true,
     targetDates,

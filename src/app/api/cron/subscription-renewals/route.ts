@@ -22,6 +22,8 @@ import { renderSubscriptionRenewalEmail } from "@/features/email/templates";
 import { getPublicAppUrl } from "@/features/documents/urls";
 import { PLANS } from "@/features/subscription/plans";
 
+import { recordCronRun } from "@/lib/cron/record";
+
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
@@ -61,6 +63,8 @@ export async function GET(req: Request): Promise<Response> {
 
   const admin = getAdminSupabase();
 
+  const startedAtMs = Date.now();
+
   // Target window: the whole UTC day that is REMINDER_LEAD_DAYS from now.
   const start = new Date();
   start.setUTCDate(start.getUTCDate() + REMINDER_LEAD_DAYS);
@@ -81,6 +85,7 @@ export async function GET(req: Request): Promise<Response> {
 
   if (error) {
     log.error("cron.subscription_renewals.query_failed", { error: error.message });
+    await recordCronRun({ job: "subscription-renewals", status: "error", startedAtMs, error: error.message });
     return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
   }
 
@@ -157,6 +162,7 @@ export async function GET(req: Request): Promise<Response> {
     skipped,
   });
 
+  await recordCronRun({ job: "subscription-renewals", status: "ok", startedAtMs });
   return NextResponse.json({
     ok: true,
     scanned: subs.length,

@@ -17,13 +17,14 @@
 
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { ChevronLeft, Mail, Shield, FileText, CreditCard } from "lucide-react";
+import { ChevronLeft, Mail, Shield, FileText, CreditCard, Boxes } from "lucide-react";
 
 import {
   getUserOverview,
   getUserTimeline,
   userHasRazorpaySubscription,
   listAdminNotes,
+  getUserEntityCounts,
 } from "@/features/admin/queries";
 import { AdminNotesPanel } from "@/components/admin/admin-notes";
 import {
@@ -70,13 +71,14 @@ export default async function AdminUserDetailPage({ params }: Props) {
     durationMs: 0,
   });
 
-  const [timeline, hasRazorpaySubscription, notes, supportThreads, churn] =
+  const [timeline, hasRazorpaySubscription, notes, supportThreads, churn, footprint] =
     await Promise.all([
       getUserTimeline(id),
       userHasRazorpaySubscription(id),
       listAdminNotes("user", id),
       listSupportThreadsForUser(id, 8),
       getUserChurnSignals(id),
+      getUserEntityCounts(id),
     ]);
 
   const isBanned =
@@ -179,6 +181,21 @@ export default async function AdminUserDetailPage({ params }: Props) {
               {overview.total_revenue_paise.toLocaleString("en-IN")}
             </span>
           </Field>
+        </dl>
+      </Section>
+
+      {/* Product footprint (Admin A5) */}
+      <Section title="Footprint" icon={Boxes}>
+        <dl className="grid grid-cols-3 gap-x-6 gap-y-3 sm:grid-cols-3 lg:grid-cols-5">
+          <Field label="Clients">{footprint.clients}</Field>
+          <Field label="Projects">{footprint.projects}</Field>
+          <Field label="Invoices">{footprint.invoices}</Field>
+          <Field label="Contracts">{footprint.contracts}</Field>
+          <Field label="Welcome docs">{footprint.welcomeDocs}</Field>
+          <Field label="Portals">{footprint.portals}</Field>
+          <Field label="Time entries">{footprint.timeEntries}</Field>
+          <Field label="Files">{footprint.files}</Field>
+          <Field label="Support tickets">{footprint.tickets}</Field>
         </dl>
       </Section>
 

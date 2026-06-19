@@ -25,6 +25,8 @@ import { getEmailSender } from "@/features/email/senders";
 import { renderInvoiceReminderEmail } from "@/features/email/templates";
 import { getInvoiceShareUrl } from "@/features/documents/urls";
 
+import { recordCronRun } from "@/lib/cron/record";
+
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
@@ -54,6 +56,8 @@ export async function GET(req: Request): Promise<Response> {
   }
 
   const admin = getAdminSupabase();
+
+  const startedAtMs = Date.now();
   const today = new Date();
   // Use UTC midnight as the cut-off so we don't keep flipping the same
   // invoice on every cron run if it's already past due.
@@ -73,6 +77,7 @@ export async function GET(req: Request): Promise<Response> {
 
   if (error) {
     log.error("cron.invoices_overdue.query_failed", { error: error.message });
+    await recordCronRun({ job: "invoices-overdue", status: "error", startedAtMs, error: error.message });
     return NextResponse.json(
       { ok: false, error: error.message },
       { status: 500 },
@@ -217,6 +222,7 @@ export async function GET(req: Request): Promise<Response> {
     remindersFailed,
   });
 
+  await recordCronRun({ job: "invoices-overdue", status: "ok", startedAtMs });
   return NextResponse.json({
     ok: true,
     scanned: invoices.length,

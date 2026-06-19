@@ -24,6 +24,8 @@ import { requireServerEnv } from "@/config/env";
 import { getAdminSupabase } from "@/lib/supabase/admin";
 import { log } from "@/lib/logger";
 
+import { recordCronRun } from "@/lib/cron/record";
+
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
@@ -42,6 +44,8 @@ export async function GET(req: Request): Promise<Response> {
   }
 
   const admin = getAdminSupabase();
+
+  const startedAtMs = Date.now();
 
   // Snapshot the previous full hour. Running at HH:05 captures HH-1.
   const now = new Date();
@@ -67,6 +71,7 @@ export async function GET(req: Request): Promise<Response> {
 
   if (error) {
     log.warn("admin.export.fetch_failed", { error: error.message });
+    await recordCronRun({ job: "admin-export", status: "error", startedAtMs, error: error.message });
     return NextResponse.json(
       { ok: false, error: error.message },
       { status: 500 },
@@ -94,6 +99,7 @@ export async function GET(req: Request): Promise<Response> {
       path,
       error: uploadErr.message,
     });
+    await recordCronRun({ job: "admin-export", status: "error", startedAtMs, error: uploadErr.message });
     return NextResponse.json(
       { ok: false, error: uploadErr.message },
       { status: 500 },
@@ -107,6 +113,7 @@ export async function GET(req: Request): Promise<Response> {
     window_end: endIso,
   });
 
+  await recordCronRun({ job: "admin-export", status: "ok", startedAtMs });
   return NextResponse.json({
     ok: true,
     path,

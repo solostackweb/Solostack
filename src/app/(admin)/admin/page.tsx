@@ -22,15 +22,13 @@ import {
   ShieldAlert,
   Users,
   Zap,
+  Clock,
 } from "lucide-react";
 import {
-  getRevenueSnapshot,
-  getPipelineSnapshot,
-  getCommsSnapshot,
   getRecentAlerts,
   getRecentAdminActivity,
 } from "@/features/admin/queries";
-import { getSupportPulse } from "@/features/support/admin-queries";
+import { getAdminNowData } from "@/features/admin/metrics-cache";
 import { AdminPageHeader } from "@/components/admin/page-header";
 import { type StatTone } from "@/components/admin/stat";
 import {
@@ -42,19 +40,34 @@ import {
 import { cn } from "@/lib/utils";
 import { isBrevoConfigured } from "@/lib/brevo-api";
 import { isRazorpayConfigured } from "@/lib/razorpay-api";
-import { isSentryConfigured } from "@/lib/sentry-api";
+import { isSentryConfigured, getSentryStats24h, getSentryIssues } from "@/lib/sentry-api";
+import { NowAutoRefresh } from "@/components/admin/now-auto-refresh";
+import { getCronHealthSummary } from "@/features/admin/cron-queries";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminNowPage() {
-  const [revenue, pipeline, comms, alerts, recent, support] = await Promise.all([
-    getRevenueSnapshot(),
-    getPipelineSnapshot(),
-    getCommsSnapshot(),
+  const [now, alerts, recent] = await Promise.all([
+    getAdminNowData(),
     getRecentAlerts(5),
     getRecentAdminActivity(10),
-    getSupportPulse(),
   ]);
+  const { revenue, pipeline, comms, support } = now;
+
+  // Reliability signals (Admin A2): inline Sentry + support SLA breaches.
+  const sentryConfigured = isSentryConfigured();
+  const [sentryStats, sentryIssues] = sentryConfigured
+    ? await Promise.all([
+        getSentryStats24h(),
+        getSentryIssues({ query: "is:unresolved", limit: 100 }),
+      ])
+    : [null, [] as Awaited<ReturnType<typeof getSentryIssues>>];
+  const sentryEvents = sentryStats?.total ?? 0;
+  const sentryUnresolved = sentryIssues.length;
+  const sentryUnresolvedLabel = sentryUnresolved >= 100 ? "100+" : String(sentryUnresolved);
+  const slaBreached = now.supportMetrics.slaBreached;
+  const cronHealth = await getCronHealthSummary();
+  const cronProblems = cronHealth.stale + cronHealth.failing;
 
   const emailFailureCount =
     comms.emailFailuresLast24h +
@@ -178,6 +191,7 @@ export default async function AdminNowPage() {
         }
         actions={
           <>
+            <NowAutoRefresh computedAt={now.computedAt} cached={now.cached} />
             <HeaderLink href="/admin/users" icon={Users}>
               Users
             </HeaderLink>
@@ -272,6 +286,18 @@ export default async function AdminNowPage() {
             ))}
           </div>
         </section>
+      </section>
+
+      <section className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        {sentryConfigured ? (
+          <>
+            <ReliabilityStat href="/admin/sentry" icon={Bug} label="Errors 24h" value={sentryEvents} tone={sentryEvents > 0 ? "warn" : "ok"} />
+            <ReliabilityStat href="/admin/sentry" icon={AlertTriangle} label="Unresolved" value={sentryUnresolvedLabel} tone={sentryUnresolved > 0 ? "warn" : "ok"} />
+          </>
+        ) : null}
+        <ReliabilityStat href="/admin/support?tab=needs_reply" icon={Clock} label="SLA breached" value={slaBreached} tone={slaBreached > 0 ? "alert" : "ok"} />
+        <ReliabilityStat href="/admin/support?tab=needs_reply" icon={LifeBuoy} label="Needs reply" value={now.supportMetrics.needsReply} tone={now.supportMetrics.needsReply > 0 ? "warn" : "ok"} />
+        <ReliabilityStat href="/admin/jobs" icon={Clock} label="Jobs at risk" value={cronProblems} tone={cronHealth.failing > 0 ? "alert" : cronProblems > 0 ? "warn" : "ok"} />
       </section>
 
       <section className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
@@ -440,6 +466,37 @@ interface QueueItem {
   detail: string;
   value: number;
   tone: StatTone;
+}
+
+function ReliabilityStat({
+  href,
+  icon: Icon,
+  label,
+  value,
+  tone,
+}: {
+  href: string;
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  value: number | string;
+  tone: StatTone;
+}) {
+  return (
+    <Link
+      href={href}
+      className={cn(
+        "rounded-lg border bg-card p-3 transition hover:bg-accent/40",
+        tone === "alert" && "border-red-500/30 bg-red-500/5",
+        tone === "warn" && "border-amber-500/30 bg-amber-500/5",
+      )}
+    >
+      <div className="flex items-center gap-2 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+        <Icon className="h-3.5 w-3.5" />
+        {label}
+      </div>
+      <p className="mt-1 text-2xl font-bold tabular-nums">{value}</p>
+    </Link>
+  );
 }
 
 interface IntegrationItem {
