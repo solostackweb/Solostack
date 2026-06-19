@@ -242,8 +242,8 @@ export function TimeDashboardView({
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,320px)]">
         {/* Entries */}
         <div className="space-y-3">
-          <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
-            <div className="relative w-full sm:flex-1 sm:min-w-[180px]">
+          <div className="grid gap-2 sm:flex sm:min-w-0 sm:items-center">
+            <div className="relative w-full sm:min-w-[260px] sm:flex-1">
               <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
               <Input
                 placeholder="Search entries…"
@@ -252,32 +252,36 @@ export function TimeDashboardView({
                 className="h-9 pl-9"
               />
             </div>
-            <Select value={filters.project} onValueChange={(v) => setParam({ project: v })}>
-              <SelectTrigger className="h-9 w-full sm:w-[180px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All projects</SelectItem>
-                <SelectItem value="none">No project</SelectItem>
-                {projects.map((p) => (
-                  <SelectItem key={p.id} value={p.id}>
-                    {p.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Select value={filters.status} onValueChange={(v) => setParam({ status: v })}>
-              <SelectTrigger className="h-9 w-full sm:w-[160px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All time</SelectItem>
-                <SelectItem value="billable">Billable</SelectItem>
-                <SelectItem value="non_billable">Non-billable</SelectItem>
-                <SelectItem value="unbilled">Unbilled</SelectItem>
-                <SelectItem value="invoiced">Invoiced</SelectItem>
-              </SelectContent>
-            </Select>
+            <div className="w-full sm:w-[180px] sm:shrink-0">
+              <Select value={filters.project} onValueChange={(v) => setParam({ project: v })}>
+                <SelectTrigger className="h-9">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All projects</SelectItem>
+                  <SelectItem value="none">No project</SelectItem>
+                  {projects.map((p) => (
+                    <SelectItem key={p.id} value={p.id}>
+                      {p.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="w-full sm:w-[160px] sm:shrink-0">
+              <Select value={filters.status} onValueChange={(v) => setParam({ status: v })}>
+                <SelectTrigger className="h-9">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All time</SelectItem>
+                  <SelectItem value="billable">Billable</SelectItem>
+                  <SelectItem value="non_billable">Non-billable</SelectItem>
+                  <SelectItem value="unbilled">Unbilled</SelectItem>
+                  <SelectItem value="invoiced">Invoiced</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
           <TimeEntriesTable entries={entries} lookup={lookup} onEdit={setEditingEntry} />
           {totalPages > 1 && (
@@ -407,7 +411,7 @@ function ReportsToolbar({
   exportHref: (format: "csv" | "pdf") => string;
 }) {
   return (
-    <div className="flex flex-col gap-3 rounded-xl border bg-card p-3 sm:flex-row sm:flex-wrap sm:items-end">
+    <div className="grid gap-3 rounded-xl border bg-card p-3 sm:flex sm:items-end">
       <div className="grid grid-cols-2 gap-2 sm:flex sm:items-end">
         <label className="space-y-1">
           <span className="text-[11px] font-medium text-muted-foreground">From</span>
@@ -428,20 +432,22 @@ function ReportsToolbar({
           />
         </label>
       </div>
-      <Select value={filters.project} onValueChange={(v) => setParam({ project: v })}>
-        <SelectTrigger className="h-9 w-full sm:w-[180px]">
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all">All projects</SelectItem>
-          <SelectItem value="none">No project</SelectItem>
-          {projects.map((p) => (
-            <SelectItem key={p.id} value={p.id}>
-              {p.name}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+      <div className="w-full sm:w-[180px] sm:shrink-0">
+        <Select value={filters.project} onValueChange={(v) => setParam({ project: v })}>
+          <SelectTrigger className="h-9">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All projects</SelectItem>
+            <SelectItem value="none">No project</SelectItem>
+            {projects.map((p) => (
+              <SelectItem key={p.id} value={p.id}>
+                {p.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
       <div className="flex items-center gap-2 sm:ml-auto">
         <Button asChild size="sm" variant="outline" className="h-9">
           <a href={exportHref("csv")}>

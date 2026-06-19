@@ -205,8 +205,8 @@ export function ContractsListView({
         <Stat label="Signed value" value={formatINR(stats.value)} />
       </div>
 
-      <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
-        <div className="relative w-full sm:flex-1 sm:max-w-md">
+      <div className="grid gap-2 sm:flex sm:min-w-0 sm:items-center">
+        <div className="relative w-full sm:w-96 sm:shrink-0">
           <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
           <Input
             placeholder="Search contracts, clients…"
@@ -215,24 +215,26 @@ export function ContractsListView({
             className="h-9 pl-9"
           />
         </div>
-        <Select
-          value={statusFilter}
-          onValueChange={(v) =>
-            setStatusFilter(v as ContractStatusRow | "all")
-          }
-        >
-          <SelectTrigger className="h-9 w-full sm:w-[160px]">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All statuses</SelectItem>
-            {CONTRACT_STATUSES.map((s) => (
-              <SelectItem key={s} value={s}>
-                {CONTRACT_STATUS_LABEL[s]}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <div className="w-full sm:w-[160px] sm:shrink-0">
+          <Select
+            value={statusFilter}
+            onValueChange={(v) =>
+              setStatusFilter(v as ContractStatusRow | "all")
+            }
+          >
+            <SelectTrigger className="h-9">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All statuses</SelectItem>
+              {CONTRACT_STATUSES.map((s) => (
+                <SelectItem key={s} value={s}>
+                  {CONTRACT_STATUS_LABEL[s]}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       {filtered.length === 0 ? (
