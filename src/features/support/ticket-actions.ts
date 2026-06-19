@@ -59,8 +59,8 @@ const CATEGORY_VALUES = [
 
 const createSchema = z.object({
   category: z.enum(CATEGORY_VALUES),
-  subject: z.string().trim().min(3).max(200),
-  message: z.string().trim().min(5).max(8000),
+  subject: z.string().trim().min(2).max(200),
+  message: z.string().trim().min(1).max(8000),
   channel: z.enum(["in_app", "chat", "email", "contact_form"]).optional(),
   page: z.string().max(500).optional(),
   email: z.string().email().max(254).optional(),

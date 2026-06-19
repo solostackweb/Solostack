@@ -18,6 +18,7 @@
 import * as React from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
+import { toast } from "sonner";
 import { LifeBuoy, X, Send, Loader2, ExternalLink } from "lucide-react";
 import { getBrowserSupabase } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
@@ -124,8 +125,10 @@ export function SupportWidget({ plan }: Props) {
     setPending(true);
 
     if (!ticket) {
-      // First message starts the conversation.
-      const subject = text.length > 60 ? `${text.slice(0, 57)}…` : text;
+      // First message starts the conversation. Subject is derived from the
+      // text but must be ≥2 chars, so short greetings ("hi") fall back.
+      const derived = text.length > 60 ? `${text.slice(0, 57)}…` : text;
+      const subject = derived.length >= 2 ? derived : "Live chat";
       const res = await createTicketAction({
         category: "how-to",
         subject,
@@ -141,6 +144,8 @@ export function SupportWidget({ plan }: Props) {
           setTicket(thread.thread.ticket);
           setMessages(thread.thread.messages);
         }
+      } else {
+        toast.error(res.error ?? "Couldn't send. Please try again.");
       }
       setPending(false);
       return;

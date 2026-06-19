@@ -22,6 +22,7 @@ import {
 import { getServerSupabase } from "@/lib/supabase/server";
 import { SupportTicketForm } from "@/features/support/components/support-ticket-form";
 import { MyTicketsList } from "@/features/support/components/my-tickets-list";
+import { HelpTabs } from "@/features/support/components/help-tabs";
 import { listMyTickets } from "@/features/support/ticket-server";
 import { FaqAccordion } from "@/features/support/faq-accordion";
 
@@ -193,8 +194,10 @@ export default async function HelpPage() {
         </p>
       </header>
 
-      {/* Inline FAQ sections */}
-      <div className="space-y-8">
+      <HelpTabs
+        help={
+          <div className="space-y-8">
+          <div className="space-y-8">
         {FAQ_SECTIONS.map((section) => (
           <section key={section.id} className="space-y-3">
             <div className="flex items-center gap-2">
@@ -245,8 +248,10 @@ export default async function HelpPage() {
           </div>
         </div>
       </section>
-
-      {/* Your tickets */}
+          </div>
+        }
+        contact={
+          <div className="space-y-8">
       {isLoggedIn ? (
         <section className="space-y-3">
           <div className="flex items-center gap-2">
@@ -272,6 +277,9 @@ export default async function HelpPage() {
           channel="in_app"
         />
       </section>
+          </div>
+        }
+      />
     </div>
   );
 }
