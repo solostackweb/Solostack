@@ -45,8 +45,8 @@ export function InvoicesToolbar({
 
   return (
     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-      <div className="grid flex-1 gap-2 sm:flex sm:min-w-0 sm:items-center">
-        <div className="relative w-full sm:w-80">
+      <div className="grid gap-2 sm:flex sm:min-w-0 sm:items-center">
+        <div className="relative w-full sm:w-80 sm:shrink-0">
           <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             value={search}
@@ -58,47 +58,51 @@ export function InvoicesToolbar({
           />
         </div>
 
-        <Select
-          value={status}
-          onValueChange={(v) =>
-            table
-              .getColumn("status")
-              ?.setFilterValue(v === "all" ? undefined : v)
-          }
-        >
-          <SelectTrigger className="h-9 w-full sm:w-[150px] text-xs">
-            <SelectValue placeholder="Status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All statuses</SelectItem>
-            {INVOICE_STATUSES.map((s) => (
-              <SelectItem key={s} value={s}>
-                {INVOICE_STATUS_LABEL[s]}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <div className="w-full sm:w-[150px] sm:shrink-0">
+          <Select
+            value={status}
+            onValueChange={(v) =>
+              table
+                .getColumn("status")
+                ?.setFilterValue(v === "all" ? undefined : v)
+            }
+          >
+            <SelectTrigger className="h-9 text-xs">
+              <SelectValue placeholder="Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All statuses</SelectItem>
+              {INVOICE_STATUSES.map((s) => (
+                <SelectItem key={s} value={s}>
+                  {INVOICE_STATUS_LABEL[s]}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
 
-        <Select
-          value={client}
-          onValueChange={(v) =>
-            table
-              .getColumn("clientId")
-              ?.setFilterValue(v === "all" ? undefined : v)
-          }
-        >
-          <SelectTrigger className="h-9 w-full sm:w-[180px] text-xs">
-            <SelectValue placeholder="Client" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All clients</SelectItem>
-            {clientOptions.map((c) => (
-              <SelectItem key={c.value} value={c.value}>
-                {c.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <div className="w-full sm:w-[180px] sm:shrink-0">
+          <Select
+            value={client}
+            onValueChange={(v) =>
+              table
+                .getColumn("clientId")
+                ?.setFilterValue(v === "all" ? undefined : v)
+            }
+          >
+            <SelectTrigger className="h-9 text-xs">
+              <SelectValue placeholder="Client" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All clients</SelectItem>
+              {clientOptions.map((c) => (
+                <SelectItem key={c.value} value={c.value}>
+                  {c.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
 
         <Button
           variant="ghost"
