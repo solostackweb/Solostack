@@ -31,6 +31,7 @@ import { portalClientHome } from "@/features/portals/routes";
 function sanitiseNext(raw: string | null): string {
   if (!raw) return AUTH_DEFAULT_REDIRECT;
   if (!raw.startsWith("/") || raw.startsWith("//")) return AUTH_DEFAULT_REDIRECT;
+  if (raw === "/reset-password") return raw;
   // Never redirect back to auth-only pages (would cause a loop).
   const authPaths = ["/login", "/signup", "/forgot-password", "/reset-password"];
   if (authPaths.some((p) => raw === p || raw.startsWith(`${p}?`))) {

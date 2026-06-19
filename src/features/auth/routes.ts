@@ -46,7 +46,6 @@ export const AUTH_ONLY_ROUTES = [
   "/signup",
   "/portal-access",
   "/forgot-password",
-  "/reset-password",
 ] as const;
 
 // --- Helpers ----------------------------------------------------------------

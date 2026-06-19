@@ -628,7 +628,11 @@ export async function forgotPasswordAction(
 
   const { error } = await supabase.auth.resetPasswordForEmail(
     parsed.data.email,
-    { redirectTo: `${origin}/reset-password` },
+    {
+      redirectTo: `${origin}/auth/callback?next=${encodeURIComponent(
+        "/reset-password",
+      )}`,
+    },
   );
 
   // Return success even if the email doesn't exist — do not leak account
