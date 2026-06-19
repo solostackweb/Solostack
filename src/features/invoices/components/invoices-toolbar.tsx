@@ -44,9 +44,9 @@ export function InvoicesToolbar({
     (client && client !== "all");
 
   return (
-    <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-      <div className="flex flex-1 flex-wrap items-center gap-2">
-        <div className="relative w-full sm:max-w-xs">
+    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="grid flex-1 gap-2 sm:flex sm:min-w-0 sm:items-center">
+        <div className="relative w-full sm:w-80">
           <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             value={search}
@@ -119,7 +119,7 @@ export function InvoicesToolbar({
         </Button>
       </div>
 
-      <div className="flex items-center gap-2">
+      <div className="flex shrink-0 items-center gap-2">
         <DataTableViewOptions table={table} />
       </div>
     </div>
