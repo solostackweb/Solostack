@@ -75,6 +75,8 @@ async function streamCsv({ filters, ids, actorId }: StreamArgs): Promise<Respons
     kind: "user.data_export",
     targetType: "user",
     targetId: null,
+    success: true,
+    durationMs: 0,
     metadata: ids ? { scope: "selected", count: ids.length } : { scope: "filtered", ...filters },
   }).catch(() => {});
 

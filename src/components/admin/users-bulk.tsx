@@ -64,7 +64,7 @@ export function UsersBulk({ children, suppressAction, exportUrl }: Props) {
           </button>
           <button
             type="submit"
-            formAction={suppressAction}
+            formAction={suppressAction as unknown as (formData: FormData) => void}
             disabled={none}
             onClick={(e) => {
               if (!window.confirm(`Suppress ${count} email${count === 1 ? "" : "s"}? They will stop receiving mail.`)) {
@@ -76,6 +76,7 @@ export function UsersBulk({ children, suppressAction, exportUrl }: Props) {
             <MailX className="h-3 w-3" /> Suppress selected
           </button>
         </div>
+      
       </div>
       {children}
     </form>

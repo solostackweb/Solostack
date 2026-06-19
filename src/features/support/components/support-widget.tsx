@@ -16,6 +16,7 @@
  */
 
 import * as React from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import { LifeBuoy, X, Send, Loader2, ExternalLink } from "lucide-react";
 import { getBrowserSupabase } from "@/lib/supabase/client";
@@ -48,6 +49,8 @@ export function SupportWidget({ plan }: Props) {
   const [input, setInput] = React.useState("");
   const [pending, setPending] = React.useState(false);
   const [unread, setUnread] = React.useState(false);
+  const [mounted, setMounted] = React.useState(false);
+  React.useEffect(() => setMounted(true), []);
 
   const bottomRef = React.useRef<HTMLDivElement | null>(null);
   // Track latest "open" without forcing the realtime effect to re-subscribe.
@@ -166,7 +169,7 @@ export function SupportWidget({ plan }: Props) {
     }
   };
 
-  return (
+  const tree = (
     <>
       {/* Launcher — hidden while panel open. Mobile: above the bottom nav. */}
       {!open ? (
@@ -314,4 +317,7 @@ export function SupportWidget({ plan }: Props) {
       ) : null}
     </>
   );
+
+  if (!mounted || typeof document === "undefined") return null;
+  return createPortal(tree, document.body);
 }
