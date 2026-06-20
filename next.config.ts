@@ -9,11 +9,38 @@ import { withSentryConfig } from "@sentry/nextjs";
  * browsers refuse to talk HTTP to this origin once they've seen the
  * header (Vercel terminates TLS, so this is safe in all environments).
  *
- * CSP is deliberately NOT set inline here — Next.js's default
- * behaviour around inline scripts (from RSC streaming + `next/script`)
- * requires per-request nonces to keep a strict CSP, which is a
- * dedicated migration. Track that as a follow-up.
+ * CSP ships in Report-Only mode (see `cspReportOnly`) so it never breaks
+ * the app while we confirm the allowlist; flip the header key to enforce.
  */
+/**
+ * Content-Security-Policy (Report-Only).
+ *
+ * Shipped in REPORT-ONLY mode so it breaks nothing while we confirm the
+ * third-party allowlist in production (violations surface in the browser
+ * console / any report endpoint). To ENFORCE later, change the header key
+ * from `Content-Security-Policy-Report-Only` to `Content-Security-Policy`
+ * (and ideally move to per-request nonces for scripts).
+ *
+ * Allowlist covers: Supabase (REST + realtime ws), Sentry, PostHog,
+ * Microsoft Clarity, Razorpay checkout, Cloudflare Turnstile, Jitsi video,
+ * and Google Fonts.
+ */
+const cspReportOnly = [
+  "default-src 'self'",
+  "base-uri 'self'",
+  "object-src 'none'",
+  "frame-ancestors 'none'",
+  "form-action 'self'",
+  "script-src 'self' 'unsafe-inline' https://checkout.razorpay.com https://*.razorpay.com https://*.posthog.com https://*.clarity.ms https://www.clarity.ms https://challenges.cloudflare.com https://*.jit.si https://meet.jit.si",
+  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+  "font-src 'self' data: https://fonts.gstatic.com",
+  "img-src 'self' data: blob: https://images.unsplash.com https://avatars.githubusercontent.com https://*.supabase.co https://*.razorpay.com https://*.clarity.ms",
+  "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.sentry.io https://*.ingest.sentry.io https://*.posthog.com https://*.clarity.ms https://api.razorpay.com https://*.razorpay.com https://challenges.cloudflare.com",
+  "frame-src 'self' https://*.razorpay.com https://api.razorpay.com https://challenges.cloudflare.com https://*.jit.si https://meet.jit.si",
+  "worker-src 'self' blob:",
+  "manifest-src 'self'",
+].join("; ");
+
 const securityHeaders = [
   { key: "X-Content-Type-Options", value: "nosniff" },
   { key: "X-Frame-Options", value: "DENY" },
@@ -29,10 +56,17 @@ const securityHeaders = [
   // Disable Chrome's deprecated XSS-Auditor (modern browsers ignore it
   // and the legacy heuristic itself was a known XS-Leak vector).
   { key: "X-XSS-Protection", value: "0" },
+  // Cross-origin isolation hardening.
+  { key: "Cross-Origin-Opener-Policy", value: "same-origin" },
+  { key: "Cross-Origin-Resource-Policy", value: "same-origin" },
+  { key: "X-Permitted-Cross-Domain-Policies", value: "none" },
+  // XSS containment — report-only first (see cspReportOnly above).
+  { key: "Content-Security-Policy-Report-Only", value: cspReportOnly },
 ];
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
+  poweredByHeader: false,
   outputFileTracingRoot: process.cwd(),
 
   /**

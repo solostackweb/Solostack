@@ -41,7 +41,7 @@ import {
 } from "./active-timer-widget";
 import { ManualEntryDialog } from "./manual-entry-dialog";
 import { TimeSummaryCards } from "./time-summary-cards";
-import { TimeAnalyticsView } from "./time-analytics";
+import { TimeAnalyticsLazy } from "./time-analytics-lazy";
 import {
   TimeEntriesTable,
   type TimeEntryLookup,
@@ -372,7 +372,7 @@ export function TimeDashboardView({
             setParam={setParam}
             exportHref={exportHref}
           />
-          <TimeAnalyticsView
+          <TimeAnalyticsLazy
             analytics={analytics}
             projectName={projectName}
             clientName={clientName}

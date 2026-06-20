@@ -22,6 +22,7 @@ import {
 } from "@/lib/rate-limit";
 import { recordSecurityEvent } from "@/lib/security-events/server";
 import { hashedEmail } from "@/lib/logger/redact";
+import { verifyTurnstileToken } from "@/lib/turnstile";
 import { log } from "@/lib/logger";
 import { identifyServer, trackServerEvent } from "@/lib/analytics/server";
 import {
@@ -206,6 +207,22 @@ export async function signupAction(
         metadata: { flow: "signup", ip },
       });
       return { ok: false, error: gate.message };
+    }
+
+    const challenge = await verifyTurnstileToken(
+      formData.get("cf-turnstile-response")?.toString(),
+      ip,
+    );
+    if (!challenge.ok) {
+      await recordSecurityEvent({
+        kind: "auth_signup_failed",
+        severity: "warn",
+        metadata: {
+          email_hash: await safeHashedEmail(email),
+          reason: "turnstile_failed",
+        },
+      });
+      return { ok: false, error: challenge.error };
     }
 
     const supabase = await getServerSupabase();

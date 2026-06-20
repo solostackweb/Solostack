@@ -16,6 +16,7 @@ import { usePathname } from "next/navigation";
 import { toast } from "sonner";
 import { Loader2, ArrowRight } from "lucide-react";
 
+import { TurnstileWidget } from "@/components/security/turnstile-widget";
 import { createTicketAction } from "../ticket-actions";
 import type { TicketCategory, TicketChannel } from "../ticket-types";
 
@@ -46,6 +47,8 @@ export function SupportTicketForm({ initialEmail, showContactFields, channel }: 
   const [name, setName] = React.useState("");
   const [pending, setPending] = React.useState(false);
   const [success, setSuccess] = React.useState<{ href: string } | null>(null);
+  const [turnstileToken, setTurnstileToken] = React.useState("");
+  const [turnstileReset, setTurnstileReset] = React.useState(0);
 
   const onSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -64,11 +67,13 @@ export function SupportTicketForm({ initialEmail, showContactFields, channel }: 
       message: message.trim(),
       channel: channel ?? (showContactFields ? "contact_form" : "in_app"),
       page: pathname ?? undefined,
+      turnstileToken,
       ...(showContactFields ? { email: email.trim(), name: name.trim() || undefined } : {}),
     });
     setPending(false);
     if (!res.ok) {
       toast.error(res.error ?? "Could not submit. Please email support@stackivo.me.");
+      setTurnstileReset((value) => value + 1);
       return;
     }
     const href = res.publicToken && showContactFields
@@ -78,6 +83,7 @@ export function SupportTicketForm({ initialEmail, showContactFields, channel }: 
         : "/help";
     setSubject("");
     setMessage("");
+    setTurnstileToken("");
     setSuccess({ href });
   };
 
@@ -208,6 +214,11 @@ export function SupportTicketForm({ initialEmail, showContactFields, channel }: 
           <span>{message.length} / 8000</span>
         </div>
       </div>
+
+      <TurnstileWidget
+        onTokenChange={setTurnstileToken}
+        resetSignal={turnstileReset}
+      />
 
       <button
         type="submit"

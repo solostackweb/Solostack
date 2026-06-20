@@ -7,6 +7,7 @@ import { Mail, ExternalLink, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { TurnstileWidget } from "@/components/security/turnstile-widget";
 import { signupAction, type ActionResult } from "../actions";
 import {
   AuthFormError,
@@ -157,6 +158,7 @@ export function SignupForm({
           </span>
         </label>
 
+        <TurnstileWidget resetSignal={state && !state.ok ? state.error : undefined} />
         <SubmitButton />
       </form>
     </div>

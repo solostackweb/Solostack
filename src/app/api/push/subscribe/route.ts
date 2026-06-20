@@ -9,6 +9,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getServerSupabase } from "@/lib/supabase/server";
 import { getAdminSupabase } from "@/lib/supabase/admin";
+import { pushSubscribeLimit } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -28,6 +29,11 @@ export async function POST(req: Request): Promise<Response> {
   } = await supabase.auth.getUser();
   if (!user) {
     return NextResponse.json({ ok: false, error: "unauthenticated" }, { status: 401 });
+  }
+
+  const rl = await pushSubscribeLimit(`push:${user.id}`);
+  if (!rl.ok) {
+    return NextResponse.json({ ok: false, error: rl.message }, { status: 429 });
   }
 
   const body = (await req.json().catch(() => null)) as unknown;

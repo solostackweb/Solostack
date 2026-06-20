@@ -14,6 +14,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { headObject, isR2Configured } from "@/lib/r2/client";
 import { getAdminSupabase } from "@/lib/supabase/admin";
+import { getClientIp, portalUploadLimit } from "@/lib/rate-limit";
 import {
   PortalAccessError,
   recordPortalActivity,
@@ -53,6 +54,12 @@ export async function POST(
   }
 
   const { portalId } = await ctx.params;
+
+  const ip = await getClientIp();
+  const rl = await portalUploadLimit(`portalup:${ip}`);
+  if (!rl.ok) {
+    return NextResponse.json({ ok: false, error: rl.message }, { status: 429 });
+  }
   // Access-only guard (see presign route): clients must be able to upload, and
   // requireFeature() redirects to HTML for non-owners.
   const access = await requirePortalAccess(portalId).catch(

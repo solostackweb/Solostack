@@ -77,6 +77,9 @@ export const env = {
   // Unset → the portal's "Enable notifications" affordance hides itself and
   // push silently no-ops, exactly like the other optional integrations.
   vapidPublicKey: optional(process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY) ?? "",
+  // Cloudflare Turnstile public site key. Browser-safe by design.
+  // Unset -> challenge widgets do not render and server checks skip in dev.
+  turnstileSiteKey: optional(process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY) ?? "",
 } as const;
 
 export type PublicEnv = typeof env;
@@ -145,6 +148,9 @@ export function requireServerEnv() {
     // Shared secret the Cloudflare Email Worker presents (Bearer) when POSTing
     // parsed inbound support email to /api/support/inbound.
     supportInboundSecret: optional(process.env.SUPPORT_INBOUND_SECRET),
+    // Cloudflare Turnstile secret key for server-side token verification.
+    // Pair with NEXT_PUBLIC_TURNSTILE_SITE_KEY. Unset -> verification is skipped.
+    turnstileSecretKey: optional(process.env.TURNSTILE_SECRET_KEY),
     // Ops / observability (all optional) -----------------------------------
     // Slack incoming webhook for cron-based failure alerts. Unset → no-op.
     opsSlackWebhookUrl: optional(process.env.OPS_SLACK_WEBHOOK_URL),

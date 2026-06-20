@@ -257,3 +257,45 @@ export async function adminWriteLimit(key: string): Promise<LimitResult> {
     key,
   );
 }
+/**
+ * Public ticket / contact-form creation — stops a bot from flooding the
+ * support inbox with junk tickets. Keyed per IP.
+ */
+export async function supportCreateLimit(key: string): Promise<LimitResult> {
+  return runLimiter(
+    {
+      prefix: "supportcreate",
+      limit: 6,
+      windowSeconds: 10 * 60,
+      blockedMessage:
+        "You're creating requests too quickly. Please wait a few minutes and try again.",
+    },
+    key,
+  );
+}
+
+/** Web-push subscribe/unsubscribe — cheap to call, easy to abuse. Per IP. */
+export async function pushSubscribeLimit(key: string): Promise<LimitResult> {
+  return runLimiter(
+    {
+      prefix: "pushsub",
+      limit: 30,
+      windowSeconds: 60 * 60,
+      blockedMessage: "Too many requests. Please try again later.",
+    },
+    key,
+  );
+}
+
+/** Portal file presign/commit — bounds storage-abuse attempts. Per IP. */
+export async function portalUploadLimit(key: string): Promise<LimitResult> {
+  return runLimiter(
+    {
+      prefix: "portalupload",
+      limit: 60,
+      windowSeconds: 60 * 60,
+      blockedMessage: "Too many upload requests. Please slow down and try again.",
+    },
+    key,
+  );
+}

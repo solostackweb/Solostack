@@ -16,7 +16,7 @@ import { formatINR } from "@/lib/format";
 import { formatDuration, secondsToHours } from "../types";
 import type { TimeAnalytics } from "../analytics";
 
-interface TimeAnalyticsViewProps {
+export interface TimeAnalyticsViewProps {
   analytics: TimeAnalytics;
   projectName: (id: string | null) => string;
   clientName: (id: string | null) => string;

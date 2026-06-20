@@ -22,6 +22,7 @@ import {
   R2_MAX_OBJECT_BYTES,
 } from "@/lib/r2/client";
 import { getAdminSupabase } from "@/lib/supabase/admin";
+import { getClientIp, portalUploadLimit } from "@/lib/rate-limit";
 import {
   PortalAccessError,
   requirePortalAccess,
@@ -49,6 +50,12 @@ export async function POST(
   }
 
   const { portalId } = await ctx.params;
+
+  const ip = await getClientIp();
+  const rl = await portalUploadLimit(`portalup:${ip}`);
+  if (!rl.ok) {
+    return NextResponse.json({ ok: false, error: rl.message }, { status: 429 });
+  }
 
   // Access guard only. We do NOT gate on the uploader's plan feature here —
   // the client (a portal member, not the plan owner) must be able to upload,

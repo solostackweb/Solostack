@@ -43,6 +43,9 @@ import {
   type CreateTicketResult,
 } from "./ticket-types";
 import { resolveUserPlan } from "./ticket-server";
+import { getClientIp, supportCreateLimit } from "@/lib/rate-limit";
+import { recordSecurityEvent } from "@/lib/security-events/server";
+import { verifyTurnstileToken } from "@/lib/turnstile";
 
 // ---------------------------------------------------------------------------
 // Schemas
@@ -65,6 +68,7 @@ const createSchema = z.object({
   page: z.string().max(500).optional(),
   email: z.string().email().max(254).optional(),
   name: z.string().max(160).optional(),
+  turnstileToken: z.string().optional(),
 });
 
 const messageSchema = z.object({
@@ -125,6 +129,29 @@ export async function createTicketAction(
   }
   const data = parsed.data;
 
+  // Abuse guard: bound ticket/contact creation per IP (spam protection).
+  const ip = await getClientIp();
+  const rl = await supportCreateLimit(`ticket:${ip}`);
+  if (!rl.ok) return { ok: false, error: rl.message };
+
+  const channel = data.channel ?? "contact_form";
+  if (channel !== "chat") {
+    const challenge = await verifyTurnstileToken(data.turnstileToken, ip);
+    if (!challenge.ok) {
+      await recordSecurityEvent({
+        kind: "other",
+        severity: "warn",
+        ip,
+        metadata: {
+          flow: "support_ticket",
+          reason: "turnstile_failed",
+          channel,
+        },
+      });
+      return { ok: false, error: challenge.error };
+    }
+  }
+
   const supabase = await getServerSupabase();
   const {
     data: { user },
@@ -154,7 +181,7 @@ export async function createTicketAction(
   const nowIso = new Date().toISOString();
   const cookieStore = await cookies();
   const traceId = cookieStore.get("x-request-id")?.value ?? null;
-  const channel = data.channel ?? (user ? "in_app" : "contact_form");
+  const ticketChannel = data.channel ?? (user ? "in_app" : "contact_form");
 
   const admin = getAdminSupabase();
   const { data: ticketRow, error: ticketErr } = await admin
@@ -168,7 +195,7 @@ export async function createTicketAction(
       priority: priorityForCategory(data.category),
       category: data.category,
       plan_at_creation: plan,
-      channel,
+      channel: ticketChannel,
       source_page: data.page ?? null,
       trace_id: traceId,
       sla_due_at: computeSlaDueAt(plan, nowIso),
@@ -190,7 +217,7 @@ export async function createTicketAction(
     author_type: "customer",
     author_user_id: userId,
     body: data.message,
-    via: channel === "email" ? "email" : "in_app",
+    via: ticketChannel === "email" ? "email" : "in_app",
   } as never);
   if (msgErr) {
     log.error("support.create_ticket.message_failed", { error: msgErr.message });

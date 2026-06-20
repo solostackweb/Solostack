@@ -3,7 +3,7 @@ import Link from "next/link";
 import { Plus } from "lucide-react";
 
 import { ActivityTimeline } from "@/components/dashboard/activity-timeline";
-import { BusinessCommandCenter } from "@/components/dashboard/business-command-center";
+import { BusinessCommandCenterLazy } from "@/components/dashboard/business-command-center-lazy";
 import { QuickActions } from "@/components/dashboard/quick-actions";
 import { RecentClients } from "@/components/dashboard/recent-clients";
 import { RecentInvoices } from "@/components/dashboard/recent-invoices";
@@ -48,7 +48,7 @@ async function KpiSection() {
     revenueSeries,
   } = await getKpiSnapshot();
   return (
-    <BusinessCommandCenter
+    <BusinessCommandCenterLazy
       collectedAllTime={collectedAllTime}
       outstanding={outstanding}
       overdueAmount={overdueAmount}
