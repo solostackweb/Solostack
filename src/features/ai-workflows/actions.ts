@@ -14,6 +14,7 @@ import {
   type OperationsWorkflow,
 } from "./operations-workflow";
 import { z } from "zod";
+import { aiGenerateLimit } from "@/lib/rate-limit";
 
 function readPayload(formData: FormData): unknown {
   const raw = formData.get("payload");
@@ -37,7 +38,9 @@ async function requireUser() {
 export async function generateInvoiceDraftAction(
   formData: FormData,
 ): Promise<AiWorkflowResult<AiInvoiceDraft>> {
-  await requireUser();
+  const user = await requireUser();
+  const rl = await aiGenerateLimit(`aigen:${user.id}`);
+  if (!rl.ok) return { ok: false, error: rl.message };
 
   const parsed = aiInvoiceRequestSchema.safeParse(readPayload(formData));
   if (!parsed.success) {
@@ -99,7 +102,9 @@ const operationalDraftRequestSchema = z.object({
 export async function generateOperationalDraftAction(
   formData: FormData,
 ): Promise<AiWorkflowResult<OperationsDraft>> {
-  await requireUser();
+  const user = await requireUser();
+  const rl = await aiGenerateLimit(`aigen:${user.id}`);
+  if (!rl.ok) return { ok: false, error: rl.message };
   const parsed = operationalDraftRequestSchema.safeParse(readPayload(formData));
   if (!parsed.success) {
     return {

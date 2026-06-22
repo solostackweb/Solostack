@@ -36,6 +36,8 @@ const THRESHOLDS = {
   deliveryFailuresLastHour: 5,
   /** Security alerts above this count in the last hour → page. */
   securityAlertsLastHour: 3,
+  /** Rate-limit blocks above this count in the last hour → page (bot/abuse). */
+  rateLimitTripsLastHour: 50,
 };
 
 export async function GET(req: Request): Promise<Response> {
@@ -117,6 +119,27 @@ export async function GET(req: Request): Promise<Response> {
     }
   } catch (err) {
     log.warn("cron.monitor.security_probe_failed", {
+      error: err instanceof Error ? err.message : String(err),
+    });
+  }
+
+  // ---- Probe 3b: rate-limit floods (unusual traffic) ---------------------
+  try {
+    const since = new Date(Date.now() - 60 * 60_000).toISOString();
+    const { count } = await admin
+      .from("security_events")
+      .select("id", { count: "exact", head: true })
+      .in("kind", ["rate_limit_tripped", "auth_ratelimit_tripped"])
+      .gte("created_at", since);
+    if ((count ?? 0) >= THRESHOLDS.rateLimitTripsLastHour) {
+      findings.push({
+        kind: "security.rate_limit_flood",
+        detail: `${count} rate-limit blocks in the last hour (possible bot / abuse)`,
+        count: count ?? 0,
+      });
+    }
+  } catch (err) {
+    log.warn("cron.monitor.ratelimit_probe_failed", {
       error: err instanceof Error ? err.message : String(err),
     });
   }

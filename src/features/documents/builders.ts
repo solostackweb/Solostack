@@ -137,6 +137,7 @@ export async function buildContractPdfData(
     .from("contracts")
     .select("*")
     .eq("id", contractId)
+    .eq("user_id", user.id) // defense-in-depth: explicit ownership on top of RLS
     .maybeSingle();
   if (!contractRow) return null;
   const contract = contractRow as unknown as ContractRow;

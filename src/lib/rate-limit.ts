@@ -30,6 +30,7 @@ import "server-only";
 
 import { requireServerEnv } from "@/config/env";
 import { headers } from "next/headers";
+import { recordSecurityEvent } from "@/lib/security-events/server";
 
 // ----- Types --------------------------------------------------------------
 
@@ -132,6 +133,29 @@ export async function getClientIp(): Promise<string> {
   return h.get("x-real-ip") ?? "unknown";
 }
 
+// Limiter prefixes already logged with richer context at their call site
+// (auth flows record `auth_ratelimit_tripped` with a hashed email). Skip them
+// here to avoid double-logging; everything else has no other signal.
+const SELF_LOGGED_PREFIXES = new Set(["auth", "signup", "pwreset"]);
+
+// In-memory dedupe so a sustained flood writes at most ~1 security_event per
+// bucket per minute (prevents the audit table from amplifying an attack).
+const blockLogSeen = new Map<string, number>();
+function shouldLogBlock(prefix: string, key: string): boolean {
+  if (SELF_LOGGED_PREFIXES.has(prefix)) return false;
+  const k = `${prefix}:${key}`;
+  const now = Date.now();
+  const last = blockLogSeen.get(k);
+  if (last && now - last < 60_000) return false;
+  blockLogSeen.set(k, now);
+  if (blockLogSeen.size > 5000) {
+    for (const [kk, ts] of blockLogSeen) {
+      if (now - ts > 60_000) blockLogSeen.delete(kk);
+    }
+  }
+  return true;
+}
+
 async function runLimiter(
   cfg: LimiterConfig,
   key: string,
@@ -147,6 +171,16 @@ async function runLimiter(
     1,
     Math.ceil((result.reset - Date.now()) / 1000),
   );
+  // Record the block as a security event (no PII — only the limiter name; the
+  // sink captures IP/user-agent from request headers). Feeds the monitor
+  // cron's "unusual traffic" probe. Fire-and-forget.
+  if (shouldLogBlock(cfg.prefix, key)) {
+    void recordSecurityEvent({
+      kind: "rate_limit_tripped",
+      severity: "warn",
+      metadata: { limiter: cfg.prefix },
+    }).catch(() => {});
+  }
   return {
     ok: false,
     message: cfg.blockedMessage,
@@ -295,6 +329,25 @@ export async function portalUploadLimit(key: string): Promise<LimitResult> {
       limit: 60,
       windowSeconds: 60 * 60,
       blockedMessage: "Too many upload requests. Please slow down and try again.",
+    },
+    key,
+  );
+}
+
+/**
+ * AI / Groq generation requests — each call spends model tokens, so this is
+ * both a cost guard and an abuse guard. Durable (Upstash) so it holds across
+ * serverless instances, unlike a per-process in-memory counter. Keyed per
+ * user. Generous enough for chatty legitimate assistant use.
+ */
+export async function aiGenerateLimit(key: string): Promise<LimitResult> {
+  return runLimiter(
+    {
+      prefix: "aigen",
+      limit: 30,
+      windowSeconds: 60,
+      blockedMessage:
+        "You're sending requests a little fast — give it a few seconds and try again.",
     },
     key,
   );

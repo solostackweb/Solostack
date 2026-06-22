@@ -8,6 +8,7 @@ import { z } from "zod";
 
 import { AUTH_LOGIN_ROUTE } from "@/features/auth/routes";
 import { env } from "@/config/env";
+import { aiGenerateLimit } from "@/lib/rate-limit";
 import { getServerSupabase } from "@/lib/supabase/server";
 import { getProfile } from "@/features/profile/server";
 import { nextInvoiceNumber, getInvoice } from "@/features/invoices/server";
@@ -94,7 +95,12 @@ const AI_RATE_LIMIT = 20; // requests
 const AI_RATE_WINDOW_MS = 60_000; // per minute
 const aiRateBuckets = new Map<string, { count: number; resetAt: number }>();
 
-function checkAiRateLimit(userId: string): boolean {
+async function checkAiRateLimit(userId: string): Promise<boolean> {
+  // Durable, cross-instance limit (Upstash). Authoritative when configured.
+  const durable = await aiGenerateLimit(`aigen:${userId}`);
+  if (!durable.ok) return false;
+  // In-memory fallback so single-instance / no-Upstash deploys still bound
+  // a runaway loop within one process.
   const now = Date.now();
   const bucket = aiRateBuckets.get(userId);
   if (!bucket || now > bucket.resetAt) {
@@ -338,7 +344,7 @@ export async function interpretAiMessageAction(input: z.infer<typeof aiInterpret
     return { ok: false as const, error: "Tell me what you'd like to do." };
   }
   const userId = await requireUserId();
-  if (!checkAiRateLimit(userId)) {
+  if (!(await checkAiRateLimit(userId))) {
     return { ok: false as const, error: "You're sending messages a little fast — give it a few seconds and try again." };
   }
   const [clients, projects] = await Promise.all([
@@ -1110,7 +1116,7 @@ export async function createInvoiceFromAiAction(input: AiCreateInput) {
  */
 export async function invoiceUnbilledTimeFromAiAction(input: { clientId?: string }) {
   const userId = await requireUserId();
-  if (!checkAiRateLimit(userId)) {
+  if (!(await checkAiRateLimit(userId))) {
     return { ok: false as const, error: "You're going a little fast — give it a few seconds and try again." };
   }
   const supabase = await getServerSupabase();
@@ -1534,6 +1540,9 @@ export async function refineContractFromAiAction(
   if (!parsed.success) return { ok: false as const, error: "Tell me what to change in the contract." };
 
   const userId = await requireUserId();
+  if (!(await checkAiRateLimit(userId))) {
+    return { ok: false as const, error: "You're sending requests a little fast — give it a few seconds and try again." };
+  }
   const supabase = await getServerSupabase();
 
   const { data: contractRow } = await supabase
@@ -1678,6 +1687,9 @@ export async function refineInvoiceFromAiAction(
   if (!parsed.success) return { ok: false as const, error: "Tell me what to change in the invoice." };
 
   const userId = await requireUserId();
+  if (!(await checkAiRateLimit(userId))) {
+    return { ok: false as const, error: "You're sending requests a little fast — give it a few seconds and try again." };
+  }
   const supabase = await getServerSupabase();
   const profile = await getProfile();
 
@@ -1825,6 +1837,9 @@ export async function refineWelcomeDocFromAiAction(
   if (!parsed.success) return { ok: false as const, error: "Tell me what to change in the welcome document." };
 
   const userId = await requireUserId();
+  if (!(await checkAiRateLimit(userId))) {
+    return { ok: false as const, error: "You're sending requests a little fast — give it a few seconds and try again." };
+  }
   const supabase = await getServerSupabase();
 
   const { data: docRow } = await supabase
@@ -1992,7 +2007,7 @@ export async function answerFromDocsAction(input: z.infer<typeof aiDocsQuestionS
     return { ok: false as const, error: "Ask a docs or support question first." };
   }
   const userId = await requireUserId();
-  if (!checkAiRateLimit(userId)) {
+  if (!(await checkAiRateLimit(userId))) {
     return {
       ok: true as const,
       data: {
@@ -2081,7 +2096,7 @@ function formatInrPlain(value: number): string {
  */
 export async function remindOverdueInvoicesFromAiAction() {
   const userId = await requireUserId();
-  if (!checkAiRateLimit(userId)) {
+  if (!(await checkAiRateLimit(userId))) {
     return { ok: false as const, error: "You're going a little fast — give it a few seconds and try again." };
   }
   const supabase = await getServerSupabase();
@@ -2188,7 +2203,7 @@ export async function remindOverdueInvoicesFromAiAction() {
  */
 export async function listContractsForAiAction(input: { filter?: "pending" | "all" } = {}) {
   const userId = await requireUserId();
-  if (!checkAiRateLimit(userId)) {
+  if (!(await checkAiRateLimit(userId))) {
     return { ok: false as const, error: "You're going a little fast — give it a few seconds." };
   }
   const filter = input.filter ?? "pending";
@@ -2233,7 +2248,7 @@ export async function listContractsForAiAction(input: { filter?: "pending" | "al
 /** List clients for the assistant's interactive directory list. */
 export async function listClientsForAiAction() {
   const userId = await requireUserId();
-  if (!checkAiRateLimit(userId)) {
+  if (!(await checkAiRateLimit(userId))) {
     return { ok: false as const, error: "You're going a little fast — give it a few seconds." };
   }
   const clients = await listClients({ limit: 15 });
@@ -2250,7 +2265,7 @@ export async function listClientsForAiAction() {
  */
 export async function listInvoicesForAiAction(input: { filter?: "unpaid" | "overdue" | "all" } = {}) {
   const userId = await requireUserId();
-  if (!checkAiRateLimit(userId)) {
+  if (!(await checkAiRateLimit(userId))) {
     return { ok: false as const, error: "You're going a little fast — give it a few seconds." };
   }
   const filter = input.filter ?? "unpaid";
@@ -2343,7 +2358,7 @@ export async function answerBusinessQuestionAction(
     return { ok: false as const, error: "Ask a question about your business." };
   }
   const userId = await requireUserId();
-  if (!checkAiRateLimit(userId)) {
+  if (!(await checkAiRateLimit(userId))) {
     return {
       ok: true as const,
       data: {

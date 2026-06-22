@@ -108,17 +108,29 @@ function getAuthErrorName(err: unknown): string | undefined {
 }
 
 async function getOrigin(): Promise<string> {
-  // Prefer the runtime origin so preview deploys work without config changes.
-  const h = await headers();
-  // On multi-hop proxies (Vercel, Cloudflare, AWS ALB) these headers can be
-  // comma-separated lists of values ordered outermost→innermost.
-  // Always take the FIRST (outermost / public-facing) value only.
-  const rawHost = h.get("x-forwarded-host") ?? h.get("host");
-  const host = rawHost?.split(",")[0].trim();
-  const rawProto = h.get("x-forwarded-proto") ?? "https";
-  const proto = rawProto.split(",")[0].trim();
-  if (host) return `${proto}://${host}`;
-  return env.appUrl;
+  // SECURITY: this origin is embedded in password-reset + email-verification
+  // links, so it must never be derived from an attacker-controlled Host
+  // header (Host-header injection -> link poisoning). We trust the runtime
+  // host ONLY when it matches the configured production origin or a Vercel
+  // preview deploy; otherwise we fall back to the trusted configured origin.
+  // (Supabase's Redirect-URL allowlist is a second line of defence.)
+  const configured = env.appUrl;
+  try {
+    const h = await headers();
+    const rawHost = h.get("x-forwarded-host") ?? h.get("host");
+    const host = rawHost?.split(",")[0].trim();
+    if (host) {
+      const configuredHost = new URL(configured).host;
+      const trusted = host === configuredHost || host.endsWith(".vercel.app");
+      if (trusted) {
+        const proto = (h.get("x-forwarded-proto") ?? "https").split(",")[0].trim();
+        return `${proto}://${host}`;
+      }
+    }
+  } catch {
+    // headers() unavailable - fall through to the trusted configured origin.
+  }
+  return configured;
 }
 
 function sanitiseNext(next: string | null | undefined): string {

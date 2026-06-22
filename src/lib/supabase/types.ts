@@ -399,6 +399,7 @@ export type SecurityEventKind =
   | "auth_signup_failed"
   | "auth_signup_duplicate"
   | "auth_ratelimit_tripped"
+  | "rate_limit_tripped"
   | "auth_password_reset_requested"
   | "rls_guard_miss"
   | "webhook_signature_invalid"

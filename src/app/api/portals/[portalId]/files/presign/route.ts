@@ -18,6 +18,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import {
   buildPortalFileKey,
+  isAllowedUploadMime,
   isR2Configured,
   R2_MAX_OBJECT_BYTES,
 } from "@/lib/r2/client";
@@ -77,6 +78,14 @@ export async function POST(
     return NextResponse.json(
       { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input." },
       { status: 400 },
+    );
+  }
+
+  // Reject web-executable types (HTML/SVG/JS/XML) — stops stored-XSS via uploads.
+  if (!isAllowedUploadMime(parsed.data.mimeType)) {
+    return NextResponse.json(
+      { ok: false, error: "This file type isn't allowed for security reasons." },
+      { status: 415 },
     );
   }
 

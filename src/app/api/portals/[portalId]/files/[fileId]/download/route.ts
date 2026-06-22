@@ -13,7 +13,7 @@
  */
 
 import { NextResponse } from "next/server";
-import { presignGet, isR2Configured } from "@/lib/r2/client";
+import { presignGet, isInlineSafeMime, isR2Configured } from "@/lib/r2/client";
 import { getAdminSupabase } from "@/lib/supabase/admin";
 import {
   PortalAccessError,
@@ -44,7 +44,7 @@ export async function GET(
   const admin = getAdminSupabase();
   const { data: row } = await admin
     .from("portal_files")
-    .select("id, r2_key, name, deleted_at, portal_id")
+    .select("id, r2_key, name, mime_type, deleted_at, portal_id")
     .eq("id", fileId)
     .eq("portal_id", portalId)
     .maybeSingle();
@@ -53,6 +53,7 @@ export async function GET(
         id: string;
         r2_key: string;
         name: string;
+        mime_type: string | null;
         deleted_at: string | null;
       }
     | null;
@@ -60,12 +61,18 @@ export async function GET(
     return new NextResponse("Not found", { status: 404 });
   }
 
+  // Only render inline when explicitly previewing AND the stored type is
+  // browser-safe (PDF / raster image). Everything else is forced to download
+  // so a stored file can never execute script in any origin.
+  const wantsPreview =
+    new URL(req.url).searchParams.get("preview") === "1";
+  const disposition =
+    wantsPreview && isInlineSafeMime(file.mime_type) ? "inline" : "attachment";
+
   const presigned = await presignGet({
     key: file.r2_key,
     downloadFilename: file.name,
-    disposition: new URL(req.url).searchParams.get("preview") === "1"
-      ? "inline"
-      : "attachment",
+    disposition,
     forcePresign: true,
   });
 

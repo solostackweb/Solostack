@@ -12,7 +12,11 @@
 import { NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { headObject, isR2Configured } from "@/lib/r2/client";
+import {
+  headObject,
+  isAllowedUploadMime,
+  isR2Configured,
+} from "@/lib/r2/client";
 import { getAdminSupabase } from "@/lib/supabase/admin";
 import { getClientIp, portalUploadLimit } from "@/lib/rate-limit";
 import {
@@ -88,6 +92,22 @@ export async function POST(
     return NextResponse.json(
       { ok: false, error: "Upload did not complete. Please retry." },
       { status: 400 },
+    );
+  }
+
+  // Re-check the type the object was ACTUALLY stored with (R2-sniffed, not
+  // the client's presign claim). Purge + reject any web-executable.
+  const storedMime = head.contentType ?? parsed.data.mimeType;
+  if (!isAllowedUploadMime(storedMime)) {
+    try {
+      const { deleteObject } = await import("@/lib/r2/client");
+      await deleteObject(parsed.data.key);
+    } catch {
+      /* swallow — the GC cron will sweep it later */
+    }
+    return NextResponse.json(
+      { ok: false, error: "This file type isn't allowed for security reasons." },
+      { status: 415 },
     );
   }
 

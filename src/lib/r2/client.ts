@@ -111,6 +111,61 @@ export const R2_DEFAULT_GET_TTL_SECONDS = 300; // 5 min
 export const R2_MAX_OBJECT_BYTES = 250 * 1024 * 1024; // 250 MB
 
 /**
+ * MIME types that must NEVER be stored — they can execute script in a
+ * browser if a victim is tricked into opening them. Blocking at upload
+ * stops stored-XSS / branded-phishing via the file pipeline entirely.
+ */
+const BLOCKED_UPLOAD_MIME = new Set<string>([
+  "text/html",
+  "application/xhtml+xml",
+  "image/svg+xml",
+  "text/xml",
+  "application/xml",
+  "text/javascript",
+  "application/javascript",
+  "application/x-javascript",
+  "application/x-httpd-php",
+  "application/xhtml",
+  "text/x-html",
+]);
+
+/** Normalise a raw Content-Type header to a bare lowercase media type. */
+export function normaliseMime(raw: string | null | undefined): string {
+  return (raw ?? "").split(";")[0]!.trim().toLowerCase();
+}
+
+/**
+ * Reject web-executable uploads. Returns true when the type is safe to
+ * store. Empty / wildcard types are rejected; octet-stream (generic binary)
+ * is allowed. Everything not on the blocklist is permitted — freelancer
+ * deliverables are too varied for a strict allowlist.
+ */
+export function isAllowedUploadMime(raw: string | null | undefined): boolean {
+  const mime = normaliseMime(raw);
+  if (!mime || mime === "*/*") return false;
+  if (mime === "application/octet-stream") return true;
+  return !BLOCKED_UPLOAD_MIME.has(mime);
+}
+
+/**
+ * Only these stored types may be served `inline` (rendered in the browser
+ * tab). Everything else is forced to `attachment` so a stored file can
+ * never execute in an origin. PDFs + raster images are safe.
+ */
+const INLINE_SAFE_MIME = new Set<string>([
+  "application/pdf",
+  "image/png",
+  "image/jpeg",
+  "image/gif",
+  "image/webp",
+]);
+
+/** True when a stored content-type is safe to render inline in the browser. */
+export function isInlineSafeMime(raw: string | null | undefined): boolean {
+  return INLINE_SAFE_MIME.has(normaliseMime(raw));
+}
+
+/**
  * Mint a presigned PUT URL the browser can upload directly to.
  *
  * @param key       Bucket-relative object key. Convention:
