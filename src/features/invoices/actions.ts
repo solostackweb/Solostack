@@ -33,6 +33,15 @@ export type ActionResult<T = undefined> =
   | { ok: true; data?: T; message?: string }
   | { ok: false; error: string; fieldErrors?: Record<string, string[]> };
 
+class FxRateUnavailableError extends Error {
+  constructor(currency: string) {
+    super(
+      `Could not fetch the INR exchange rate for ${currency}. Please try again in a moment before saving this export invoice.`,
+    );
+    this.name = "FxRateUnavailableError";
+  }
+}
+
 async function requireUserId(): Promise<string> {
   const supabase = await getServerSupabase();
   const { data: { user } } = await supabase.auth.getUser();
@@ -142,7 +151,8 @@ async function computeIntl(
   const footerNote = isForeign
     ? "Export of services under LUT, without payment of IGST."
     : totals.decision.footerNote;
-  const fxRate = (await getFxRateToInr(currency)) ?? 1;
+  const fxRate = await getFxRateToInr(currency);
+  if (fxRate === null) throw new FxRateUnavailableError(currency);
   const inrEquivalent = Math.round(grandTotal * fxRate * 100) / 100;
   return {
     isForeign,
@@ -214,7 +224,15 @@ export async function createInvoiceAction(
     client: parties.client,
   });
 
-  const intl = await computeIntl(parties, totals);
+  let intl: Awaited<ReturnType<typeof computeIntl>>;
+  try {
+    intl = await computeIntl(parties, totals);
+  } catch (err) {
+    if (err instanceof FxRateUnavailableError) {
+      return { ok: false, error: err.message };
+    }
+    throw err;
+  }
 
   const insertRow = {
     user_id: userId,
@@ -295,7 +313,7 @@ export async function createInvoiceAction(
     entityType: "invoice",
     entityId: invoiceId,
     title: `Created invoice ${parsed.data.invoiceNumber}`,
-    metadata: { total: totals.total, currency: parsed.data.currency },
+    metadata: { total: intl.grandTotal, currency: intl.currency },
   });
 
   revalidatePath("/dashboard/invoices");
@@ -364,7 +382,15 @@ export async function updateInvoiceAction(
     client: parties.client,
   });
 
-  const intl = await computeIntl(parties, totals);
+  let intl: Awaited<ReturnType<typeof computeIntl>>;
+  try {
+    intl = await computeIntl(parties, totals);
+  } catch (err) {
+    if (err instanceof FxRateUnavailableError) {
+      return { ok: false, error: err.message };
+    }
+    throw err;
+  }
 
   const update = {
     client_id: parsed.data.clientId ?? null,

@@ -15,6 +15,23 @@ export function formatPaiseInr(paise: number | null | undefined): string {
   return `₹${v.toLocaleString("en-IN")}`;
 }
 
+export function formatCurrencyAmount(
+  amount: number | null | undefined,
+  currency: string | null | undefined,
+): string {
+  const code = (currency || "INR").toUpperCase();
+  const value = Number(amount ?? 0);
+  try {
+    return new Intl.NumberFormat("en-IN", {
+      style: "currency",
+      currency: code,
+      maximumFractionDigits: 2,
+    }).format(value);
+  } catch {
+    return `${code} ${value.toLocaleString("en-IN", { maximumFractionDigits: 2 })}`;
+  }
+}
+
 /**
  * Format an ISO timestamp as "YYYY-MM-DD HH:mm" in IST. Stable string
  * with no locale jitter — admins want monospaced grep-able output.

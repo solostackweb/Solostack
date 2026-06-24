@@ -202,7 +202,7 @@ export function ClientFormDialog({
                 name="phone"
                 type="tel"
                 defaultValue={client?.phone ?? ""}
-                placeholder="+91 …"
+                placeholder={isDomestic ? "+91 ..." : "+1 ..."}
               />
             </Field>
           </div>
@@ -243,7 +243,7 @@ export function ClientFormDialog({
             ) : null}
           </div>
 
-{isDomestic && (
+          {isDomestic && (
           <div className="flex items-start justify-between rounded-md border p-4">
             <div className="space-y-1">
               <Label htmlFor="gstRegistered" className="text-sm font-medium">
@@ -277,31 +277,37 @@ export function ClientFormDialog({
             </Field>
           )}
 
-{isDomestic && (
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="State" required={userHasGstRegistration && gstRegistered} error={errs?.stateCode?.[0]}>
+          {isDomestic && (
+            <Field
+              label="State"
+              required={userHasGstRegistration && gstRegistered}
+              error={errs?.stateCode?.[0]}
+            >
               <StateSelect
                 name="stateCode"
                 defaultValue={client?.stateCode ?? undefined}
                 required={userHasGstRegistration && gstRegistered}
               />
             </Field>
-            <Field
-              label="Billing address"
-              required={userHasGstRegistration && gstRegistered}
-              error={errs?.billingAddress?.[0]}
-              className="sm:col-span-2"
-            >
-              <Textarea
-                name="billingAddress"
-                rows={2}
-                defaultValue={client?.billingAddress ?? ""}
-                required={userHasGstRegistration && gstRegistered}
-                placeholder="Street, city, postal code"
-              />
-            </Field>
-          </div>
           )}
+
+          <Field
+            label="Billing address"
+            required={isDomestic && userHasGstRegistration && gstRegistered}
+            error={errs?.billingAddress?.[0]}
+          >
+            <Textarea
+              name="billingAddress"
+              rows={2}
+              defaultValue={client?.billingAddress ?? ""}
+              required={isDomestic && userHasGstRegistration && gstRegistered}
+              placeholder={
+                isDomestic
+                  ? "Street, city, postal code"
+                  : "Street, city, state/region, postal code, country"
+              }
+            />
+          </Field>
 
           <Field label="Notes" error={errs?.notes?.[0]}>
             <Textarea

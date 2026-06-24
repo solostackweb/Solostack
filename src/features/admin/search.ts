@@ -16,6 +16,7 @@
 
 import { getAdminSupabase } from "@/lib/supabase/admin";
 import { requireAdmin } from "./server";
+import { formatCurrencyAmount } from "./format";
 
 export interface SearchHit {
   /** Stable id used for keying + routing. */
@@ -127,7 +128,7 @@ async function resolveBySubstring(q: string): Promise<SearchHit[]> {
       .limit(8),
     admin
       .from("invoices")
-      .select("id, invoice_number, status, total_amount")
+      .select("id, invoice_number, status, total_amount, currency")
       .ilike("invoice_number", pattern)
       .order("created_at", { ascending: false })
       .limit(5),
@@ -152,6 +153,7 @@ async function resolveBySubstring(q: string): Promise<SearchHit[]> {
       invoice_number: string;
       status: string;
       total_amount: number;
+      currency: string;
     }> | null) ?? [];
   const contractRows =
     (contractRes.data as Array<{
@@ -177,7 +179,7 @@ async function resolveBySubstring(q: string): Promise<SearchHit[]> {
       id: r.id,
       kind: "invoice",
       label: r.invoice_number,
-      hint: `${r.status} · ₹${Math.round(r.total_amount).toLocaleString("en-IN")}`,
+      hint: `${r.status} · ${formatCurrencyAmount(r.total_amount, r.currency)}`,
       href: `/admin/invoices/${r.id}`,
     });
   }

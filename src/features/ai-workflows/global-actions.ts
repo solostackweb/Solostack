@@ -965,6 +965,22 @@ export async function createInvoiceFromAiAction(input: AiCreateInput) {
   }
 
   const nextNumber = await nextInvoiceNumber(userId);
+  const { data: billingClientRow } = await supabase
+    .from("clients")
+    .select("currency, is_foreign")
+    .eq("id", clientId)
+    .eq("user_id", userId)
+    .maybeSingle();
+  const billingClient = billingClientRow as
+    | { currency?: string | null; is_foreign?: boolean | null }
+    | null;
+  const invoiceCurrency = billingClient?.is_foreign
+    ? billingClient.currency || "USD"
+    : "INR";
+  const invoiceGstRate =
+    profile?.gstRegistered && !billingClient?.is_foreign
+      ? profile.invoiceDefaultGstRate
+      : 0;
   const workDescription = field(fields, "workDescription") || "Professional services";
   const quantity = field(fields, "quantity") ? quantityFromAnswer(field(fields, "quantity")) : 1;
   const discount = field(fields, "discount")
@@ -1017,7 +1033,7 @@ export async function createInvoiceFromAiAction(input: AiCreateInput) {
       invoiceNumber: nextNumber.formatted,
       issueDate: new Date().toISOString().slice(0, 10),
       dueDate,
-      currency: profile?.defaultCurrency ?? "INR",
+      currency: invoiceCurrency,
       status: "draft",
       discount,
       notes: invoiceInput.notes || draftResult.data.notes || undefined,
@@ -1027,7 +1043,7 @@ export async function createInvoiceFromAiAction(input: AiCreateInput) {
           description: lineDescription,
           quantity,
           unitPrice,
-          gstRate: profile?.gstRegistered ? profile.invoiceDefaultGstRate : 0,
+          gstRate: invoiceGstRate,
           position: 0,
         },
       ],
@@ -1156,7 +1172,22 @@ export async function invoiceUnbilledTimeFromAiAction(input: { clientId?: string
     return { ok: false as const, error: "No unbilled billable time found for that client." };
   }
 
-  const gstRate = profile?.gstRegistered ? (profile.invoiceDefaultGstRate ?? 0) : 0;
+  const { data: billingClientRow } = await supabase
+    .from("clients")
+    .select("currency, is_foreign")
+    .eq("id", clientId)
+    .eq("user_id", userId)
+    .maybeSingle();
+  const billingClient = billingClientRow as
+    | { currency?: string | null; is_foreign?: boolean | null }
+    | null;
+  const invoiceCurrency = billingClient?.is_foreign
+    ? billingClient.currency || "USD"
+    : "INR";
+  const gstRate =
+    profile?.gstRegistered && !billingClient?.is_foreign
+      ? (profile.invoiceDefaultGstRate ?? 0)
+      : 0;
   // One line per project; fold anything beyond 12 lines into a final line.
   const groups = unbilled.groups;
   const head = groups.slice(0, 11);
@@ -1195,7 +1226,7 @@ export async function invoiceUnbilledTimeFromAiAction(input: { clientId?: string
       invoiceNumber: nextNumber.formatted,
       issueDate: new Date().toISOString().slice(0, 10),
       dueDate: dueDate.toISOString().slice(0, 10),
-      currency: profile?.defaultCurrency ?? "INR",
+      currency: invoiceCurrency,
       status: "draft",
       discount: 0,
       notes: "Invoice for tracked billable time.",

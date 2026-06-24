@@ -42,6 +42,7 @@ interface CreatedInvoice {
   id: string;
   number: string;
   total: number;
+  currency: string;
   publicUrl: string;
 }
 
@@ -98,6 +99,8 @@ export function InvoiceAiAgentWorkflow({
   const project = projects.find((item) => item.id === projectId) ?? null;
   const subtotal = Math.max(0, quantity * rate);
   const effectiveTotal = Math.max(0, subtotal - discount);
+  const invoiceCurrency = (client?.currency || profile?.defaultCurrency || "INR").toUpperCase();
+  const isForeignClient = Boolean(client?.isForeign) || invoiceCurrency !== "INR";
   const senderName = getDisplayName(profile) || profile?.businessName || "Stackivo";
 
   const reset = React.useCallback(() => {
@@ -196,7 +199,7 @@ export function InvoiceAiAgentWorkflow({
     const finalRate = quantity > 0 ? Math.max(0, effectiveTotal / quantity) : 0;
     const discountNote =
       discount > 0
-        ? `Discount applied: ${profile?.defaultCurrency ?? "INR"} ${discount.toLocaleString("en-IN")}.`
+        ? `Discount applied: ${invoiceCurrency} ${discount.toLocaleString("en-IN")}.`
         : "";
     startTransition(async () => {
       try {
@@ -223,7 +226,7 @@ export function InvoiceAiAgentWorkflow({
           invoiceNumber: nextInvoiceNumber,
           issueDate: todayIso(),
           dueDate,
-          currency: profile?.defaultCurrency ?? "INR",
+          currency: invoiceCurrency,
           status: "draft",
           notes:
             [notes.trim(), aiNotes, discountNote]
@@ -235,7 +238,7 @@ export function InvoiceAiAgentWorkflow({
               description: aiLine?.description || work.trim(),
               quantity,
               unitPrice: finalRate,
-              gstRate: profile?.gstRegistered ? profile.invoiceDefaultGstRate : 0,
+              gstRate: profile?.gstRegistered && !isForeignClient ? profile.invoiceDefaultGstRate : 0,
               position: 0,
             },
           ],
@@ -258,6 +261,7 @@ export function InvoiceAiAgentWorkflow({
           id: res.data.id,
           number: nextInvoiceNumber,
           total: effectiveTotal,
+          currency: invoiceCurrency,
           publicUrl,
         });
         setStep("ready");
@@ -295,12 +299,12 @@ export function InvoiceAiAgentWorkflow({
       documentType: "invoice",
       documentNumber: created.number,
       amount: created.total,
-      currency: profile?.defaultCurrency ?? "INR",
+      currency: created.currency,
       senderName,
       shareUrl: created.publicUrl,
     });
     window.open(url, "_blank", "noopener,noreferrer");
-  }, [client, created, profile?.defaultCurrency, senderName]);
+  }, [client, created, senderName]);
 
   const sendBoth = React.useCallback(() => {
     startTransition(async () => {
@@ -544,7 +548,7 @@ export function InvoiceAiAgentWorkflow({
 
           {rate > 0 && !["client", "project", "work", "due", "amount"].includes(step) && (
             <UserBubble title="Amount">
-              Qty {quantity} × {(profile?.defaultCurrency ?? "INR")} {rate.toLocaleString("en-IN")}
+              Qty {quantity} × {invoiceCurrency} {rate.toLocaleString("en-IN")}
             </UserBubble>
           )}
 
@@ -583,7 +587,7 @@ export function InvoiceAiAgentWorkflow({
           {!['client', 'project', 'work', 'due', 'amount', 'discount'].includes(step) && (
             <UserBubble title="Discount">
               {discount > 0
-                ? `${profile?.defaultCurrency ?? "INR"} ${discount.toLocaleString("en-IN")}`
+                ? `${invoiceCurrency} ${discount.toLocaleString("en-IN")}`
                 : "No discount"}
             </UserBubble>
           )}
@@ -652,7 +656,7 @@ export function InvoiceAiAgentWorkflow({
                     {client ? getClientDisplayName(client) : "Client"} {project ? `· ${project.name}` : ""}
                   </p>
                   <p className="mt-2 text-sm">
-                    {(profile?.defaultCurrency ?? "INR")} {created.total.toLocaleString("en-IN")}
+                    {created.currency} {created.total.toLocaleString("en-IN")}
                   </p>
                 </div>
                 <p className="text-sm text-muted-foreground">

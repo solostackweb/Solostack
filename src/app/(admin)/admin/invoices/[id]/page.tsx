@@ -11,8 +11,8 @@ import { recordAdminAction, requireAdmin } from "@/features/admin/server";
 import { AdminPageHeader } from "@/components/admin/page-header";
 import { AdminNotesPanel } from "@/components/admin/admin-notes";
 import {
+  formatCurrencyAmount,
   formatIstStamp,
-  formatPaiseInr,
   formatRelative,
 } from "@/features/admin/format";
 import { cn } from "@/lib/utils";
@@ -72,7 +72,7 @@ export default async function AdminInvoiceDetailPage({ params }: Props) {
         <Tile label="Status" value={invoice.status} />
         <Tile
           label="Total"
-          value={formatPaiseInr(Math.round(invoice.total_amount * 100))}
+          value={formatCurrencyAmount(invoice.total_amount, invoice.currency)}
         />
         <Tile label="Issued" value={formatIstStamp(invoice.issue_date)} />
         <Tile label="Due" value={formatIstStamp(invoice.due_date)} />
@@ -93,10 +93,10 @@ export default async function AdminInvoiceDetailPage({ params }: Props) {
                   {it.description}
                 </div>
                 <span className="ml-3 font-mono tabular-nums text-muted-foreground">
-                  {it.quantity} × {formatPaiseInr(Math.round(it.unit_price * 100))}
+                  {it.quantity} × {formatCurrencyAmount(it.unit_price, invoice.currency)}
                 </span>
                 <span className="ml-3 font-mono tabular-nums">
-                  {formatPaiseInr(Math.round(it.amount * 100))}
+                  {formatCurrencyAmount(it.amount, invoice.currency)}
                 </span>
               </li>
             ))}

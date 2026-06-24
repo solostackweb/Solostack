@@ -58,15 +58,14 @@ export default async function PortalDetailPage({
   const isActive = portal.status === "active";
 
   // Money totals for the brand header strip.
-  const paidAmount = snapshot.invoices
-    .filter((invoice) => invoice.status === "paid")
-    .reduce((sum, invoice) => sum + invoice.total_amount, 0);
-  const openAmount = snapshot.invoices
-    .filter((invoice) => invoice.status !== "paid" && invoice.status !== "cancelled")
-    .reduce((sum, invoice) => sum + invoice.total_amount, 0);
-  const currency = snapshot.invoices[0]?.currency ?? "INR";
-  const money = (amount: number) =>
-    `${currency} ${new Intl.NumberFormat("en-IN").format(amount)}`;
+  const paidAmount = formatGroupedMoney(
+    snapshot.invoices.filter((invoice) => invoice.status === "paid"),
+  );
+  const openAmount = formatGroupedMoney(
+    snapshot.invoices.filter(
+      (invoice) => invoice.status !== "paid" && invoice.status !== "cancelled",
+    ),
+  );
 
   return (
     <div className="space-y-5">
@@ -88,8 +87,8 @@ export default async function PortalDetailPage({
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2 sm:flex-nowrap sm:justify-end">
-            <PortalMoneyStat label="Open" value={money(openAmount)} />
-            <PortalMoneyStat label="Paid" value={money(paidAmount)} />
+            <PortalMoneyStat label="Open" value={openAmount} />
+            <PortalMoneyStat label="Paid" value={paidAmount} />
             <PortalMoneyStat label="Files" value={String(snapshot.files.length)} />
             <Button asChild variant="outline" size="sm" className="h-9 shrink-0 gap-1.5 self-center">
               <Link href={portalClientHome(id)} target="_blank">
@@ -294,4 +293,23 @@ function PortalMoneyStat({ label, value }: { label: string; value: string }) {
       </p>
     </div>
   );
+}
+
+function formatGroupedMoney(
+  invoices: Array<{ total_amount: number; currency: string | null }>,
+): string {
+  if (invoices.length === 0) return "INR 0";
+  const totals = new Map<string, number>();
+  for (const invoice of invoices) {
+    const currency = (invoice.currency || "INR").toUpperCase();
+    totals.set(currency, (totals.get(currency) ?? 0) + Number(invoice.total_amount));
+  }
+  return Array.from(totals.entries())
+    .map(([currency, amount]) => {
+      const value = new Intl.NumberFormat("en-IN", {
+        maximumFractionDigits: 2,
+      }).format(amount);
+      return `${currency} ${value}`;
+    })
+    .join(" + ");
 }

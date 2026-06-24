@@ -1,11 +1,10 @@
 "use server";
 
 /**
- * Server actions for the three-option payment-method picker (updated 0034).
+ * Server actions for the payment-method picker.
  *
- * Three methods:
- *   1. setBankPaymentMethodAction  — shared for both stackivo_managed and
- *      upi_smart; determines type from the `methodType` hidden field.
+ * Methods:
+ *   1. setBankPaymentMethodAction  — Smart Collect bank registration.
  *   2. setUpiManualMethodAction    — UPI VPA only, zero fee, manual confirm.
  *   3. setFeePassthroughAction     — toggle + percent for fee passthrough.
  *   4. clearPaymentMethodAction    — clears the active method.
@@ -55,13 +54,13 @@ async function requireUserId(): Promise<string> {
   return user.id;
 }
 
-// --- 1. Bank Account (Route Checkout OR Smart Collect UPI) -----------------
+// --- 1. Bank Account (Smart Collect UPI) -----------------------------------
 //
-// Both stackivo_managed and upi_smart require the same bank registration.
-// The hidden `methodType` field determines which invoice UI the client sees.
+// Smart Collect requires bank registration. Route Checkout is retired from the
+// freelancer-facing flow because international invoices use connected methods.
 
 const bankSchema = z.object({
-  methodType: z.enum(["stackivo_managed", "upi_smart"]),
+  methodType: z.literal("upi_smart"),
   accountHolderName: z.string().trim().min(2).max(120),
   bankAccountNumber: z
     .string()
@@ -167,14 +166,10 @@ export async function setBankPaymentMethodAction(
   await saveBankPaymentMethod(userId, methodType, bankDetails, routeIds);
   revalidatePath("/dashboard/settings/payments");
 
-  const methodLabel =
-    methodType === "upi_smart"
-      ? "Smart Collect UPI"
-      : "Checkout (cards + UPI)";
-
   return {
     ok: true,
-    message: `${methodLabel} enabled. Bank verified with Razorpay. Payouts land in your account within 1-2 business days of each payment.`,
+    message:
+      "Smart Collect UPI enabled. Bank verified with Razorpay. Payouts land in your account within 1-2 business days of each payment.",
   };
 }
 
@@ -250,11 +245,10 @@ export async function clearPaymentMethodAction(): Promise<ActionResult> {
 // These are used by old call sites that haven't been updated yet. They
 // delegate to the new action.
 
-export async function setManagedPaymentMethodAction(
-  prev: ActionResult | undefined,
-  formData: FormData,
-): Promise<ActionResult> {
-  // Inject the hidden methodType field that the new action expects.
-  formData.set("methodType", "stackivo_managed");
-  return setBankPaymentMethodAction(prev, formData);
+export async function setManagedPaymentMethodAction(): Promise<ActionResult> {
+  return {
+    ok: false,
+    error:
+      "Route Checkout has been retired. Use UPI Direct for Indian clients and payment connections for international clients.",
+  };
 }

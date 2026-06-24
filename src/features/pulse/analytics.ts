@@ -237,19 +237,22 @@ export async function getPulseAnalytics(opts: {
 
     // --- GST aggregation (issued invoices only) ---
     if (r.status === "draft") continue;
+    const nativeTotal = Number(r.total_amount) || 0;
+    const inrTotal = Number(r.inr_equivalent ?? nativeTotal) || nativeTotal;
+    const inrRatio = nativeTotal > 0 ? inrTotal / nativeTotal : 1;
     const taxable = Math.max(
       0,
       (Number(r.subtotal) || 0) - (Number(r.discount_amount) || 0),
-    );
+    ) * inrRatio;
     if (!r.tax_mode || r.tax_mode === "non_gst") {
       exemptTaxable += taxable;
       exemptCount += 1;
       continue;
     }
-    const cgst = Number(r.cgst_amount) || 0;
-    const sgst = Number(r.sgst_amount) || 0;
-    const igst = Number(r.igst_amount) || 0;
-    const tax = cgst + sgst + igst || Number(r.gst_amount) || 0;
+    const cgst = (Number(r.cgst_amount) || 0) * inrRatio;
+    const sgst = (Number(r.sgst_amount) || 0) * inrRatio;
+    const igst = (Number(r.igst_amount) || 0) * inrRatio;
+    const tax = cgst + sgst + igst || (Number(r.gst_amount) || 0) * inrRatio;
     gTaxable += taxable;
     gCgst += cgst;
     gSgst += sgst;

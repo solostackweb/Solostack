@@ -8,7 +8,7 @@
 import Link from "next/link";
 import { listInvoices } from "@/features/admin/queries";
 import { AdminPageHeader } from "@/components/admin/page-header";
-import { formatIstStamp, formatPaiseInr } from "@/features/admin/format";
+import { formatCurrencyAmount, formatIstStamp } from "@/features/admin/format";
 import { cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -133,7 +133,7 @@ export default async function AdminInvoicesPage({ searchParams }: Props) {
                     <StatusBadge status={r.status} />
                   </td>
                   <td className="px-3 py-2 tabular-nums">
-                    {formatPaiseInr(Math.round(r.total_amount * 100))}
+                    {formatCurrencyAmount(r.total_amount, r.currency)}
                   </td>
                   <td className="hidden px-3 py-2 font-mono text-[11px] tabular-nums text-muted-foreground sm:table-cell">
                     {formatIstStamp(r.issue_date)}

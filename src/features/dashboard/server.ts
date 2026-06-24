@@ -325,7 +325,7 @@ export async function getRemindersSnapshot(): Promise<{
   // passed. This mirrors the invoice read model's effective-status logic.
   const { data: overdueRows } = await supabase
     .from("invoices")
-    .select("id, invoice_number, due_date, total_amount")
+    .select("id, invoice_number, due_date, total_amount, currency")
     .in("status", ["sent", "viewed", "overdue"])
     .lte("due_date", todayIso)
     .order("due_date", { ascending: true })
@@ -342,7 +342,13 @@ export async function getRemindersSnapshot(): Promise<{
     .order("expires_at", { ascending: true })
     .limit(3);
 
-  type OverdueRow = { id: string; invoice_number: string; due_date: string; total_amount: number };
+  type OverdueRow = {
+    id: string;
+    invoice_number: string;
+    due_date: string;
+    total_amount: number;
+    currency: string;
+  };
   type ExpiringRow = { id: string; title: string; expires_at: string };
 
   const reminders: import("@/components/dashboard/upcoming-reminders").ReminderItem[] = [];
@@ -353,7 +359,7 @@ export async function getRemindersSnapshot(): Promise<{
     );
     const amt = new Intl.NumberFormat("en-IN", {
       style: "currency",
-      currency: "INR",
+      currency: row.currency || "INR",
       maximumFractionDigits: 0,
     }).format(Number(row.total_amount));
     reminders.push({
