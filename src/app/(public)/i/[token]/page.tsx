@@ -12,7 +12,6 @@ import { getInvoicePdfShareUrl } from "@/features/documents/urls";
 import { invoiceAmountInWords } from "@/lib/number-to-words";
 import { clientFacingInvoiceStatus } from "@/features/invoices/status";
 import { getUserPaymentMethod } from "@/features/billing/payment-methods";
-import { PublicPaymentPanel } from "@/features/invoices/components/public-payment-panel";
 import { PublicUpiPanel } from "@/features/invoices/components/public-upi-panel";
 import { renderUpiQrSvg } from "@/features/invoices/upi";
 import { getOrCreateInvoiceVirtualAccount } from "@/features/billing/razorpay/smart-collect";
@@ -58,6 +57,7 @@ export default async function PublicInvoicePage({ params }: Props) {
   const accent = viewModel.brandColor ?? "#0F172A";
   const amountFormatted = fmt(Number(shared.invoice.total_amount), shared.invoice.currency);
   const isInrInvoice = (shared.invoice.currency || "INR").toUpperCase() === "INR";
+  const isInternationalInvoice = Boolean(viewModel.isExport) || !isInrInvoice;
 
   // UPI QR is rendered server-side so there's no client-side bundle.
   let upiPanelProps: { qrSvg: string; vpa: string; upiUri: string } | null = null;
@@ -435,18 +435,28 @@ export default async function PublicInvoicePage({ params }: Props) {
                   payable. If you have questions, reply to the email it came from.
                 </p>
               </div>
-            ) : method?.type === "stackivo_managed" ? (
-              <PublicPaymentPanel
-                token={token}
-                amountFormatted={amountFormatted}
-                invoiceNumber={viewModel.invoiceNumber}
-                alreadyPaid={isPaid}
-                freelancerName={senderName}
-                prefill={{
-                  name: viewModel.client?.name ?? undefined,
-                  email: viewModel.client?.email ?? undefined,
-                }}
-              />
+            ) : isInternationalInvoice ? (
+              isPaid ? (
+                <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-5 text-center shadow-sm">
+                  <Check className="mx-auto mb-2 h-7 w-7 text-emerald-600" />
+                  <p className="text-sm font-semibold text-emerald-700">
+                    This invoice has been paid.
+                  </p>
+                  <p className="mt-1 text-xs text-emerald-700/80">
+                    Thank you. No further action is needed.
+                  </p>
+                </div>
+              ) : payConnections.length > 0 ? (
+                <PublicPayOptions connections={payConnections} compact />
+              ) : (
+                <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+                  <p className="text-sm font-semibold text-slate-900">Pay internationally</p>
+                  <p className="mt-1.5 text-xs leading-relaxed text-slate-500">
+                    {senderName} hasn’t connected an international payment method yet.
+                    Reply to the invoice email for bank transfer or platform details.
+                  </p>
+                </div>
+              )
             ) : (method?.type === "upi_manual" || method?.type === "upi_smart") &&
               upiPanelProps ? (
               <PublicUpiPanel
@@ -461,9 +471,8 @@ export default async function PublicInvoicePage({ params }: Props) {
               <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
                 <p className="text-sm font-semibold text-slate-900">Pay outside Stackivo</p>
                 <p className="mt-1.5 text-xs leading-relaxed text-slate-500">
-                  {isInrInvoice
-                    ? `${senderName} hasn’t set up online payments yet. Please pay using the bank or UPI details on the invoice and let them know once it’s done.`
-                    : `${senderName} hasn’t set up a direct online payment rail for this currency yet. Use one of the international payment options below, or reply to the invoice email for bank transfer details.`}
+                  {senderName} hasn’t set up UPI payments yet. Reply to the invoice
+                  email for their UPI or bank details before paying.
                 </p>
               </div>
             )}
@@ -477,10 +486,6 @@ export default async function PublicInvoicePage({ params }: Props) {
             </div>
           </aside>
         </div>
-
-        {!isPaid && !isCancelled && payConnections.length > 0 ? (
-          <PublicPayOptions connections={payConnections} />
-        ) : null}
 
         {!isInvoiceBranded ? <StackivoGrowthCta kind="invoice" /> : null}
 

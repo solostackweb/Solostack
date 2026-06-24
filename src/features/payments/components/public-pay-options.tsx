@@ -14,8 +14,10 @@ import { providerName, type PaymentConnection } from "@/features/payments/provid
 
 export function PublicPayOptions({
   connections,
+  compact = false,
 }: {
   connections: PaymentConnection[];
+  compact?: boolean;
 }) {
   const [copied, setCopied] = React.useState<string | null>(null);
   if (!connections.length) return null;
@@ -31,7 +33,13 @@ export function PublicPayOptions({
   };
 
   return (
-    <div className="mx-5 mb-6 rounded-xl border border-slate-200 bg-white p-4 sm:mx-8">
+    <div
+      className={
+        compact
+          ? "rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
+          : "mx-5 mb-6 rounded-xl border border-slate-200 bg-white p-4 sm:mx-8"
+      }
+    >
       <p className="text-sm font-semibold text-slate-900">Pay internationally</p>
       <p className="mt-0.5 text-xs text-slate-500">
         Choose a method below. Payment goes directly to the sender.
