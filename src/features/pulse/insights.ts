@@ -67,7 +67,7 @@ export async function getPulseInsights(opts: {
   const [{ data: paidData }, { data: timeData }] = await Promise.all([
     supabase
       .from("invoices")
-      .select("client_id, project_id, total_amount, paid_at")
+      .select("client_id, project_id, total_amount, inr_equivalent, paid_at")
       .eq("status", "paid")
       .not("paid_at", "is", null),
     supabase
@@ -82,6 +82,7 @@ export async function getPulseInsights(opts: {
     client_id: string | null;
     project_id: string | null;
     total_amount: number | null;
+    inr_equivalent?: number | null;
     paid_at: string | null;
   };
   const paidRows = (paidData as PaidRow[] | null) ?? [];
@@ -105,7 +106,7 @@ export async function getPulseInsights(opts: {
     if (!r.paid_at) continue;
     const t = new Date(r.paid_at).getTime();
     if (t < fromMs || t > toMs) continue;
-    const amt = Number(r.total_amount) || 0;
+    const amt = Number(r.inr_equivalent ?? r.total_amount) || 0;
     totalPaid += amt;
     byClientMap.set(r.client_id, (byClientMap.get(r.client_id) ?? 0) + amt);
     byProjectMap.set(r.project_id, (byProjectMap.get(r.project_id) ?? 0) + amt);

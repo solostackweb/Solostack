@@ -262,55 +262,6 @@ export async function startCheckout(
   };
 }
 
-/**
- * TEST-ONLY checkout: subscribes to a low-value test plan (e.g. Rs.10/month)
- * to verify LIVE recurring authorisation without paying the full plan price.
- * Set RAZORPAY_PLAN_TEST_MONTHLY to a plan you created in the dashboard.
- * Deliberately does NOT touch the user's subscription row / entitlements —
- * it only exercises the Razorpay mandate flow.
- */
-export async function startTestCheckout(): Promise<CheckoutSession> {
-  const env = requireServerEnv();
-  const checkoutKeyId = resolveCheckoutKeyId(env);
-  const testPlanId = env.razorpayPlanTestMonthly;
-  if (!testPlanId) {
-    throw new Error("[billing] RAZORPAY_PLAN_TEST_MONTHLY is not configured.");
-  }
-
-  const supabase = await getServerSupabase();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect(AUTH_LOGIN_ROUTE);
-
-  const customerId = await ensureRazorpayCustomer(user.id);
-  const subscription = await rzpCreateSubscription({
-    planId: testPlanId,
-    customerId,
-    notes: { user_id: user.id, plan: "test", cycle: "monthly" },
-  });
-
-  const admin = getAdminSupabase();
-  const { data: profileRow } = await admin
-    .from("user_profiles")
-    .select("full_name, email")
-    .eq("id", user.id)
-    .maybeSingle();
-  const profile =
-    (profileRow as { full_name: string; email: string } | null) ?? null;
-
-  return {
-    subscriptionId: subscription.id,
-    shortUrl: subscription.short_url,
-    keyId: checkoutKeyId,
-    prefill: {
-      name: profile?.full_name ?? undefined,
-      email: profile?.email ?? user.email ?? undefined,
-    },
-    notes: { user_id: user.id, plan: "test", cycle: "monthly" },
-  };
-}
-
 // --- Cancel / Reactivate ---------------------------------------------------
 
 export async function cancelCurrentSubscription(opts: {

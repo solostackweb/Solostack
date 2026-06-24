@@ -116,9 +116,6 @@ export function requireServerEnv() {
     razorpayPlanBusinessYearly: optional(
       process.env.RAZORPAY_PLAN_BUSINESS_YEARLY,
     ),
-    // TEST-ONLY low-value recurring plan (e.g. Rs.10/month) to verify live
-    // recurring authorisation cheaply. Unused unless the test checkout is shown.
-    razorpayPlanTestMonthly: optional(process.env.RAZORPAY_PLAN_TEST_MONTHLY),
     // Web Push (VAPID). All optional — push gracefully no-ops when unset.
     vapidPublicKey: optional(process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY),
     vapidPrivateKey: optional(process.env.VAPID_PRIVATE_KEY),

@@ -21,6 +21,25 @@ export function formatINR(value: number, opts?: { compact?: boolean }) {
   }).format(safe);
 }
 
+export function formatMoney(
+  value: number,
+  currency = "INR",
+  locale?: string,
+): string {
+  const safe = Number.isFinite(value) ? value : 0;
+  const cur = (currency || "INR").toUpperCase();
+  const loc = locale || (cur === "INR" ? "en-IN" : "en-US");
+  try {
+    return new Intl.NumberFormat(loc, {
+      style: "currency",
+      currency: cur,
+      maximumFractionDigits: cur === "INR" ? 0 : 2,
+    }).format(safe);
+  } catch {
+    return `${cur} ${safe.toFixed(2)}`;
+  }
+}
+
 export function formatNumber(value: number) {
   return new Intl.NumberFormat("en-IN").format(value);
 }

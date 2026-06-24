@@ -26,6 +26,36 @@ import {
   type ActionResult,
 } from "../actions";
 
+const COUNTRIES: { code: string; name: string; currency: string; locale: string }[] = [
+  { code: "IN", name: "India", currency: "INR", locale: "en-IN" },
+  { code: "US", name: "United States", currency: "USD", locale: "en-US" },
+  { code: "GB", name: "United Kingdom", currency: "GBP", locale: "en-GB" },
+  { code: "AE", name: "United Arab Emirates", currency: "AED", locale: "en-AE" },
+  { code: "AU", name: "Australia", currency: "AUD", locale: "en-AU" },
+  { code: "CA", name: "Canada", currency: "CAD", locale: "en-CA" },
+  { code: "SG", name: "Singapore", currency: "SGD", locale: "en-SG" },
+  { code: "DE", name: "Germany", currency: "EUR", locale: "de-DE" },
+  { code: "FR", name: "France", currency: "EUR", locale: "fr-FR" },
+  { code: "NL", name: "Netherlands", currency: "EUR", locale: "nl-NL" },
+  { code: "ES", name: "Spain", currency: "EUR", locale: "es-ES" },
+  { code: "IE", name: "Ireland", currency: "EUR", locale: "en-IE" },
+  { code: "CH", name: "Switzerland", currency: "CHF", locale: "de-CH" },
+  { code: "JP", name: "Japan", currency: "JPY", locale: "ja-JP" },
+  { code: "NZ", name: "New Zealand", currency: "NZD", locale: "en-NZ" },
+  { code: "ZA", name: "South Africa", currency: "ZAR", locale: "en-ZA" },
+  { code: "SA", name: "Saudi Arabia", currency: "SAR", locale: "ar-SA" },
+  { code: "ZZ", name: "Other (international)", currency: "USD", locale: "en-US" },
+];
+
+const CURRENCIES = ["USD", "EUR", "GBP", "AUD", "CAD", "SGD", "AED", "CHF", "JPY", "NZD", "ZAR", "SAR", "INR"];
+
+function localeForCountry(code: string): string {
+  return COUNTRIES.find((c) => c.code === code)?.locale ?? "en-US";
+}
+function currencyForCountry(code: string): string {
+  return COUNTRIES.find((c) => c.code === code)?.currency ?? "USD";
+}
+
 // Both `createClientAction` + `updateClientAction` resolve to this shape;
 // the client-side form only reads `ok` / `error` / `fieldErrors`.
 type ClientFormResult = ActionResult<{ id: string }>;
@@ -62,17 +92,24 @@ export function ClientFormDialog({
   const [gstRegistered, setGstRegistered] = React.useState<boolean>(
     client?.gstRegistered ?? false,
   );
+  const [country, setCountry] = React.useState<string>(client?.country ?? "IN");
+  const [currency, setCurrency] = React.useState<string>(
+    client?.currency ?? "INR",
+  );
 
   // Reset transient state when the dialog re-opens or switches client.
   React.useEffect(() => {
     if (open) {
       setState(undefined);
       setGstRegistered(client?.gstRegistered ?? false);
+      setCountry(client?.country ?? "IN");
+      setCurrency(client?.currency ?? "INR");
     }
   }, [open, client]);
 
   const errs = state && !state.ok ? state.fieldErrors : undefined;
   const userHasGstRegistration = profile?.gstRegistered ?? false;
+  const isDomestic = country === "IN";
 
   const handleSubmit = (formData: FormData) => {
     const draftClient = {
@@ -80,8 +117,12 @@ export function ClientFormDialog({
       businessName: String(formData.get("businessName") ?? "").trim() || null,
       email: String(formData.get("email") ?? "").trim() || null,
     };
-    // Enforce: only allow GST registration if user has GST registration
-    const finalGstRegistered = userHasGstRegistration && gstRegistered;
+    // Foreign clients are never GST-registered; GST only applies to India.
+    const isDomestic = country === "IN";
+    const finalGstRegistered = isDomestic && userHasGstRegistration && gstRegistered;
+    formData.set("country", country);
+    formData.set("currency", isDomestic ? "INR" : currency);
+    formData.set("locale", localeForCountry(country));
     formData.set("gstRegistered", finalGstRegistered ? "true" : "false");
     if (isEdit) formData.set("id", client.id);
     startTransition(async () => {
@@ -166,6 +207,43 @@ export function ClientFormDialog({
             </Field>
           </div>
 
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field label="Country / region" error={errs?.country?.[0]}>
+              <select
+                name="country"
+                value={country}
+                onChange={(e) => {
+                  const c = e.target.value;
+                  setCountry(c);
+                  setCurrency(c === "IN" ? "INR" : currencyForCountry(c));
+                }}
+                className="block h-9 w-full rounded-md border bg-background px-3 text-sm"
+              >
+                {COUNTRIES.map((c) => (
+                  <option key={c.code} value={c.code}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+            </Field>
+            {!isDomestic ? (
+              <Field label="Invoice currency" error={errs?.currency?.[0]}>
+                <select
+                  value={currency}
+                  onChange={(e) => setCurrency(e.target.value)}
+                  className="block h-9 w-full rounded-md border bg-background px-3 text-sm"
+                >
+                  {CURRENCIES.map((c) => (
+                    <option key={c} value={c}>
+                      {c}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+            ) : null}
+          </div>
+
+{isDomestic && (
           <div className="flex items-start justify-between rounded-md border p-4">
             <div className="space-y-1">
               <Label htmlFor="gstRegistered" className="text-sm font-medium">
@@ -184,8 +262,9 @@ export function ClientFormDialog({
               disabled={!userHasGstRegistration}
             />
           </div>
+          )}
 
-          {userHasGstRegistration && gstRegistered && (
+          {isDomestic && userHasGstRegistration && gstRegistered && (
             <Field label="GSTIN" required error={errs?.gstin?.[0]}>
               <Input
                 name="gstin"
@@ -198,6 +277,7 @@ export function ClientFormDialog({
             </Field>
           )}
 
+{isDomestic && (
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="State" required={userHasGstRegistration && gstRegistered} error={errs?.stateCode?.[0]}>
               <StateSelect
@@ -221,6 +301,7 @@ export function ClientFormDialog({
               />
             </Field>
           </div>
+          )}
 
           <Field label="Notes" error={errs?.notes?.[0]}>
             <Textarea

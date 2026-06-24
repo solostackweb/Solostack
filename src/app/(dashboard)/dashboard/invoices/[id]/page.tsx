@@ -5,7 +5,7 @@ import { ArrowLeft, Download, Pencil, FileText, Send, Eye, CheckCircle2, Clock, 
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { formatINR } from "@/lib/format";
+import { formatMoney } from "@/lib/format";
 import { getInvoice } from "@/features/invoices/server";
 import { getClient } from "@/features/clients/server";
 import { getClientDisplayName } from "@/features/clients/utils";
@@ -38,6 +38,7 @@ export default async function InvoiceDetailPage({
   const result = await getInvoice(id);
   if (!result) notFound();
   const { invoice, items } = result;
+  const cur = (invoice as { currency?: string }).currency ?? "INR";
   const [client, activities] = await Promise.all([
     invoice.clientId ? getClient(invoice.clientId) : Promise.resolve(null),
     listActivity({ entityType: "invoice", entityId: id, limit: 20 }),
@@ -156,7 +157,7 @@ export default async function InvoiceDetailPage({
             <MarkPaidManuallyDialog
               invoiceId={invoice.id}
               invoiceNumber={invoice.invoiceNumber}
-              amountLabel={formatINR(invoice.totalAmount)}
+              amountLabel={formatMoney(invoice.totalAmount, cur)}
               alreadyPaid={invoice.status === "paid"}
             />
           )}
@@ -187,11 +188,11 @@ export default async function InvoiceDetailPage({
                 Total
               </p>
               <p className="mt-2 text-2xl font-semibold tabular-nums sm:text-3xl">
-                {formatINR(invoice.totalAmount)}
+                {formatMoney(invoice.totalAmount, cur)}
               </p>
               {invoice.taxTotal > 0 && (
                 <p className="text-xs text-muted-foreground tabular-nums">
-                  incl. {formatINR(invoice.taxTotal)} GST
+                  incl. {formatMoney(invoice.taxTotal, cur)} GST
                 </p>
               )}
               {invoice.status === "paid" && (
@@ -227,7 +228,7 @@ export default async function InvoiceDetailPage({
                       </dd>
                       <dt>Rate</dt>
                       <dd className="text-right tabular-nums text-foreground">
-                        {formatINR(item.unitPrice)}
+                        {formatMoney(item.unitPrice, cur)}
                       </dd>
                       <dt>GST</dt>
                       <dd className="text-right tabular-nums text-foreground">
@@ -237,7 +238,7 @@ export default async function InvoiceDetailPage({
                       </dd>
                       <dt className="font-medium text-foreground">Amount</dt>
                       <dd className="text-right text-sm font-semibold tabular-nums">
-                        {formatINR(item.amount)}
+                        {formatMoney(item.amount, cur)}
                       </dd>
                     </dl>
                   </li>
@@ -276,13 +277,13 @@ export default async function InvoiceDetailPage({
                         {item.quantity}
                       </td>
                       <td className="px-4 py-3 text-right tabular-nums">
-                        {formatINR(item.unitPrice)}
+                        {formatMoney(item.unitPrice, cur)}
                       </td>
                       <td className="px-4 py-3 text-right tabular-nums">
                         {invoice.taxMode === "non_gst" ? "N/A" : `${item.gstRate}%`}
                       </td>
                       <td className="px-4 py-3 text-right tabular-nums">
-                        {formatINR(item.amount)}
+                        {formatMoney(item.amount, cur)}
                       </td>
                     </tr>
                   ))}
@@ -315,20 +316,20 @@ export default async function InvoiceDetailPage({
           </div>
 
           <dl className="ml-auto grid w-full max-w-sm grid-cols-[1fr_auto] gap-x-4 gap-y-2 border-t pt-4 sm:w-auto">
-            <Row label="Subtotal" value={formatINR(invoice.subtotal)} />
+            <Row label="Subtotal" value={formatMoney(invoice.subtotal, cur)} />
             {invoice.discount > 0 && (
-              <Row label="Discount" value={`-${formatINR(invoice.discount)}`} />
+              <Row label="Discount" value={`-${formatMoney(invoice.discount, cur)}`} />
             )}
             {invoice.cgstAmount > 0 && (
-              <Row label="CGST" value={formatINR(invoice.cgstAmount)} />
+              <Row label="CGST" value={formatMoney(invoice.cgstAmount, cur)} />
             )}
             {invoice.sgstAmount > 0 && (
-              <Row label="SGST" value={formatINR(invoice.sgstAmount)} />
+              <Row label="SGST" value={formatMoney(invoice.sgstAmount, cur)} />
             )}
             {invoice.igstAmount > 0 && (
-              <Row label="IGST" value={formatINR(invoice.igstAmount)} />
+              <Row label="IGST" value={formatMoney(invoice.igstAmount, cur)} />
             )}
-            <Row label="Total" value={formatINR(invoice.totalAmount)} bold />
+            <Row label="Total" value={formatMoney(invoice.totalAmount, cur)} bold />
           </dl>
         </CardContent>
       </Card>

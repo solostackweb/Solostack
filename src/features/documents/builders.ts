@@ -311,6 +311,7 @@ async function assembleInvoicePdfData(args: {
     issueDate: invoice.issue_date,
     dueDate: invoice.due_date,
     currency: invoice.currency,
+    isExport: (invoice as { is_export?: boolean | null }).is_export ?? false,
     status: invoice.status,
     paymentStatus: invoice.payment_status,
     paidAt: invoice.paid_at,

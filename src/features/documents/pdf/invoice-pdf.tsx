@@ -92,6 +92,7 @@ export interface InvoicePdfData {
   issueDate: string;
   dueDate: string;
   currency: string;
+  isExport?: boolean;
   status: string;
   paymentStatus: string | null;
   paidAt: string | null;
@@ -713,7 +714,9 @@ function buildTotalsRows(
   if (totals.discount > 0) {
     rows.push({ label: "Discount", value: `-${formatCurrency(totals.discount, data.currency)}` });
   }
-  if (data.taxMode === "cgst_sgst") {
+  if (data.isExport) {
+    rows.push({ label: "GST", value: "Zero-rated export (LUT)" });
+  } else if (data.taxMode === "cgst_sgst") {
     rows.push({ label: "CGST", value: formatCurrency(totals.cgstAmount, data.currency) });
     rows.push({ label: "SGST", value: formatCurrency(totals.sgstAmount, data.currency) });
   } else if (data.taxMode === "igst") {

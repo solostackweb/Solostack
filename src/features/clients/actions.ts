@@ -14,6 +14,7 @@ import { getServerSupabase } from "@/lib/supabase/server";
 import { AUTH_LOGIN_ROUTE } from "@/features/auth/routes";
 import { normaliseGstin } from "@/features/gst/validation";
 import { clientCrudSchema, clientIdSchema } from "./server-schemas";
+import { isValidStateCode } from "@/features/gst/state-codes";
 import { assertCanCreateClient } from "./enforcement";
 
 export type ActionResult<T = undefined> =
@@ -41,6 +42,9 @@ function parseFromFormData(formData: FormData) {
     businessName: formData.get("businessName"),
     email: formData.get("email"),
     phone: formData.get("phone"),
+    country: formData.get("country") ?? undefined,
+    currency: formData.get("currency") ?? undefined,
+    locale: formData.get("locale") ?? undefined,
     stateCode: formData.get("stateCode"),
     billingAddress: formData.get("billingAddress"),
     notes: formData.get("notes"),
@@ -76,17 +80,31 @@ export async function createClientAction(
   const userId = await requireUserId();
   const supabase = await getServerSupabase();
 
+  const isForeign = parsed.data.country !== "IN";
+  // Indian (non-foreign) clients still need a valid state for place-of-supply.
+  if (!isForeign && !isValidStateCode(parsed.data.stateCode ?? "")) {
+    return {
+      ok: false,
+      error: "Please fix the highlighted fields.",
+      fieldErrors: { stateCode: ["Pick a valid Indian state"] },
+    };
+  }
+
   const insertRow = {
     user_id: userId,
     full_name: parsed.data.fullName,
     business_name: parsed.data.businessName ?? null,
     email: parsed.data.email ?? null,
     phone: parsed.data.phone ?? null,
+    country: parsed.data.country,
+    currency: parsed.data.currency,
+    locale: parsed.data.locale ?? null,
+    is_foreign: isForeign,
     gst_registered: parsed.data.gstRegistered,
     gst_number: parsed.data.gstRegistered
       ? normaliseGstin(parsed.data.gstin)
       : null,
-    state_code: parsed.data.stateCode,
+    state_code: isForeign ? null : parsed.data.stateCode,
     billing_address: parsed.data.billingAddress ?? null,
     notes: parsed.data.notes ?? null,
   };
@@ -132,16 +150,29 @@ export async function updateClientAction(
   await requireUserId();
   const supabase = await getServerSupabase();
 
+  const isForeign = parsed.data.country !== "IN";
+  if (!isForeign && !isValidStateCode(parsed.data.stateCode ?? "")) {
+    return {
+      ok: false,
+      error: "Please fix the highlighted fields.",
+      fieldErrors: { stateCode: ["Pick a valid Indian state"] },
+    };
+  }
+
   const update = {
     full_name: parsed.data.fullName,
     business_name: parsed.data.businessName ?? null,
     email: parsed.data.email ?? null,
     phone: parsed.data.phone ?? null,
+    country: parsed.data.country,
+    currency: parsed.data.currency,
+    locale: parsed.data.locale ?? null,
+    is_foreign: isForeign,
     gst_registered: parsed.data.gstRegistered,
     gst_number: parsed.data.gstRegistered
       ? normaliseGstin(parsed.data.gstin)
       : null,
-    state_code: parsed.data.stateCode,
+    state_code: isForeign ? null : parsed.data.stateCode,
     billing_address: parsed.data.billingAddress ?? null,
     notes: parsed.data.notes ?? null,
   };

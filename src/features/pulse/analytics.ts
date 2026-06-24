@@ -136,12 +136,12 @@ type RangeRow = Pick<
   | "classification"
   | "client_id"
   | "client_state_code"
->;
+> & { inr_equivalent?: number | null };
 
 type OpenRow = Pick<
   InvoiceRow,
   "total_amount" | "due_date" | "status" | "payment_amount"
->;
+> & { inr_equivalent?: number | null };
 
 const OPEN_STATUSES = ["sent", "viewed", "overdue", "partially_paid"];
 
@@ -158,13 +158,13 @@ export async function getPulseAnalytics(opts: {
       supabase
         .from("invoices")
         .select(
-          "issue_date, paid_at, viewed_at, total_amount, status, tax_mode, payment_amount, subtotal, discount_amount, cgst_amount, sgst_amount, igst_amount, gst_amount, classification, client_id, client_state_code",
+          "issue_date, paid_at, viewed_at, total_amount, inr_equivalent, status, tax_mode, payment_amount, subtotal, discount_amount, cgst_amount, sgst_amount, igst_amount, gst_amount, classification, client_id, client_state_code",
         )
         .gte("issue_date", from)
         .lte("issue_date", to),
       supabase
         .from("invoices")
-        .select("total_amount, due_date, status, payment_amount")
+        .select("total_amount, inr_equivalent, due_date, status, payment_amount")
         .in("status", OPEN_STATUSES),
       supabase
         .from("user_profiles")
@@ -209,7 +209,8 @@ export async function getPulseAnalytics(opts: {
 
   for (const r of rangeRows) {
     if (r.tax_mode && r.tax_mode !== "non_gst") hasGstInvoices = true;
-    const total = Number(r.total_amount) || 0;
+    // INR-consolidated: foreign invoices contribute their locked INR equivalent.
+    const total = Number(r.inr_equivalent ?? r.total_amount) || 0;
 
     // Cancelled invoices are voided documents — excluded from issued/funnel.
     if (r.status === "cancelled") continue;
@@ -315,9 +316,13 @@ export async function getPulseAnalytics(opts: {
   let overdueCount = 0;
 
   for (const r of openRows) {
-    const balance =
-      (Number(r.total_amount) || 0) - (Number(r.payment_amount) || 0);
-    if (balance <= 0) continue;
+    const nativeTotal = Number(r.total_amount) || 0;
+    const nativeBalance = nativeTotal - (Number(r.payment_amount) || 0);
+    if (nativeBalance <= 0) continue;
+    // Convert outstanding to INR using the invoice's locked FX rate.
+    const ratio =
+      nativeTotal > 0 ? (Number(r.inr_equivalent ?? nativeTotal) || nativeTotal) / nativeTotal : 1;
+    const balance = nativeBalance * ratio;
     outstandingTotal += balance;
     const due = r.due_date ? new Date(`${r.due_date}T00:00:00Z`) : null;
     const daysPast = due

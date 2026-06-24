@@ -24,7 +24,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { DataTableColumnHeader } from "@/components/data-table/data-table-column-header";
-import { formatINR } from "@/lib/format";
+import { formatMoney } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { getClientInitials } from "@/features/clients/utils";
 
@@ -215,11 +215,11 @@ export function buildInvoiceColumns({
         return (
           <div className="text-right">
             <div className="text-sm font-semibold tabular-nums">
-              {formatINR(Number(inv.totalAmount) || 0)}
+              {formatMoney(Number(inv.totalAmount) || 0, inv.currency)}
             </div>
             {inv.taxTotal > 0 && (
               <div className="text-[11px] tabular-nums text-muted-foreground">
-                incl. {formatINR(Number(inv.taxTotal) || 0)} GST
+                incl. {formatMoney(Number(inv.taxTotal) || 0, inv.currency)} GST
               </div>
             )}
           </div>

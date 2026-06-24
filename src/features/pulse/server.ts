@@ -46,10 +46,12 @@ export async function getRevenueSeries(months = 6): Promise<RevenuePoint[]> {
 
   const { data } = await supabase
     .from("invoices")
-    .select("issue_date, paid_at, total_amount, status")
+    .select("issue_date, paid_at, total_amount, inr_equivalent, status")
     .gte("issue_date", start.toISOString().slice(0, 10));
 
-  type Row = Pick<InvoiceRow, "issue_date" | "paid_at" | "total_amount" | "status">;
+  type Row = Pick<InvoiceRow, "issue_date" | "paid_at" | "total_amount" | "status"> & {
+    inr_equivalent?: number | null;
+  };
   const rows = (data as unknown as Row[]) ?? [];
 
   const buckets = new Map<string, RevenuePoint>();
@@ -63,7 +65,7 @@ export async function getRevenueSeries(months = 6): Promise<RevenuePoint[]> {
 
   for (const r of rows) {
     if (r.status !== "paid" || !r.paid_at) continue;
-    const total = Number(r.total_amount) || 0;
+    const total = Number(r.inr_equivalent ?? r.total_amount) || 0;
     const d = new Date(r.paid_at);
     const key = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
     const bucket = buckets.get(key);
@@ -101,16 +103,18 @@ export async function getOverdueTotal(): Promise<{
   const todayIso = new Date().toISOString().slice(0, 10);
   const { data } = await supabase
     .from("invoices")
-    .select("total_amount")
+    .select("total_amount, inr_equivalent")
     .in("status", ["sent", "viewed", "overdue"])
     .lte("due_date", todayIso);
 
-  const rows = (data as Array<{ total_amount: number | null }> | null) ?? [];
+  const rows =
+    (data as Array<{ total_amount: number | null; inr_equivalent?: number | null }> | null) ??
+    [];
   return {
     count: rows.length,
     total:
       Math.round(
-        rows.reduce((sum, row) => sum + (Number(row.total_amount) || 0), 0) *
+        rows.reduce((sum, row) => sum + (Number(row.inr_equivalent ?? row.total_amount) || 0), 0) *
           100,
       ) / 100,
   };

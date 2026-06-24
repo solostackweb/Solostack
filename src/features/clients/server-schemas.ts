@@ -38,6 +38,24 @@ const gstinSchema = z
   .toUpperCase()
   .refine(isValidGstin, "Enter a valid 15-character GSTIN");
 
+// ISO-2 country code; defaults to IN. Currency ISO-4217; defaults to INR.
+const countrySchema = z
+  .string()
+  .trim()
+  .optional()
+  .transform((v) => {
+    const c = (v ?? "").toUpperCase();
+    return c.length === 2 ? c : "IN";
+  });
+const currencySchema = z
+  .string()
+  .trim()
+  .optional()
+  .transform((v) => {
+    const c = (v ?? "").toUpperCase();
+    return c.length >= 3 ? c.slice(0, 3) : "INR";
+  });
+
 /**
  * Discriminated by `gstRegistered` so the resolver can require GSTIN +
  * billing address only on the GST branch.
@@ -53,7 +71,12 @@ export const clientCrudSchema = z.discriminatedUnion("gstRegistered", [
     businessName: optionalText(120),
     email: optionalEmail,
     phone: optionalText(20),
-    stateCode: stateCodeSchema,
+    country: countrySchema,
+    currency: currencySchema,
+    locale: optionalText(20),
+    // Loose here: Indian non-GST clients still need a valid state (enforced in
+    // the action); foreign clients have no Indian state.
+    stateCode: optionalText(2),
     billingAddress: optionalText(300),
     notes: optionalText(500),
     gstin: z.literal("").optional(),
@@ -68,6 +91,9 @@ export const clientCrudSchema = z.discriminatedUnion("gstRegistered", [
     businessName: optionalText(120),
     email: optionalEmail,
     phone: optionalText(20),
+    country: countrySchema,
+    currency: currencySchema,
+    locale: optionalText(20),
     stateCode: stateCodeSchema,
     billingAddress: z
       .string()

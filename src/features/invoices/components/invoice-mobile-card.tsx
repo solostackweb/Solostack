@@ -19,7 +19,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
-import { formatINR } from "@/lib/format";
+import { formatMoney } from "@/lib/format";
 import type { InvoiceRecord } from "../server";
 import { InvoiceStatusBadge } from "./invoice-status-badge";
 
@@ -128,11 +128,11 @@ export function InvoiceMobileCard({
 
         <div className="flex shrink-0 flex-col items-end gap-0.5">
           <div className="text-[15px] font-semibold tabular-nums leading-tight">
-            {formatINR(Number(invoice.totalAmount) || 0)}
+            {formatMoney(Number(invoice.totalAmount) || 0, invoice.currency)}
           </div>
           {invoice.taxTotal > 0 && (
             <div className="text-[10px] tabular-nums text-muted-foreground">
-              incl. {formatINR(Number(invoice.taxTotal) || 0)}
+              incl. {formatMoney(Number(invoice.taxTotal) || 0, invoice.currency)}
             </div>
           )}
         </div>

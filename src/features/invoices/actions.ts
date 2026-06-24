@@ -22,6 +22,7 @@ import {
   invoiceStatusSchema,
 } from "./server-schemas";
 import { calculateInvoice } from "./engine";
+import { getFxRateToInr } from "@/features/payments/fx";
 import { recordActivity } from "@/features/activity/server";
 import { markTimeEntriesInvoiced } from "@/features/time/server";
 import { createNotification } from "@/features/notifications/server";
@@ -70,7 +71,12 @@ function readPayload(formData: FormData): unknown {
 
 interface ResolvedParties {
   seller: { gstRegistered: boolean; stateCode: string | null };
-  client: { gstRegistered: boolean; stateCode: string | null };
+  client: {
+    gstRegistered: boolean;
+    stateCode: string | null;
+    currency: string;
+    isForeign: boolean;
+  };
 }
 
 async function resolveParties(
@@ -87,14 +93,19 @@ async function resolveParties(
     clientId
       ? supabase
           .from("clients")
-          .select("gst_registered, state_code")
+          .select("gst_registered, state_code, currency, is_foreign")
           .eq("id", clientId)
           .maybeSingle()
       : Promise.resolve({ data: null }),
   ]);
 
   const sellerRow = profile as Pick<UserProfileRow, "gst_registered" | "state_code"> | null;
-  const clientRow = client as Pick<ClientRow, "gst_registered" | "state_code"> | null;
+  const clientRow = client as unknown as
+    | (Pick<ClientRow, "gst_registered" | "state_code"> & {
+        currency?: string | null;
+        is_foreign?: boolean | null;
+      })
+    | null;
 
   return {
     seller: {
@@ -104,7 +115,46 @@ async function resolveParties(
     client: {
       gstRegistered: clientRow?.gst_registered ?? false,
       stateCode: clientRow?.state_code ?? null,
+      currency: clientRow?.currency ?? "INR",
+      isForeign: clientRow?.is_foreign ?? false,
     },
+  };
+}
+
+/**
+ * Multi-currency + export adjustments. Foreign clients = export of services:
+ * zero-rated (no GST) under LUT, billed in their currency, with the INR
+ * equivalent locked via the FX rate at issue for Pulse / books.
+ */
+async function computeIntl(
+  parties: ResolvedParties,
+  totals: ReturnType<typeof calculateInvoice>,
+) {
+  const isForeign = parties.client.isForeign;
+  const currency = isForeign ? parties.client.currency || "USD" : "INR";
+  const cgst = isForeign ? 0 : totals.cgstAmount;
+  const sgst = isForeign ? 0 : totals.sgstAmount;
+  const igst = isForeign ? 0 : totals.igstAmount;
+  const gstTotal = isForeign ? 0 : totals.taxTotal;
+  const grandTotal = isForeign
+    ? Math.round((totals.subtotal - totals.discount) * 100) / 100
+    : totals.total;
+  const footerNote = isForeign
+    ? "Export of services under LUT, without payment of IGST."
+    : totals.decision.footerNote;
+  const fxRate = (await getFxRateToInr(currency)) ?? 1;
+  const inrEquivalent = Math.round(grandTotal * fxRate * 100) / 100;
+  return {
+    isForeign,
+    currency,
+    cgst,
+    sgst,
+    igst,
+    gstTotal,
+    grandTotal,
+    footerNote,
+    fxRate,
+    inrEquivalent,
   };
 }
 
@@ -164,6 +214,8 @@ export async function createInvoiceAction(
     client: parties.client,
   });
 
+  const intl = await computeIntl(parties, totals);
+
   const insertRow = {
     user_id: userId,
     client_id: parsed.data.clientId ?? null,
@@ -171,7 +223,7 @@ export async function createInvoiceAction(
     invoice_number: parsed.data.invoiceNumber,
     issue_date: parsed.data.issueDate,
     due_date: parsed.data.dueDate,
-    currency: parsed.data.currency,
+    currency: intl.currency,
     status: parsed.data.status,
     sent_at: parsed.data.status === "paid" ? new Date().toISOString() : null,
     paid_at: parsed.data.status === "paid" ? new Date().toISOString() : null,
@@ -180,18 +232,21 @@ export async function createInvoiceAction(
     terms: parsed.data.terms ?? null,
     subtotal: totals.subtotal,
     discount_amount: totals.discount,
-    cgst_amount: totals.cgstAmount,
-    sgst_amount: totals.sgstAmount,
-    igst_amount: totals.igstAmount,
-    gst_amount: totals.taxTotal,
-    total_amount: totals.total,
+    cgst_amount: intl.cgst,
+    sgst_amount: intl.sgst,
+    igst_amount: intl.igst,
+    gst_amount: intl.gstTotal,
+    total_amount: intl.grandTotal,
     tax_mode: totals.taxMode,
     classification: totals.decision.classification,
     seller_state_code: parties.seller.stateCode,
     client_state_code: parties.client.stateCode,
-    footer_note: totals.decision.footerNote,
+    footer_note: intl.footerNote,
     hsn_sac: parsed.data.hsnSac ?? null,
-    payment_amount: parsed.data.status === "paid" ? totals.total : null,
+    is_export: intl.isForeign,
+    fx_rate_to_inr: intl.fxRate,
+    inr_equivalent: intl.inrEquivalent,
+    payment_amount: parsed.data.status === "paid" ? intl.grandTotal : null,
     payment_recorded_at:
       parsed.data.status === "paid" ? new Date().toISOString() : null,
   };
@@ -309,29 +364,34 @@ export async function updateInvoiceAction(
     client: parties.client,
   });
 
+  const intl = await computeIntl(parties, totals);
+
   const update = {
     client_id: parsed.data.clientId ?? null,
     project_id: parsed.data.projectId ?? null,
     invoice_number: parsed.data.invoiceNumber,
     issue_date: parsed.data.issueDate,
     due_date: parsed.data.dueDate,
-    currency: parsed.data.currency,
+    currency: intl.currency,
     status: parsed.data.status,
     notes: parsed.data.notes ?? null,
     terms: parsed.data.terms ?? null,
     subtotal: totals.subtotal,
     discount_amount: totals.discount,
-    cgst_amount: totals.cgstAmount,
-    sgst_amount: totals.sgstAmount,
-    igst_amount: totals.igstAmount,
-    gst_amount: totals.taxTotal,
-    total_amount: totals.total,
+    cgst_amount: intl.cgst,
+    sgst_amount: intl.sgst,
+    igst_amount: intl.igst,
+    gst_amount: intl.gstTotal,
+    total_amount: intl.grandTotal,
     tax_mode: totals.taxMode,
     classification: totals.decision.classification,
     seller_state_code: parties.seller.stateCode,
     client_state_code: parties.client.stateCode,
-    footer_note: totals.decision.footerNote,
+    footer_note: intl.footerNote,
     hsn_sac: parsed.data.hsnSac ?? null,
+    is_export: intl.isForeign,
+    fx_rate_to_inr: intl.fxRate,
+    inr_equivalent: intl.inrEquivalent,
   };
 
   const { error } = await supabase

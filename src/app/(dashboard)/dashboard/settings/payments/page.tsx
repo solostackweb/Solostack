@@ -8,6 +8,8 @@ import {
 } from "@/features/billing/payment-methods";
 import { PaymentMethodPicker } from "@/features/billing/components/payment-method-picker";
 import { SettingsPageHeader } from "@/features/settings/components/settings-section";
+import { listMyConnections } from "@/features/payments/connections";
+import { PaymentConnectionsCard } from "@/features/payments/components/payment-connections-card";
 
 export const metadata = {
   title: "Payments — Stackivo",
@@ -23,9 +25,10 @@ export default async function PaymentsSettingsPage() {
   if (!user) redirect(AUTH_LOGIN_ROUTE);
 
   // Payment gateway is free for all plans — no feature gate here.
-  const [summary, config] = await Promise.all([
+  const [summary, config, connections] = await Promise.all([
     getUserPaymentMethodSummary(user.id),
     getUserPaymentMethod(user.id),
+    listMyConnections(),
   ]);
 
   // Pre-fill non-sensitive fields for the bank form.
@@ -80,6 +83,8 @@ export default async function PaymentsSettingsPage() {
           initialBank={initialBank}
           initialUpiVpa={initialUpiVpa}
         />
+
+        <PaymentConnectionsCard connections={connections} />
 
         <div className="grid gap-3 sm:grid-cols-3">
           {[

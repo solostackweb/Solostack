@@ -21,6 +21,10 @@ export interface ClientRecord {
   businessName: string | null;
   email: string | null;
   phone: string | null;
+  country: string;
+  currency: string;
+  locale: string | null;
+  isForeign: boolean;
   gstRegistered: boolean;
   gstin: string | null;
   stateCode: string | null;
@@ -31,12 +35,22 @@ export interface ClientRecord {
 }
 
 export function mapClientRow(row: ClientRow): ClientRecord {
+  const intl = row as unknown as {
+    country?: string | null;
+    currency?: string | null;
+    locale?: string | null;
+    is_foreign?: boolean | null;
+  };
   return {
     id: row.id,
     fullName: row.full_name,
     businessName: row.business_name ?? row.company_name,
     email: row.email,
     phone: row.phone,
+    country: intl.country ?? "IN",
+    currency: intl.currency ?? "INR",
+    locale: intl.locale ?? null,
+    isForeign: intl.is_foreign ?? false,
     gstRegistered: row.gst_registered,
     gstin: row.gst_number,
     stateCode: row.state_code,

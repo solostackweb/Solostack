@@ -15,7 +15,6 @@ import { PlanPicker } from "@/features/billing/components/plan-picker";
 import { PaymentHistory } from "@/features/billing/components/payment-history";
 import { PaymentMethodCard } from "@/features/billing/components/payment-method-card";
 import { SyncBillingButton } from "@/features/billing/components/sync-billing-button";
-import { TestCheckoutButton } from "@/features/billing/components/test-checkout-button";
 import { UsageGrid } from "@/features/billing/components/usage-grid";
 import { getUsageSnapshot } from "@/features/subscription/server";
 import type {
@@ -124,8 +123,6 @@ export default async function BillingSettingsPage({
       >
         <PaymentHistory payments={payments} />
       </SettingsSection>
-
-      <TestCheckoutButton />
 
       <SettingsSection
         title="Billing help & policies"

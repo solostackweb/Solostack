@@ -16,7 +16,6 @@ import {
   reactivateCurrentSubscription,
   refreshCurrentSubscription,
   startCheckout,
-  startTestCheckout,
 } from "./server";
 import { RazorpayApiError } from "./razorpay/client";
 import type { CheckoutSession } from "./types";
@@ -53,20 +52,6 @@ export async function startCheckoutAction(
     return {
       ok: false,
       error: billingErrorMessage(err, "Checkout failed."),
-    };
-  }
-}
-
-export async function startTestCheckoutAction(): Promise<
-  ActionResult<CheckoutSession>
-> {
-  try {
-    const session = await startTestCheckout();
-    return { ok: true, data: session };
-  } catch (err) {
-    return {
-      ok: false,
-      error: billingErrorMessage(err, "Test checkout failed."),
     };
   }
 }
