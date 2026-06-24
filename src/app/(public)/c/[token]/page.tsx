@@ -9,6 +9,8 @@ import {
 } from "@/features/share/server";
 import { buildContractPdfDataByToken } from "@/features/documents/builders";
 import { getContractPdfShareUrl } from "@/features/documents/urls";
+import { ownerHasCustomBranding } from "@/features/billing/branding-check";
+import { StackivoGrowthCta } from "@/components/marketing/stackivo-growth-cta";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -36,6 +38,8 @@ export default async function PublicContractPage({ params }: Props) {
   if (!shared || !viewModel) notFound();
 
   void recordContractView(token);
+
+  const isContractBranded = await ownerHasCustomBranding(shared.user_id);
 
   const status = shared.status;
   const tone =
@@ -77,6 +81,7 @@ export default async function PublicContractPage({ params }: Props) {
           signed={status === "signed"}
           contractTitle={viewModel.title}
         />
+        {!isContractBranded ? <StackivoGrowthCta kind="contract" /> : null}
       </div>
     </PublicDocumentFrame>
   );

@@ -270,12 +270,17 @@ export default function TermsPage() {
       <h3>Data after account deletion</h3>
       <ul>
         <li>
-          On account deletion, your data is soft-deleted immediately and
-          permanently deleted after a 30-day recovery window.
+          When you request account deletion, your account is immediately locked
+          and scheduled for permanent erasure after a 30-day recovery window.
+          You can cancel during that window by signing back in. After it
+          elapses, your personal and business data is permanently and
+          irreversibly deleted, and your uploaded files are removed from
+          storage. Export anything you need first.
         </li>
         <li>
-          GST-related invoice records are retained in anonymised form for 8
-          years as required by Indian law.
+          Records of subscription payments you made to Stackivo are retained in
+          anonymised form for the period required by Indian tax law, as these
+          are Stackivo&rsquo;s own financial records.
         </li>
         <li>
           Your data is never deleted solely because you downgrade to the Free
@@ -420,11 +425,34 @@ export default function TermsPage() {
           before sending.
         </li>
       </ul>
+      <h3>Electronic signatures</h3>
       <p>
-        The e-signature feature captures the signatory&rsquo;s IP address,
-        timestamp, and signature. Stackivo does not provide any guarantee of
-        the legal admissibility of electronic signatures under any specific
-        law. For high-value or regulated contracts, consult a lawyer.
+        Stackivo&rsquo;s signing feature creates an{" "}
+        <strong>electronic signature</strong> within the meaning of the
+        Information Technology Act, 2000. Before signing, the signatory
+        explicitly consents to signing electronically. For each signature we
+        record an audit trail — the signatory&rsquo;s name, email, IP address,
+        device/user-agent, timestamp, and a cryptographic hash of the signed
+        document — and embed it in a signature certificate so the signed record
+        is tamper-evident.
+      </p>
+      <p>
+        The evidentiary value of an electronic signature depends on attribution
+        and the integrity of the record. Stackivo provides the audit trail to
+        support this but does <strong>not</strong> guarantee the legal
+        admissibility or enforceability of any signed document in a particular
+        matter or jurisdiction.
+      </p>
+      <p>
+        <strong>Documents that cannot be signed electronically.</strong> Under
+        the First Schedule of the IT Act, 2000, certain documents are excluded
+        from electronic execution — including negotiable instruments (other than
+        cheques), powers of attorney, trusts, wills and other testamentary
+        dispositions, and contracts for the sale or conveyance of immovable
+        property. You must <strong>not</strong> use Stackivo&rsquo;s e-signature
+        feature for any such document. For these, and for high-value or
+        regulated contracts, use a certified Digital Signature Certificate (DSC)
+        or Aadhaar eSign and consult a lawyer.
       </p>
 
       <h2>13. GST and tax compliance</h2>

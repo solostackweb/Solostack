@@ -21,7 +21,8 @@ export type CronJob =
   | "admin-export"
   | "monitor"
   | "portal-digest"
-  | "retention";
+  | "retention"
+  | "account-purge";
 
 export async function recordCronRun(input: {
   job: CronJob;

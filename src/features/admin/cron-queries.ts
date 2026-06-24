@@ -17,6 +17,7 @@ export const CRON_JOBS: { id: CronJob; label: string; maxGapMinutes: number }[] 
   { id: "admin-export", label: "Admin export", maxGapMinutes: 26 * 60 },
   { id: "portal-digest", label: "Weekly portal digest", maxGapMinutes: 8 * 24 * 60 },
   { id: "retention", label: "Data retention cleanup", maxGapMinutes: 26 * 60 },
+  { id: "account-purge", label: "Account purge (deletion grace)", maxGapMinutes: 26 * 60 },
 ];
 
 export interface CronRunRow {

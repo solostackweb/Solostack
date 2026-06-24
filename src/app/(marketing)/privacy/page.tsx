@@ -260,14 +260,22 @@ export default function PrivacyPage() {
           account is active.
         </li>
         <li>
-          <strong>On account deletion</strong>: your data is soft-deleted
-          immediately (no longer accessible to you or us in normal operation)
-          and permanently deleted after a 30-day recovery window.
+          <strong>On account deletion</strong>: when you request deletion your
+          account is immediately locked and scheduled for permanent erasure
+          after a <strong>30-day recovery window</strong>, during which you can
+          cancel by signing back in. After the window, your personal and
+          business data — profile, clients, projects, invoices, contracts, time
+          entries, portals, uploaded files, support history, and AI history — is
+          permanently and irreversibly deleted from our database, and your
+          uploaded files are removed from object storage. This cannot be undone.
         </li>
         <li>
-          <strong>GST invoice records</strong>: retained for 8 years in
-          anonymised form, as required by Indian tax law, even after account
-          deletion.
+          <strong>Platform billing records</strong>: records of the
+          subscription payments you made to Stackivo are retained for the period
+          required by Indian tax law, with personal identifiers removed
+          (anonymised), as these are Stackivo&rsquo;s own financial records. We
+          recommend exporting any invoices or contracts you need for your own
+          records before deleting your account.
         </li>
         <li>
           <strong>Server and access logs</strong>: 90 days.

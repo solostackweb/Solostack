@@ -28,6 +28,8 @@ on:
     - cron: "0 4 * * 1"
     # ── Data retention cleanup (daily 4:30 UTC = 10:00 AM IST) ───────────
     - cron: "30 4 * * *"
+    # ── Account purge (deletion grace elapsed) daily 5:00 UTC = 10:30 IST ─
+    - cron: "0 5 * * *"
   # Manual trigger from Actions tab
   workflow_dispatch:
     inputs:
@@ -44,6 +46,7 @@ on:
           - monitor
           - portal-digest
           - retention
+          - account-purge
 
 # Shared curl helper — defined once, reused by every job via env
 env:
@@ -196,6 +199,28 @@ jobs:
           HTTP_CODE=$(curl -s -L --location-trusted -o /tmp/body.txt -w "%{http_code}" \
             -H "Authorization: Bearer $SECRET" \
             "$BASE_URL/api/cron/retention")
+          BODY=$(cat /tmp/body.txt)
+          echo "HTTP status : $HTTP_CODE"
+          echo "Response    : $BODY"
+          if [ "$HTTP_CODE" -lt 200 ] || [ "$HTTP_CODE" -ge 300 ]; then
+            echo "::error::Endpoint returned HTTP $HTTP_CODE — $BODY"
+            exit 1
+          fi
+
+  # ── Account purge (daily 5:00 UTC) ───────────────────────────────────────
+  account-purge:
+    name: Account purge (deletion grace elapsed)
+    runs-on: ubuntu-latest
+    if: >-
+      (github.event_name == 'workflow_dispatch' && github.event.inputs.job == 'account-purge') ||
+      (github.event_name == 'schedule' && github.event.schedule == '0 5 * * *')
+    steps:
+      - name: Call /api/cron/account-purge
+        run: |
+          echo "Calling: $BASE_URL/api/cron/account-purge"
+          HTTP_CODE=$(curl -s -L --location-trusted -o /tmp/body.txt -w "%{http_code}" \
+            -H "Authorization: Bearer $SECRET" \
+            "$BASE_URL/api/cron/account-purge")
           BODY=$(cat /tmp/body.txt)
           echo "HTTP status : $HTTP_CODE"
           echo "Response    : $BODY"

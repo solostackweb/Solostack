@@ -27,6 +27,7 @@ import {
   updateSignature,
 } from "@/features/profile/actions";
 import { FreelancerSignatureCard } from "@/features/profile/components/freelancer-signature-card";
+import { AccountSecurityCard } from "@/features/settings/components/account-security-card";
 import type {
   LocalizationInput,
   PersonalProfileInput,
@@ -275,24 +276,7 @@ export default function ProfileSettingsPage() {
         </SettingsSection>
       </div>
 
-      <SettingsSection tone="danger" title="Danger zone">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div className="min-w-0">
-            <p className="text-sm font-medium">Delete account</p>
-            <p className="text-sm text-muted-foreground">
-              Permanently delete your workspace and all associated data. This
-              cannot be undone.
-            </p>
-          </div>
-          <Button
-            variant="outline"
-            size="sm"
-            className="border-destructive text-destructive hover:bg-destructive/5 hover:text-destructive"
-          >
-            Delete account
-          </Button>
-        </div>
-      </SettingsSection>
+      <AccountSecurityCard />
     </>
   );
 }

@@ -3,6 +3,8 @@ import Link from "next/link";
 import { Check, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { getSharedInvoice, recordInvoiceView } from "@/features/share/server";
+import { ownerHasCustomBranding } from "@/features/billing/branding-check";
+import { StackivoGrowthCta } from "@/components/marketing/stackivo-growth-cta";
 import { buildInvoicePdfDataByToken } from "@/features/documents/builders";
 import { getInvoicePdfShareUrl } from "@/features/documents/urls";
 import { amountInWordsINR } from "@/lib/number-to-words";
@@ -49,6 +51,7 @@ export default async function PublicInvoicePage({ params }: Props) {
   const isCancelled = status === "cancelled";
 
   const senderName = viewModel.seller.businessName ?? "Stackivo";
+  const isInvoiceBranded = await ownerHasCustomBranding(shared.invoice.user_id);
   const accent = viewModel.brandColor ?? "#0F172A";
   const amountFormatted = fmt(Number(shared.invoice.total_amount), shared.invoice.currency);
 
@@ -468,6 +471,8 @@ export default async function PublicInvoicePage({ params }: Props) {
             </div>
           </aside>
         </div>
+
+        {!isInvoiceBranded ? <StackivoGrowthCta kind="invoice" /> : null}
 
         {/* Footer */}
         <footer className="mt-8 flex items-center justify-between text-xs text-slate-400">

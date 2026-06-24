@@ -13,21 +13,33 @@
  * SETUP (one time):
  *   1. Go to https://script.google.com  (signed in as support@stackivo.me, or
  *      an account that can read that inbox) → New project.
- *   2. Paste this whole file. Replace the two CONFIG values below.
- *   3. Run `setup` once (authorise when prompted) — it creates the label and
+ *   2. Paste this whole file.
+ *   3. Set the two secrets. EITHER edit the CONFIG fallbacks below, OR (better)
+ *      go to Project Settings → Script properties and add:
+ *         STACKIVO_INBOUND_URL   = https://stackivo.me/api/support/inbound
+ *         SUPPORT_INBOUND_SECRET = <the same value you set in Vercel>
+ *   4. Run `setup` once (authorise when prompted) — it creates the label and
  *      a time trigger that runs every 5 minutes.
- *   4. Done. Send a test email to support@stackivo.me and watch a ticket
+ *   5. Done. Send a test email to support@stackivo.me and watch a ticket
  *      appear in /admin/support.
  *
  * To stop it later: Triggers (clock icon) → delete the trigger.
  */
 
-// ===== CONFIG — edit these two =====
-const STACKIVO_INBOUND_URL = "https://stackivo.me/api/support/inbound";
-const SUPPORT_INBOUND_SECRET = "PASTE_THE_SAME_SECRET_YOU_SET_IN_VERCEL";
-// ===================================
+// ===== CONFIG — used only if the matching Script Property is not set =====
+const CONFIG = {
+  STACKIVO_INBOUND_URL: "https://stackivo.me/api/support/inbound",
+  SUPPORT_INBOUND_SECRET: "PASTE_THE_SAME_SECRET_YOU_SET_IN_VERCEL",
+};
+// ========================================================================
 
 const SYNCED_LABEL = "Stackivo/Synced";
+const SUPPORT_ADDRESS = "support@stackivo.me"; // your inbound address
+
+function cfg(name) {
+  var fromProps = PropertiesService.getScriptProperties().getProperty(name);
+  return fromProps && fromProps.length > 0 ? fromProps : CONFIG[name];
+}
 
 /** Run ONCE to create the label + the 5-minute trigger. */
 function setup() {
@@ -46,58 +58,65 @@ function setup() {
 
 /** The worker: forward new support mail to Stackivo. */
 function syncSupportInbox() {
-  const label = GmailApp.getUserLabelByName(SYNCED_LABEL);
-  if (!label) {
-    GmailApp.createLabel(SYNCED_LABEL);
+  var url = cfg("STACKIVO_INBOUND_URL");
+  var secret = cfg("SUPPORT_INBOUND_SECRET");
+  if (!url || !secret || secret.indexOf("PASTE_") === 0) {
+    Logger.log("Not configured — set STACKIVO_INBOUND_URL + SUPPORT_INBOUND_SECRET.");
+    return;
   }
 
+  var label = GmailApp.getUserLabelByName(SYNCED_LABEL);
+  if (!label) label = GmailApp.createLabel(SYNCED_LABEL);
+
   // Recent mail to support@ that we haven't synced yet.
-  const query =
-    'to:support@stackivo.me newer_than:2d -label:"' + SYNCED_LABEL + '"';
-  const threads = GmailApp.search(query, 0, 40);
+  var query = 'to:' + SUPPORT_ADDRESS + ' newer_than:2d -label:"' + SYNCED_LABEL + '"';
+  var threads = GmailApp.search(query, 0, 40);
 
   threads.forEach(function (thread) {
-    const messages = thread.getMessages();
-    messages.forEach(function (msg) {
+    thread.getMessages().forEach(function (msg) {
       try {
-        const from = msg.getFrom() || "";
+        var from = msg.getFrom() || "";
         // Skip anything we sent ourselves (no loops).
-        if (/support@stackivo\.me/i.test(from)) return;
+        if (new RegExp(SUPPORT_ADDRESS.replace(".", "\\."), "i").test(from)) return;
 
-        const fromEmail = extractEmail(from);
-        const fromName = extractName(from);
-        const subject = msg.getSubject() || "";
-        const messageId = msg.getHeader("Message-ID") || "";
-        const text = msg.getPlainBody() || "";
+        var raw = "";
+        try { raw = msg.getRawContent() || ""; } catch (e) { raw = ""; }
 
-        // Token from the plus-address (To / Delivered-To: support+<token>@…).
-        const recipients =
-          (msg.getHeader("Delivered-To") || "") + " " +
-          (msg.getTo() || "") + " " +
-          (msg.getHeader("X-Original-To") || "");
-        const tokenMatch = recipients.match(/support\+([^@\s>]+)@/i);
-        const token = tokenMatch ? tokenMatch[1] : null;
+        // RFC Message-ID for idempotency. Fall back to Gmail's stable id.
+        var messageId = headerFromRaw(raw, "Message-ID") || msg.getId();
 
-        const payload = {
+        // Token from the plus-address. Check the live To/Reply-To/Cc first,
+        // then the raw delivery headers (covers aliased / forwarded delivery).
+        var recipients = [
+          msg.getTo() || "",
+          msg.getReplyTo() || "",
+          msg.getCc() || "",
+          headerFromRaw(raw, "Delivered-To"),
+          headerFromRaw(raw, "X-Original-To"),
+        ].join(" ");
+        var tokenMatch = recipients.match(/support\+([^@\s>]+)@/i);
+        var token = tokenMatch ? tokenMatch[1] : null;
+
+        var payload = {
           token: token,
           messageId: messageId,
-          from: fromEmail,
-          fromName: fromName,
-          subject: subject,
-          text: text,
+          from: extractEmail(from),
+          fromName: extractName(from),
+          subject: msg.getSubject() || "",
+          text: msg.getPlainBody() || "",
         };
 
-        const res = UrlFetchApp.fetch(STACKIVO_INBOUND_URL, {
+        var res = UrlFetchApp.fetch(url, {
           method: "post",
           contentType: "application/json",
-          headers: { Authorization: "Bearer " + SUPPORT_INBOUND_SECRET },
+          headers: { Authorization: "Bearer " + secret },
           payload: JSON.stringify(payload),
           muteHttpExceptions: true,
         });
 
-        const code = res.getResponseCode();
+        var code = res.getResponseCode();
         if (code >= 200 && code < 300) {
-          Logger.log("Synced: " + subject);
+          Logger.log("Synced: " + payload.subject);
         } else {
           Logger.log("Failed (" + code + "): " + res.getContentText());
         }
@@ -105,16 +124,24 @@ function syncSupportInbox() {
         Logger.log("Error: " + err);
       }
     });
-    thread.addLabel(GmailApp.getUserLabelByName(SYNCED_LABEL));
+    thread.addLabel(label);
   });
 }
 
+/** Extract a header value from raw MIME source (case-insensitive, unfolds). */
+function headerFromRaw(raw, name) {
+  if (!raw) return "";
+  var re = new RegExp("^" + name + ":\\s*(.*(?:\\r?\\n[ \\t].*)*)", "im");
+  var m = raw.match(re);
+  return m ? m[1].replace(/\r?\n[ \t]+/g, " ").trim() : "";
+}
+
 function extractEmail(fromHeader) {
-  const m = fromHeader.match(/<([^>]+)>/);
+  var m = fromHeader.match(/<([^>]+)>/);
   return (m ? m[1] : fromHeader).trim().toLowerCase();
 }
 
 function extractName(fromHeader) {
-  const m = fromHeader.match(/^\s*"?([^"<]+?)"?\s*</);
+  var m = fromHeader.match(/^\s*"?([^"<]+?)"?\s*</);
   return m ? m[1].trim() : null;
 }

@@ -27,6 +27,7 @@ import {
 } from "@/features/auth/routes";
 import { activatePendingPortalInvitesForCurrentUser } from "@/features/portals/invitations";
 import { portalClientHome } from "@/features/portals/routes";
+import { recordConsentIfNeeded } from "@/features/legal/consent";
 
 function sanitiseNext(raw: string | null): string {
   if (!raw) return AUTH_DEFAULT_REDIRECT;
@@ -107,6 +108,18 @@ export async function GET(request: NextRequest) {
     return redirectAndClearOauthCookies(
       `${origin}${errorRedirect}?error=${errorCode}`,
     );
+  }
+
+  // Session established. Record DPDP consent for first-time OAuth (Google)
+  // sign-ins. Idempotent — email/password users already have a 'checkbox'
+  // consent row from signup, so this is a no-op for them.
+  {
+    const {
+      data: { user: sessionUser },
+    } = await supabase.auth.getUser();
+    if (sessionUser) {
+      await recordConsentIfNeeded(sessionUser.id, code ? "oauth" : "email_verify");
+    }
   }
 
   // Session established — send the user to their destination.

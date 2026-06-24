@@ -21,6 +21,7 @@ import {
   signupLimit,
 } from "@/lib/rate-limit";
 import { recordSecurityEvent } from "@/lib/security-events/server";
+import { recordConsentIfNeeded } from "@/features/legal/consent";
 import { hashedEmail } from "@/lib/logger/redact";
 import { verifyTurnstileToken } from "@/lib/turnstile";
 import { log } from "@/lib/logger";
@@ -197,6 +198,7 @@ export async function signupAction(
     fullName: formData.get("fullName"),
     email: formData.get("email"),
     password: formData.get("password"),
+    acceptTerms: formData.get("acceptTerms"),
   });
 
   if (!parsed.success) {
@@ -320,6 +322,15 @@ export async function signupAction(
         createdAt: signUpData.user.created_at,
       });
       await trackServerEvent(signUpData.user.id, "auth.user.signed_up");
+      // DPDP Act: record provable, versioned consent for the checkbox the
+      // user just ticked (validated above). Idempotent + never throws.
+      await recordConsentIfNeeded(signUpData.user.id, "checkbox");
+      await recordSecurityEvent({
+        kind: "consent_recorded",
+        severity: "info",
+        userId: signUpData.user.id,
+        metadata: { method: "checkbox", flow: "signup" },
+      });
     }
 
     return {

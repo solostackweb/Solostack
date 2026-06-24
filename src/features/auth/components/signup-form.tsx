@@ -119,10 +119,23 @@ export function SignupForm({
           />
         </div>
 
+        {/* Informed-consent disclosure shown at the point of acceptance, so
+            consent is specific + informed (DPDP Act), not just a link. */}
+        <div className="rounded-md border border-border bg-muted/30 p-3 text-[12px] leading-relaxed text-muted-foreground">
+          <p className="font-medium text-foreground">What we collect &amp; why</p>
+          <p className="mt-1">
+            To run your account we store your name and email (sign-in), and the
+            business data you create — clients, invoices, contracts, time
+            entries. We use trusted processors for payments, email, file
+            storage and error monitoring. We never sell your data. You can
+            export or delete your account anytime from Settings.
+          </p>
+        </div>
+
         {/* Explicit consent — required by India’s DPDP Act, 2023. The
             checkbox is `required`, so the browser blocks submission until
             the user actively ticks it. The value also reaches the server
-            action as acceptTerms="on". */}
+            action as acceptTerms="on", and is validated + recorded server-side. */}
         <label
           htmlFor="acceptTerms"
           className="flex cursor-pointer items-start gap-2.5 text-[13px] leading-relaxed text-muted-foreground"

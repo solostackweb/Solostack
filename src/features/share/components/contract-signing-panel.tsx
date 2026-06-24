@@ -19,6 +19,7 @@ export function ContractSigningPanel({
   contractTitle: string;
 }) {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [agreed, setAgreed] = useState(false);
   const [isPending, startTransition] = useTransition();
 
   const handleSignatureCapture = async (signature: {
@@ -87,17 +88,40 @@ export function ContractSigningPanel({
               Signed and recorded
             </div>
           ) : (
-            <Button
-              onClick={() => setIsModalOpen(true)}
-              disabled={isPending}
-              className="w-full sm:w-auto"
-            >
-              <PenLine className="h-4 w-4" />
-              {isPending ? "Signing…" : "Sign contract"}
-            </Button>
+            <div className="flex w-full flex-col gap-2 sm:w-auto sm:items-end">
+              <label className="flex cursor-pointer items-start gap-2 text-xs text-muted-foreground">
+                <input
+                  type="checkbox"
+                  checked={agreed}
+                  onChange={(e) => setAgreed(e.target.checked)}
+                  className="mt-0.5 h-4 w-4 shrink-0 cursor-pointer"
+                />
+                <span>
+                  I consent to signing this document electronically under the
+                  Information Technology Act, 2000, and agree my electronic
+                  signature is legally binding.
+                </span>
+              </label>
+              <Button
+                onClick={() => setIsModalOpen(true)}
+                disabled={isPending || !agreed}
+                className="w-full sm:w-auto"
+              >
+                <PenLine className="h-4 w-4" />
+                {isPending ? "Signing…" : "Sign contract"}
+              </Button>
+            </div>
           )}
         </CardContent>
       </Card>
+
+      {!signed ? (
+        <p className="mx-5 -mt-4 mb-8 text-[11px] leading-relaxed text-muted-foreground sm:mx-8 sm:mb-10">
+          Do not use electronic signature for documents excluded under the First
+          Schedule of the IT Act, 2000 (e.g. wills, powers of attorney,
+          negotiable instruments, or property conveyances).
+        </p>
+      ) : null}
 
       <SignatureCaptureModal
         open={isModalOpen}

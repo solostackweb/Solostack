@@ -31,6 +31,17 @@ export const signupSchema = z.object({
     .max(120, "Name is too long"),
   email: emailSchema,
   password: passwordSchema,
+  // DPDP Act: consent must be explicit. The checkbox posts "on" when ticked;
+  // anything else fails, so an account cannot be created without acceptance.
+  acceptTerms: z
+    .preprocess(
+      (v) => v === "on" || v === "true" || v === true,
+      z.literal(true, {
+        errorMap: () => ({
+          message: "You must accept the Terms and Privacy Policy to continue.",
+        }),
+      }),
+    ),
 });
 
 export const loginSchema = z.object({
@@ -62,6 +73,21 @@ export const resetPasswordSchema = z
   .refine((data) => data.password === data.confirmPassword, {
     message: "Passwords do not match",
     path: ["confirmPassword"],
+  });
+
+export const changePasswordSchema = z
+  .object({
+    currentPassword: z.string().min(1, "Enter your current password"),
+    newPassword: passwordSchema,
+    confirmPassword: passwordSchema,
+  })
+  .refine((data) => data.newPassword === data.confirmPassword, {
+    message: "Passwords do not match",
+    path: ["confirmPassword"],
+  })
+  .refine((data) => data.newPassword !== data.currentPassword, {
+    message: "Choose a password different from your current one",
+    path: ["newPassword"],
   });
 
 // --- Inferred types ---------------------------------------------------------
