@@ -45,8 +45,8 @@ function parseFromFormData(formData: FormData) {
     country: formData.get("country") ?? undefined,
     currency: formData.get("currency") ?? undefined,
     locale: formData.get("locale") ?? undefined,
-    stateCode: formData.get("stateCode"),
-    billingAddress: formData.get("billingAddress"),
+    stateCode: formData.get("stateCode") ?? "",
+    billingAddress: formData.get("billingAddress") ?? "",
     notes: formData.get("notes"),
     gstin: formData.get("gstin") ?? "",
   });

@@ -229,6 +229,7 @@ export function ClientFormDialog({
             {!isDomestic ? (
               <Field label="Invoice currency" error={errs?.currency?.[0]}>
                 <select
+                  name="currency"
                   value={currency}
                   onChange={(e) => setCurrency(e.target.value)}
                   className="block h-9 w-full rounded-md border bg-background px-3 text-sm"
@@ -293,14 +294,14 @@ export function ClientFormDialog({
 
           <Field
             label="Billing address"
-            required={isDomestic && userHasGstRegistration && gstRegistered}
+            required
             error={errs?.billingAddress?.[0]}
           >
             <Textarea
               name="billingAddress"
               rows={2}
               defaultValue={client?.billingAddress ?? ""}
-              required={isDomestic && userHasGstRegistration && gstRegistered}
+              required
               placeholder={
                 isDomestic
                   ? "Street, city, postal code"
