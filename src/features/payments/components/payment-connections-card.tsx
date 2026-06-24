@@ -7,14 +7,11 @@ import {
   Banknote,
   CheckCircle2,
   Copy,
-  CreditCard,
   ExternalLink,
   Globe2,
   Loader2,
-  Mail,
   Star,
   Trash2,
-  WalletCards,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -353,13 +350,39 @@ function featuredProviders() {
 }
 
 function ProviderIcon({ providerId }: { providerId: string }) {
-  if (providerId === "bank_wire") return <Banknote className="h-4 w-4" />;
-  if (providerId === "paypal") return <Mail className="h-4 w-4" />;
-  if (providerId === "stripe_link") return <CreditCard className="h-4 w-4" />;
-  if (providerId === "wise" || providerId === "payoneer") {
-    return <WalletCards className="h-4 w-4" />;
+  const brand = providerBrandIcon(providerId);
+  if (brand) {
+    return (
+      <span
+        role="img"
+        aria-label={brand.alt}
+        className="block h-5 w-5 bg-contain bg-center bg-no-repeat"
+        style={{ backgroundImage: `url(${brand.src})` }}
+      />
+    );
   }
+  if (providerId === "bank_wire") return <Banknote className="h-4 w-4" />;
   return <Globe2 className="h-4 w-4" />;
+}
+
+function providerBrandIcon(
+  providerId: string,
+): { src: string; alt: string } | null {
+  const slugByProvider: Record<string, string> = {
+    paypal: "paypal",
+    wise: "wise",
+    payoneer: "payoneer",
+    stripe_link: "stripe",
+    revolut: "revolut",
+    remitly: "remitly",
+  };
+  const slug = slugByProvider[providerId];
+  if (!slug) return null;
+  const providerName = getProvider(providerId)?.name ?? providerId;
+  return {
+    src: `https://cdn.simpleicons.org/${slug}`,
+    alt: `${providerName} logo`,
+  };
 }
 
 function providerCardCopy(providerId: string): string {
