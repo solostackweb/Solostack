@@ -95,7 +95,14 @@ export function ClientMobileCard({
           <p className="truncate text-[14px] font-semibold leading-tight">
             {display}
           </p>
-          {client.gstRegistered ? (
+          {client.isForeign ? (
+            <Badge
+              variant="secondary"
+              className="h-4 shrink-0 bg-sky-500/10 px-1.5 text-[9px] font-semibold uppercase tracking-wider text-sky-700 dark:text-sky-300"
+            >
+              Intl
+            </Badge>
+          ) : client.gstRegistered ? (
             <Badge
               variant="secondary"
               className="h-4 shrink-0 px-1.5 text-[9px] font-semibold uppercase tracking-wider"

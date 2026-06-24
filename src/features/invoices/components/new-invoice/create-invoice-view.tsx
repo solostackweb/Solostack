@@ -398,7 +398,7 @@ export function CreateInvoiceView({
                         {clients.map((c) => {
                           const name = getClientDisplayName(c);
                           return (
-                            <SelectItem key={c.id} value={c.id}>
+                            <SelectItem key={c.id} value={c.id} textValue={name}>
                               <span className="inline-flex items-center gap-2">
                                 <Avatar className="h-5 w-5">
                                   <AvatarFallback className="text-[9px]">

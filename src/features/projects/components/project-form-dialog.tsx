@@ -14,13 +14,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 
@@ -143,19 +136,18 @@ export function ProjectFormDialog({
           </Field>
 
           <Field label="Client" error={errs?.clientId?.[0]}>
-            <Select value={clientId} onValueChange={setClientId}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select a client…" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={NO_CLIENT}>No client</SelectItem>
-                {clients.map((c) => (
-                  <SelectItem key={c.id} value={c.id}>
-                    {c.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <select
+              value={clientId}
+              onChange={(event) => setClientId(event.target.value)}
+              className="block h-10 w-full rounded-md border border-input bg-background px-3 text-sm shadow-sm outline-none transition-all focus:border-primary/40 focus:ring-4 focus:ring-primary/15"
+            >
+              <option value={NO_CLIENT}>No client</option>
+              {clients.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
           </Field>
 
           {isEdit && (

@@ -115,6 +115,13 @@ export function buildClientColumns({
       ),
       cell: ({ row }) => {
         const c = row.original;
+        if (c.isForeign) {
+          return (
+            <span className="inline-flex items-center rounded-full border border-sky-500/25 bg-sky-500/10 px-2 py-0.5 text-xs font-medium text-sky-700 dark:text-sky-300">
+              International
+            </span>
+          );
+        }
         if (!c.gstRegistered) {
           return <span className="text-xs text-muted-foreground">Unregistered</span>;
         }

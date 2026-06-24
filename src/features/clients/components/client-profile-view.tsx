@@ -12,7 +12,6 @@ import {
   Trash2,
   FilePlus,
   MoreHorizontal,
-  Activity,
   Receipt,
   FileText,
 } from "lucide-react";
@@ -93,7 +92,11 @@ export function ClientProfileView({ client, metrics, recentInvoices = [] }: Clie
                 <h1 className="text-xl font-semibold tracking-tight">
                   {display}
                 </h1>
-                {client.gstRegistered ? (
+                {client.isForeign ? (
+                  <span className="rounded-full bg-sky-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-sky-700 dark:text-sky-300">
+                    International
+                  </span>
+                ) : client.gstRegistered ? (
                   <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-primary">
                     GST registered
                   </span>
