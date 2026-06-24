@@ -1,12 +1,13 @@
 import * as React from "react";
 import { cn } from "@/lib/utils";
-import { formatINR } from "@/lib/format";
+import { formatMoney } from "@/lib/format";
 import type { InvoiceTotals } from "../../schema";
 
 interface InvoiceTotalsProps {
   totals: InvoiceTotals;
   gstRate: number;
   taxMode: "intra" | "inter";
+  currency?: string;
   /** When true, uses a larger "document" style (used in the paper preview). */
   variant?: "compact" | "document";
   className?: string;
@@ -21,6 +22,7 @@ export function InvoiceTotalsBreakdown({
   totals,
   gstRate,
   taxMode,
+  currency = "INR",
   variant = "compact",
   className,
 }: InvoiceTotalsProps) {
@@ -36,12 +38,12 @@ export function InvoiceTotalsBreakdown({
 
   return (
     <div className={cn("space-y-2", className)}>
-      <Row label="Subtotal" value={formatINR(totals.subtotal)} labelClass={labelClass} valueClass={valueClass} />
+      <Row label="Subtotal" value={formatMoney(totals.subtotal, currency)} labelClass={labelClass} valueClass={valueClass} />
 
       {totals.discount > 0 && (
         <Row
           label="Discount"
-          value={`−${formatINR(totals.discount)}`}
+          value={`−${formatMoney(totals.discount, currency)}`}
           labelClass={labelClass}
           valueClass={cn(valueClass, "text-warning")}
         />
@@ -51,13 +53,13 @@ export function InvoiceTotalsBreakdown({
         <>
           <Row
             label={`CGST (${halfRate}%)`}
-            value={formatINR(totals.cgst)}
+            value={formatMoney(totals.cgst, currency)}
             labelClass={labelClass}
             valueClass={valueClass}
           />
           <Row
             label={`SGST (${halfRate}%)`}
-            value={formatINR(totals.sgst)}
+            value={formatMoney(totals.sgst, currency)}
             labelClass={labelClass}
             valueClass={valueClass}
           />
@@ -67,7 +69,7 @@ export function InvoiceTotalsBreakdown({
       {taxMode === "inter" && gstRate > 0 && (
         <Row
           label={`IGST (${gstRate}%)`}
-          value={formatINR(totals.igst)}
+          value={formatMoney(totals.igst, currency)}
           labelClass={labelClass}
           valueClass={valueClass}
         />
@@ -94,7 +96,7 @@ export function InvoiceTotalsBreakdown({
             variant === "document" ? "text-xl" : "text-lg",
           )}
         >
-          {formatINR(totals.total)}
+          {formatMoney(totals.total, currency)}
         </span>
       </div>
     </div>

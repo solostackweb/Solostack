@@ -62,3 +62,16 @@ export function amountInWordsINR(amount: number): string {
   }
   return `Indian Rupees ${rupeeWords} Only`;
 }
+
+export function invoiceAmountInWords(amount: number, currency = "INR"): string {
+  const code = (currency || "INR").toUpperCase();
+  if (code === "INR") return amountInWordsINR(amount);
+  const safe = Number.isFinite(amount) ? amount : 0;
+  const formatted = new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: code,
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(safe);
+  return `${formatted} (${code})`;
+}

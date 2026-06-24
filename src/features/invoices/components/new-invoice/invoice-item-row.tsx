@@ -6,7 +6,7 @@ import { useFormContext, useWatch } from "react-hook-form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { formatINR } from "@/lib/format";
+import { formatMoney } from "@/lib/format";
 import { computeItemAmount } from "../../schema";
 import type { InvoiceFormValues } from "../../schema";
 
@@ -14,6 +14,7 @@ interface InvoiceItemRowProps {
   index: number;
   canRemove: boolean;
   onRemove: () => void;
+  currency?: string;
 }
 
 /**
@@ -41,6 +42,7 @@ export function InvoiceItemRow({
   index,
   canRemove,
   onRemove,
+  currency = "INR",
 }: InvoiceItemRowProps) {
   const {
     register,
@@ -56,9 +58,9 @@ export function InvoiceItemRow({
   const itemErrors = errors.items?.[index];
   const isHugeAmount = amount >= 10_000_000;
   const displayAmount = isHugeAmount
-    ? formatINR(amount, { compact: true })
-    : formatINR(amount);
-  const exactAmount = formatINR(amount);
+    ? formatMoney(amount, currency)
+    : formatMoney(amount, currency);
+  const exactAmount = formatMoney(amount, currency);
 
   return (
     <div className="group grid grid-cols-12 items-start gap-x-2 gap-y-2 border-b px-3 py-2.5 last:border-b-0 hover:bg-muted/30">

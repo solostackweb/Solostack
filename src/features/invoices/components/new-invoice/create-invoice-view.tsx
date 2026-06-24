@@ -111,7 +111,7 @@ export function CreateInvoiceView({
   const router = useRouter();
   const [previewOpen, setPreviewOpen] = React.useState(true);
   const { profile } = useProfile();
-  const gstEnabled = Boolean(profile?.gstRegistered);
+  const sellerGstEnabled = Boolean(profile?.gstRegistered);
 
   const form = useForm<InvoiceFormValues>({
     resolver: zodResolver(invoiceFormSchema),
@@ -164,6 +164,12 @@ export function CreateInvoiceView({
 
   // Live values for the preview + summary
   const watched = useWatch({ control }) as InvoiceFormValues;
+  const selectedClient = React.useMemo(
+    () => clients.find((c) => c.id === watched.clientId) ?? null,
+    [clients, watched.clientId],
+  );
+  const selectedCurrency = selectedClient?.currency ?? profile?.defaultCurrency ?? "INR";
+  const gstEnabled = sellerGstEnabled && !selectedClient?.isForeign;
   React.useEffect(() => {
     if (!gstEnabled) {
       setValue("gstRate", 0, { shouldValidate: true });
@@ -186,10 +192,6 @@ export function CreateInvoiceView({
   );
 
   // Resolve selected client + project-for-client list
-  const selectedClient = React.useMemo(
-    () => clients.find((c) => c.id === watched.clientId) ?? null,
-    [clients, watched.clientId],
-  );
   const selectedClientName = selectedClient
     ? getClientDisplayName(selectedClient)
     : undefined;
@@ -228,7 +230,7 @@ export function CreateInvoiceView({
         invoiceNumber: values.invoiceNumber,
         issueDate: values.issueDate,
         dueDate: values.dueDate,
-        currency: profile?.defaultCurrency ?? "INR",
+        currency: selectedCurrency,
         // Always create as draft first; the send step below promotes to "sent".
         status: "draft",
         discount: Number(values.discount) || 0,
@@ -271,7 +273,7 @@ export function CreateInvoiceView({
       router.push("/dashboard/invoices");
       router.refresh();
     },
-    [gstEnabled, profile?.defaultCurrency, router],
+    [addedTime, gstEnabled, router, selectedCurrency],
   );
 
   const onSend = handleSubmit(
@@ -474,6 +476,7 @@ export function CreateInvoiceView({
                       index={index}
                       canRemove={fields.length > 1}
                       onRemove={() => remove(index)}
+                      currency={selectedCurrency}
                     />
                   ))}
                 </div>
@@ -521,11 +524,13 @@ export function CreateInvoiceView({
                   </Field>
                   ) : (
                     <div className="rounded-md border bg-muted/40 p-4 text-sm sm:col-span-2">
-                      <p className="font-medium">Standard invoice</p>
+                      <p className="font-medium">
+                        {selectedClient?.isForeign ? "Export invoice" : "Standard invoice"}
+                      </p>
                       <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-                        GST controls are hidden because your business profile is
-                        marked as not GST registered. Enable GST in Company
-                        settings to create GST invoices.
+                        {selectedClient?.isForeign
+                          ? "GST controls are hidden because foreign-client invoices are treated as zero-rated exports under LUT."
+                          : "GST controls are hidden because your business profile is marked as not GST registered. Enable GST in Company settings to create GST invoices."}
                       </p>
                     </div>
                   )}
@@ -562,7 +567,7 @@ export function CreateInvoiceView({
                   ) : null}
 
                   <Field
-                    label="Discount amount (₹)"
+                    label={`Discount amount (${selectedCurrency})`}
                     hint="Applied to the subtotal before tax"
                     error={errors.discount?.message}
                   >
@@ -624,6 +629,7 @@ export function CreateInvoiceView({
                     totals={totals}
                     gstRate={effectiveGstRate}
                     taxMode={effectiveTaxMode}
+                    currency={selectedCurrency}
                     dueDate={watched.dueDate}
                   />
                   <div className="hidden xl:block">
@@ -633,6 +639,7 @@ export function CreateInvoiceView({
                       clientName={selectedClientName}
                       clientCompany={selectedClient?.businessName ?? undefined}
                       clientEmail={selectedClient?.email ?? undefined}
+                      currency={selectedCurrency}
                     />
                   </div>
                 </div>

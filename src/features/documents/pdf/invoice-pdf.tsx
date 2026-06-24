@@ -48,7 +48,7 @@ import {
   type TableColumn,
 } from "./primitives";
 import type { UserProfileRow } from "@/lib/supabase/types";
-import { amountInWordsINR } from "@/lib/number-to-words";
+import { invoiceAmountInWords } from "@/lib/number-to-words";
 import { getStateName } from "@/features/gst/state-codes";
 
 // ---------------------------------------------------------------------------
@@ -581,7 +581,7 @@ export function InvoicePdf({
         {/* ── 6b. LEGAL BLOCK — words, HSN/SAC, reverse charge, declaration ── */}
         <View style={s.legal}>
           <Text style={s.legalLine}>
-            Amount in words: {amountInWordsINR(data.totalAmount)}
+            Amount in words: {invoiceAmountInWords(data.totalAmount, data.currency)}
           </Text>
           {data.taxMode !== "non_gst" ? (
             <View style={s.legalMetaRow}>

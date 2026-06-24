@@ -55,6 +55,9 @@ export async function getOrCreateInvoiceVirtualAccount(
   } | null;
 
   if (!invoice) throw new Error(`Invoice ${invoiceId} not found`);
+  if ((invoice.currency || "INR").toUpperCase() !== "INR") {
+    throw new Error("Smart Collect UPI is only available for INR invoices.");
+  }
 
   // Already created + still active (not expired) → reuse.
   if (invoice.smart_collect_vpa && invoice.smart_collect_virtual_account_id) {
@@ -77,11 +80,7 @@ export async function getOrCreateInvoiceVirtualAccount(
       )
     : Math.floor(Date.now() / 1000 + 30 * 24 * 60 * 60);
 
-  // Amount in paise (INR). For other currencies fall back to 0 (open amount).
-  const amountPaise =
-    invoice.currency === "INR"
-      ? Math.round(Number(invoice.total_amount) * 100)
-      : 0;
+  const amountPaise = Math.round(Number(invoice.total_amount) * 100);
 
   const va = await createVirtualAccount({
     name: `Invoice ${invoice.invoice_number}`,

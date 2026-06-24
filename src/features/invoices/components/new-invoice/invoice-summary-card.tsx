@@ -3,7 +3,7 @@
 import * as React from "react";
 import { CalendarCheck } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
-import { formatINR } from "@/lib/format";
+import { formatMoney } from "@/lib/format";
 import { InvoiceTotalsBreakdown } from "./invoice-totals";
 import type { InvoiceTotals } from "../../schema";
 
@@ -11,6 +11,7 @@ interface InvoiceSummaryCardProps {
   totals: InvoiceTotals;
   gstRate: number;
   taxMode: "intra" | "inter";
+  currency?: string;
   dueDate?: string;
 }
 
@@ -22,6 +23,7 @@ export function InvoiceSummaryCard({
   totals,
   gstRate,
   taxMode,
+  currency = "INR",
   dueDate,
 }: InvoiceSummaryCardProps) {
   const dueDateLabel = dueDate
@@ -40,7 +42,7 @@ export function InvoiceSummaryCard({
             Invoice summary
           </p>
           <p className="mt-2 text-3xl font-semibold tabular-nums tracking-tight">
-            {formatINR(totals.total)}
+            {formatMoney(totals.total, currency)}
           </p>
         </div>
 
@@ -48,6 +50,7 @@ export function InvoiceSummaryCard({
           totals={totals}
           gstRate={gstRate}
           taxMode={taxMode}
+          currency={currency}
         />
 
         {dueDateLabel && (

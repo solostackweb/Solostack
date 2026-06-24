@@ -46,6 +46,9 @@ export interface InvoiceRecord {
   igstAmount: number;
   taxTotal: number;
   totalAmount: number;
+  fxRateToInr: number;
+  inrEquivalent: number | null;
+  isExport: boolean;
   sellerStateCode: string | null;
   clientStateCode: string | null;
   footerNote: string | null;
@@ -101,6 +104,9 @@ function mapInvoiceRow(row: InvoiceRow): InvoiceRecord {
     igstAmount: row.igst_amount,
     taxTotal: row.gst_amount,
     totalAmount: row.total_amount,
+    fxRateToInr: (row as { fx_rate_to_inr?: number | null }).fx_rate_to_inr ?? 1,
+    inrEquivalent: (row as { inr_equivalent?: number | null }).inr_equivalent ?? null,
+    isExport: (row as { is_export?: boolean | null }).is_export ?? false,
     sellerStateCode: row.seller_state_code,
     clientStateCode: row.client_state_code,
     footerNote: row.footer_note,
@@ -254,7 +260,7 @@ export async function getInvoiceAggregates(): Promise<{
     await Promise.all([
       supabase
         .from("invoices")
-        .select("total_amount, paid_at, status, due_date"),
+        .select("total_amount, inr_equivalent, paid_at, status, due_date"),
       supabase
         .from("invoices")
         .select("id", { count: "exact", head: true })
@@ -268,6 +274,7 @@ export async function getInvoiceAggregates(): Promise<{
 
   type AggRow = {
     total_amount?: number;
+    inr_equivalent?: number | null;
     paid_at?: string | null;
     status?: string;
     due_date?: string | null;
@@ -282,7 +289,7 @@ export async function getInvoiceAggregates(): Promise<{
   let overdueCount = 0;
 
   for (const r of rows) {
-    const amt = Number(r.total_amount) || 0;
+    const amt = Number(r.inr_equivalent ?? r.total_amount) || 0;
     const storedStatus = r.status ?? "draft";
     const status =
       (storedStatus === "sent" || storedStatus === "viewed") &&

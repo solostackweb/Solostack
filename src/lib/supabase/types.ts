@@ -193,6 +193,7 @@ export interface UserProfileRow {
   razorpay_fund_account_id: string | null;
   fee_passthrough_enabled: boolean;
   fee_passthrough_percent: number | null;
+  lut_number: string | null;
   // Referral system (added in 0035)
   referral_code: string;
   referred_by: string | null;
@@ -255,6 +256,10 @@ export interface ClientRow {
   address: string | null;
   billing_address: string | null;
   notes: string | null;
+  country: string;
+  currency: string;
+  locale: string | null;
+  is_foreign: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -290,6 +295,9 @@ export interface InvoiceRow {
   igst_amount: number;
   total_amount: number;
   currency: string;
+  fx_rate_to_inr: number;
+  inr_equivalent: number | null;
+  is_export: boolean;
   status: InvoiceStatusRow;
   tax_mode: InvoiceTaxMode;
   classification: InvoiceClassificationRow;
@@ -708,6 +716,20 @@ export interface InvoicePaymentAttemptRow {
   created_at: string;
 }
 
+export interface PaymentConnectionRow {
+  id: string;
+  user_id: string;
+  provider: string;
+  label: string | null;
+  kind: "link" | "handle";
+  value: string;
+  instructions: string | null;
+  is_default: boolean;
+  status: "active" | "disabled";
+  created_at: string;
+  updated_at: string;
+}
+
 // --- Client Portal -----------------------------------------------------------
 //
 // See migration 0024_client_portal.sql for the schema. These rows model the
@@ -1088,6 +1110,12 @@ export interface Database {
             "invoice_id" | "user_id" | "amount" | "status"
           >;
         Update: Partial<InvoicePaymentAttemptRow>;
+      };
+      payment_connections: {
+        Row: PaymentConnectionRow;
+        Insert: Partial<PaymentConnectionRow> &
+          Pick<PaymentConnectionRow, "user_id" | "provider" | "kind" | "value">;
+        Update: Partial<PaymentConnectionRow>;
       };
       billing_payments: {
         Row: BillingPaymentRow;

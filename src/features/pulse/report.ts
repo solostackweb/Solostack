@@ -100,7 +100,7 @@ export async function getInvoiceLedger(opts: {
   const { data } = await supabase
     .from("invoices")
     .select(
-      "issue_date, invoice_number, client_id, status, subtotal, discount_amount, gst_amount, total_amount, paid_at",
+      "issue_date, invoice_number, client_id, status, subtotal, discount_amount, gst_amount, total_amount, inr_equivalent, paid_at",
     )
     .gte("issue_date", opts.from)
     .lte("issue_date", opts.to)
@@ -118,6 +118,7 @@ export async function getInvoiceLedger(opts: {
     discount_amount: number | null;
     gst_amount: number | null;
     total_amount: number | null;
+    inr_equivalent: number | null;
     paid_at: string | null;
   };
   const rows = (data as Row[] | null) ?? [];
@@ -142,7 +143,13 @@ export async function getInvoiceLedger(opts: {
   }
 
   return rows.map((r) => {
-    const taxable = (Number(r.subtotal) || 0) - (Number(r.discount_amount) || 0);
+    const nativeTotal = Number(r.total_amount) || 0;
+    const ratio =
+      nativeTotal > 0
+        ? (Number(r.inr_equivalent ?? nativeTotal) || nativeTotal) / nativeTotal
+        : 1;
+    const taxable =
+      ((Number(r.subtotal) || 0) - (Number(r.discount_amount) || 0)) * ratio;
     let daysToPay = "";
     if (r.paid_at && r.issue_date) {
       const d = Math.round(
@@ -158,8 +165,8 @@ export async function getInvoiceLedger(opts: {
       clientName: r.client_id ? (names.get(r.client_id) ?? "Unknown client") : "—",
       status: r.status,
       taxable: Math.max(0, taxable),
-      tax: Number(r.gst_amount) || 0,
-      total: Number(r.total_amount) || 0,
+      tax: (Number(r.gst_amount) || 0) * ratio,
+      total: Number(r.inr_equivalent ?? r.total_amount) || 0,
       paidAt: r.paid_at ? r.paid_at.slice(0, 10) : "",
       daysToPay,
     };

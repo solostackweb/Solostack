@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { cn } from "@/lib/utils";
+import { formatMoney } from "@/lib/format";
 import { InvoiceTotalsBreakdown } from "./invoice-totals";
 import { computeItemAmount } from "../../schema";
 import { useProfile } from "@/features/profile/context";
@@ -17,8 +18,11 @@ interface InvoicePreviewProps {
   clientName?: string;
   clientCompany?: string;
   clientEmail?: string;
+  currency?: string;
 }
 
+// Legacy helper kept only while older previews are being unwound.
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function fmtINR(n: number) {
   if (!Number.isFinite(n)) return "₹0";
   return new Intl.NumberFormat("en-IN", {
@@ -45,6 +49,7 @@ export function InvoicePreview({
   clientName,
   clientCompany,
   clientEmail,
+  currency = "INR",
 }: InvoicePreviewProps) {
   const { profile } = useProfile();
   const issueDate = values.issueDate
@@ -184,10 +189,10 @@ export function InvoicePreview({
                       {item.quantity || 0}
                     </td>
                     <td className="py-3 pr-4 text-right tabular-nums text-slate-600">
-                      {fmtINR(Number(item.rate) || 0)}
+                      {formatMoney(Number(item.rate) || 0, currency)}
                     </td>
                     <td className="py-3 text-right font-medium tabular-nums text-slate-900">
-                      {fmtINR(computeItemAmount({ quantity: item.quantity, rate: item.rate }))}
+                      {formatMoney(computeItemAmount({ quantity: item.quantity, rate: item.rate }), currency)}
                     </td>
                   </tr>
                 ))
@@ -209,6 +214,7 @@ export function InvoicePreview({
               totals={totals}
               gstRate={values.gstRate}
               taxMode={values.taxMode}
+              currency={currency}
               variant="document"
               className={cn("[&_*]:text-slate-700")}
             />

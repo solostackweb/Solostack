@@ -9,7 +9,7 @@ import { getActiveConnectionsForOwner } from "@/features/payments/connections";
 import { PublicPayOptions } from "@/features/payments/components/public-pay-options";
 import { buildInvoicePdfDataByToken } from "@/features/documents/builders";
 import { getInvoicePdfShareUrl } from "@/features/documents/urls";
-import { amountInWordsINR } from "@/lib/number-to-words";
+import { invoiceAmountInWords } from "@/lib/number-to-words";
 import { clientFacingInvoiceStatus } from "@/features/invoices/status";
 import { getUserPaymentMethod } from "@/features/billing/payment-methods";
 import { PublicPaymentPanel } from "@/features/invoices/components/public-payment-panel";
@@ -57,11 +57,12 @@ export default async function PublicInvoicePage({ params }: Props) {
   const payConnections = await getActiveConnectionsForOwner(shared.invoice.user_id);
   const accent = viewModel.brandColor ?? "#0F172A";
   const amountFormatted = fmt(Number(shared.invoice.total_amount), shared.invoice.currency);
+  const isInrInvoice = (shared.invoice.currency || "INR").toUpperCase() === "INR";
 
   // UPI QR is rendered server-side so there's no client-side bundle.
   let upiPanelProps: { qrSvg: string; vpa: string; upiUri: string } | null = null;
 
-  if (method?.type === "upi_manual") {
+  if (method?.type === "upi_manual" && isInrInvoice) {
     const { svg, uri } = await renderUpiQrSvg({
       vpa: method.payout.vpa,
       payeeName: senderName,
@@ -70,7 +71,7 @@ export default async function PublicInvoicePage({ params }: Props) {
       ref: viewModel.invoiceNumber,
     });
     upiPanelProps = { qrSvg: svg, vpa: method.payout.vpa, upiUri: uri };
-  } else if (method?.type === "upi_smart" && !isPaid) {
+  } else if (method?.type === "upi_smart" && isInrInvoice && !isPaid) {
     // Smart Collect: lazily create (or reuse) a per-invoice virtual account.
     try {
       const va = await getOrCreateInvoiceVirtualAccount(shared.invoice.id);
@@ -382,7 +383,7 @@ export default async function PublicInvoicePage({ params }: Props) {
                 <p>
                   Amount in words:{" "}
                   <span className="font-medium text-slate-700">
-                    {amountInWordsINR(viewModel.totalAmount)}
+                    {invoiceAmountInWords(viewModel.totalAmount, viewModel.currency)}
                   </span>
                 </p>
                 {viewModel.taxMode !== "non_gst" ? (
@@ -460,7 +461,9 @@ export default async function PublicInvoicePage({ params }: Props) {
               <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
                 <p className="text-sm font-semibold text-slate-900">Pay outside Stackivo</p>
                 <p className="mt-1.5 text-xs leading-relaxed text-slate-500">
-                  {`${senderName} hasn’t set up online payments yet. Please pay using the bank or UPI details on the invoice and let them know once it’s done.`}
+                  {isInrInvoice
+                    ? `${senderName} hasn’t set up online payments yet. Please pay using the bank or UPI details on the invoice and let them know once it’s done.`
+                    : `${senderName} hasn’t set up a direct online payment rail for this currency yet. Use one of the international payment options below, or reply to the invoice email for bank transfer details.`}
                 </p>
               </div>
             )}
@@ -475,7 +478,7 @@ export default async function PublicInvoicePage({ params }: Props) {
           </aside>
         </div>
 
-        {payConnections.length > 0 ? (
+        {!isPaid && !isCancelled && payConnections.length > 0 ? (
           <PublicPayOptions connections={payConnections} />
         ) : null}
 
