@@ -534,6 +534,19 @@ export function ContractPdf({
           </View>
         ) : null}
 
+        {/* Platform disclaimer */}
+        <Text
+          style={{
+            marginTop: pdfSpacing.md,
+            fontSize: pdfSizes.xs,
+            color: pdfColors.mutedForeground,
+            lineHeight: pdfLineHeights.snug,
+          }}
+        >
+          Created with Stackivo - a document &amp; e-signature platform. Stackivo is not a
+          party to this agreement and does not process or hold payments.
+        </Text>
+
         {/* ── 7. FOOTER (fixed on every page) ───────────────── */}
         <DocumentFooter
           brand={brand}

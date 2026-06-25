@@ -114,8 +114,8 @@ const STEPS: TourStep[] = [
   {
     target: '[data-tour="ai-assistant"]',
     icon: Sparkles,
-    title: "Let AI do the typing",
-    body: "Tap Ask AI and describe what you need in plain English — “Invoice Acme $1,200 for a landing page, due in 15 days” — and it drafts the invoice, contract or welcome doc for you.",
+    title: "Meet Ivo, your AI assistant",
+    body: "Tap Ask Ivo and describe what you need in plain English — “Invoice Acme $1,200 for a landing page, due in 15 days” — and Ivo drafts the invoice, contract or welcome doc for you.",
   },
   {
     icon: Check,

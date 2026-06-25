@@ -29,6 +29,8 @@ export async function generateMetadata({
   return { title: result ? `Invoice ${result.invoice.invoiceNumber}` : "Invoice" };
 }
 
+import { InternationalComplianceNote } from "@/features/invoices/components/international-compliance-note";
+
 export default async function InvoiceDetailPage({
   params,
 }: {
@@ -39,6 +41,10 @@ export default async function InvoiceDetailPage({
   if (!result) notFound();
   const { invoice, items } = result;
   const cur = (invoice as { currency?: string }).currency ?? "INR";
+  const isExport =
+    (invoice as { isExport?: boolean; is_export?: boolean }).isExport ??
+    (invoice as { is_export?: boolean }).is_export ??
+    false;
   const [client, activities] = await Promise.all([
     invoice.clientId ? getClient(invoice.clientId) : Promise.resolve(null),
     listActivity({ entityType: "invoice", entityId: id, limit: 20 }),
@@ -55,6 +61,7 @@ export default async function InvoiceDetailPage({
 
   return (
     <div className="space-y-6">
+      {isExport ? <InternationalComplianceNote /> : null}
       {/* Header: stacks vertically on mobile so action buttons get full width
           and don't collide with the invoice number. */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:gap-3">

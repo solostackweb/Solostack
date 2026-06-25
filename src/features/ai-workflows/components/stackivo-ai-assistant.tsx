@@ -81,6 +81,7 @@ import type {
   AiConfirmSummary,
 } from "./assistant-types";
 import {
+  ASSISTANT_NAME,
   QUICK_ACTIONS,
   MODE_PLACEHOLDERS,
   newId,
@@ -1698,7 +1699,7 @@ export function StackivoAiAssistant({ clients, projects }: StackivoAiAssistantPr
             className="gap-1.5 text-sm font-semibold"
             onClick={() => setOpen(true)}
           >
-            <Sparkles className="h-4 w-4" /> Ask AI
+            <Sparkles className="h-4 w-4" /> Ask Ivo
           </Button>
         </div>
       )}
@@ -1710,7 +1711,7 @@ export function StackivoAiAssistant({ clients, projects }: StackivoAiAssistantPr
           size="icon"
           className="md:hidden"
           onClick={() => setOpen(true)}
-          aria-label="Ask AI"
+          aria-label="Ask Ivo"
         >
           <Sparkles className="h-4 w-4" />
         </Button>
@@ -1740,7 +1741,7 @@ export function StackivoAiAssistant({ clients, projects }: StackivoAiAssistantPr
               <StackivoMark className="h-6 w-6 shrink-0" bare />
               <span className="truncate">
                 {mode === "general"
-                  ? "New conversation"
+                  ? ASSISTANT_NAME
                   : QUICK_ACTIONS.find((a) => a.mode === mode)?.title ?? "New conversation"}
               </span>
             </div>
@@ -1828,22 +1829,24 @@ export function StackivoAiAssistant({ clients, projects }: StackivoAiAssistantPr
                       <StackivoMark className="h-8 w-8" />
                     </span>
                   </span>
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-primary/70">
-                    Stackivo AI
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-primary/70">
+                    {ASSISTANT_NAME} · Stackivo AI
                   </p>
                   <h2 className="mt-1.5 text-xl font-semibold tracking-tight">
-                    {greeting}, what can I do for you?
+                    {greeting} — I&apos;m {ASSISTANT_NAME} 👋
                   </h2>
                   <p className="mt-1.5 max-w-xs text-sm leading-relaxed text-muted-foreground">
-                    Pick a workflow, or just describe what you need — I&apos;ll take it from there.
+                    Tell me what you need in plain words, or pick a task below. I&apos;ll take it
+                    from there.
                   </p>
                 </div>
 
-                {/* Compact, container-based grid so 7 items lay out cleanly at
-                    any panel width (the panel is portaled, so viewport `md:`
-                    breakpoints don't reflect its real width). Cards stagger in. */}
-                <div className="grid gap-2 [grid-template-columns:repeat(auto-fill,minmax(150px,1fr))]">
-                  {QUICK_ACTIONS.map((action, i) => (
+                {/* Even 2-column grid of the six core workflows (the panel is
+                    portaled, so viewport `md:` breakpoints don't reflect its real
+                    width — a fixed 2-col grid stays balanced at any size). Support
+                    gets its own full-width row below so nothing is left orphaned. */}
+                <div className="grid grid-cols-2 gap-2">
+                  {QUICK_ACTIONS.filter((a) => a.mode !== "support").map((action, i) => (
                     <button
                       key={action.mode}
                       type="button"
@@ -1858,12 +1861,33 @@ export function StackivoAiAssistant({ clients, projects }: StackivoAiAssistantPr
                       <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary transition-transform duration-200 group-hover:scale-110">
                         <action.icon className="h-4 w-4" />
                       </span>
-                      <span className="min-w-0 text-sm font-medium leading-tight">
+                      <span className="min-w-0 truncate text-sm font-medium leading-tight">
                         {action.title}
                       </span>
                     </button>
                   ))}
                 </div>
+
+                {QUICK_ACTIONS.filter((a) => a.mode === "support").map((action) => (
+                  <button
+                    key={action.mode}
+                    type="button"
+                    onClick={() => selectMode(action.mode)}
+                    className="group mt-2 flex w-full items-center gap-2.5 rounded-xl border border-dashed bg-background/95 p-3 text-left transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/40 hover:bg-primary/5 hover:shadow-sm"
+                  >
+                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary transition-transform duration-200 group-hover:scale-110">
+                      <action.icon className="h-4 w-4" />
+                    </span>
+                    <span className="min-w-0">
+                      <span className="block text-sm font-medium leading-tight">
+                        Ask a question or get help
+                      </span>
+                      <span className="block text-xs text-muted-foreground">
+                        Docs, billing, account — or reach the team
+                      </span>
+                    </span>
+                  </button>
+                ))}
 
                 {suggestions.length > 0 ? (
                   <div className="mt-5">
@@ -1969,7 +1993,7 @@ export function StackivoAiAssistant({ clients, projects }: StackivoAiAssistantPr
 
           {/* Input area */}
           <div className="sticky bottom-0 border-t bg-background px-4 py-3">
-            <div className="rounded-2xl border bg-background p-3 focus-within:border-primary/60 focus-within:ring-4 focus-within:ring-primary/15">
+            <div className="flex items-end gap-2 rounded-2xl border bg-background py-2 pl-3.5 pr-2 focus-within:border-primary/60 focus-within:ring-4 focus-within:ring-primary/15">
               <Textarea
                 value={input}
                 data-testid="ai-chat-input"
@@ -1984,25 +2008,21 @@ export function StackivoAiAssistant({ clients, projects }: StackivoAiAssistantPr
                   pendingField?.placeholder ??
                   pendingField?.question ??
                   MODE_PLACEHOLDERS[mode] ??
-                  (mode === "general" ? "Describe what you want to do…" : "Type your answer…")
+                  (mode === "general" ? `Message ${ASSISTANT_NAME}…` : "Type your answer…")
                 }
-                rows={3}
-                className="min-h-[72px] resize-none border-0 p-0 text-sm shadow-none focus-visible:ring-0"
+                rows={1}
+                className="max-h-[140px] min-h-[24px] flex-1 resize-none border-0 bg-transparent p-0 py-1.5 text-sm leading-relaxed shadow-none focus-visible:ring-0"
               />
-              <div className="mt-3 flex items-center justify-between">
-                <span className="rounded-full border px-3 py-1 text-xs text-muted-foreground">
-                  {mode === "general" ? "Ask" : QUICK_ACTIONS.find((a) => a.mode === mode)?.title ?? "Ask"}
-                </span>
-                <Button
-                  type="button"
-                  size="icon"
-                  className="h-9 w-9 rounded-full"
-                  onClick={() => handleSubmit()}
-                  disabled={pending || !input.trim()}
-                >
-                  <ArrowUp className="h-4 w-4" />
-                </Button>
-              </div>
+              <Button
+                type="button"
+                size="icon"
+                className="h-8 w-8 shrink-0 rounded-full"
+                onClick={() => handleSubmit()}
+                disabled={pending || !input.trim()}
+                aria-label="Send"
+              >
+                <ArrowUp className="h-4 w-4" />
+              </Button>
             </div>
             <div className="mt-2 space-y-1 px-1">
               <p className="flex flex-wrap items-center gap-1.5 text-[11px] text-muted-foreground">

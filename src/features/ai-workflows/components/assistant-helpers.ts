@@ -118,32 +118,46 @@ export function modeIntro(mode: AiMode): string {
   }
 }
 
+/** The assistant's name — friendly, human, and drawn from "Stack-ivo". */
+export const ASSISTANT_NAME = "Ivo";
+
 /**
- * Quick conversational replies for greetings and meta questions ("hi",
- * "can I ask you a question", "what can you do") so the assistant answers
- * naturally instead of running a docs lookup that finds nothing.
- * Returns null for substantive questions, which fall through to the docs flow.
+ * Quick, human conversational replies for greetings, small talk and meta
+ * questions so Ivo answers warmly instead of running a docs lookup that finds
+ * nothing. Returns null for substantive questions, which fall through to the
+ * docs / data flow.
  */
 export function conversationalReply(text: string): string | null {
   const t = text.trim().toLowerCase().replace(/[!.?,]+$/g, "");
+
   // Greetings — tolerant of common typos (helo, helloo, hii, heyy, gud morning).
   if (/^(hi+|hey+|h(e|a)l+o+|hii+|heyy+|yo+|hiya|hello+|namaste|namaskar|hii?ya|good ?(morning|afternoon|evening|day)|gud ?(morning|mrng|eve))\b/.test(t)) {
-    return "Hey! I can create invoices, contracts, and welcome docs, add clients and projects, log time, or answer questions about Stackivo. What would you like to do?";
+    return "Hey there! \u{1F44B} I'm Ivo, your Stackivo assistant. I can create invoices, contracts and welcome docs, add clients and projects, log time, or just answer a question. What's on your plate today?";
   }
   if (/^(thanks?|thank ?(you|u)|thnx|thnks|thanx|thx|ty|tysm|great|perfect|awesome|cool|nice|ok+|okay|okey|k|got it|cheers|appreciate it)( (so much|a lot|you|u|man|mate|buddy|bro))?$/.test(t)) {
-    return "Anytime! Tell me the next thing you'd like to do.";
+    return "Anytime! \u{1F642} What would you like to do next?";
   }
   if (/\b(can|could|may) i ask( you)?( a| you a)? ?(question|something|doubt)?\b|^ask you|are you (there|online|here)|you there/.test(t)) {
-    return "Of course — go ahead and ask. I can help with invoices, contracts, welcome docs, clients, projects, time logs, or how Stackivo works.";
+    return "Of course \u2014 ask away. I can help with invoices, contracts, welcome docs, clients, projects, time logs, or how Stackivo works.";
   }
-  if (/what can you do|who are you|what are you|how can you help|what do you do|how do you work/.test(t)) {
-    return "I'm your Stackivo workflow assistant. I can draft and send invoices & contracts, prepare welcome documents, add clients and projects, log billable time, and answer questions about how Stackivo works. Just describe what you need — for example, “Invoice Acme 50000 for a landing page.”";
+  if (/what'?s your name|whats your name|your name|who are you|what are you/.test(t)) {
+    return "I'm Ivo \u2014 your built-in Stackivo assistant. Think of me as the teammate who handles the invoicing, contracts and admin so you can focus on the actual work. What can I do for you?";
+  }
+  if (/what can you do|how can you help|what do you do|how do you work/.test(t)) {
+    return "Quite a lot! I can draft and send invoices & contracts, prepare welcome documents, add clients and projects, log billable time, and answer questions about Stackivo or freelancing in general. Just describe what you need \u2014 like \u201cInvoice Acme $1,200 for a landing page, due in 15 days.\u201d";
   }
   if (/how are you|how'?s it going|how do you do|how have you been|hope you('| a)re (doing )?(well|good)/.test(t)) {
-    return "Doing great, thanks for asking! What can I help you with — invoices, contracts, clients, or a quick question about Stackivo?";
+    return "Doing great, thanks for asking! \u{1F60A} More importantly \u2014 how can I help you today?";
   }
   if (/\bare you (a )?(bot|robot|ai|human|real)\b|who (made|built|created) you|are you chatgpt/.test(t)) {
-    return "I'm Stackivo's built-in AI assistant — here to help you run your freelance business. Ask me to create invoices, contracts, welcome docs, clients, or projects, log time, or anything about how Stackivo works.";
+    return "I'm Ivo, Stackivo's built-in AI assistant \u2014 here to take the busywork off your plate. Want me to create an invoice, draft a contract, or answer something?";
+  }
+  // Light empathy for venting / a rough day, then gently offer to help.
+  if (/^(i'?m|im|feeling|so|really) (tired|exhausted|stressed|busy|overwhelmed|swamped|drained|done)\b|too much work|so much work|long day|rough day|tough day|hate (invoicing|paperwork|admin|this)/.test(t)) {
+    return "I hear you \u2014 running things solo is a lot. \u{1F499} Let me take some off your plate: I can chase overdue invoices, draft an invoice from a single line, or set up a contract. Want me to handle one of those?";
+  }
+  if (/^(bye+|goodbye|see ya|see you|cya|good ?night|gn|gtg|talk later|that'?s all|nothing else|i'?m good|no that'?s it)$/.test(t)) {
+    return "Catch you later! \u{1F44B} I'm right here whenever you need me.";
   }
   return null;
 }

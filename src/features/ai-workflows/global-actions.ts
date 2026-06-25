@@ -1420,6 +1420,35 @@ export async function invoiceWhatsappFromAiAction(input: z.infer<typeof aiInvoic
   };
 }
 
+/**
+ * Append Stackivo's standard legal clauses to an AI-drafted contract so every
+ * generated agreement carries a governing-law/jurisdiction clause (default
+ * India, editable) and an electronic-execution clause — matching the manual
+ * templates. Skips a clause if a similar heading already exists. Proposals get
+ * the electronic-execution clause only.
+ */
+function appendStandardLegalClauses(
+  sections: Array<{ heading: string; body: string }>,
+  kind: "contract" | "proposal",
+): Array<{ heading: string; body: string }> {
+  const has = (kw: string) =>
+    sections.some((sec) => sec.heading.toLowerCase().includes(kw));
+  const out = [...sections];
+  if (kind === "contract" && !has("governing law")) {
+    out.push({
+      heading: "Governing law & jurisdiction",
+      body: "This agreement is governed by the laws of India. The parties will first try to resolve any dispute in good faith; if unresolved, the courts at [your city], India will have jurisdiction. If you and your client agree on a different governing law or seat, edit this clause.",
+    });
+  }
+  if (!has("electronic execution") && !has("electronic signature")) {
+    out.push({
+      heading: "Electronic execution",
+      body: "This agreement may be signed electronically and in counterparts. Electronic signatures and an electronic copy are valid, binding, and admissible to the same extent as handwritten signatures under applicable law (including the Information Technology Act, 2000 in India, and the ESIGN Act / UETA or eIDAS where relevant). The signing record - including timestamp and audit trail - forms part of this agreement.",
+    });
+  }
+  return out;
+}
+
 export async function createContractFromAiAction(input: AiCreateInput) {
   const parsed = aiCreateSchema.safeParse(input);
   if (!parsed.success) {
@@ -1524,10 +1553,12 @@ export async function createContractFromAiAction(input: AiCreateInput) {
         { heading: "Responsibilities", body: clauses || "Both parties will cooperate in good faith to complete the engagement." },
       ];
 
+  const sectionsWithLegal = appendStandardLegalClauses(sections, kind);
+
   const fd = new FormData();
   fd.set("kind", kind);
   fd.set("title", title);
-  fd.set("content", JSON.stringify(sections));
+  fd.set("content", JSON.stringify(sectionsWithLegal));
   fd.set("clientId", clientId);
   if (projectId) fd.set("projectId", projectId);
   fd.set("status", "draft");
@@ -1549,7 +1580,7 @@ export async function createContractFromAiAction(input: AiCreateInput) {
       projectName: project?.name ?? null,
       valueAmount: amount > 0 ? amount : draft.valueAmount ?? null,
       currency: contractCurrency,
-      sections,
+      sections: sectionsWithLegal,
     },
     message: "Contract draft created.",
   };
@@ -2064,8 +2095,8 @@ export async function answerFromDocsAction(input: z.infer<typeof aiDocsQuestionS
       {
         role: "system",
         content: [
-          "You are Stackivo's friendly in-app assistant, talking directly to a Stackivo user (an Indian freelancer or agency owner).",
-          "Answer their question in a warm, natural, conversational tone — like a helpful teammate, not a manual or a robot.",
+          "You are Ivo, Stackivo's friendly in-app assistant, talking directly to a Stackivo user (an Indian freelancer or agency owner).",
+          "Talk like a warm, encouraging human teammate — natural, concise and a little personable, never stiff, corporate, or robotic. It's fine to show a bit of warmth or light humour when it fits. Vary your phrasing; don't sound scripted. If the user seems stressed or stuck, acknowledge it briefly before helping. Only introduce yourself as Ivo if they ask who you are.",
           "Your source of truth is the provided Stackivo documentation, privacy policy, and terms.",
           "Guidelines:",
           "- Understand casual, natural phrasing and map it to the right topic (e.g. 'what about billing' → Plans & Billing; 'how do I get paid' / 'can clients pay online' → Payments/Razorpay; 'is my data safe' → privacy).",

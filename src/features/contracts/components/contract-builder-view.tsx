@@ -29,6 +29,7 @@ import { cn } from "@/lib/utils";
 import { formatMoney } from "@/lib/format";
 import { getClientDisplayName } from "@/features/clients/utils";
 import type { ClientRecord } from "@/features/clients/server";
+import { InternationalComplianceNote } from "@/features/invoices/components/international-compliance-note";
 import type { ProjectRecord } from "@/features/projects/server";
 import type { ContractKindRow } from "@/lib/supabase/types";
 import { useProfile } from "@/features/profile/context";
@@ -316,6 +317,9 @@ export function ContractBuilderView({
   // -------- STEP 2: editor + preview --------
   return (
     <div className="space-y-4">
+      {client?.is_foreign ? (
+        <InternationalComplianceNote variant="contract" />
+      ) : null}
       {/* Sticky action bar */}
       <div className="sticky top-14 z-10 -mx-4 flex flex-wrap items-center gap-2 border-b bg-background/80 px-4 py-3 backdrop-blur-md sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8">
         <Button
