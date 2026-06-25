@@ -25,6 +25,7 @@ import { MyTicketsList } from "@/features/support/components/my-tickets-list";
 import { HelpTabs } from "@/features/support/components/help-tabs";
 import { listMyTickets } from "@/features/support/ticket-server";
 import { FaqAccordion } from "@/features/support/faq-accordion";
+import { ReplayTourButton } from "@/features/onboarding/components/replay-tour-button";
 
 export const metadata: Metadata = {
   title: "Help & support",
@@ -186,12 +187,15 @@ export default async function HelpPage() {
 
   return (
     <div className="mx-auto max-w-4xl space-y-10 py-4">
-      <header className="space-y-1">
-        <h1 className="text-2xl font-semibold tracking-tight">Help &amp; support</h1>
-        <p className="text-sm text-muted-foreground">
-          Answers on GST invoicing, payments, and your freelance workflow — or
-          reach the founder directly.
-        </p>
+      <header className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="space-y-1">
+          <h1 className="text-2xl font-semibold tracking-tight">Help &amp; support</h1>
+          <p className="text-sm text-muted-foreground">
+            Answers on GST invoicing, payments, and your freelance workflow — or
+            reach the founder directly.
+          </p>
+        </div>
+        <ReplayTourButton className="shrink-0 gap-1.5" />
       </header>
 
       <HelpTabs

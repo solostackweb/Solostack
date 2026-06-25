@@ -192,6 +192,10 @@ export function StackivoAiAssistant({ clients, projects }: StackivoAiAssistantPr
   const transcriptRef = React.useRef<Array<{ role: "user" | "assistant"; content: string }>>([]);
   // Mirror of pendingConfirm read inside the submit handler without stale closures.
   const pendingConfirmRef = React.useRef<typeof pendingConfirm>(null);
+  // When a docs answer doesn't fully resolve a support question, we OFFER to
+  // forward it to the human support team and hold the original question here.
+  // We never file a ticket without the user saying yes.
+  const pendingSupportForwardRef = React.useRef<string | null>(null);
   const runWorkflowRef = React.useRef<
     (
       workflow: AiMode,
@@ -222,6 +226,7 @@ export function StackivoAiAssistant({ clients, projects }: StackivoAiAssistantPr
     setActiveInvoice(null);
     setActiveWelcomeDoc(null);
     setPendingConfirm(null);
+    pendingSupportForwardRef.current = null;
     transcriptRef.current = [];
     setMessages([]);
   }, []);
@@ -517,23 +522,18 @@ export function StackivoAiAssistant({ clients, projects }: StackivoAiAssistantPr
         : "I'm not sure from the docs — could you rephrase, or tell me what you're trying to do? I can help with invoices, contracts, welcome docs, clients, projects, and time logs.";
       const usedDocs = docs.ok && docs.data.usedDocs;
 
+      push({ role: "assistant", content: answer });
+      // If the docs didn't confidently cover it, OFFER to forward to the human
+      // support team — never file a ticket silently.
       if (fileTicket && !usedDocs) {
-        const ticket = await createTicketAction({
-          category: "how-to",
-          subject: text.slice(0, 180),
-          message: text,
-          channel: "chat",
-          page: typeof window !== "undefined" ? window.location.pathname : undefined,
-        });
+        pendingSupportForwardRef.current = text;
         push({
           role: "assistant",
-          content: ticket.ok
-            ? `${answer}\n\nI also sent this to Stackivo support for follow-up.`
-            : answer,
+          content:
+            "If that didn't fully answer it, I can forward this to the Stackivo support team so a human can follow up by email. Want me to?",
+          suggestions: ["Yes, forward to support", "No thanks"],
         });
-        return;
       }
-      push({ role: "assistant", content: answer });
     },
     [push],
   );
@@ -1172,6 +1172,39 @@ export function StackivoAiAssistant({ clients, projects }: StackivoAiAssistantPr
     setInput("");
     push({ role: "user", content: text });
 
+    // Resolve an outstanding "forward this to support?" offer before anything
+    // else, so a yes/no acts on it instead of being re-interpreted.
+    const fwd = pendingSupportForwardRef.current;
+    if (fwd) {
+      const lc = text.trim().toLowerCase().replace(/[!.]+$/g, "");
+      if (/^(yes,? forward to support|yes|forward( it)?|please( do)?|go ahead|yep|yeah|sure|do it)$/.test(lc)) {
+        pendingSupportForwardRef.current = null;
+        startTransition(async () => {
+          const ticket = await createTicketAction({
+            category: "how-to",
+            subject: fwd.slice(0, 180),
+            message: fwd,
+            channel: "chat",
+            page: typeof window !== "undefined" ? window.location.pathname : undefined,
+          });
+          push({
+            role: "assistant",
+            content: ticket.ok
+              ? "Done — I've forwarded this to the Stackivo support team. They'll follow up by email. Anything else?"
+              : "I couldn't reach support just now — please email support@stackivo.me and the team will help.",
+          });
+        });
+        return;
+      }
+      if (/^(no,? thanks?|no|nope|nah|not now|it'?s ok|i'?m good|that'?s ok|all good)$/.test(lc)) {
+        pendingSupportForwardRef.current = null;
+        push({ role: "assistant", content: "No problem — I won't forward it. Anything else I can help with?" });
+        return;
+      }
+      // Anything else: drop the offer and interpret the message normally.
+      pendingSupportForwardRef.current = null;
+    }
+
     // A confirmation summary is showing — let a typed "yes"/"create"/"cancel"
     // act on it, just like the buttons.
     const pc = pendingConfirmRef.current;
@@ -1494,6 +1527,14 @@ export function StackivoAiAssistant({ clients, projects }: StackivoAiAssistantPr
         return;
       }
 
+      // 1g. A confident product/how-to/support question is answered from docs
+      //     here (works from the home screen too), and if the docs don't cover
+      //     it we OFFER to forward it — without entering a sticky support mode.
+      if (nlu?.intent === "support" && nlu.confident && (mode === "general" || !pendingField)) {
+        await runSupport(text, true);
+        return;
+      }
+
       // 2. Decide the target workflow.
       //    - From the home screen, an informational question ("what about
       //      billing?", "how do invoices work?") is answered from the docs
@@ -1629,6 +1670,7 @@ export function StackivoAiAssistant({ clients, projects }: StackivoAiAssistantPr
     detectMode,
     runWorkflow,
     runQuery,
+    runSupport,
     runRemindOverdue,
     runInvoiceUnbilled,
     runListInvoices,
@@ -1652,6 +1694,7 @@ export function StackivoAiAssistant({ clients, projects }: StackivoAiAssistantPr
             type="button"
             variant="ghost"
             size="sm"
+            data-tour="ai-assistant"
             className="gap-1.5 text-sm font-semibold"
             onClick={() => setOpen(true)}
           >

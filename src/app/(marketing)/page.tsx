@@ -4,6 +4,7 @@ import { TrustStrip } from "@/components/marketing/home/trust-strip";
 import { ProblemSection } from "@/components/marketing/home/problem-section";
 import { ShowcaseSection } from "@/components/marketing/home/showcase-section";
 import { CapabilitiesSection } from "@/components/marketing/home/capabilities-section";
+import { InternationalSection } from "@/components/marketing/home/international-section";
 import { AiSection } from "@/components/marketing/home/ai-section";
 import { WorkflowSection } from "@/components/marketing/home/workflow-section";
 import { Testimonials } from "@/components/marketing/home/testimonials";
@@ -17,7 +18,7 @@ import { siteConfig } from "@/config/site";
 export const metadata: Metadata = {
   title: "Stackivo — Your client work, finally in one place",
   description:
-    "Contracts, invoices, projects, time and payments — Stackivo replaces the six tools freelancers and studios juggle with one fast, GST-ready workspace. Free for your first 5 clients.",
+    "Contracts, invoices, projects, time and payments in one fast workspace — built for Indian freelancers with global clients. Invoice in any currency, get paid via Wise/PayPal/Payoneer, GST & export-ready. Free for your first 5 clients.",
   alternates: { canonical: "/" },
   openGraph: {
     title: "Stackivo — Your client work, finally in one place",
@@ -81,6 +82,7 @@ export default async function LandingPage() {
       <ProblemSection />
       <ShowcaseSection />
       <CapabilitiesSection />
+      <InternationalSection />
       <AiSection />
       <WorkflowSection />
       <Testimonials />

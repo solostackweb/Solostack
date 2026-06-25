@@ -30,6 +30,7 @@ export function SidebarNav({ items, collapsed, onNavigate, isFreePlan = false }:
           <Link
             key={item.href}
             href={item.href}
+            data-tour={item.href}
             onClick={onNavigate}
             className={cn(
               "group relative flex h-9 items-center gap-3 rounded-lg px-2.5 text-[13px] font-medium",

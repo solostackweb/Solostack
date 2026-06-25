@@ -37,18 +37,18 @@ export function Hero({ authState }: { authState: MarketingAuthState }) {
             <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-semibold text-primary">
               New
             </span>
-            Stackivo AI is in your workspace
+            Bill international clients in their currency
             <ArrowRight className="h-3 w-3 text-muted-foreground/60 transition-transform group-hover:translate-x-0.5" />
           </Link>
 
           <h1 className="mt-5 text-balance font-display text-[38px] font-semibold leading-[1.06] tracking-[-0.022em] text-foreground sm:text-5xl lg:text-[56px]">
-            Your client work, finally in <span className="text-gradient">one place</span>.
+            Win clients worldwide. Run it all from <span className="text-gradient">one place</span>.
           </h1>
 
           <p className="mt-5 max-w-lg text-pretty text-[15px] leading-[1.7] text-muted-foreground sm:text-base lg:text-[17px]">
-            Contracts, invoices, projects, time and payments — Stackivo replaces
-            the six tools you juggle with one fast workspace. GST-ready, built
-            for Indian freelancers and studios.
+            Contracts, invoices, projects, time and payments — built for Indian
+            freelancers working with clients in the US, UK, EU and beyond.
+            Invoice in their currency, get paid your way, and stay GST-compliant.
           </p>
 
           <HeroCtas authState={authState} />
@@ -79,7 +79,7 @@ export function Hero({ authState }: { authState: MarketingAuthState }) {
               </span>
               <div>
                 <p className="text-[12px] font-semibold text-foreground">Payment received</p>
-                <p className="text-[11px] text-muted-foreground">₹48,000 · INV-0042</p>
+                <p className="text-[11px] text-muted-foreground">$1,200 · INV-0042 · via Wise</p>
               </div>
             </div>
           </Floating>

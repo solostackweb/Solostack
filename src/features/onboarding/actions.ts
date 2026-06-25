@@ -339,3 +339,22 @@ export async function setOnboardingStep(step: OnboardingStep): Promise<void> {
   await advanceStep(userId, step);
   redirect(pathForStep(step));
 }
+
+
+/**
+ * Mark the first-run product tour as completed/dismissed for the current user.
+ * Best-effort: a failure just means the tour may show again next session.
+ */
+export async function markOnboardingTourDoneAction(): Promise<{ ok: boolean }> {
+  try {
+    const userId = await requireUserId();
+    const supabase = await getServerSupabase();
+    await supabase
+      .from("user_profiles")
+      .update({ onboarding_tour_done: true } as never)
+      .eq("id", userId);
+    return { ok: true };
+  } catch {
+    return { ok: false };
+  }
+}

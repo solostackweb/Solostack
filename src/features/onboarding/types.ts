@@ -82,6 +82,8 @@ export interface BusinessProfile {
   onboardingCompleted: boolean;
   onboardingCompletedAt: string | null;
   onboardingStep: OnboardingStep;
+  /** First-run product tour completed/dismissed (per account). */
+  tourCompleted: boolean;
 
   // Free-plan enforcement
   lifetimeClientsCreated: number;
@@ -214,6 +216,8 @@ export function mapProfileRow(row: UserProfileRow): BusinessProfile {
     onboardingCompleted: row.onboarding_completed,
     onboardingCompletedAt: row.onboarding_completed_at,
     onboardingStep: row.onboarding_step,
+    tourCompleted:
+      (row as { onboarding_tour_done?: boolean | null }).onboarding_tour_done ?? false,
     lifetimeClientsCreated: row.lifetime_clients_created,
     referralCode: row.referral_code ?? null,
   };

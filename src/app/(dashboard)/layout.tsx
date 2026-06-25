@@ -5,6 +5,7 @@ import { DashboardSupportLayer } from "@/features/support/dashboard-support";
 import { listClients } from "@/features/clients/server";
 import { getClientDisplayName } from "@/features/clients/utils";
 import { listProjects } from "@/features/projects/server";
+import { OnboardingTour } from "@/features/onboarding/components/onboarding-tour";
 
 /**
  * Dashboard group layout.
@@ -45,6 +46,7 @@ export default async function DashboardGroupLayout({
     >
       {children}
       <DashboardSupportLayer identity={{ plan: subscription?.plan ?? "free" }} />
+      <OnboardingTour done={profile.tourCompleted} />
     </DashboardShell>
   );
 }
