@@ -80,10 +80,17 @@ async function resolveContractValue(input: {
       : "INR"
     : input.requestedCurrency || "INR";
   const valueAmount = input.valueAmount ?? null;
+  if (valueAmount === null) {
+    return {
+      currency,
+      valueAmount,
+      fxRate: currency === "INR" ? 1 : ((await getFxRateToInr(currency)) ?? 1),
+      inrEquivalent: null,
+    };
+  }
   const fxRate = await getFxRateToInr(currency);
   if (fxRate === null) throw new FxRateUnavailableError(currency);
-  const inrEquivalent =
-    valueAmount === null ? null : Math.round(valueAmount * fxRate * 100) / 100;
+  const inrEquivalent = Math.round(valueAmount * fxRate * 100) / 100;
 
   return {
     currency,

@@ -147,6 +147,7 @@ export function EditInvoiceView({
   const selectedClientName = selectedClient
     ? getClientDisplayName(selectedClient)
     : undefined;
+  const selectedCurrency = (selectedClient?.currency || invoice.currency || "INR").toUpperCase();
 
   const previewValues = React.useMemo(
     () => ({ ...watched, taxMode: effectiveTaxMode, gstRate: effectiveGstRate }),
@@ -369,6 +370,7 @@ export function EditInvoiceView({
                       index={index}
                       onRemove={() => remove(index)}
                       canRemove={fields.length > 1}
+                      currency={selectedCurrency}
                     />
                   ))}
                 </div>
@@ -448,7 +450,7 @@ export function EditInvoiceView({
                       </Field>
                     </>
                   )}
-                  <Field label="Discount (₹)" error={errors.discount?.message}>
+                  <Field label={`Discount (${selectedCurrency})`} error={errors.discount?.message}>
                     <Input
                       type="number"
                       min={0}
@@ -506,6 +508,7 @@ export function EditInvoiceView({
                     gstRate={effectiveGstRate}
                     taxMode={effectiveTaxMode}
                     dueDate={watched.dueDate}
+                    currency={selectedCurrency}
                   />
                   <div className="hidden xl:block">
                     <InvoicePreview
@@ -516,6 +519,7 @@ export function EditInvoiceView({
                         selectedClient?.businessName ?? undefined
                       }
                       clientEmail={selectedClient?.email ?? undefined}
+                      currency={selectedCurrency}
                     />
                   </div>
                 </div>

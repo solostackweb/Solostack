@@ -20,6 +20,7 @@ export default async function ProjectsPage({ searchParams }: Props) {
   const clientOptions = clients.map((c) => ({
     id: c.id,
     name: getClientDisplayName(c),
+    currency: c.currency,
   }));
 
   return (

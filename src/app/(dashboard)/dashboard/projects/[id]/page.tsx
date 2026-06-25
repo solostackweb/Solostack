@@ -42,11 +42,14 @@ export default async function ProjectDetailPage({ params }: PageProps) {
         number: i.invoiceNumber,
         status: i.status,
         totalAmount: Number(i.totalAmount) || 0,
+        currency: i.currency,
+        inrEquivalent: i.inrEquivalent,
         issueDate: i.issueDate,
       }))}
       clients={clients.map((c) => ({
         id: c.id,
         name: getClientDisplayName(c),
+        currency: c.currency,
       }))}
       statusHistory={statusHistory}
     />

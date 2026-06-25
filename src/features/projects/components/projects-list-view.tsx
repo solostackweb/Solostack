@@ -39,7 +39,7 @@ const KANBAN_COLUMNS: ProjectStatusRow[] = PROJECT_KANBAN_STATUSES;
 
 interface ProjectsListViewProps {
   projects: ProjectRecord[];
-  clients: Array<{ id: string; name: string }>;
+  clients: Array<{ id: string; name: string; currency?: string | null }>;
   /** When true (from ?create=1 URL param), auto-opens the new-project dialog on mount. */
   autoCreate?: boolean;
 }

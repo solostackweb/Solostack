@@ -53,7 +53,7 @@ export const BUILTIN_WELCOME_TEMPLATES: WelcomeDocumentTemplate[] = [
       {
         id: "s_6",
         heading: "Payments & Invoicing",
-        body: "I like to keep the money side simple and predictable:\n\n- **Fee:** [₹ amount or rate]\n- **Schedule:** [e.g. 50% upfront to book the work, 50% on delivery]\n- **Invoices:** sent through Stackivo so you always have a clean record.\n- **Payment terms:** due within [14] days of the invoice date.\n- **Methods:** [bank transfer / UPI].\n\nWork on the next stage begins once the relevant payment is received. If an invoice ever needs explaining, just ask.",
+        body: "I like to keep the money side simple and predictable:\n\n- **Fee:** [amount and currency or rate]\n- **Schedule:** [e.g. 50% upfront to book the work, 50% on delivery]\n- **Invoices:** sent through Stackivo so you always have a clean record.\n- **Payment terms:** due within [14] days of the invoice date.\n- **Methods:** [UPI / bank transfer / Wise / PayPal / card link].\n\nWork on the next stage begins once the relevant payment is received. If an invoice ever needs explaining, just ask.",
       },
       {
         id: "s_7",
@@ -115,7 +115,7 @@ export const BUILTIN_WELCOME_TEMPLATES: WelcomeDocumentTemplate[] = [
       {
         id: "s_7",
         heading: "Billing & Reporting",
-        body: "We keep billing clean and easy for your finance team:\n\n- **Retainers:** invoiced on the [1st] of each month, with a detailed activity report attached.\n- **Project work:** billed at agreed milestones.\n- **Payment terms:** net [15] days via [bank transfer / UPI].\n- **Breakdown:** every invoice includes a line-by-line summary.\n\nQuestions about any invoice? Your account lead will walk you through it.",
+        body: "We keep billing clean and easy for your finance team:\n\n- **Retainers:** invoiced on the [1st] of each month, with a detailed activity report attached.\n- **Project work:** billed at agreed milestones.\n- **Payment terms:** net [15] days via [UPI / bank transfer / Wise / PayPal / card link].\n- **Breakdown:** every invoice includes a line-by-line summary.\n\nQuestions about any invoice? Your account lead will walk you through it.",
       },
       {
         id: "s_8",
@@ -162,7 +162,7 @@ export const BUILTIN_WELCOME_TEMPLATES: WelcomeDocumentTemplate[] = [
       {
         id: "s_6",
         heading: "Fees & Invoicing",
-        body: "Fees follow the structure agreed in the proposal:\n\n- **Fee / rate:** [₹ amount — fixed fee / day rate / retainer]\n- **Schedule:** [e.g. 50% to commence, 50% on final delivery]\n- **Invoices:** sent through Stackivo; payment terms net [14] days.\n- **Expenses:** [pre-approved expenses billed at cost, if applicable].\n\nQuestions about any invoice are always welcome.",
+        body: "Fees follow the structure agreed in the proposal:\n\n- **Fee / rate:** [amount and currency — fixed fee / day rate / retainer]\n- **Schedule:** [e.g. 50% to commence, 50% on final delivery]\n- **Invoices:** sent through Stackivo; payment terms net [14] days.\n- **Expenses:** [pre-approved expenses billed at cost, if applicable].\n\nQuestions about any invoice are always welcome.",
       },
       {
         id: "s_7",
@@ -209,7 +209,7 @@ export const BUILTIN_WELCOME_TEMPLATES: WelcomeDocumentTemplate[] = [
       {
         id: "s_6",
         heading: "Payments",
-        body: "You'll receive invoices via email and inside your portal. Payment is via UPI or bank transfer unless we agree otherwise. Invoices are due within [7] days. The kickoff payment locks in your project slot - design work begins after it clears.",
+        body: "You'll receive invoices via email and inside your portal. Payment is via [UPI / bank transfer / Wise / PayPal / card link] unless we agree otherwise. Invoices are due within [7] days. The kickoff payment locks in your project slot - design work begins after it clears.",
       },
       {
         id: "s_7",
@@ -348,7 +348,7 @@ export const BUILTIN_WELCOME_TEMPLATES: WelcomeDocumentTemplate[] = [
       {
         id: "s_9",
         heading: "Payments",
-        body: "Per-piece or monthly retainer work is invoiced as agreed. Payment is via UPI or bank transfer and due within [7] days. Final delivery happens after the invoice clears for one-off projects.",
+        body: "Per-piece or monthly retainer work is invoiced as agreed. Payment is via [UPI / bank transfer / Wise / PayPal / card link] and due within [7] days. Final delivery happens after the invoice clears for one-off projects.",
       },
       {
         id: "s_10",

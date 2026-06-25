@@ -30,7 +30,7 @@ interface ProjectFormDialogProps {
   onOpenChange: (open: boolean) => void;
   /** Pre-fill when editing. Omit to create. */
   project?: ProjectRecord;
-  clients: Array<{ id: string; name: string }>;
+  clients: Array<{ id: string; name: string; currency?: string | null }>;
 }
 
 type ProjectFormResult = ActionResult<{ id: string }>;
@@ -60,6 +60,8 @@ export function ProjectFormDialog({
   const [billingEnabled, setBillingEnabled] = React.useState<boolean>(
     project?.billingEnabled ?? false,
   );
+  const selectedClient = clients.find((client) => client.id === clientId) ?? null;
+  const billingCurrency = (selectedClient?.currency || "INR").toUpperCase();
 
   React.useEffect(() => {
     if (open) {
@@ -167,12 +169,12 @@ export function ProjectFormDialog({
               <Switch checked={billingEnabled} onCheckedChange={setBillingEnabled} />
             </div>
             {billingEnabled && (
-              <Field label="Default hourly rate (₹)" error={errs?.hourlyRate?.[0]}>
+              <Field label={`Default hourly rate (${billingCurrency})`} error={errs?.hourlyRate?.[0]}>
                 <Input
                   type="number"
                   name="hourlyRate"
                   min="0"
-                  step="50"
+                  step="0.01"
                   defaultValue={project?.hourlyRate ?? 0}
                   className="tabular-nums"
                 />

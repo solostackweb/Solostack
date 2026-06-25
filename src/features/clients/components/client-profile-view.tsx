@@ -34,7 +34,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { EmptyState } from "@/components/shared/empty-state";
-import { formatINR } from "@/lib/format";
+import { formatINR, formatMoney } from "@/lib/format";
 import { getStateName } from "@/features/gst/state-codes";
 
 import type { ClientRecord } from "../server";
@@ -224,7 +224,7 @@ export function ClientProfileView({ client, metrics, recentInvoices = [] }: Clie
                       </div>
                       <div className="flex items-center gap-2 shrink-0">
                         <span className="text-sm font-medium tabular-nums">
-                          {formatINR(inv.totalAmount)}
+                          {formatMoney(inv.totalAmount, inv.currency)}
                         </span>
                         <InvoiceStatusBadge status={inv.status} />
                       </div>

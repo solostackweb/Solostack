@@ -3,7 +3,7 @@
 import * as React from "react";
 import { Clock, Plus, Undo2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { formatINR } from "@/lib/format";
+import { formatMoney } from "@/lib/format";
 import { formatDuration, secondsToHours } from "@/features/time/types";
 
 /** Lean unbilled entry shape passed from the server page (serializable). */
@@ -30,6 +30,7 @@ interface UnbilledTimePanelProps {
   projects: Array<{ id: string; name: string }>;
   /** Group keys already pulled onto the invoice. */
   addedKeys: string[];
+  currency?: string;
   onAdd: (group: UnbilledGroupSelection) => void;
   onUndo: (key: string) => void;
 }
@@ -45,6 +46,7 @@ export function UnbilledTimePanel({
   clientId,
   projects,
   addedKeys,
+  currency = "INR",
   onAdd,
   onUndo,
 }: UnbilledTimePanelProps) {
@@ -105,7 +107,7 @@ export function UnbilledTimePanel({
         </p>
         {pending.length > 0 ? (
           <p className="text-xs text-muted-foreground">
-            {formatINR(totalPendingAmount)} not yet added
+            {formatMoney(totalPendingAmount, currency)} not yet added
           </p>
         ) : (
           <p className="text-xs font-medium text-success">All time added ✓</p>
@@ -124,8 +126,8 @@ export function UnbilledTimePanel({
                 <p className="truncate text-sm font-medium">{g.projectName}</p>
                 <p className="text-xs text-muted-foreground">
                   {formatDuration(g.seconds, { compact: true })} · {g.range} ·{" "}
-                  {formatINR(g.amount)}
-                  {g.rate > 0 ? ` @ ${formatINR(g.rate)}/h` : ""}
+                  {formatMoney(g.amount, currency)}
+                  {g.rate > 0 ? ` @ ${formatMoney(g.rate, currency)}/h` : ""}
                 </p>
               </div>
               {added ? (

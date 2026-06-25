@@ -21,18 +21,6 @@ interface InvoicePreviewProps {
   currency?: string;
 }
 
-// Legacy helper kept only while older previews are being unwound.
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function fmtINR(n: number) {
-  if (!Number.isFinite(n)) return "₹0";
-  return new Intl.NumberFormat("en-IN", {
-    style: "currency",
-    currency: "INR",
-    minimumFractionDigits: Number.isInteger(n) ? 0 : 2,
-    maximumFractionDigits: 2,
-  }).format(n);
-}
-
 /**
  * Professional paper-like invoice preview. Shows what the recipient
  * will approximately see — branding, line items, totals, and a single

@@ -27,7 +27,6 @@ import {
   Trash2,
   Send,
   Loader2,
-  Upload,
   ExternalLink,
   ShieldCheck,
   BookOpen,
@@ -253,7 +252,6 @@ export function PortalView(props: ViewProps) {
         isOwner={isOwner}
         currentUserId={props.currentUserId}
         r2Enabled={props.r2Enabled}
-        usage={props.storageUsage}
         cap={props.storageCap}
       />
       <MessagesSection
@@ -305,7 +303,6 @@ export function PortalView(props: ViewProps) {
         isOwner={isOwner}
         currentUserId={props.currentUserId}
         r2Enabled={props.r2Enabled}
-        usage={props.storageUsage}
         cap={props.storageCap}
       />
       <MessagesSection
@@ -376,16 +373,17 @@ type PortalDocument = {
 
 function ClientPortalExperience(props: ViewProps) {
   const [viewerDoc, setViewerDoc] = React.useState<PortalDocument | null>(null);
-  const paidAmount = props.invoices
-    .filter((invoice) => invoice.status === "paid")
-    .reduce((sum, invoice) => sum + invoice.total_amount, 0);
-  const outstandingAmount = props.invoices
-    .filter((invoice) => invoice.status !== "paid" && invoice.status !== "cancelled")
-    .reduce((sum, invoice) => sum + invoice.total_amount, 0);
-  const overdueAmount = props.invoices
-    .filter((invoice) => invoice.status === "overdue")
-    .reduce((sum, invoice) => sum + invoice.total_amount, 0);
-  const currency = props.invoices[0]?.currency ?? "INR";
+  const paidAmount = formatGroupedPortalCurrency(
+    props.invoices.filter((invoice) => invoice.status === "paid"),
+  );
+  const outstandingAmount = formatGroupedPortalCurrency(
+    props.invoices.filter(
+      (invoice) => invoice.status !== "paid" && invoice.status !== "cancelled",
+    ),
+  );
+  const overdueAmount = formatGroupedPortalCurrency(
+    props.invoices.filter((invoice) => invoice.status === "overdue"),
+  );
   const latestDeliverable =
     props.files.find((file) => file.category === "deliverable") ??
     props.files[0] ??
@@ -458,8 +456,8 @@ function ClientPortalExperience(props: ViewProps) {
           <ClientStatusCard
             icon={Wallet}
             label="Payments"
-            title={formatPortalCurrency(currency, outstandingAmount)}
-            meta={`${formatPortalCurrency(currency, paidAmount)} paid • ${formatPortalCurrency(currency, overdueAmount)} overdue`}
+            title={outstandingAmount}
+            meta={`${paidAmount} paid • ${overdueAmount} overdue`}
           />
           <ClientStatusCard
             icon={CheckSquare}
@@ -1467,7 +1465,7 @@ function InvoicesSection({
             items={available.map((i) => ({
               id: i.id,
               label: i.invoice_number,
-              meta: `${i.currency} ${i.total_amount} · ${i.status}`,
+              meta: `${formatPortalCurrency(i.currency, i.total_amount)} · ${i.status}`,
             }))}
             onAttach={async (id) => attachInvoiceToPortalAction({ portalId, invoiceId: id })}
           />
@@ -1593,7 +1591,6 @@ function FilesSection({
   isOwner,
   currentUserId,
   r2Enabled,
-  usage,
   cap,
 }: {
   portalId: string;
@@ -1601,7 +1598,6 @@ function FilesSection({
   isOwner: boolean;
   currentUserId: string;
   r2Enabled: boolean;
-  usage: { totalBytes: number; fileCount: number };
   cap: number;
 }) {
   const router = useRouter();
@@ -2620,6 +2616,20 @@ function formatPortalCurrency(currency: string, amount: number): string {
     minimumFractionDigits: Number.isInteger(amount) ? 0 : 2,
     maximumFractionDigits: 2,
   }).format(amount)}`;
+}
+
+function formatGroupedPortalCurrency(
+  invoices: Array<{ total_amount: number; currency: string | null }>,
+): string {
+  if (invoices.length === 0) return "INR 0";
+  const totals = new Map<string, number>();
+  for (const invoice of invoices) {
+    const currency = (invoice.currency || "INR").toUpperCase();
+    totals.set(currency, (totals.get(currency) ?? 0) + Number(invoice.total_amount));
+  }
+  return Array.from(totals.entries())
+    .map(([currency, amount]) => formatPortalCurrency(currency, amount))
+    .join(" + ");
 }
 
 function formatBytes(bytes: number): string {

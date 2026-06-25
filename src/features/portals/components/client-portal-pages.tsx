@@ -202,13 +202,17 @@ export function ClientPortalShell({
 }
 
 export function ClientPortalHome({ data }: { data: ClientPortalProps }) {
-  const paidAmount = data.invoices
-    .filter((invoice) => invoice.status === "paid")
-    .reduce((sum, invoice) => sum + invoice.total_amount, 0);
+  const paidAmountLabel = formatPortalCurrencyGroups(
+    data.invoices.filter((invoice) => invoice.status === "paid"),
+  );
   const outstandingAmount = data.invoices
     .filter((invoice) => invoice.status !== "paid" && invoice.status !== "cancelled")
     .reduce((sum, invoice) => sum + invoice.total_amount, 0);
-  const currency = data.invoices[0]?.currency ?? "INR";
+  const outstandingAmountLabel = formatPortalCurrencyGroups(
+    data.invoices.filter(
+      (invoice) => invoice.status !== "paid" && invoice.status !== "cancelled",
+    ),
+  );
   const deliverable =
     data.files.find((file) => file.category === "deliverable") ?? data.files[0] ?? null;
   const meeting = data.meetings.find(
@@ -413,10 +417,10 @@ export function ClientPortalHome({ data }: { data: ClientPortalProps }) {
             label="Payments"
             title={
               outstandingAmount > 0
-                ? `${formatPortalCurrency(currency, outstandingAmount)} due`
+                ? `${outstandingAmountLabel} due`
                 : "All settled"
             }
-            meta={`${formatPortalCurrency(currency, paidAmount)} paid to date`}
+            meta={`${paidAmountLabel} paid to date`}
             accent="emerald"
             href={`/portal/${data.portalId}/invoices`}
           />
@@ -578,9 +582,9 @@ export function ClientPortalUpdates({ data }: { data: ClientPortalProps }) {
 }
 
 export function ClientPortalInvoices({ data }: { data: ClientPortalProps }) {
-  const paidAmount = data.invoices
-    .filter((invoice) => invoice.status === "paid")
-    .reduce((sum, invoice) => sum + invoice.total_amount, 0);
+  const paidAmountLabel = formatPortalCurrencyGroups(
+    data.invoices.filter((invoice) => invoice.status === "paid"),
+  );
   const openInvoices = data.invoices.filter(
     (invoice) => invoice.status !== "paid" && invoice.status !== "cancelled",
   );
@@ -588,7 +592,7 @@ export function ClientPortalInvoices({ data }: { data: ClientPortalProps }) {
     (sum, invoice) => sum + invoice.total_amount,
     0,
   );
-  const currency = data.invoices[0]?.currency ?? "INR";
+  const openAmountLabel = formatPortalCurrencyGroups(openInvoices);
 
   return (
     <ClientPortalShell
@@ -606,14 +610,14 @@ export function ClientPortalInvoices({ data }: { data: ClientPortalProps }) {
           <StatusCard
             icon={Wallet}
             label="Outstanding"
-            title={formatPortalCurrency(currency, openAmount)}
+            title={openAmountLabel}
             meta={`${openInvoices.length} invoice${openInvoices.length === 1 ? "" : "s"} open`}
             accent={openAmount > 0 ? "amber" : "emerald"}
           />
           <StatusCard
             icon={CheckCircle2}
             label="Paid"
-            title={formatPortalCurrency(currency, paidAmount)}
+            title={paidAmountLabel}
             meta="Payments recorded by your freelancer"
             accent="emerald"
           />
@@ -1270,6 +1274,20 @@ function formatPortalCurrency(currency: string, amount: number): string {
     minimumFractionDigits: Number.isInteger(amount) ? 0 : 2,
     maximumFractionDigits: 2,
   }).format(amount)}`;
+}
+
+function formatPortalCurrencyGroups(
+  invoices: Array<{ total_amount: number; currency: string | null }>,
+): string {
+  if (invoices.length === 0) return formatPortalCurrency("INR", 0);
+  const totals = new Map<string, number>();
+  for (const invoice of invoices) {
+    const currency = (invoice.currency || "INR").toUpperCase();
+    totals.set(currency, (totals.get(currency) ?? 0) + Number(invoice.total_amount));
+  }
+  return Array.from(totals.entries())
+    .map(([currency, amount]) => formatPortalCurrency(currency, amount))
+    .join(" + ");
 }
 
 function formatHours(totalSeconds: number): string {

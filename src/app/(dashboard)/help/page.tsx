@@ -66,7 +66,7 @@ const FAQ_SECTIONS = [
       },
       {
         q: "Can I invoice in USD or another foreign currency?",
-        a: "Yes. When creating an invoice choose any currency from the dropdown. For export invoices (outside India), Stackivo marks the supply as 'Export without payment of IGST' automatically, which is the correct treatment for most LUT-holders. Check with your CA if your situation involves bond or letter of undertaking filings.",
+        a: "Yes. Set the client's country and invoice currency when you add the client. Invoices and contracts for that client automatically use that currency. For export invoices (outside India), Stackivo marks the supply as 'Export without payment of IGST' automatically, which is the correct treatment for most LUT-holders. Check with your CA if your situation involves bond or letter of undertaking filings.",
       },
     ],
   },

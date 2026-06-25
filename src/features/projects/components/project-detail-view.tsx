@@ -28,7 +28,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { EmptyState } from "@/components/shared/empty-state";
-import { formatINR } from "@/lib/format";
+import { formatINR, formatMoney } from "@/lib/format";
 
 import type { ProjectRecord } from "../server";
 import type { ClientRecord } from "@/features/clients/server";
@@ -50,6 +50,8 @@ export interface LinkedInvoice {
   number: string | null;
   status: string | null;
   totalAmount: number;
+  currency: string;
+  inrEquivalent: number | null;
   issueDate: string | null;
 }
 
@@ -57,7 +59,7 @@ interface ProjectDetailViewProps {
   project: ProjectRecord;
   client: ClientRecord | null;
   invoices: LinkedInvoice[];
-  clients: Array<{ id: string; name: string }>;
+  clients: Array<{ id: string; name: string; currency?: string | null }>;
   /** Newest-first list of status changes for this project. */
   statusHistory: ProjectStatusHistoryEntry[];
 }
@@ -126,7 +128,10 @@ export function ProjectDetailView({
     });
   };
 
-  const billedTotal = invoices.reduce((s, i) => s + (i.totalAmount ?? 0), 0);
+  const billedTotal = invoices.reduce(
+    (s, i) => s + (i.inrEquivalent ?? i.totalAmount ?? 0),
+    0,
+  );
 
   return (
     <div className="space-y-6">
@@ -275,7 +280,7 @@ export function ProjectDetailView({
                     </div>
                     <div className="flex items-center gap-3">
                       <span className="text-sm tabular-nums">
-                        {formatINR(inv.totalAmount)}
+                        {formatMoney(inv.totalAmount, inv.currency)}
                       </span>
                       <Button asChild variant="ghost" size="sm">
                         <Link href={`/dashboard/invoices/${inv.id}`}>View</Link>

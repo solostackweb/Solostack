@@ -462,6 +462,7 @@ export function CreateInvoiceView({
                   clientId={watched.clientId || null}
                   projects={projects.map((p) => ({ id: p.id, name: p.name }))}
                   addedKeys={Object.keys(addedTime)}
+                  currency={selectedCurrency}
                   onAdd={handleAddTimeGroup}
                   onUndo={handleUndoTimeGroup}
                 />
