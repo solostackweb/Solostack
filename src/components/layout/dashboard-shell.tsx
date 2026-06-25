@@ -3,6 +3,7 @@ import { AppSidebar } from "./app-sidebar";
 import { TopNav } from "./top-nav";
 import { MobileNav } from "./mobile-nav";
 import { MobileBottomNav } from "./mobile-bottom-nav";
+import { PullToRefresh } from "./pull-to-refresh";
 import { DashboardShellProviders } from "./dashboard-shell-providers";
 import type { BusinessProfile } from "@/features/onboarding/types";
 import type { CurrentSubscription } from "@/features/subscription/types";
@@ -65,6 +66,7 @@ export function DashboardShell({
         <div className="stackivo-ai-rail hidden min-w-0 md:flex h-[100dvh] justify-end">
           <div id="stackivo-ai-panel-slot" className="flex h-full w-full" />
         </div>
+        <PullToRefresh />
         <MobileBottomNav />
       </div>
     </DashboardShellProviders>

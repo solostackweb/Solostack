@@ -15,10 +15,7 @@ import { Textarea } from "@/components/ui/textarea";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import {
-  Dialog, DialogContent, DialogFooter, DialogHeader,
-  DialogTitle, DialogDescription,
-} from "@/components/ui/dialog";
+import { ResponsiveModal } from "@/components/ui/responsive-modal";
 import { useConfirm } from "@/components/ui/confirm-dialog";
 import {
   createPortalUpdateAction,
@@ -505,14 +502,13 @@ function CreateUpdateDialog({
   }
 
   return (
-    <Dialog open={open} onOpenChange={(v) => { onOpenChange(v); if (!v) reset(); }}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>Post an update</DialogTitle>
-          <DialogDescription>
-            Keep your client informed with structured, typed updates.
-          </DialogDescription>
-        </DialogHeader>
+    <ResponsiveModal
+      open={open}
+      onOpenChange={(v) => { onOpenChange(v); if (!v) reset(); }}
+      className="sm:max-w-md"
+      title="Post an update"
+      description="Keep your client informed with structured, typed updates."
+    >
         <form onSubmit={onSubmit} className="space-y-4">
           <div className="space-y-1.5">
             <Label className="text-xs">Update type</Label>
@@ -558,17 +554,16 @@ function CreateUpdateDialog({
           {error && (
             <p className="rounded-md bg-destructive/10 p-2 text-xs text-destructive">{error}</p>
           )}
-          <DialogFooter>
+          <div className="mt-4 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
             <Button type="button" variant="ghost" onClick={() => onOpenChange(false)} disabled={pending}>
               Cancel
             </Button>
             <Button type="submit" disabled={pending || !title.trim()}>
               {pending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Post update"}
             </Button>
-          </DialogFooter>
+          </div>
         </form>
-      </DialogContent>
-    </Dialog>
+    </ResponsiveModal>
   );
 }
 

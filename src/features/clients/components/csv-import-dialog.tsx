@@ -20,14 +20,7 @@ import * as React from "react";
 import { useRouter } from "next/navigation";
 import { Upload, FileText, AlertCircle, CheckCircle2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-  DialogDescription,
-} from "@/components/ui/dialog";
+import { ResponsiveModal } from "@/components/ui/responsive-modal";
 import { importClientsAction, type CsvClientRow } from "../actions";
 
 // ---------------------------------------------------------------------------
@@ -209,15 +202,18 @@ export function CsvImportDialog({ open, onOpenChange }: CsvImportDialogProps) {
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
-        <DialogHeader>
-          <DialogTitle>Import clients from CSV</DialogTitle>
-          <DialogDescription>
-            Upload a CSV file with columns: <strong>name</strong> (required),
-            email, phone, company. GST details can be added per-client after import.
-          </DialogDescription>
-        </DialogHeader>
+    <ResponsiveModal
+      open={open}
+      onOpenChange={onOpenChange}
+      className="sm:max-w-2xl sm:max-h-[90vh] sm:overflow-y-auto"
+      title="Import clients from CSV"
+      description={
+        <>
+          Upload a CSV file with columns: <strong>name</strong> (required),
+          email, phone, company. GST details can be added per-client after import.
+        </>
+      }
+    >
 
         {/* Step 1 — file picker */}
         {step === "pick" && (
@@ -339,7 +335,7 @@ export function CsvImportDialog({ open, onOpenChange }: CsvImportDialogProps) {
           </div>
         )}
 
-        <DialogFooter>
+        <div className="mt-4 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
           {step === "pick" && (
             <Button variant="outline" onClick={() => onOpenChange(false)}>
               Cancel
@@ -358,8 +354,7 @@ export function CsvImportDialog({ open, onOpenChange }: CsvImportDialogProps) {
           {step === "done" && (
             <Button onClick={() => onOpenChange(false)}>Done</Button>
           )}
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        </div>
+    </ResponsiveModal>
   );
 }

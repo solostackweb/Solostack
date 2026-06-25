@@ -15,10 +15,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Dialog, DialogContent, DialogFooter, DialogHeader,
-  DialogTitle, DialogDescription,
-} from "@/components/ui/dialog";
+import { ResponsiveModal } from "@/components/ui/responsive-modal";
 import {
   DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
@@ -394,19 +391,12 @@ function MeetingCard({
       </div>
 
       {/* Accept / confirm dialog */}
-      <Dialog
+      <ResponsiveModal
         open={acceptOpen}
         onOpenChange={(next) => { setAcceptOpen(next); if (!next) setError(null); }}
+        title={meeting.status === "accepted" ? "Edit meeting" : "Confirm meeting"}
+        description="Set a date and time, and add a video call link (Google Meet or Zoom)."
       >
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>
-              {meeting.status === "accepted" ? "Edit meeting" : "Confirm meeting"}
-            </DialogTitle>
-            <DialogDescription>
-              Set a date and time, and add a video call link (Google Meet or Zoom).
-            </DialogDescription>
-          </DialogHeader>
           <form onSubmit={handleAccept} className="space-y-4">
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
               <div className="space-y-1.5 sm:col-span-2">
@@ -465,7 +455,7 @@ function MeetingCard({
                 {error}
               </p>
             )}
-            <DialogFooter>
+            <div className="mt-4 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
               <Button
                 type="button"
                 variant="ghost"
@@ -483,10 +473,9 @@ function MeetingCard({
                   "Confirm meeting"
                 )}
               </Button>
-            </DialogFooter>
+            </div>
           </form>
-        </DialogContent>
-      </Dialog>
+      </ResponsiveModal>
     </li>
   );
 }
@@ -672,14 +661,12 @@ function RequestMeetingDialog({
         Request meeting
       </Button>
 
-      <Dialog open={open} onOpenChange={(next) => { setOpen(next); if (!next) setError(null); }}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Request a meeting</DialogTitle>
-            <DialogDescription>
-              Propose a topic and time. The other party will confirm or suggest a change.
-            </DialogDescription>
-          </DialogHeader>
+      <ResponsiveModal
+        open={open}
+        onOpenChange={(next) => { setOpen(next); if (!next) setError(null); }}
+        title="Request a meeting"
+        description="Propose a topic and time. The other party will confirm or suggest a change."
+      >
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-1.5">
               <Label htmlFor="req-topic" className="text-xs">
@@ -747,17 +734,16 @@ function RequestMeetingDialog({
                 {error}
               </p>
             )}
-            <DialogFooter>
+            <div className="mt-4 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
               <Button type="button" variant="ghost" onClick={() => setOpen(false)} disabled={pending}>
                 Cancel
               </Button>
               <Button type="submit" disabled={pending || !topic.trim()}>
                 {pending ? <Loader2 className="animate-spin" /> : "Send request"}
               </Button>
-            </DialogFooter>
+            </div>
           </form>
-        </DialogContent>
-      </Dialog>
+      </ResponsiveModal>
     </>
   );
 }

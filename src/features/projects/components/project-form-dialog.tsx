@@ -4,13 +4,7 @@ import * as React from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { ResponsiveModal } from "@/components/ui/responsive-modal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -97,19 +91,17 @@ export function ProjectFormDialog({
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
-        <DialogHeader>
-          <DialogTitle>
-            {isEdit ? "Edit project" : "Create a project"}
-          </DialogTitle>
-          <DialogDescription>
-            {isEdit
-              ? "Update the core details for this project."
-              : "Group related invoices, contracts, and files under one project."}
-          </DialogDescription>
-        </DialogHeader>
-
+    <ResponsiveModal
+      open={open}
+      onOpenChange={onOpenChange}
+      className="sm:max-w-lg"
+      title={isEdit ? "Edit project" : "Create a project"}
+      description={
+        isEdit
+          ? "Update the core details for this project."
+          : "Group related invoices, contracts, and files under one project."
+      }
+    >
         <form action={handleSubmit} className="space-y-4">
           {state && !state.ok && (
             <p className="rounded-md border border-destructive/40 bg-destructive/5 px-3 py-2 text-xs text-destructive">
@@ -217,8 +209,7 @@ export function ProjectFormDialog({
             </Button>
           </div>
         </form>
-      </DialogContent>
-    </Dialog>
+    </ResponsiveModal>
   );
 }
 

@@ -23,6 +23,7 @@ import { formatMoney } from "@/lib/format";
 import type { ContractRecord } from "../server";
 import { CONTRACT_KIND_LABEL } from "../status";
 import { ContractStatusBadge } from "./contract-status-badge";
+import { SwipeRow, type SwipeAction } from "@/components/ui/swipe-row";
 
 interface ContractMobileCardProps {
   contract: ContractRecord;
@@ -57,7 +58,15 @@ export function ContractMobileCard({
   const sendLabel =
     contract.status === "draft" ? "Send for signature" : "Resend";
 
+  const swipeActions: SwipeAction[] = [
+    ...(canSend
+      ? [{ label: contract.status === "draft" ? "Send" : "Resend", icon: Send, onClick: onResend }]
+      : []),
+    { label: "Delete", icon: Trash2, onClick: onDelete, destructive: true },
+  ];
+
   return (
+    <SwipeRow actions={swipeActions} className="rounded-xl">
     <Link
       href={`/dashboard/contracts/${contract.id}`}
       className={cn(
@@ -156,5 +165,6 @@ export function ContractMobileCard({
         </div>
       </div>
     </Link>
+    </SwipeRow>
   );
 }

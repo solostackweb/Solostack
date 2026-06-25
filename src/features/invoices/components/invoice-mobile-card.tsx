@@ -22,6 +22,7 @@ import { cn } from "@/lib/utils";
 import { formatMoney } from "@/lib/format";
 import type { InvoiceRecord } from "../server";
 import { InvoiceStatusBadge } from "./invoice-status-badge";
+import { SwipeRow, type SwipeAction } from "@/components/ui/swipe-row";
 
 interface InvoiceMobileCardProps {
   invoice: InvoiceRecord;
@@ -84,7 +85,15 @@ export function InvoiceMobileCard({
   });
   const canMarkPaid = invoice.status !== "paid";
 
+  const swipeActions: SwipeAction[] = [
+    ...(canMarkPaid
+      ? [{ label: "Paid", icon: CheckCircle2, onClick: onMarkPaid }]
+      : []),
+    { label: "Delete", icon: Trash2, onClick: onDelete, destructive: true },
+  ];
+
   return (
+    <SwipeRow actions={swipeActions} className="rounded-xl">
     <div
       role="button"
       tabIndex={0}
@@ -199,5 +208,6 @@ export function InvoiceMobileCard({
         </div>
       </div>
     </div>
+    </SwipeRow>
   );
 }

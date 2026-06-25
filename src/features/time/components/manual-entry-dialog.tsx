@@ -4,14 +4,7 @@ import * as React from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { ResponsiveModal } from "@/components/ui/responsive-modal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -159,17 +152,17 @@ export function ManualEntryDialog({
   }, [applyAiDraft, initialAiDraft, open]);
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
-        <DialogHeader>
-          <DialogTitle>{isEditing ? "Edit time entry" : "Log time"}</DialogTitle>
-          <DialogDescription>
-            {isEditing
-              ? "Update the details of this time entry."
-              : "Back-date an entry or log time you forgot to track live."}
-          </DialogDescription>
-        </DialogHeader>
-
+    <ResponsiveModal
+      open={open}
+      onOpenChange={onOpenChange}
+      className="sm:max-w-md"
+      title={isEditing ? "Edit time entry" : "Log time"}
+      description={
+        isEditing
+          ? "Update the details of this time entry."
+          : "Back-date an entry or log time you forgot to track live."
+      }
+    >
         <div className="space-y-4">
           <Field label="Description">
             <Textarea
@@ -268,7 +261,7 @@ export function ManualEntryDialog({
           />
         </div>
 
-        <DialogFooter>
+        <div className="mt-4 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
           <Button
             variant="ghost"
             onClick={() => onOpenChange(false)}
@@ -279,9 +272,8 @@ export function ManualEntryDialog({
           <Button onClick={handleSubmit} disabled={pending}>
             {pending ? "Saving…" : isEditing ? "Save changes" : "Save entry"}
           </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        </div>
+    </ResponsiveModal>
   );
 }
 

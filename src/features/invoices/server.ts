@@ -260,7 +260,7 @@ export async function getInvoiceAggregates(): Promise<{
     await Promise.all([
       supabase
         .from("invoices")
-        .select("total_amount, inr_equivalent, paid_at, status, due_date"),
+        .select("total_amount, inr_equivalent, fx_rate_to_inr, currency, paid_at, status, due_date"),
       supabase
         .from("invoices")
         .select("id", { count: "exact", head: true })
@@ -275,9 +275,26 @@ export async function getInvoiceAggregates(): Promise<{
   type AggRow = {
     total_amount?: number;
     inr_equivalent?: number | null;
+    fx_rate_to_inr?: number | string | null;
+    currency?: string | null;
     paid_at?: string | null;
     status?: string;
     due_date?: string | null;
+  };
+
+  // Consolidate every invoice to INR. Prefer the locked inr_equivalent; if it's
+  // missing (e.g. a legacy invoice from before FX was wired) fall back to the
+  // locked fx_rate_to_inr, then to the raw amount only for INR invoices. A
+  // foreign-currency invoice with no rate is NOT counted at face value (that's
+  // the "$140 read as ₹140" bug).
+  const toInrAmount = (r: AggRow): number => {
+    if (r.inr_equivalent != null) return Number(r.inr_equivalent) || 0;
+    const total = Number(r.total_amount) || 0;
+    const rate = Number(r.fx_rate_to_inr) || 0;
+    const isInr = !r.currency || r.currency.toUpperCase() === "INR";
+    if (isInr) return total;
+    if (rate > 0) return Math.round(total * rate * 100) / 100;
+    return 0; // foreign amount with no rate — exclude rather than mis-count
   };
   const rows = (allRows as AggRow[] | null) ?? [];
 
@@ -289,7 +306,7 @@ export async function getInvoiceAggregates(): Promise<{
   let overdueCount = 0;
 
   for (const r of rows) {
-    const amt = Number(r.inr_equivalent ?? r.total_amount) || 0;
+    const amt = toInrAmount(r);
     const storedStatus = r.status ?? "draft";
     const status =
       (storedStatus === "sent" || storedStatus === "viewed") &&

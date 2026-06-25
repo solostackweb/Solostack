@@ -22,6 +22,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
+import { SwipeRow, type SwipeAction } from "@/components/ui/swipe-row";
 import { getStateName } from "@/features/gst/state-codes";
 import type { ClientRecord } from "../server";
 import { getClientDisplayName, getClientInitials } from "../utils";
@@ -58,7 +59,13 @@ export function ClientMobileCard({
   const stateName = client.stateCode ? getStateName(client.stateCode) : null;
   const contact = client.email ?? client.phone ?? null;
 
+  const swipeActions: SwipeAction[] = [
+    { label: "Edit", icon: Pencil, onClick: onEdit },
+    { label: "Delete", icon: Trash2, onClick: onDelete, destructive: true },
+  ];
+
   return (
+    <SwipeRow actions={swipeActions} className="rounded-xl">
     <div
       role="button"
       tabIndex={0}
@@ -167,5 +174,6 @@ export function ClientMobileCard({
         <ChevronRight className="h-4 w-4 text-muted-foreground/60" aria-hidden />
       </div>
     </div>
+    </SwipeRow>
   );
 }

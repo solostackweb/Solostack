@@ -513,6 +513,51 @@
     transition-duration: 80ms;
   }
 
+  /* ── Native mobile feel ─────────────────────────────────────────────── */
+  /* Tactile press feedback on touch devices: buttons, links, role=button and
+     anything tagged `.tap-press` dip slightly when tapped, like a native
+     control. Mouse (fine pointer) devices keep hover states and are untouched.
+     Opted-out elements can add `.no-press`. */
+  @media (pointer: coarse) {
+    button:not(:disabled):not(.no-press):active,
+    a:not(.no-press):active,
+    [role="button"]:not(.no-press):active,
+    .tap-press:active {
+      transform: scale(0.97);
+      transition: transform 90ms ease;
+    }
+  }
+
+  /* iOS momentum scrolling for inner scroll regions. */
+  .momentum-scroll {
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* App-like per-navigation page transition. The (dashboard) template wraps
+     each route in `.animate-app-page`; mobile slides in from the right, desktop
+     does a gentle fade-up. Collapsed to instant under reduced-motion. */
+  @keyframes app-page-in-mobile {
+    from { opacity: 0; transform: translateX(16px); }
+    to   { opacity: 1; transform: translateX(0); }
+  }
+  @keyframes app-page-in-desktop {
+    from { opacity: 0; transform: translateY(6px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .animate-app-page {
+    animation: app-page-in-mobile 0.26s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+  @media (min-width: 768px) {
+    .animate-app-page {
+      animation: app-page-in-desktop 0.22s cubic-bezier(0.22, 1, 0.36, 1) both;
+    }
+  }
+
+  /* Pull-to-refresh spinner wrapper (global, standalone PWA only). */
+  .ptr-spinner {
+    transition: opacity 150ms ease, transform 150ms ease;
+  }
+
   /*
    * Stagger delay helpers — apply to direct children of a staggered list.
    * Pattern: add `stagger-children` to the parent and each child gets a

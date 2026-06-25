@@ -23,14 +23,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { ResponsiveModal } from "@/components/ui/responsive-modal";
 import { PageHeader } from "@/components/shared/page-header";
 
 import type { WelcomeDocumentRecord } from "../types";
@@ -377,14 +370,12 @@ function SendDialog({
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Send to client</DialogTitle>
-          <DialogDescription>
-            We&apos;ll email a friendly note with a link and the PDF attached.
-          </DialogDescription>
-        </DialogHeader>
+    <ResponsiveModal
+      open={open}
+      onOpenChange={onOpenChange}
+      title="Send to client"
+      description="We'll email a friendly note with a link and the PDF attached."
+    >
         <form onSubmit={onSubmit} className="space-y-3">
           <div>
             <Label htmlFor="wd-send-email" className="text-xs">
@@ -416,7 +407,7 @@ function SendDialog({
             <Switch checked={ccSelf} onCheckedChange={setCcSelf} />
             CC me on this email
           </label>
-          <DialogFooter>
+          <div className="mt-4 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
             <Button
               type="button"
               variant="ghost"
@@ -428,10 +419,9 @@ function SendDialog({
             <Button type="submit" disabled={pending}>
               {pending ? "Sending…" : "Send"}
             </Button>
-          </DialogFooter>
+          </div>
         </form>
-      </DialogContent>
-    </Dialog>
+    </ResponsiveModal>
   );
 }
 
@@ -470,15 +460,12 @@ function SaveAsTemplateDialog({
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Save as template</DialogTitle>
-          <DialogDescription>
-            You&apos;ll see this in your template grid the next time you create
-            a welcome document.
-          </DialogDescription>
-        </DialogHeader>
+    <ResponsiveModal
+      open={open}
+      onOpenChange={onOpenChange}
+      title="Save as template"
+      description="You'll see this in your template grid the next time you create a welcome document."
+    >
         <form onSubmit={onSubmit} className="space-y-3">
           <div>
             <Label htmlFor="wd-tpl-title" className="text-xs">
@@ -505,7 +492,7 @@ function SaveAsTemplateDialog({
               className="mt-1.5"
             />
           </div>
-          <DialogFooter>
+          <div className="mt-4 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
             <Button
               type="button"
               variant="ghost"
@@ -517,9 +504,8 @@ function SaveAsTemplateDialog({
             <Button type="submit" disabled={pending}>
               {pending ? "Saving…" : "Save template"}
             </Button>
-          </DialogFooter>
+          </div>
         </form>
-      </DialogContent>
-    </Dialog>
+    </ResponsiveModal>
   );
 }

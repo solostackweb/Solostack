@@ -1,16 +1,12 @@
 "use client";
 
 /**
- * Freelancer-facing dialog: "Mark this invoice paid (UPI / bank transfer)".
+ * Freelancer-facing "Mark this invoice paid (UPI / bank transfer)".
  *
- * Only relevant for invoices whose owner is on the UPI Manual payment
- * method (or who received a bank transfer outside Stackivo). Submitting
- * fires `markInvoicePaidManuallyAction` which:
- *
- *   - inserts a manual_confirmations audit row
- *   - generates the receipt
- *   - flips the invoice to paid
- *   - emails the client the receipt
+ * Renders as a centered dialog on desktop and a bottom sheet on mobile (via
+ * ResponsiveModal). Submitting fires markInvoicePaidManuallyAction which
+ * inserts a manual_confirmations audit row, generates the receipt, flips the
+ * invoice to paid, and emails the client the receipt.
  */
 
 import * as React from "react";
@@ -20,15 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+import { ResponsiveModal } from "@/components/ui/responsive-modal";
 import { BadgeCheck } from "lucide-react";
 import {
   markInvoicePaidManuallyAction,
@@ -55,8 +43,8 @@ export function MarkPaidManuallyDialog({
     FormData
   >(markInvoicePaidManuallyAction, undefined);
 
-  // Close the dialog once we've successfully marked it paid, but leave
-  // the success state visible briefly.
+  // Close once we've successfully marked it paid, leaving the success state
+  // visible briefly.
   React.useEffect(() => {
     if (state?.ok && !state.alreadyPaid) {
       const t = setTimeout(() => setOpen(false), 1500);
@@ -65,26 +53,25 @@ export function MarkPaidManuallyDialog({
   }, [state]);
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button
-          variant={alreadyPaid ? "outline" : "default"}
-          size="sm"
-          disabled={alreadyPaid}
-        >
-          <BadgeCheck className="h-4 w-4" />
-          {alreadyPaid ? "Paid" : "Mark as paid"}
-        </Button>
-      </DialogTrigger>
-      <DialogContent className="sm:max-w-[440px]">
-        <DialogHeader>
-          <DialogTitle>Mark invoice {invoiceNumber} paid</DialogTitle>
-          <DialogDescription>
-            Use this for UPI / bank transfers received outside Stackivo. We
-            generate the receipt and email it to the client.
-          </DialogDescription>
-        </DialogHeader>
-        <form action={action} className="space-y-4">
+    <>
+      <Button
+        variant={alreadyPaid ? "outline" : "default"}
+        size="sm"
+        disabled={alreadyPaid}
+        onClick={() => setOpen(true)}
+      >
+        <BadgeCheck className="h-4 w-4" />
+        {alreadyPaid ? "Paid" : "Mark as paid"}
+      </Button>
+
+      <ResponsiveModal
+        open={open}
+        onOpenChange={setOpen}
+        className="sm:max-w-[440px]"
+        title={`Mark invoice ${invoiceNumber} paid`}
+        description="Use this for UPI / bank transfers received outside Stackivo. We generate the receipt and email it to the client."
+      >
+        <form action={action} className="space-y-4 pb-2">
           <input type="hidden" name="invoiceId" value={invoiceId} />
 
           <div className="rounded-md border bg-muted/30 px-3 py-2 text-sm">
@@ -104,8 +91,8 @@ export function MarkPaidManuallyDialog({
               autoComplete="off"
             />
             <p className="text-[11px] text-muted-foreground">
-              Helps your client&apos;s accountant match the payment. Shown
-              on the receipt.
+              Helps your client&apos;s accountant match the payment. Shown on the
+              receipt.
             </p>
           </div>
 
@@ -132,19 +119,15 @@ export function MarkPaidManuallyDialog({
             </p>
           ) : null}
 
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={() => setOpen(false)}
-            >
+          <div className="flex justify-end gap-2 pt-1">
+            <Button type="button" variant="ghost" onClick={() => setOpen(false)}>
               Cancel
             </Button>
             <SubmitButton />
-          </DialogFooter>
+          </div>
         </form>
-      </DialogContent>
-    </Dialog>
+      </ResponsiveModal>
+    </>
   );
 }
 

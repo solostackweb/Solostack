@@ -15,15 +15,7 @@ import {
 } from "@/components/ui/select";
 import Link from "next/link";
 import { ClientFormDialog } from "@/features/clients/components/client-form-dialog";
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+import { ResponsiveModal } from "@/components/ui/responsive-modal";
 import { createPortalAction } from "../actions";
 import { portalDashboardDetail } from "../routes";
 import type { AiPortalDraft } from "@/features/ai-workflows/types";
@@ -122,20 +114,15 @@ export function CreatePortalButton({
 
   return (
     <>
-      <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button>
-          <Plus /> New portal
-        </Button>
-      </DialogTrigger>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Create a client portal</DialogTitle>
-          <DialogDescription>
-            Only one active portal per client. You can attach contracts,
-            invoices, and files after creation.
-          </DialogDescription>
-        </DialogHeader>
+      <Button onClick={() => setOpen(true)}>
+        <Plus /> New portal
+      </Button>
+      <ResponsiveModal
+        open={open}
+        onOpenChange={setOpen}
+        title="Create a client portal"
+        description="Only one active portal per client. You can attach contracts, invoices, and files after creation."
+      >
         <form onSubmit={onSubmit} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="portal-client">Client</Label>
@@ -222,7 +209,7 @@ export function CreatePortalButton({
               {error}
             </p>
           )}
-          <DialogFooter>
+          <div className="mt-4 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
             <Button
               type="button"
               variant="ghost"
@@ -249,10 +236,9 @@ export function CreatePortalButton({
                 "Create portal"
               )}
             </Button>
-          </DialogFooter>
+          </div>
         </form>
-      </DialogContent>
-      </Dialog>
+      </ResponsiveModal>
       <ClientFormDialog
         open={clientDialogOpen}
         onOpenChange={setClientDialogOpen}

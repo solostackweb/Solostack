@@ -3,14 +3,7 @@
 import * as React from "react";
 import { Send, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { ResponsiveModal } from "@/components/ui/responsive-modal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -65,18 +58,18 @@ export function SignatureRequestDialog({
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Send className="h-4 w-4" />
-            Send for signature
-          </DialogTitle>
-          <DialogDescription className="truncate">
-            {contractTitle}
-          </DialogDescription>
-        </DialogHeader>
-
+    <ResponsiveModal
+      open={open}
+      onOpenChange={onOpenChange}
+      className="sm:max-w-lg"
+      title={
+        <span className="flex items-center gap-2">
+          <Send className="h-4 w-4" />
+          Send for signature
+        </span>
+      }
+      description={<span className="block truncate">{contractTitle}</span>}
+    >
         <div className="space-y-4">
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="Recipient name">
@@ -119,16 +112,15 @@ export function SignatureRequestDialog({
           </div>
         </div>
 
-        <DialogFooter>
+        <div className="mt-4 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
           <Button variant="ghost" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
           <Button onClick={handleSend}>
             <Send /> Send request
           </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        </div>
+    </ResponsiveModal>
   );
 }
 

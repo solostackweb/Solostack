@@ -4,13 +4,7 @@ import * as React from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { ResponsiveModal } from "@/components/ui/responsive-modal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -149,23 +143,21 @@ export function ClientFormDialog({
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-2xl max-h-[90vh] flex flex-col gap-0 p-0">
-        <div className="border-b px-6 py-4 flex-shrink-0">
-          <DialogHeader>
-            <DialogTitle>{isEdit ? "Edit client" : "Add client"}</DialogTitle>
-            <DialogDescription>
-              {isEdit
-                ? "Update this client's contact and billing details."
-                : "Add a new client to your workspace. You can invoice them right away."}
-            </DialogDescription>
-          </DialogHeader>
-        </div>
-
+    <ResponsiveModal
+      open={open}
+      onOpenChange={onOpenChange}
+      className="sm:max-w-2xl sm:max-h-[88vh] sm:overflow-y-auto"
+      title={isEdit ? "Edit client" : "Add client"}
+      description={
+        isEdit
+          ? "Update this client's contact and billing details."
+          : "Add a new client to your workspace. You can invoice them right away."
+      }
+    >
         <form
           id="client-form"
           action={handleSubmit}
-          className="space-y-5 px-6 py-4 overflow-y-auto flex-1"
+          className="space-y-5"
         >
           {state && !state.ok && (
             <p className="rounded-md border border-destructive/40 bg-destructive/5 px-3 py-2 text-xs text-destructive">
@@ -320,7 +312,7 @@ export function ClientFormDialog({
           </Field>
         </form>
 
-        <div className="border-t px-6 py-4 flex-shrink-0 flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2 gap-2">
+        <div className="mt-2 flex flex-col-reverse gap-2 border-t pt-4 sm:flex-row sm:justify-end sm:space-x-2">
           <Button
             type="button"
             variant="ghost"
@@ -337,8 +329,7 @@ export function ClientFormDialog({
             {pending ? "Saving…" : isEdit ? "Save changes" : "Add client"}
           </Button>
         </div>
-      </DialogContent>
-    </Dialog>
+    </ResponsiveModal>
   );
 }
 
