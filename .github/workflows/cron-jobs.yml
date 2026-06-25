@@ -50,7 +50,12 @@ on:
 
 # Shared curl helper — defined once, reused by every job via env
 env:
-  BASE_URL: ${{ secrets.APP_URL }}
+  # Prefer CRON_BASE_URL (the Vercel *.vercel.app origin, which is NOT
+  # proxied through Cloudflare) so scheduled curl calls bypass Bot Fight
+  # Mode's managed challenge. Falls back to APP_URL if the secret is unset.
+  #   Name:  CRON_BASE_URL
+  #   Value: https://<your-project>.vercel.app  (no trailing slash)
+  BASE_URL: ${{ secrets.CRON_BASE_URL || secrets.APP_URL }}
   SECRET:   ${{ secrets.CRON_SECRET }}
 
 jobs:

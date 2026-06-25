@@ -35,7 +35,34 @@ function newRequestId(): string {
   return out;
 }
 
+/** Canonical public host. All production traffic is forced onto this. */
+const CANONICAL_HOST = "stackivo.me";
+
 export async function middleware(request: NextRequest) {
+  // --- Canonical-host gate (close the Cloudflare bypass) ------------------
+  // Our origin is also reachable at *.vercel.app, which is NOT proxied
+  // through Cloudflare. Left open, that domain is an un-edged backdoor to
+  // the whole app (login, signup, every API) past the WAF / Bot Fight Mode.
+  // In production we redirect any non-canonical host back to stackivo.me —
+  // EXCEPT /api/cron/*, which GitHub Actions deliberately hits on the
+  // vercel.app origin to bypass Bot Fight Mode (those routes are gated by
+  // the CRON_SECRET bearer). Preview deployments (VERCEL_ENV=preview) are
+  // skipped so QA on branch URLs keeps working; previews are already
+  // Vercel-auth protected.
+  const host = (request.headers.get("host") ?? "").toLowerCase();
+  if (
+    process.env.VERCEL_ENV === "production" &&
+    host !== CANONICAL_HOST &&
+    host.endsWith(".vercel.app") &&
+    !request.nextUrl.pathname.startsWith("/api/cron/")
+  ) {
+    const canonical = request.nextUrl.clone();
+    canonical.protocol = "https:";
+    canonical.host = CANONICAL_HOST;
+    canonical.port = "";
+    return NextResponse.redirect(canonical, 308);
+  }
+
   // Every request gets a correlation id. Honour an incoming value so
   // upstream load balancers / tests can force a known id.
   const requestId =
