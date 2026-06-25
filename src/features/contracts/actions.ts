@@ -19,6 +19,8 @@ import {
   contractStatusSchema,
 } from "./server-schemas";
 import { recordActivity } from "@/features/activity/server";
+import { getFxRateToInr } from "@/features/payments/fx";
+import type { ClientRow } from "@/lib/supabase/types";
 
 export type ActionResult<T = undefined> =
   | { ok: true; data?: T; message?: string }
@@ -29,6 +31,15 @@ async function requireUserId(): Promise<string> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect(AUTH_LOGIN_ROUTE);
   return user.id;
+}
+
+class FxRateUnavailableError extends Error {
+  constructor(currency: string) {
+    super(
+      `Could not fetch the INR exchange rate for ${currency}. Please try again in a moment before saving this contract value.`,
+    );
+    this.name = "FxRateUnavailableError";
+  }
 }
 
 function parse(formData: FormData) {
@@ -45,6 +56,43 @@ function parse(formData: FormData) {
   });
 }
 
+async function resolveContractValue(input: {
+  userId: string;
+  clientId: string | undefined;
+  requestedCurrency: string;
+  valueAmount: number | undefined;
+}) {
+  const supabase = await getServerSupabase();
+  let client: Pick<ClientRow, "currency" | "is_foreign"> | null = null;
+  if (input.clientId) {
+    const { data } = await supabase
+      .from("clients")
+      .select("currency, is_foreign")
+      .eq("id", input.clientId)
+      .eq("user_id", input.userId)
+      .maybeSingle();
+    client = data as Pick<ClientRow, "currency" | "is_foreign"> | null;
+  }
+
+  const currency = client
+    ? client.is_foreign
+      ? client.currency || "USD"
+      : "INR"
+    : input.requestedCurrency || "INR";
+  const valueAmount = input.valueAmount ?? null;
+  const fxRate = await getFxRateToInr(currency);
+  if (fxRate === null) throw new FxRateUnavailableError(currency);
+  const inrEquivalent =
+    valueAmount === null ? null : Math.round(valueAmount * fxRate * 100) / 100;
+
+  return {
+    currency,
+    valueAmount,
+    fxRate,
+    inrEquivalent,
+  };
+}
+
 export async function createContractAction(
   _prev: ActionResult | undefined,
   formData: FormData,
@@ -59,6 +107,20 @@ export async function createContractAction(
   }
   const userId = await requireUserId();
   const supabase = await getServerSupabase();
+  let contractValue: Awaited<ReturnType<typeof resolveContractValue>>;
+  try {
+    contractValue = await resolveContractValue({
+      userId,
+      clientId: parsed.data.clientId,
+      requestedCurrency: parsed.data.currency,
+      valueAmount: parsed.data.valueAmount,
+    });
+  } catch (err) {
+    if (err instanceof FxRateUnavailableError) {
+      return { ok: false, error: err.message };
+    }
+    throw err;
+  }
   const insertRow = {
     user_id: userId,
     kind: parsed.data.kind,
@@ -67,8 +129,10 @@ export async function createContractAction(
     client_id: parsed.data.clientId ?? null,
     project_id: parsed.data.projectId ?? null,
     status: parsed.data.status,
-    currency: parsed.data.currency,
-    value_amount: parsed.data.valueAmount ?? null,
+    currency: contractValue.currency,
+    value_amount: contractValue.valueAmount,
+    fx_rate_to_inr: contractValue.fxRate,
+    inr_equivalent: contractValue.inrEquivalent,
     expires_at: parsed.data.expiresAt ?? null,
   };
 
@@ -126,6 +190,21 @@ export async function updateContractAction(
     };
   }
 
+  let contractValue: Awaited<ReturnType<typeof resolveContractValue>>;
+  try {
+    contractValue = await resolveContractValue({
+      userId,
+      clientId: parsed.data.clientId,
+      requestedCurrency: parsed.data.currency,
+      valueAmount: parsed.data.valueAmount,
+    });
+  } catch (err) {
+    if (err instanceof FxRateUnavailableError) {
+      return { ok: false, error: err.message };
+    }
+    throw err;
+  }
+
   const update = {
     kind: parsed.data.kind,
     title: parsed.data.title,
@@ -133,8 +212,10 @@ export async function updateContractAction(
     client_id: parsed.data.clientId ?? null,
     project_id: parsed.data.projectId ?? null,
     status: parsed.data.status,
-    currency: parsed.data.currency,
-    value_amount: parsed.data.valueAmount ?? null,
+    currency: contractValue.currency,
+    value_amount: contractValue.valueAmount,
+    fx_rate_to_inr: contractValue.fxRate,
+    inr_equivalent: contractValue.inrEquivalent,
     expires_at: parsed.data.expiresAt ?? null,
   };
   const { error } = await supabase
@@ -215,6 +296,8 @@ export async function duplicateContractAction(
     status: "draft",
     currency: o.currency ?? "INR",
     value_amount: o.value_amount ?? null,
+    fx_rate_to_inr: o.fx_rate_to_inr ?? 1,
+    inr_equivalent: o.inr_equivalent ?? null,
     expires_at: null,
   };
   const { data, error } = await supabase

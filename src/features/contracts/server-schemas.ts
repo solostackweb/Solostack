@@ -38,7 +38,7 @@ export const contractCrudSchema = z.object({
   clientId: optionalUuid,
   projectId: optionalUuid,
   status: contractStatusSchema.default("draft"),
-  currency: z.string().trim().min(3).max(3).default("INR"),
+  currency: z.string().trim().toUpperCase().min(3).max(3).default("INR"),
   valueAmount: z
     .union([z.coerce.number().min(0), z.literal("")])
     .optional()

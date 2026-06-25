@@ -33,7 +33,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { cn } from "@/lib/utils";
-import { formatINR } from "@/lib/format";
+import { formatMoney } from "@/lib/format";
 import { getClientInitials } from "@/features/clients/utils";
 import { shareOnWhatsApp } from "@/lib/whatsapp";
 
@@ -230,6 +230,7 @@ export function ContractDetailView({
         contract.valueAmount != null && contract.valueAmount > 0
           ? contract.valueAmount
           : null,
+      currency: contract.currency,
       senderName,
       shareUrl: `${window.location.origin}/c/${token}`,
     });
@@ -457,7 +458,7 @@ export function ContractDetailView({
                   </div>
                   <div className="space-y-1.5">
                     <label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                      Value (₹)
+                      Value ({contract.currency || "INR"})
                     </label>
                     <Input
                       inputMode="decimal"
@@ -647,7 +648,7 @@ export function ContractDetailView({
                       Value
                     </p>
                     <p className="mt-1 text-base font-semibold tabular-nums">
-                      {formatINR(contract.valueAmount)}
+                      {formatMoney(contract.valueAmount, contract.currency)}
                     </p>
                   </div>
                 )}

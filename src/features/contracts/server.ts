@@ -18,6 +18,8 @@ export interface ContractRecord {
   status: ContractStatusRow;
   currency: string;
   valueAmount: number | null;
+  fxRateToInr: number;
+  inrEquivalent: number | null;
   publicToken: string | null;
   sentAt: string | null;
   viewedAt: string | null;
@@ -46,6 +48,8 @@ function mapContractRow(row: ContractRow): ContractRecord {
     status: row.status,
     currency: row.currency,
     valueAmount: row.value_amount,
+    fxRateToInr: row.fx_rate_to_inr ?? 1,
+    inrEquivalent: row.inr_equivalent ?? null,
     publicToken: row.public_token,
     sentAt: row.sent_at,
     viewedAt: row.viewed_at,
@@ -149,20 +153,35 @@ export async function getContractAggregates(): Promise<{
         .eq("status", "signed"),
       supabase
         .from("contracts")
-        .select("value_amount")
+        .select("value_amount, inr_equivalent")
         .eq("status", "signed"),
       supabase
         .from("contracts")
-        .select("value_amount")
+        .select("value_amount, inr_equivalent")
         .in("status", ["sent", "viewed"]),
     ]);
-  const sum = (rows: Array<{ value_amount?: number | null }> | null) =>
-    (rows ?? []).reduce((acc, r) => acc + (Number(r.value_amount) || 0), 0);
+  const sum = (
+    rows: Array<{ value_amount?: number | null; inr_equivalent?: number | null }> | null,
+  ) =>
+    (rows ?? []).reduce(
+      (acc, r) => acc + (Number(r.inr_equivalent ?? r.value_amount) || 0),
+      0,
+    );
   return {
     drafts: drafts ?? 0,
     awaitingSignature: awaiting ?? 0,
     signed: signed ?? 0,
-    signedValue: sum(signedRows as Array<{ value_amount?: number | null }> | null),
-    awaitingValue: sum(awaitingRows as Array<{ value_amount?: number | null }> | null),
+    signedValue: sum(
+      signedRows as Array<{
+        value_amount?: number | null;
+        inr_equivalent?: number | null;
+      }> | null,
+    ),
+    awaitingValue: sum(
+      awaitingRows as Array<{
+        value_amount?: number | null;
+        inr_equivalent?: number | null;
+      }> | null,
+    ),
   };
 }

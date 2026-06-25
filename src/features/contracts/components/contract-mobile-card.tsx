@@ -19,7 +19,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
-import { formatINR } from "@/lib/format";
+import { formatMoney } from "@/lib/format";
 import type { ContractRecord } from "../server";
 import { CONTRACT_KIND_LABEL } from "../status";
 import { ContractStatusBadge } from "./contract-status-badge";
@@ -90,7 +90,7 @@ export function ContractMobileCard({
             <>
               <span aria-hidden>·</span>
               <span className="font-medium tabular-nums text-foreground/80">
-                {formatINR(contract.valueAmount)}
+                {formatMoney(contract.valueAmount, contract.currency)}
               </span>
             </>
           ) : null}

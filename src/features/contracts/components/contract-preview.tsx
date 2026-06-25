@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { cn } from "@/lib/utils";
-import { formatINR } from "@/lib/format";
+import { formatMoney } from "@/lib/format";
 import { CONTRACT_KIND_LABEL } from "../status";
 import { useProfile } from "@/features/profile/context";
 import type {
@@ -23,6 +23,7 @@ interface ContractPreviewProps {
     /** DB-aligned kind ("proposal" | "contract"). */
     kind: "proposal" | "contract";
     clientId?: string;
+    currency?: string;
   };
   className?: string;
   /** When true, renders with slightly smaller type for a side-by-side preview. */
@@ -39,7 +40,6 @@ export function ContractPreview({
   className,
   compact = false,
 }: ContractPreviewProps) {
-  const { profile } = useProfile();
   // The first signer with role "client" doubles as the "Prepared for" line.
   const recipient = contract.signers.find((s) => s.role === "client") ?? null;
   const issued = new Date(contract.issuedAt).toLocaleDateString("en-IN", {
@@ -86,7 +86,7 @@ export function ContractPreview({
           <p className="mt-0.5 tabular-nums">{issued}</p>
           {contract.value ? (
             <p className="mt-3 text-base font-semibold tabular-nums text-foreground">
-              {formatINR(contract.value)}
+              {formatMoney(contract.value, contract.currency)}
             </p>
           ) : null}
         </div>

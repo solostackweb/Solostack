@@ -1443,7 +1443,7 @@ export async function createContractFromAiAction(input: AiCreateInput) {
   const [{ data: clientRow }, { data: projectRow }] = await Promise.all([
     supabase
       .from("clients")
-      .select("id, full_name, business_name, email")
+      .select("id, full_name, business_name, email, currency, is_foreign")
       .eq("id", clientId)
       .eq("user_id", userId)
       .maybeSingle(),
@@ -1458,10 +1458,18 @@ export async function createContractFromAiAction(input: AiCreateInput) {
   ]);
 
   const client = clientRow as
-    | { id: string; full_name?: string | null; business_name?: string | null; email?: string | null }
+    | {
+        id: string;
+        full_name?: string | null;
+        business_name?: string | null;
+        email?: string | null;
+        currency?: string | null;
+        is_foreign?: boolean | null;
+      }
     | null;
   if (!client) return { ok: false as const, error: "Choose a client you have access to." };
   const project = projectRow as { id: string; name?: string | null } | null;
+  const contractCurrency = client.is_foreign ? client.currency || "USD" : "INR";
 
   const scope = field(fields, "scope");
   const type = field(fields, "type");
@@ -1523,7 +1531,7 @@ export async function createContractFromAiAction(input: AiCreateInput) {
   fd.set("clientId", clientId);
   if (projectId) fd.set("projectId", projectId);
   fd.set("status", "draft");
-  fd.set("currency", "INR");
+  fd.set("currency", contractCurrency);
   if (amount > 0) fd.set("valueAmount", String(amount));
 
   const res = await createContractAction(undefined, fd);
@@ -1540,7 +1548,7 @@ export async function createContractFromAiAction(input: AiCreateInput) {
       clientEmail: client.email ?? null,
       projectName: project?.name ?? null,
       valueAmount: amount > 0 ? amount : draft.valueAmount ?? null,
-      currency: "INR",
+      currency: contractCurrency,
       sections,
     },
     message: "Contract draft created.",

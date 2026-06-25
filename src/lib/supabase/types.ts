@@ -545,6 +545,8 @@ export interface ContractRow {
   expires_at: string | null;
   currency: string;
   value_amount: number | null;
+  fx_rate_to_inr: number;
+  inr_equivalent: number | null;
   created_at: string;
   updated_at: string;
   signature_type: "draw" | "type" | "upload" | null;

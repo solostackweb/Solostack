@@ -26,6 +26,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import { formatMoney } from "@/lib/format";
 import { getClientDisplayName } from "@/features/clients/utils";
 import type { ClientRecord } from "@/features/clients/server";
 import type { ProjectRecord } from "@/features/projects/server";
@@ -90,6 +91,8 @@ export function ContractBuilderView({
         : projects,
     [projects, clientId],
   );
+  const client = clients.find((c) => c.id === clientId) ?? null;
+  const selectedCurrency = (client?.currency || "INR").toUpperCase();
 
   const handlePickTemplate = (t: ContractTemplate) => {
     setTemplate(t);
@@ -191,7 +194,7 @@ export function ContractBuilderView({
     if (clientId) fd.set("clientId", clientId);
     if (projectId) fd.set("projectId", projectId);
     fd.set("status", status);
-    fd.set("currency", "INR");
+    fd.set("currency", selectedCurrency);
     if (value !== "") fd.set("valueAmount", String(value));
     const res = await createContractAction(undefined, fd);
     setSubmitting(false);
@@ -245,7 +248,6 @@ export function ContractBuilderView({
     return `${window.location.origin}/c/${token}`;
   };
 
-  const client = clients.find((c) => c.id === clientId) ?? null;
   const clientDisplayName = client ? getClientDisplayName(client) : null;
   const freelancerName = getDisplayName(profile) || profile?.fullName || "";
   const previewData = {
@@ -277,6 +279,7 @@ export function ContractBuilderView({
         : []),
     ],
     value: value === "" ? undefined : Number(value),
+    currency: selectedCurrency,
     number: "DRAFT",
     issuedAt: new Date().toISOString().slice(0, 10),
     clientId: clientId || undefined,
@@ -413,7 +416,7 @@ export function ContractBuilderView({
                     </SelectContent>
                   </Select>
                 </Field>
-                <Field label="Value (₹)">
+                <Field label={`Value (${selectedCurrency})`}>
                   <Input
                     type="number"
                     min="0"
@@ -424,7 +427,11 @@ export function ContractBuilderView({
                       )
                     }
                     className="tabular-nums"
-                    placeholder="Optional"
+                    placeholder={
+                      value === ""
+                        ? "Optional"
+                        : formatMoney(Number(value), selectedCurrency)
+                    }
                   />
                 </Field>
               </div>

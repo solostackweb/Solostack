@@ -73,8 +73,9 @@ export interface Contract {
   clientId: string;
   projectId?: string;
   templateId?: string;
-  /** Total contract value in INR (nullable for NDAs etc.). */
+  /** Total contract value in `currency` (nullable for NDAs etc.). */
   value?: number;
+  currency?: string;
   sections: ContractSection[];
   signers: ContractSigner[];
   /** Issued date — YYYY-MM-DD. */

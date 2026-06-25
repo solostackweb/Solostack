@@ -34,7 +34,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { PageHeader } from "@/components/shared/page-header";
 import { EmptyState } from "@/components/shared/empty-state";
-import { formatINR } from "@/lib/format";
+import { formatINR, formatMoney } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 import type { ContractRecord } from "../server";
@@ -105,7 +105,7 @@ export function ContractsListView({
     ).length;
     const value = contracts
       .filter((c) => c.status === "signed")
-      .reduce((s, c) => s + (c.valueAmount ?? 0), 0);
+      .reduce((s, c) => s + (c.inrEquivalent ?? c.valueAmount ?? 0), 0);
     return { total, signed, awaiting, value };
   }, [contracts]);
 
@@ -365,7 +365,7 @@ function ContractRow({
         <div className="flex items-center gap-4">
           {contract.valueAmount != null && contract.valueAmount > 0 && (
             <span className="hidden text-sm tabular-nums text-muted-foreground sm:inline">
-              {formatINR(contract.valueAmount)}
+              {formatMoney(contract.valueAmount, contract.currency)}
             </span>
           )}
           <DropdownMenu>
