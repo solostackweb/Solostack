@@ -312,6 +312,12 @@ async function assembleInvoicePdfData(args: {
     dueDate: invoice.due_date,
     currency: invoice.currency,
     isExport: (invoice as { is_export?: boolean | null }).is_export ?? false,
+    fxRate:
+      Number((invoice as { fx_rate_to_inr?: number | string | null }).fx_rate_to_inr) || null,
+    inrEquivalent:
+      (invoice as { inr_equivalent?: number | string | null }).inr_equivalent == null
+        ? null
+        : Number((invoice as { inr_equivalent?: number | string | null }).inr_equivalent),
     status: invoice.status,
     paymentStatus: invoice.payment_status,
     paidAt: invoice.paid_at,
@@ -354,6 +360,10 @@ async function assembleInvoicePdfData(args: {
       email: seller?.business_email ?? seller?.email ?? null,
       phone: seller?.business_phone ?? seller?.phone ?? null,
       gstin: seller?.gstin ?? seller?.gst_number ?? null,
+      gstRegistered:
+        (seller as { gst_registered?: boolean | null } | null)?.gst_registered ?? false,
+      lutNumber:
+        (seller as { lut_number?: string | null } | null)?.lut_number ?? null,
       pan: seller?.pan ?? null,
       addressLines: composeAddress(
         seller?.address_line1,
@@ -387,6 +397,7 @@ async function assembleInvoicePdfData(args: {
       companyName: client?.business_name ?? client?.company_name ?? null,
       gstin: client?.gst_number ?? null,
       stateCode: client?.state_code ?? null,
+      country: (client as { country?: string | null } | null)?.country ?? null,
       addressLines: composeAddress(client?.billing_address ?? client?.address),
     },
   };

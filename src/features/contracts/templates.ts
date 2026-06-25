@@ -36,6 +36,11 @@ export const contractTemplates: ContractTemplate[] = [
         heading: "Next steps",
         body: "To proceed:\n\n1. Review this proposal carefully and replace any remaining placeholders.\n2. Confirm the final scope, timeline, and fee.\n3. Sign below to accept the proposal.\n4. Share [assets/content/access] before the kickoff call on [date].\n\nOnce signed, I will issue the kickoff invoice and schedule the project start.",
       },
+      {
+        id: "s_esign",
+        heading: "Electronic execution",
+        body: "This agreement may be signed electronically and in counterparts. Electronic signatures and an electronic copy are valid, binding, and admissible to the same extent as handwritten signatures under applicable law (including the Information Technology Act, 2000 in India, and the ESIGN Act / UETA or eIDAS where relevant). The signing record - including timestamp and audit trail - forms part of this agreement.",
+      },
     ],
   },
   {
@@ -71,6 +76,16 @@ export const contractTemplates: ContractTemplate[] = [
         id: "s5",
         heading: "Client responsibilities",
         body: "To keep the retainer productive, the client will provide timely access, approvals, content, brand assets, and a single decision-maker for priority calls.\n\nDelays in approvals, missing access, or unclear requests may affect delivery timelines.",
+      },
+      {
+        id: "s_gov",
+        heading: "Governing law & jurisdiction",
+        body: "This agreement is governed by the laws of India. The parties will first try to resolve any dispute in good faith; if unresolved, the courts at [your city], India will have jurisdiction. If you and your client agree on a different governing law or seat, edit this clause.",
+      },
+      {
+        id: "s_esign",
+        heading: "Electronic execution",
+        body: "This agreement may be signed electronically and in counterparts. Electronic signatures and an electronic copy are valid, binding, and admissible to the same extent as handwritten signatures under applicable law (including the Information Technology Act, 2000 in India, and the ESIGN Act / UETA or eIDAS where relevant). The signing record - including timestamp and audit trail - forms part of this agreement.",
       },
     ],
   },
@@ -112,6 +127,16 @@ export const contractTemplates: ContractTemplate[] = [
         heading: "Acceptance",
         body: "The client will review each deliverable within [number] business days. If no written feedback is received within that period, the deliverable may be treated as accepted.\n\nReasonable revisions are included only as described in this SOW. New direction, new deliverables, or post-approval changes may be billed separately.",
       },
+      {
+        id: "s_gov",
+        heading: "Governing law & jurisdiction",
+        body: "This agreement is governed by the laws of India. The parties will first try to resolve any dispute in good faith; if unresolved, the courts at [your city], India will have jurisdiction. If you and your client agree on a different governing law or seat, edit this clause.",
+      },
+      {
+        id: "s_esign",
+        heading: "Electronic execution",
+        body: "This agreement may be signed electronically and in counterparts. Electronic signatures and an electronic copy are valid, binding, and admissible to the same extent as handwritten signatures under applicable law (including the Information Technology Act, 2000 in India, and the ESIGN Act / UETA or eIDAS where relevant). The signing record - including timestamp and audit trail - forms part of this agreement.",
+      },
     ],
   },
   {
@@ -151,6 +176,16 @@ export const contractTemplates: ContractTemplate[] = [
         id: "s6",
         heading: "No licence or obligation",
         body: "Sharing Confidential Information does not grant ownership, licence, partnership, employment, or obligation to proceed with any transaction or project unless separately agreed in writing.",
+      },
+      {
+        id: "s_gov",
+        heading: "Governing law & jurisdiction",
+        body: "This agreement is governed by the laws of India. The parties will first try to resolve any dispute in good faith; if unresolved, the courts at [your city], India will have jurisdiction. If you and your client agree on a different governing law or seat, edit this clause.",
+      },
+      {
+        id: "s_esign",
+        heading: "Electronic execution",
+        body: "This agreement may be signed electronically and in counterparts. Electronic signatures and an electronic copy are valid, binding, and admissible to the same extent as handwritten signatures under applicable law (including the Information Technology Act, 2000 in India, and the ESIGN Act / UETA or eIDAS where relevant). The signing record - including timestamp and audit trail - forms part of this agreement.",
       },
     ],
   },
@@ -200,8 +235,13 @@ export const contractTemplates: ContractTemplate[] = [
       },
       {
         id: "s8",
-        heading: "Governing law",
-        body: "This agreement is governed by the laws of [jurisdiction]. The parties will first try to resolve disputes in good faith. If unresolved, disputes will be handled by the courts or arbitration forum located in [city/jurisdiction].",
+        heading: "Governing law & jurisdiction",
+        body: "This agreement is governed by the laws of India. The parties will first try to resolve disputes in good faith; if unresolved, the courts at [your city], India will have jurisdiction. If you and your client agree on a different governing law or seat, edit this clause.",
+      },
+      {
+        id: "s_esign",
+        heading: "Electronic execution",
+        body: "This agreement may be signed electronically and in counterparts. Electronic signatures and an electronic copy are valid, binding, and admissible to the same extent as handwritten signatures under applicable law (including the Information Technology Act, 2000 in India, and the ESIGN Act / UETA or eIDAS where relevant). The signing record - including timestamp and audit trail - forms part of this agreement.",
       },
     ],
   },

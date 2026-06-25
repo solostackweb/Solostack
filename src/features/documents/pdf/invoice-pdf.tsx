@@ -69,6 +69,8 @@ export interface InvoicePdfSeller {
   email: string | null;
   phone: string | null;
   gstin: string | null;
+  gstRegistered: boolean;
+  lutNumber: string | null;
   pan: string | null;
   addressLines: string[];
   stateCode: string | null;
@@ -84,6 +86,7 @@ export interface InvoicePdfClient {
   companyName: string | null;
   gstin: string | null;
   stateCode: string | null;
+  country: string | null;
   addressLines: string[];
 }
 
@@ -93,6 +96,8 @@ export interface InvoicePdfData {
   dueDate: string;
   currency: string;
   isExport?: boolean;
+  fxRate?: number | null;
+  inrEquivalent?: number | null;
   status: string;
   paymentStatus: string | null;
   paidAt: string | null;
@@ -503,7 +508,12 @@ export function InvoicePdf({
               </Text>
             </View>
             <View style={s.dateCellSupply}>
-              {data.taxMode !== "non_gst" ? (
+              {data.isExport ? (
+                <>
+                  <Text style={s.dateLabel}>Place of supply</Text>
+                  <Text style={s.dateValue}>{data.client.country ?? "Outside India"}</Text>
+                </>
+              ) : data.taxMode !== "non_gst" ? (
                 <>
                   <Text style={s.dateLabel}>Place of supply</Text>
                   <Text style={s.dateValue}>{formatPlaceOfSupply(data.client.stateCode)}</Text>
@@ -583,7 +593,7 @@ export function InvoicePdf({
           <Text style={s.legalLine}>
             Amount in words: {invoiceAmountInWords(data.totalAmount, data.currency)}
           </Text>
-          {data.taxMode !== "non_gst" ? (
+          {data.taxMode !== "non_gst" && !data.isExport ? (
             <View style={s.legalMetaRow}>
               {data.hsnSac ? (
                 <Text style={[s.legalLine, s.legalMetaItem]}>
@@ -598,9 +608,48 @@ export function InvoicePdf({
               This is a Bill of Supply. No GST is charged on this document.
             </Text>
           ) : null}
+          {data.isExport ? (
+            <View>
+              {data.hsnSac ? (
+                <Text style={s.legalLine}>SAC: {data.hsnSac}</Text>
+              ) : null}
+              {data.seller.gstRegistered ? (
+                <>
+                  <Text style={s.legalLine}>
+                    SUPPLY MEANT FOR EXPORT OF SERVICES UNDER LUT WITHOUT PAYMENT OF
+                    INTEGRATED TAX (IGST).
+                  </Text>
+                  {data.seller.lutNumber ? (
+                    <Text style={s.legalLine}>LUT No.: {data.seller.lutNumber}</Text>
+                  ) : null}
+                  <Text style={s.legalLine}>Tax payable on reverse charge: No</Text>
+                </>
+              ) : (
+                <Text style={s.legalLine}>
+                  Export of services. Supplier is not registered under GST in India;
+                  no GST is charged on this invoice.
+                </Text>
+              )}
+              {data.fxRate && data.inrEquivalent ? (
+                <Text style={s.legalLine}>
+                  Exchange rate at issue: 1 {data.currency} ={" "}
+                  {formatCurrency(data.fxRate, "INR")} · INR equivalent:{" "}
+                  {formatCurrency(data.inrEquivalent, "INR")}
+                </Text>
+              ) : null}
+              <Text style={s.legalLine}>
+                Any taxes applicable in the recipient&apos;s country (e.g. VAT/GST) are
+                the recipient&apos;s responsibility under reverse charge, where applicable.
+              </Text>
+            </View>
+          ) : null}
           <Text style={s.legalDecl}>
             Declaration: We declare that this {docLabel.toLowerCase()} shows the actual price
             of the goods / services described and that all particulars are true and correct.
+          </Text>
+          <Text style={s.legalDecl}>
+            Created with Stackivo - a document &amp; e-signature platform. Stackivo is not a
+            party to this document and does not process or hold payments.
           </Text>
         </View>
 
@@ -715,7 +764,12 @@ function buildTotalsRows(
     rows.push({ label: "Discount", value: `-${formatCurrency(totals.discount, data.currency)}` });
   }
   if (data.isExport) {
-    rows.push({ label: "GST", value: "Zero-rated export (LUT)" });
+    rows.push({
+      label: "GST",
+      value: data.seller.gstRegistered
+        ? "Zero-rated export (LUT)"
+        : "Not applicable - export of services",
+    });
   } else if (data.taxMode === "cgst_sgst") {
     rows.push({ label: "CGST", value: formatCurrency(totals.cgstAmount, data.currency) });
     rows.push({ label: "SGST", value: formatCurrency(totals.sgstAmount, data.currency) });
