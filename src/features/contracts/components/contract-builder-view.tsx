@@ -317,7 +317,7 @@ export function ContractBuilderView({
   // -------- STEP 2: editor + preview --------
   return (
     <div className="space-y-4">
-      {client?.is_foreign ? (
+      {client?.isForeign ? (
         <InternationalComplianceNote variant="contract" />
       ) : null}
       {/* Sticky action bar */}
