@@ -33,7 +33,10 @@ import type { ClientRow } from "@/lib/supabase/types";
 export interface InvoiceFeedItem {
   id: string;
   number: string;
+  /** INR-consolidated amount for dashboard totals and comparisons. */
   amount: number;
+  /** Original invoice amount in the invoice currency. */
+  nativeAmount: number;
   currency: string;
   status: InvoiceRecord["status"];
   issueDate: string;
@@ -109,7 +112,8 @@ async function hydrateInvoiceFeed(
     return {
       id: inv.id,
       number: inv.invoiceNumber,
-      amount: inv.totalAmount,
+      amount: inv.inrEquivalent ?? inv.totalAmount,
+      nativeAmount: inv.totalAmount,
       currency: inv.currency,
       status: inv.status,
       issueDate: inv.issueDate,
