@@ -2,9 +2,9 @@
  * /admin - command center.
  *
  * A founder-facing operating room: top-level health, work queue,
- * integration status, and recent audit activity. This page deliberately
- * reuses the existing service-role query layer so the redesign does not
- * expand the data blast radius.
+ * integration status, and recent audit activity. Built on the shared admin
+ * design-system kit (src/components/admin/kit.tsx) so it stays consistent with
+ * the rest of the console. Data layer is unchanged — this is presentation only.
  */
 
 import type { ReactNode } from "react";
@@ -23,6 +23,10 @@ import {
   Users,
   Zap,
   Clock,
+  Activity,
+  TrendingUp,
+  Inbox,
+  MessageSquare,
 } from "lucide-react";
 import {
   getRecentAlerts,
@@ -30,7 +34,19 @@ import {
 } from "@/features/admin/queries";
 import { getAdminNowData } from "@/features/admin/metrics-cache";
 import { AdminPageHeader } from "@/components/admin/page-header";
-import { type StatTone } from "@/components/admin/stat";
+import {
+  AdminSection,
+  KpiGrid,
+  StatCard,
+  Panel,
+  Block,
+  MetricList,
+  Badge,
+  ToneDot,
+  EmptyState,
+  PanelLink,
+  type Tone,
+} from "@/components/admin/kit";
 import {
   formatIstStamp,
   formatPaiseInr,
@@ -54,7 +70,7 @@ export default async function AdminNowPage() {
   ]);
   const { revenue, pipeline, comms, support } = now;
 
-  // Reliability signals (Admin A2): inline Sentry + support SLA breaches.
+  // Reliability signals: inline Sentry + support SLA breaches.
   const sentryConfigured = isSentryConfigured();
   const [sentryStats, sentryIssues] = sentryConfigured
     ? await Promise.all([
@@ -70,15 +86,14 @@ export default async function AdminNowPage() {
   const cronProblems = cronHealth.stale + cronHealth.failing;
 
   const emailFailureCount =
-    comms.emailFailuresLast24h +
-    comms.suppressionsAddedLast24h;
+    comms.emailFailuresLast24h + comms.suppressionsAddedLast24h;
   const operationalLoad =
     support.total_open +
     revenue.pastDueLast7d +
     comms.securityAlertsLast24h +
     comms.emailFailuresLast24h +
     pipeline.trialingEndingSoon;
-  const commandTone: StatTone =
+  const commandTone: Tone =
     comms.securityAlertsLast24h > 0 || comms.emailFailuresLast24h >= 5
       ? "alert"
       : operationalLoad > 0
@@ -96,11 +111,7 @@ export default async function AdminNowPage() {
           : "Inbox is clean",
       value: support.total_open,
       tone:
-        support.total_open >= 10
-          ? "alert"
-          : support.total_open > 0
-            ? "warn"
-            : "ok",
+        support.total_open >= 10 ? "alert" : support.total_open > 0 ? "warn" : "ok",
     },
     {
       href: "/admin/security?severity=alert",
@@ -181,12 +192,12 @@ export default async function AdminNowPage() {
   ];
 
   return (
-    <div className="space-y-6">
+    <AdminSection>
       <AdminPageHeader
         title="Command Center"
         subtitle={
           <span className="tabular-nums">
-            {formatIstStamp(new Date().toISOString())} IST - operational view
+            {formatIstStamp(new Date().toISOString())} IST · operational view
           </span>
         }
         actions={
@@ -205,39 +216,33 @@ export default async function AdminNowPage() {
         }
       />
 
-      <section className="grid gap-3 lg:grid-cols-[1.25fr_0.75fr]">
-        <div
-          className={cn(
-            "rounded-lg border bg-card p-4",
-            commandTone === "alert" && "border-red-500/30 bg-red-500/5",
-            commandTone === "warn" && "border-amber-500/30 bg-amber-500/5",
-            commandTone === "ok" && "border-emerald-500/20 bg-emerald-500/5",
-          )}
-        >
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+      {/* Status hero + integration health */}
+      <section className="grid gap-4 lg:grid-cols-[1.4fr_1fr]">
+        <Panel tone={commandTone} className="flex flex-col justify-between">
+          <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
             <div>
               <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                <StatusDot tone={commandTone} />
+                <ToneDot tone={commandTone} />
                 Today
               </div>
-              <h2 className="mt-2 text-2xl font-semibold tracking-tight">
+              <h2 className="mt-2 text-2xl font-semibold tracking-tight sm:text-[28px]">
                 {commandTone === "alert"
                   ? "Needs attention"
                   : commandTone === "warn"
                     ? "Watchlist active"
                     : "Systems steady"}
               </h2>
-              <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
+              <p className="mt-1.5 max-w-md text-sm text-muted-foreground">
                 {operationalLoad > 0
-                  ? `${operationalLoad.toLocaleString("en-IN")} item${operationalLoad === 1 ? "" : "s"} are worth a founder pass right now.`
-                  : "No urgent support, billing, email, or security items are currently flagged."}
+                  ? `${operationalLoad.toLocaleString("en-IN")} item${operationalLoad === 1 ? "" : "s"} worth a founder pass right now.`
+                  : "No urgent support, billing, email, or security items are flagged."}
               </p>
             </div>
-            <div className="rounded-md border bg-background/70 px-3 py-2 text-right">
+            <div className="rounded-xl border bg-background/70 px-4 py-3 text-right">
               <div className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
                 Captured 24h
               </div>
-              <div className="mt-1 text-2xl font-semibold tabular-nums">
+              <div className="mt-1 text-2xl font-semibold tabular-nums sm:text-3xl">
                 {formatPaiseInr(revenue.capturedTodayPaise)}
               </div>
               <div className="text-[11px] text-muted-foreground tabular-nums">
@@ -246,7 +251,7 @@ export default async function AdminNowPage() {
             </div>
           </div>
 
-          <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
+          <div className="mt-5 grid grid-cols-2 gap-2.5 sm:grid-cols-4">
             <MiniMetric
               label="Open support"
               value={support.total_open}
@@ -268,123 +273,149 @@ export default async function AdminNowPage() {
               tone={revenue.pastDueLast7d > 0 ? "warn" : "ok"}
             />
           </div>
-        </div>
+        </Panel>
 
-        <section className="rounded-lg border bg-card p-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-sm font-semibold">Integration Health</h2>
-            <Link
-              href="/admin/settings"
-              className="text-xs text-muted-foreground hover:text-foreground"
-            >
-              configure
-            </Link>
-          </div>
-          <div className="mt-3 space-y-2">
-            {integrations.map((item) => (
-              <IntegrationRow key={item.label} item={item} />
-            ))}
-          </div>
-        </section>
+        <Panel
+          title="Integration Health"
+          icon={Activity}
+          action={<PanelLink href="/admin/settings">configure</PanelLink>}
+          bodyClassName="space-y-2.5"
+        >
+          {integrations.map((item) => (
+            <IntegrationRow key={item.label} item={item} />
+          ))}
+        </Panel>
       </section>
 
-      <section className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      {/* Reliability KPIs */}
+      <KpiGrid cols={sentryConfigured ? 5 : 3}>
         {sentryConfigured ? (
           <>
-            <ReliabilityStat href="/admin/sentry" icon={Bug} label="Errors 24h" value={sentryEvents} tone={sentryEvents > 0 ? "warn" : "ok"} />
-            <ReliabilityStat href="/admin/sentry" icon={AlertTriangle} label="Unresolved" value={sentryUnresolvedLabel} tone={sentryUnresolved > 0 ? "warn" : "ok"} />
+            <StatCard
+              href="/admin/sentry"
+              icon={Bug}
+              label="Errors 24h"
+              value={sentryEvents}
+              tone={sentryEvents > 0 ? "warn" : "ok"}
+            />
+            <StatCard
+              href="/admin/sentry"
+              icon={AlertTriangle}
+              label="Unresolved"
+              value={sentryUnresolvedLabel}
+              tone={sentryUnresolved > 0 ? "warn" : "ok"}
+            />
           </>
         ) : null}
-        <ReliabilityStat href="/admin/support?tab=needs_reply" icon={Clock} label="SLA breached" value={slaBreached} tone={slaBreached > 0 ? "alert" : "ok"} />
-        <ReliabilityStat href="/admin/support?tab=needs_reply" icon={LifeBuoy} label="Needs reply" value={now.supportMetrics.needsReply} tone={now.supportMetrics.needsReply > 0 ? "warn" : "ok"} />
-        <ReliabilityStat href="/admin/jobs" icon={Clock} label="Jobs at risk" value={cronProblems} tone={cronHealth.failing > 0 ? "alert" : cronProblems > 0 ? "warn" : "ok"} />
-      </section>
+        <StatCard
+          href="/admin/support?tab=needs_reply"
+          icon={Clock}
+          label="SLA breached"
+          value={slaBreached}
+          tone={slaBreached > 0 ? "alert" : "ok"}
+        />
+        <StatCard
+          href="/admin/support?tab=needs_reply"
+          icon={LifeBuoy}
+          label="Needs reply"
+          value={now.supportMetrics.needsReply}
+          tone={now.supportMetrics.needsReply > 0 ? "warn" : "ok"}
+        />
+        <StatCard
+          href="/admin/jobs"
+          icon={Clock}
+          label="Jobs at risk"
+          value={cronProblems}
+          tone={cronHealth.failing > 0 ? "alert" : cronProblems > 0 ? "warn" : "ok"}
+        />
+      </KpiGrid>
 
+      {/* Work queue + operating metrics, with sidebar */}
       <section className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
         <div className="space-y-4">
           <Panel
             title="Work Queue"
+            icon={Inbox}
             subtitle="Ordered by operational risk, not route order."
-            action={
-              <Link
-                href="/admin/support"
-                className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
-              >
-                triage <ArrowRight className="h-3 w-3" />
-              </Link>
-            }
+            action={<PanelLink href="/admin/support">triage</PanelLink>}
+            bodyClassName="grid gap-2.5 md:grid-cols-2"
           >
-            <div className="grid gap-2 md:grid-cols-2">
-              {queueItems.map((item) => (
-                <QueueCard key={item.title} item={item} />
-              ))}
-            </div>
+            {queueItems.map((item) => (
+              <QueueCard key={item.title} item={item} />
+            ))}
           </Panel>
 
-          <Panel title="Operating Metrics" subtitle="Revenue, pipeline, support, and communications.">
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-              <MetricCard
-                title="Revenue"
-                items={[
-                  ["Captured today", formatPaiseInr(revenue.capturedTodayPaise)],
-                  ["Captured week", formatPaiseInr(revenue.capturedWeekPaise)],
-                  ["Active subs", revenue.activeSubscriptions.toLocaleString("en-IN")],
-                  ["Past due 7d", revenue.pastDueLast7d.toLocaleString("en-IN")],
-                ]}
-              />
-              <MetricCard
-                title="Pipeline"
-                items={[
-                  ["Signups 24h", pipeline.signupsLast24h.toLocaleString("en-IN")],
-                  ["Signups 7d", pipeline.signupsLast7d.toLocaleString("en-IN")],
-                  ["Unverified >7d", pipeline.unverifiedOlderThan7d.toLocaleString("en-IN")],
-                  ["Trials <=3d", pipeline.trialingEndingSoon.toLocaleString("en-IN")],
-                ]}
-              />
-              <MetricCard
-                title="Support"
-                items={[
-                  ["Open chats 24h", support.open_chats_24h.toLocaleString("en-IN")],
-                  ["Open tickets", support.open_tickets.toLocaleString("en-IN")],
-                  ["Total open", support.total_open.toLocaleString("en-IN")],
-                  ["Resolved 7d", support.resolved_7d.toLocaleString("en-IN")],
-                ]}
-              />
-              <MetricCard
-                title="Comms"
-                items={[
-                  ["Email failures", comms.emailFailuresLast24h.toLocaleString("en-IN")],
-                  ["Suppressions", comms.suppressionsAddedLast24h.toLocaleString("en-IN")],
-                  ["Security alerts", comms.securityAlertsLast24h.toLocaleString("en-IN")],
-                  ["Security events", comms.securityEventsLast24h.toLocaleString("en-IN")],
-                ]}
-              />
-            </div>
+          <Panel
+            title="Operating Metrics"
+            icon={TrendingUp}
+            subtitle="Revenue, pipeline, support, and communications."
+            bodyClassName="grid gap-3 sm:grid-cols-2 lg:grid-cols-4"
+          >
+            <MetricList
+              title="Revenue"
+              icon={CreditCard}
+              items={[
+                ["Captured today", formatPaiseInr(revenue.capturedTodayPaise)],
+                ["Captured week", formatPaiseInr(revenue.capturedWeekPaise)],
+                ["Active subs", revenue.activeSubscriptions.toLocaleString("en-IN")],
+                ["Past due 7d", revenue.pastDueLast7d.toLocaleString("en-IN")],
+              ]}
+            />
+            <MetricList
+              title="Pipeline"
+              icon={Zap}
+              items={[
+                ["Signups 24h", pipeline.signupsLast24h.toLocaleString("en-IN")],
+                ["Signups 7d", pipeline.signupsLast7d.toLocaleString("en-IN")],
+                ["Unverified >7d", pipeline.unverifiedOlderThan7d.toLocaleString("en-IN")],
+                ["Trials <=3d", pipeline.trialingEndingSoon.toLocaleString("en-IN")],
+              ]}
+            />
+            <MetricList
+              title="Support"
+              icon={LifeBuoy}
+              items={[
+                ["Open chats 24h", support.open_chats_24h.toLocaleString("en-IN")],
+                ["Open tickets", support.open_tickets.toLocaleString("en-IN")],
+                ["Total open", support.total_open.toLocaleString("en-IN")],
+                ["Resolved 7d", support.resolved_7d.toLocaleString("en-IN")],
+              ]}
+            />
+            <MetricList
+              title="Comms"
+              icon={Mail}
+              items={[
+                ["Email failures", comms.emailFailuresLast24h.toLocaleString("en-IN")],
+                ["Suppressions", comms.suppressionsAddedLast24h.toLocaleString("en-IN")],
+                ["Security alerts", comms.securityAlertsLast24h.toLocaleString("en-IN")],
+                ["Security events", comms.securityEventsLast24h.toLocaleString("en-IN")],
+              ]}
+            />
           </Panel>
 
           <Panel
             title="What Broke"
+            icon={AlertTriangle}
+            tone={alerts.length > 0 ? "alert" : "neutral"}
             subtitle="Recent alert-level security events."
-            action={
-              <Link
-                href="/admin/security?severity=alert"
-                className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
-              >
-                security <ArrowRight className="h-3 w-3" />
-              </Link>
-            }
+            action={<PanelLink href="/admin/security?severity=alert">security</PanelLink>}
           >
             {alerts.length === 0 ? (
-              <EmptyHint icon={CheckCircle2}>No alert-level security events in the last 24h.</EmptyHint>
+              <EmptyState icon={CheckCircle2} title="All clear">
+                No alert-level security events in the last 24h.
+              </EmptyState>
             ) : (
-              <ul className="divide-y divide-border/50 overflow-hidden rounded-md border bg-background/50">
+              <ul className="divide-y divide-border/50 overflow-hidden rounded-lg border bg-background/50">
                 {alerts.map((alert) => (
-                  <li key={alert.id} className="flex items-center justify-between gap-3 p-3 text-xs">
+                  <li
+                    key={alert.id}
+                    className="flex items-center justify-between gap-3 p-3 text-xs"
+                  >
                     <div className="min-w-0">
                       <div className="truncate font-medium">{alert.kind}</div>
                       <div className="mt-0.5 text-[11px] text-muted-foreground">
-                        {alert.request_id ? `req ${shortenId(alert.request_id)} - ` : null}
-                        {alert.user_id ? `user ${shortenId(alert.user_id)} - ` : null}
+                        {alert.request_id ? `req ${shortenId(alert.request_id)} · ` : null}
+                        {alert.user_id ? `user ${shortenId(alert.user_id)} · ` : null}
                         {formatRelative(alert.created_at)}
                       </div>
                     </div>
@@ -397,44 +428,31 @@ export default async function AdminNowPage() {
         </div>
 
         <aside className="space-y-4">
-          <Panel
-            title="Quick Jumps"
-            subtitle="High-frequency controls."
-          >
-            <div className="grid gap-2">
-              <QuickLink href="/admin/users" icon={Users} label="Find user" />
-              <QuickLink href="/admin/subscriptions" icon={CreditCard} label="Manage subscription" />
-              <QuickLink href="/admin/emails" icon={Mail} label="Inspect email delivery" />
-              <QuickLink href="/admin/notifications" icon={Bell} label="Broadcast notification" />
-              <QuickLink href="/admin/sentry" icon={Bug} label="Review errors" />
-            </div>
+          <Panel title="Quick Jumps" icon={Gauge} subtitle="High-frequency controls." bodyClassName="grid gap-2">
+            <QuickLink href="/admin/users" icon={Users} label="Find user" />
+            <QuickLink href="/admin/subscriptions" icon={CreditCard} label="Manage subscription" />
+            <QuickLink href="/admin/emails" icon={Mail} label="Inspect email delivery" />
+            <QuickLink href="/admin/notifications" icon={Bell} label="Broadcast notification" />
+            <QuickLink href="/admin/sentry" icon={Bug} label="Review errors" />
           </Panel>
 
           <Panel
             title="Recent Admin Activity"
+            icon={MessageSquare}
             subtitle="Last 10 audited operations."
-            action={
-              <Link
-                href="/admin/audit"
-                className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
-              >
-                audit <ArrowRight className="h-3 w-3" />
-              </Link>
-            }
+            action={<PanelLink href="/admin/audit">audit</PanelLink>}
           >
             {recent.length === 0 ? (
-              <EmptyHint icon={Gauge}>No writes have been audited yet.</EmptyHint>
+              <EmptyState icon={Gauge}>No writes have been audited yet.</EmptyState>
             ) : (
               <ul className="space-y-2">
                 {recent.map((row) => (
-                  <li key={row.id} className="rounded-md border bg-background/50 p-2.5 text-xs">
+                  <li
+                    key={row.id}
+                    className="rounded-lg border bg-background/50 p-2.5 text-xs"
+                  >
                     <div className="flex items-center gap-2">
-                      <span
-                        className={cn(
-                          "h-1.5 w-1.5 rounded-full",
-                          row.success ? "bg-emerald-500" : "bg-red-500",
-                        )}
-                      />
+                      <ToneDot tone={row.success ? "ok" : "alert"} />
                       <span className="min-w-0 flex-1 truncate font-medium">
                         {row.kind}
                       </span>
@@ -444,8 +462,8 @@ export default async function AdminNowPage() {
                     </div>
                     <div className="mt-1 text-[11px] text-muted-foreground">
                       {row.target_type}
-                      {row.target_id ? ` - ${shortenId(row.target_id)}` : ""}
-                      {" - "}
+                      {row.target_id ? ` · ${shortenId(row.target_id)}` : ""}
+                      {" · "}
                       {formatRelative(row.created_at)}
                     </div>
                   </li>
@@ -455,7 +473,7 @@ export default async function AdminNowPage() {
           </Panel>
         </aside>
       </section>
-    </div>
+    </AdminSection>
   );
 }
 
@@ -465,38 +483,7 @@ interface QueueItem {
   title: string;
   detail: string;
   value: number;
-  tone: StatTone;
-}
-
-function ReliabilityStat({
-  href,
-  icon: Icon,
-  label,
-  value,
-  tone,
-}: {
-  href: string;
-  icon: React.ComponentType<{ className?: string }>;
-  label: string;
-  value: number | string;
-  tone: StatTone;
-}) {
-  return (
-    <Link
-      href={href}
-      className={cn(
-        "rounded-lg border bg-card p-3 transition hover:bg-accent/40",
-        tone === "alert" && "border-red-500/30 bg-red-500/5",
-        tone === "warn" && "border-amber-500/30 bg-amber-500/5",
-      )}
-    >
-      <div className="flex items-center gap-2 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
-        <Icon className="h-3.5 w-3.5" />
-        {label}
-      </div>
-      <p className="mt-1 text-2xl font-bold tabular-nums">{value}</p>
-    </Link>
-  );
+  tone: Tone;
 }
 
 interface IntegrationItem {
@@ -518,25 +505,11 @@ function HeaderLink({
   return (
     <Link
       href={href}
-      className="inline-flex h-8 items-center gap-1.5 rounded-md border bg-background px-2.5 text-xs text-muted-foreground hover:bg-accent hover:text-foreground"
+      className="inline-flex h-8 items-center gap-1.5 rounded-lg border bg-background px-2.5 text-xs text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
     >
       <Icon className="h-3.5 w-3.5" />
       {children}
     </Link>
-  );
-}
-
-function StatusDot({ tone }: { tone: StatTone }) {
-  return (
-    <span
-      className={cn(
-        "h-2 w-2 rounded-full",
-        tone === "alert" && "bg-red-500",
-        tone === "warn" && "bg-amber-500",
-        tone === "ok" && "bg-emerald-500",
-        tone === "neutral" && "bg-muted-foreground",
-      )}
-    />
   );
 }
 
@@ -547,10 +520,10 @@ function MiniMetric({
 }: {
   label: string;
   value: number;
-  tone: StatTone;
+  tone: Tone;
 }) {
   return (
-    <div className="rounded-md border bg-background/65 px-3 py-2">
+    <div className="rounded-lg border bg-background/65 px-3 py-2.5">
       <div className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
         {label}
       </div>
@@ -568,40 +541,13 @@ function MiniMetric({
   );
 }
 
-function Panel({
-  title,
-  subtitle,
-  action,
-  children,
-}: {
-  title: string;
-  subtitle?: string;
-  action?: ReactNode;
-  children: ReactNode;
-}) {
-  return (
-    <section className="rounded-lg border bg-card p-4">
-      <div className="mb-3 flex items-start justify-between gap-3">
-        <div>
-          <h2 className="text-sm font-semibold">{title}</h2>
-          {subtitle ? (
-            <p className="mt-0.5 text-xs text-muted-foreground">{subtitle}</p>
-          ) : null}
-        </div>
-        {action}
-      </div>
-      {children}
-    </section>
-  );
-}
-
 function QueueCard({ item }: { item: QueueItem }) {
   const Icon = item.icon;
   return (
     <Link
       href={item.href}
       className={cn(
-        "group flex items-start gap-3 rounded-md border bg-background/60 p-3 transition-colors hover:bg-accent/60",
+        "group flex items-start gap-3 rounded-lg border bg-background/60 p-3.5 transition-colors hover:bg-accent/60",
         item.tone === "alert" && "border-red-500/30",
         item.tone === "warn" && "border-amber-500/30",
         item.tone === "ok" && "border-emerald-500/20",
@@ -609,7 +555,7 @@ function QueueCard({ item }: { item: QueueItem }) {
     >
       <span
         className={cn(
-          "flex h-9 w-9 shrink-0 items-center justify-center rounded-md",
+          "flex h-9 w-9 shrink-0 items-center justify-center rounded-lg",
           item.tone === "alert" && "bg-red-500/10 text-red-600",
           item.tone === "warn" && "bg-amber-500/10 text-amber-600",
           item.tone === "ok" && "bg-emerald-500/10 text-emerald-600",
@@ -638,7 +584,7 @@ function IntegrationRow({ item }: { item: IntegrationItem }) {
   return (
     <Link
       href={item.href}
-      className="flex items-center justify-between gap-3 rounded-md border bg-background/50 px-3 py-2 text-xs hover:bg-accent/50"
+      className="flex items-center justify-between gap-3 rounded-lg border bg-background/50 px-3 py-2.5 text-xs transition-colors hover:bg-accent/50"
     >
       <span className="min-w-0">
         <span className="block font-medium">{item.label}</span>
@@ -646,39 +592,10 @@ function IntegrationRow({ item }: { item: IntegrationItem }) {
           {item.description}
         </span>
       </span>
-      <span
-        className={cn(
-          "shrink-0 rounded px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wider",
-          item.configured
-            ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
-            : "bg-amber-500/10 text-amber-700 dark:text-amber-400",
-        )}
-      >
+      <Badge tone={item.configured ? "ok" : "warn"}>
         {item.configured ? "live" : "setup"}
-      </span>
+      </Badge>
     </Link>
-  );
-}
-
-function MetricCard({
-  title,
-  items,
-}: {
-  title: string;
-  items: Array<[string, string]>;
-}) {
-  return (
-    <div className="rounded-md border bg-background/50 p-3">
-      <h3 className="text-xs font-semibold">{title}</h3>
-      <dl className="mt-2 space-y-1.5">
-        {items.map(([label, value]) => (
-          <div key={label} className="flex items-center justify-between gap-3 text-xs">
-            <dt className="text-muted-foreground">{label}</dt>
-            <dd className="font-medium tabular-nums">{value}</dd>
-          </div>
-        ))}
-      </dl>
-    </div>
   );
 }
 
@@ -694,7 +611,7 @@ function QuickLink({
   return (
     <Link
       href={href}
-      className="group flex items-center justify-between rounded-md border bg-background/50 px-3 py-2 text-sm hover:bg-accent/60"
+      className="group flex items-center justify-between rounded-lg border bg-background/50 px-3 py-2.5 text-sm transition-colors hover:bg-accent/60"
     >
       <span className="flex items-center gap-2">
         <Icon className="h-4 w-4 text-muted-foreground" />
@@ -702,20 +619,5 @@ function QuickLink({
       </span>
       <ArrowRight className="h-3.5 w-3.5 text-muted-foreground/40 transition-transform group-hover:translate-x-0.5 group-hover:text-muted-foreground" />
     </Link>
-  );
-}
-
-function EmptyHint({
-  icon: Icon,
-  children,
-}: {
-  icon: React.ComponentType<{ className?: string }>;
-  children: ReactNode;
-}) {
-  return (
-    <div className="flex items-center gap-2 rounded-md border border-dashed bg-background/40 px-3 py-4 text-xs text-muted-foreground">
-      <Icon className="h-4 w-4" />
-      {children}
-    </div>
   );
 }

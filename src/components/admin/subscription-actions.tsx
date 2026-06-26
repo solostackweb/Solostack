@@ -58,7 +58,7 @@ export function SubscriptionActions({ subscription, payments }: Props) {
         Actions
       </h2>
 
-      <div className="space-y-3 rounded-md border bg-card p-3 text-xs">
+      <div className="space-y-3 rounded-xl border bg-card shadow-sm shadow-black/[0.03] p-3 text-xs">
         {/* Cancel */}
         <CancelForm
           subscriptionId={subscription.id}

@@ -17,6 +17,7 @@
 import Link from "next/link";
 import { listUsers, type ListUsersInput } from "@/features/admin/queries";
 import { AdminPageHeader } from "@/components/admin/page-header";
+import { AdminSection } from "@/components/admin/kit";
 import { UsersBulk } from "@/components/admin/users-bulk";
 import { adminBulkSuppressUsersAction } from "@/features/admin/actions";
 import {
@@ -75,7 +76,7 @@ export default async function AdminUsersPage({ searchParams }: Props) {
   const exportUrl = `/api/admin/users/export${exportParams.toString() ? `?${exportParams}` : ""}`;
 
   return (
-    <div className="space-y-5">
+    <AdminSection>
       <AdminPageHeader
         title="Users"
         subtitle={
@@ -87,7 +88,7 @@ export default async function AdminUsersPage({ searchParams }: Props) {
         actions={
           <a
             href={exportUrl}
-            className="inline-flex h-8 items-center gap-1.5 rounded-md border px-3 text-xs font-medium hover:bg-accent"
+            className="inline-flex h-8 items-center gap-1.5 rounded-lg border bg-background px-3 text-xs font-medium transition-colors hover:bg-accent"
           >
             Export CSV
           </a>
@@ -106,7 +107,7 @@ export default async function AdminUsersPage({ searchParams }: Props) {
         {result.rows.map((u) => (
           <li
             key={u.id}
-            className="rounded-md border bg-card p-3 text-sm"
+            className="rounded-xl border bg-card shadow-sm shadow-black/[0.03] p-3 text-sm"
           >
             <Link
               href={`/admin/users/${u.id}`}
@@ -145,7 +146,7 @@ export default async function AdminUsersPage({ searchParams }: Props) {
 
       {/* Desktop: table */}
       <UsersBulk suppressAction={adminBulkSuppressUsersAction} exportUrl={exportUrl}>
-      <div className="hidden overflow-hidden rounded-md border bg-card md:block">
+      <div className="hidden overflow-hidden rounded-xl border bg-card shadow-sm shadow-black/[0.03] md:block">
         <table className="w-full text-sm">
           <thead className="bg-muted/40 text-left text-[11px] uppercase tracking-wider text-muted-foreground">
             <tr>
@@ -237,7 +238,7 @@ export default async function AdminUsersPage({ searchParams }: Props) {
         plan={plan}
         status={status}
       />
-    </div>
+    </AdminSection>
   );
 }
 

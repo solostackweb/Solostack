@@ -7,8 +7,10 @@
  */
 
 import Link from "next/link";
+import { CreditCard, Zap, AlertCircle, XCircle } from "lucide-react";
 import { listSubscriptions } from "@/features/admin/queries";
 import { AdminPageHeader } from "@/components/admin/page-header";
+import { AdminSection, KpiGrid, StatCard } from "@/components/admin/kit";
 import {
   formatIstStamp,
   formatRelative,
@@ -38,7 +40,7 @@ export default async function AdminSubscriptionsPage({ searchParams }: Props) {
   const totalPages = Math.max(1, Math.ceil(result.total / PAGE_SIZE));
 
   return (
-    <div className="space-y-5">
+    <AdminSection>
       <AdminPageHeader
         title="Subscriptions"
         subtitle={
@@ -48,6 +50,37 @@ export default async function AdminSubscriptionsPage({ searchParams }: Props) {
           </span>
         }
       />
+
+      <KpiGrid cols={4}>
+        <StatCard
+          href="/admin/subscriptions?status=active"
+          icon={CreditCard}
+          label="Active"
+          value={result.counts.active.toLocaleString("en-IN")}
+          tone="ok"
+        />
+        <StatCard
+          href="/admin/subscriptions?status=trialing"
+          icon={Zap}
+          label="Trialing"
+          value={result.counts.trialing.toLocaleString("en-IN")}
+          tone="info"
+        />
+        <StatCard
+          href="/admin/subscriptions?status=past_due"
+          icon={AlertCircle}
+          label="Past due"
+          value={result.counts.past_due.toLocaleString("en-IN")}
+          tone={result.counts.past_due > 0 ? "alert" : "neutral"}
+        />
+        <StatCard
+          href="/admin/subscriptions?status=canceled"
+          icon={XCircle}
+          label="Cancelled"
+          value={result.counts.canceled.toLocaleString("en-IN")}
+          tone="neutral"
+        />
+      </KpiGrid>
 
       <div className="flex flex-wrap gap-1.5 border-b border-border/60 pb-1">
         {TABS.map((t) => {
@@ -92,7 +125,7 @@ export default async function AdminSubscriptionsPage({ searchParams }: Props) {
         {result.rows.map((row) => (
           <li
             key={row.id}
-            className="rounded-md border bg-card p-3 text-sm"
+            className="rounded-xl border bg-card p-3 text-sm shadow-sm shadow-black/[0.03]"
           >
             <Link
               href={`/admin/subscriptions/${row.id}`}
@@ -122,7 +155,7 @@ export default async function AdminSubscriptionsPage({ searchParams }: Props) {
       </ul>
 
       {/* Desktop table */}
-      <div className="hidden overflow-hidden rounded-md border bg-card md:block">
+      <div className="hidden overflow-hidden rounded-xl border bg-card shadow-sm shadow-black/[0.03] md:block">
         <table className="w-full text-sm">
           <thead className="bg-muted/40 text-left text-[11px] uppercase tracking-wider text-muted-foreground">
             <tr>
@@ -209,7 +242,7 @@ export default async function AdminSubscriptionsPage({ searchParams }: Props) {
         Showing most recent updates first. Manual ops (comp / refund /
         cancel) live in the detail page.
       </p>
-    </div>
+    </AdminSection>
   );
 }
 

@@ -7,8 +7,10 @@
  */
 
 import Link from "next/link";
+import { Files as FilesIcon, HardDrive, FileText } from "lucide-react";
 import { listFiles } from "@/features/admin/queries";
 import { AdminPageHeader } from "@/components/admin/page-header";
+import { AdminSection, KpiGrid, StatCard } from "@/components/admin/kit";
 import { formatRelative, shortenId } from "@/features/admin/format";
 import { cn } from "@/lib/utils";
 
@@ -36,7 +38,7 @@ export default async function AdminFilesPage({ searchParams }: Props) {
   const totalPages = Math.max(1, Math.ceil(result.total / PAGE_SIZE));
 
   return (
-    <div className="space-y-5">
+    <AdminSection>
       <AdminPageHeader
         title="Files"
         subtitle={
@@ -49,6 +51,12 @@ export default async function AdminFilesPage({ searchParams }: Props) {
           </span>
         }
       />
+
+      <KpiGrid cols={3}>
+        <StatCard icon={FilesIcon} label="Files (scanned)" value={result.total.toLocaleString("en-IN")} tone="neutral" />
+        <StatCard icon={HardDrive} label="Storage" value={formatBytes(result.totalBytes)} tone="info" />
+        <StatCard icon={FileText} label="Avg size" value={formatBytes(result.total > 0 ? Math.round(result.totalBytes / result.total) : 0)} tone="neutral" />
+      </KpiGrid>
 
       <form
         method="get"
@@ -70,7 +78,7 @@ export default async function AdminFilesPage({ searchParams }: Props) {
         </button>
       </form>
 
-      <div className="overflow-hidden rounded-md border bg-card">
+      <div className="overflow-hidden rounded-xl border bg-card shadow-sm shadow-black/[0.03]">
         <table className="w-full text-sm">
           <thead className="bg-muted/40 text-left text-[11px] uppercase tracking-wider text-muted-foreground">
             <tr>
@@ -155,7 +163,7 @@ export default async function AdminFilesPage({ searchParams }: Props) {
           </Link>
         </nav>
       ) : null}
-    </div>
+    </AdminSection>
   );
 }
 

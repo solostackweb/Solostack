@@ -39,7 +39,7 @@ export default async function AdminAnalyticsPage() {
       ) : (
         <iframe
           src={trimmed}
-          className="w-full flex-1 rounded-md border bg-card"
+          className="w-full flex-1 rounded-xl border bg-card shadow-sm shadow-black/[0.03]"
           loading="lazy"
           title="PostHog dashboard"
           referrerPolicy="strict-origin-when-cross-origin"

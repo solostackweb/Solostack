@@ -10,6 +10,7 @@ import { ChevronLeft, ExternalLink } from "lucide-react";
 import { getContractDetail, listAdminNotes } from "@/features/admin/queries";
 import { recordAdminAction, requireAdmin } from "@/features/admin/server";
 import { AdminPageHeader } from "@/components/admin/page-header";
+import { AdminSection, KpiGrid, StatCard } from "@/components/admin/kit";
 import { AdminNotesPanel } from "@/components/admin/admin-notes";
 import {
   formatIstStamp,
@@ -41,7 +42,7 @@ export default async function AdminContractDetailPage({ params }: Props) {
   });
 
   return (
-    <div className="space-y-6">
+    <AdminSection>
       <Link
         href="/admin/contracts"
         className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
@@ -68,19 +69,16 @@ export default async function AdminContractDetailPage({ params }: Props) {
         }
       />
 
-      <section className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <Tile label="Kind" value={contract.kind} />
-        <Tile label="Status" value={contract.status} />
-        <Tile
-          label="Signed"
-          value={contract.signed_at ? formatIstStamp(contract.signed_at) : "—"}
-        />
-        <Tile
+      <KpiGrid cols={4}>
+        <StatCard label="Kind" value={contract.kind} />
+        <StatCard label="Status" value={contract.status} />
+        <StatCard label="Signed" value={contract.signed_at ? formatIstStamp(contract.signed_at) : "—"} />
+        <StatCard
           label="Public link"
           value={
             contract.public_token ? (
               <a
-                className="inline-flex items-center gap-1 truncate hover:underline"
+                className="inline-flex items-center gap-1 truncate text-base hover:underline"
                 href={`/c/${contract.public_token}`}
                 target="_blank"
                 rel="noreferrer"
@@ -92,7 +90,7 @@ export default async function AdminContractDetailPage({ params }: Props) {
             )
           }
         />
-      </section>
+      </KpiGrid>
 
       <section className="space-y-2">
         <h2 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
@@ -101,7 +99,7 @@ export default async function AdminContractDetailPage({ params }: Props) {
         {signatures.length === 0 ? (
           <Empty>No signature events recorded.</Empty>
         ) : (
-          <ul className="overflow-hidden rounded-md border bg-card text-xs">
+          <ul className="overflow-hidden rounded-xl border bg-card shadow-sm shadow-black/[0.03] text-xs">
             {signatures.map((s) => (
               <li
                 key={s.id}
@@ -133,7 +131,7 @@ export default async function AdminContractDetailPage({ params }: Props) {
         {deliveries.length === 0 ? (
           <Empty>No deliveries logged.</Empty>
         ) : (
-          <ul className="overflow-hidden rounded-md border bg-card text-xs">
+          <ul className="overflow-hidden rounded-xl border bg-card shadow-sm shadow-black/[0.03] text-xs">
             {deliveries.map((d) => (
               <li
                 key={d.id}
@@ -160,20 +158,10 @@ export default async function AdminContractDetailPage({ params }: Props) {
         targetId={contract.id}
         notes={notes}
       />
-    </div>
+    </AdminSection>
   );
 }
 
-function Tile({ label, value }: { label: string; value: React.ReactNode }) {
-  return (
-    <div className="rounded-md border bg-card px-3 py-2">
-      <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
-        {label}
-      </div>
-      <div className="mt-0.5 truncate text-sm font-semibold">{value}</div>
-    </div>
-  );
-}
 function Empty({ children }: { children: React.ReactNode }) {
   return (
     <div className="rounded border border-dashed bg-muted/20 px-3 py-3 text-xs text-muted-foreground">

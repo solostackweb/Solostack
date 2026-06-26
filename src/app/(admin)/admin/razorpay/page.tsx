@@ -16,6 +16,7 @@ import { ExternalLink } from "lucide-react";
 
 import { requireAdmin } from "@/features/admin/server";
 import { AdminPageHeader } from "@/components/admin/page-header";
+import { AdminSection } from "@/components/admin/kit";
 import { cn } from "@/lib/utils";
 import {
   isRazorpayConfigured,
@@ -72,7 +73,7 @@ export default async function AdminRazorpayPage() {
   const isTestMode = (process.env.RAZORPAY_KEY_ID ?? "").startsWith("rzp_test_");
 
   return (
-    <div className="space-y-6">
+    <AdminSection>
       <AdminPageHeader
         title="Payments"
         subtitle={
@@ -218,7 +219,7 @@ export default async function AdminRazorpayPage() {
           </div>
         )}
       </section>
-    </div>
+    </AdminSection>
   );
 }
 

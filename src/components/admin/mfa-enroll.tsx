@@ -167,7 +167,7 @@ function ResumeEnrollment({
   // show a 6-digit-code-entry form directly and let the admin paste
   // the code from whatever app they were setting up.
   return (
-    <div className="space-y-3 rounded-md border bg-card p-3 text-xs">
+    <div className="space-y-3 rounded-xl border bg-card shadow-sm shadow-black/[0.03] p-3 text-xs">
       <div className="font-medium">Resume pending enrollment</div>
       <p className="text-muted-foreground">
         A TOTP enrollment was started but not verified. Open the
@@ -208,7 +208,7 @@ function VerifyStep({
     factor.uri,
   )}`;
   return (
-    <div className="space-y-3 rounded-md border bg-card p-3 text-xs">
+    <div className="space-y-3 rounded-xl border bg-card shadow-sm shadow-black/[0.03] p-3 text-xs">
       <div className="font-medium">Scan with your authenticator</div>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-[200px_1fr]">
         {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -299,7 +299,7 @@ function FactorList({
   const confirm = useConfirm();
   if (factors.length === 0) return null;
   return (
-    <ul className="overflow-hidden rounded-md border bg-card text-xs">
+    <ul className="overflow-hidden rounded-xl border bg-card shadow-sm shadow-black/[0.03] text-xs">
       {factors.map((f) => (
         <li
           key={f.id}

@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { requireAdmin } from "@/features/admin/server";
 import { AdminPageHeader } from "@/components/admin/page-header";
+import { AdminSection, KpiGrid, StatCard, EmptyState } from "@/components/admin/kit";
 import { getCronHealth, listCronRuns } from "@/features/admin/cron-queries";
 import { formatRelative, formatIstStamp } from "@/features/admin/format";
 import { cn } from "@/lib/utils";
@@ -25,10 +26,13 @@ export default async function AdminJobsPage() {
   await requireAdmin();
   const [health, runs] = await Promise.all([getCronHealth(), listCronRuns(60)]);
 
-  const problems = health.filter((h) => h.stale || h.failing).length;
+  const failing = health.filter((h) => h.failing).length;
+  const stale = health.filter((h) => h.stale && !h.failing).length;
+  const problems = failing + stale;
+  const healthy = health.length - problems;
 
   return (
-    <div className="space-y-5">
+    <AdminSection>
       <AdminPageHeader
         title="Scheduled jobs"
         subtitle={
@@ -37,6 +41,13 @@ export default async function AdminJobsPage() {
             : "All jobs healthy"
         }
       />
+
+      <KpiGrid cols={4}>
+        <StatCard icon={Clock} label="Total jobs" value={health.length} tone="neutral" />
+        <StatCard icon={CheckCircle2} label="Healthy" value={healthy} tone="ok" />
+        <StatCard icon={AlertTriangle} label="Stale" value={stale} tone={stale > 0 ? "warn" : "ok"} />
+        <StatCard icon={XCircle} label="Failing" value={failing} tone={failing > 0 ? "alert" : "ok"} />
+      </KpiGrid>
 
       {/* Per-job health */}
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -87,9 +98,9 @@ export default async function AdminJobsPage() {
           <Clock className="h-3.5 w-3.5" /> Recent runs
         </h2>
         {runs.length === 0 ? (
-          <div className="rounded-lg border border-dashed border-border/60 p-8 text-center text-sm text-muted-foreground">
-            No runs recorded yet. Jobs register here on their next execution.
-          </div>
+          <EmptyState icon={Clock} title="No runs yet">
+            Jobs register here on their next execution.
+          </EmptyState>
         ) : (
           <ul className="divide-y divide-border/50 overflow-hidden rounded-lg border border-border/60 bg-card">
             {runs.map((r) => (
@@ -113,6 +124,6 @@ export default async function AdminJobsPage() {
           </ul>
         )}
       </section>
-    </div>
+    </AdminSection>
   );
 }

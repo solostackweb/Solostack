@@ -10,10 +10,11 @@
  */
 
 import Link from "next/link";
-import { Filter, X } from "lucide-react";
+import { Filter, X, ShieldAlert, AlertTriangle, Info } from "lucide-react";
 
 import { listSecurityEvents } from "@/features/admin/queries";
 import { AdminPageHeader } from "@/components/admin/page-header";
+import { AdminSection, KpiGrid, StatCard } from "@/components/admin/kit";
 import { JsonViewer } from "@/components/admin/json-viewer";
 import {
   formatIstStamp,
@@ -72,7 +73,7 @@ export default async function AdminSecurityPage({ searchParams }: Props) {
   );
 
   return (
-    <div className="space-y-5">
+    <AdminSection>
       <AdminPageHeader
         title="Security"
         subtitle={
@@ -92,6 +93,12 @@ export default async function AdminSecurityPage({ searchParams }: Props) {
           </span>
         }
       />
+
+      <KpiGrid cols={3}>
+        <StatCard href="/admin/security?severity=alert" icon={ShieldAlert} label="Alerts (7d)" value={result.counts.alert} tone={result.counts.alert > 0 ? "alert" : "ok"} />
+        <StatCard href="/admin/security?severity=warn" icon={AlertTriangle} label="Warnings (7d)" value={result.counts.warn} tone={result.counts.warn > 0 ? "warn" : "ok"} />
+        <StatCard href="/admin/security?severity=info" icon={Info} label="Info (7d)" value={result.counts.info} tone="neutral" />
+      </KpiGrid>
 
       {/* Severity tabs */}
       <div className="flex flex-wrap gap-1.5 border-b border-border/60 pb-1">
@@ -182,7 +189,7 @@ export default async function AdminSecurityPage({ searchParams }: Props) {
             return (
               <li
                 key={row.id}
-                className="rounded-md border bg-card p-3 text-xs"
+                className="rounded-xl border bg-card shadow-sm shadow-black/[0.03] p-3 text-xs"
               >
                 <div className="flex flex-wrap items-center gap-2">
                   <span
@@ -270,7 +277,7 @@ export default async function AdminSecurityPage({ searchParams }: Props) {
           </PageLink>
         </nav>
       ) : null}
-    </div>
+    </AdminSection>
   );
 }
 

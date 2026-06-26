@@ -35,7 +35,7 @@ export function SettingRow({
   const [parseError, setParseError] = React.useState<string | null>(null);
 
   return (
-    <li className="rounded-md border bg-card p-3 text-xs">
+    <li className="rounded-xl border bg-card shadow-sm shadow-black/[0.03] p-3 text-xs">
       <div className="flex items-center justify-between gap-3">
         <div className="space-y-0.5">
           <div className="font-mono text-sm font-medium">{settingKey}</div>

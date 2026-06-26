@@ -99,7 +99,7 @@ export function AdminNotesPanel({
               setComposing(false);
             }
           }}
-          className="space-y-2 rounded-md border bg-card p-2 text-xs"
+          className="space-y-2 rounded-xl border bg-card shadow-sm shadow-black/[0.03] p-2 text-xs"
         >
           <textarea
             value={draft}
@@ -179,7 +179,7 @@ function NoteCard({
   return (
     <li
       className={cn(
-        "rounded-md border bg-card p-2.5 text-xs",
+        "rounded-xl border bg-card shadow-sm shadow-black/[0.03] p-2.5 text-xs",
         note.pinned && "border-amber-500/40 bg-amber-500/5",
       )}
     >

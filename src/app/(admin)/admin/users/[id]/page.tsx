@@ -38,6 +38,7 @@ import {
   requireAdmin,
 } from "@/features/admin/server";
 import { AdminPageHeader } from "@/components/admin/page-header";
+import { AdminSection, KpiGrid, StatCard } from "@/components/admin/kit";
 import { JsonViewer } from "@/components/admin/json-viewer";
 import { UserActions } from "@/components/admin/user-actions";
 import {
@@ -86,7 +87,7 @@ export default async function AdminUserDetailPage({ params }: Props) {
     new Date(overview.banned_until).getTime() > Date.now();
 
   return (
-    <div className="space-y-6">
+    <AdminSection>
       <Link
         href="/admin/users"
         className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
@@ -114,29 +115,16 @@ export default async function AdminUserDetailPage({ params }: Props) {
       <UserChurnBadges signals={churn} />
 
       {/* Top stats */}
-      <section className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-        <Tile
+      <KpiGrid cols={5}>
+        <StatCard
           label="Account"
-          value={
-            overview.account_type === "portal_client"
-              ? "Portal client"
-              : "Freelancer"
-          }
+          value={overview.account_type === "portal_client" ? "Portal client" : "Freelancer"}
         />
-        <Tile label="Plan" value={overview.plan ?? "free"} />
-        <Tile
-          label="Status"
-          value={overview.subscription_status ?? "—"}
-        />
-        <Tile
-          label="Lifetime revenue"
-          value={formatPaiseInr(overview.total_revenue_paise)}
-        />
-        <Tile
-          label="Invoices · Clients"
-          value={`${overview.invoice_count} · ${overview.client_count}`}
-        />
-      </section>
+        <StatCard label="Plan" value={overview.plan ?? "free"} />
+        <StatCard label="Status" value={overview.subscription_status ?? "—"} />
+        <StatCard label="Lifetime revenue" value={formatPaiseInr(overview.total_revenue_paise)} tone="info" />
+        <StatCard label="Invoices · Clients" value={`${overview.invoice_count} · ${overview.client_count}`} />
+      </KpiGrid>
 
       {/* Profile snapshot */}
       <Section title="Profile" icon={Shield}>
@@ -220,7 +208,7 @@ export default async function AdminUserDetailPage({ params }: Props) {
         {timeline.security.length === 0 ? (
           <Empty text="No security events recorded for this user." />
         ) : (
-          <ul className="overflow-hidden rounded-md border bg-card">
+          <ul className="overflow-hidden rounded-xl border bg-card shadow-sm shadow-black/[0.03]">
             {timeline.security.map((s) => (
               <li
                 key={s.id}
@@ -282,7 +270,7 @@ export default async function AdminUserDetailPage({ params }: Props) {
         {timeline.payments.length === 0 ? (
           <Empty text="No payments recorded." />
         ) : (
-          <ul className="overflow-hidden rounded-md border bg-card text-xs">
+          <ul className="overflow-hidden rounded-xl border bg-card shadow-sm shadow-black/[0.03] text-xs">
             {timeline.payments.map((p) => (
               <li
                 key={p.id}
@@ -326,22 +314,11 @@ export default async function AdminUserDetailPage({ params }: Props) {
           hasRazorpaySubscription,
         }}
       />
-    </div>
+    </AdminSection>
   );
 }
 
 // ---------------------------------------------------------------------------
-
-function Tile({ label, value }: { label: string; value: React.ReactNode }) {
-  return (
-    <div className="rounded-md border bg-card px-3 py-2">
-      <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
-        {label}
-      </div>
-      <div className="mt-0.5 truncate text-sm font-semibold">{value}</div>
-    </div>
-  );
-}
 
 function AccountTypeBadge({
   accountType,
@@ -424,7 +401,7 @@ function Timeline({
 }) {
   if (items.length === 0) return <Empty text={emptyText} />;
   return (
-    <ul className="overflow-hidden rounded-md border bg-card text-xs">
+    <ul className="overflow-hidden rounded-xl border bg-card shadow-sm shadow-black/[0.03] text-xs">
       {items.map((it) => (
         <li
           key={it.id}

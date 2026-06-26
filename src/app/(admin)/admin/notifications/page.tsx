@@ -8,6 +8,7 @@
 import { Activity, Bell, Users } from "lucide-react";
 import { getAdminSupabase } from "@/lib/supabase/admin";
 import { AdminPageHeader } from "@/components/admin/page-header";
+import { AdminSection } from "@/components/admin/kit";
 import { BroadcastForm } from "@/components/admin/broadcast-form";
 import { formatIstStamp, formatRelative } from "@/features/admin/format";
 
@@ -64,7 +65,7 @@ export default async function AdminNotificationsPage() {
   );
 
   return (
-    <div className="space-y-6">
+    <AdminSection>
       <AdminPageHeader
         title="Notifications"
         subtitle="Broadcast in-app messages, review recent sends, and keep the trail auditable."
@@ -130,7 +131,7 @@ export default async function AdminNotificationsPage() {
           )}
         </section>
       </div>
-    </div>
+    </AdminSection>
   );
 }
 

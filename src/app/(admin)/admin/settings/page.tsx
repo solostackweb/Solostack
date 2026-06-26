@@ -11,6 +11,7 @@
 
 import { listPlatformSettings } from "@/features/admin/queries";
 import { AdminPageHeader } from "@/components/admin/page-header";
+import { AdminSection } from "@/components/admin/kit";
 import { SettingRow } from "@/components/admin/setting-row";
 import { SlackAlertSection } from "@/components/admin/slack-alert-section";
 
@@ -71,7 +72,7 @@ export default async function AdminSettingsPage() {
   const slackPreview = rawWebhook ? rawWebhook.slice(0, 40) : null;
 
   return (
-    <div className="space-y-5">
+    <AdminSection>
       <AdminPageHeader
         title="Settings"
         subtitle="Platform-wide kill switches & config. Service-role only — every change audited."
@@ -114,6 +115,6 @@ export default async function AdminSettingsPage() {
           ))}
         </ul>
       </div>
-    </div>
+    </AdminSection>
   );
 }

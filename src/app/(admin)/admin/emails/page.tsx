@@ -16,6 +16,7 @@ import { ExternalLink, TrendingUp, TrendingDown, Minus } from "lucide-react";
 
 import { listEmails, listSuppressions } from "@/features/admin/queries";
 import { AdminPageHeader } from "@/components/admin/page-header";
+import { AdminSection } from "@/components/admin/kit";
 import {
   formatIstStamp,
   formatRelative,
@@ -68,7 +69,7 @@ export default async function AdminEmailsPage({ searchParams }: Props) {
   const totalPages = Math.max(1, Math.ceil(emails.total / 50));
 
   return (
-    <div className="space-y-6">
+    <AdminSection>
       <AdminPageHeader
         title="Emails"
         subtitle={
@@ -263,7 +264,7 @@ export default async function AdminEmailsPage({ searchParams }: Props) {
         {emails.rows.length === 0 ? (
           <Empty>No matching deliveries.</Empty>
         ) : (
-          <ul className="overflow-hidden rounded-md border bg-card">
+          <ul className="overflow-hidden rounded-xl border bg-card shadow-sm shadow-black/[0.03]">
             {emails.rows.map((row) => (
               <li
                 key={row.id}
@@ -356,7 +357,7 @@ export default async function AdminEmailsPage({ searchParams }: Props) {
         {suppressions.length === 0 ? (
           <Empty>No suppressions on file.</Empty>
         ) : (
-          <ul className="overflow-hidden rounded-md border bg-card text-xs">
+          <ul className="overflow-hidden rounded-xl border bg-card shadow-sm shadow-black/[0.03] text-xs">
             {suppressions.map((s) => (
               <li
                 key={s.email}
@@ -393,7 +394,7 @@ export default async function AdminEmailsPage({ searchParams }: Props) {
         </a>{" "}
         — search by provider message id to inspect headers.
       </p>
-    </div>
+    </AdminSection>
   );
 }
 

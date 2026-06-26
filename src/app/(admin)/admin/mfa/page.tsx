@@ -12,6 +12,7 @@
 import { requireAdmin } from "@/features/admin/server";
 import { getMfaStatus } from "@/features/admin/mfa";
 import { AdminPageHeader } from "@/components/admin/page-header";
+import { AdminSection } from "@/components/admin/kit";
 import { MfaEnrollFlow } from "@/components/admin/mfa-enroll";
 
 export const dynamic = "force-dynamic";
@@ -21,12 +22,12 @@ export default async function AdminMfaPage() {
   const status = await getMfaStatus();
 
   return (
-    <div className="space-y-5">
+    <AdminSection>
       <AdminPageHeader
         title="Multi-factor authentication"
         subtitle="Required for production admin access · TOTP only in Phase 4"
       />
       <MfaEnrollFlow status={status} />
-    </div>
+    </AdminSection>
   );
 }

@@ -28,7 +28,7 @@ export function UserSupportThreads({ userId, threads }: Props) {
           No support tickets on file. New tickets will appear here.
         </div>
       ) : (
-        <ul className="overflow-hidden rounded-md border bg-card text-xs">
+        <ul className="overflow-hidden rounded-xl border bg-card shadow-sm shadow-black/[0.03] text-xs">
           {threads.map((t) => (
             <li key={t.id} className="border-b border-border/40 last:border-b-0">
               <Link

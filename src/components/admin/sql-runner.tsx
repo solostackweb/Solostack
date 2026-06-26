@@ -156,7 +156,7 @@ export function SqlRunner() {
           <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
             Saved queries
           </span>
-          <ul className="space-y-1 rounded-md border bg-card p-1.5">
+          <ul className="space-y-1 rounded-xl border bg-card shadow-sm shadow-black/[0.03] p-1.5">
             {SAVED.map((q) => (
               <li key={q.label}>
                 <button
@@ -211,7 +211,7 @@ function ResultPanel({ result }: { result: SqlResult }) {
       <div className="text-[11px] text-muted-foreground tabular-nums">
         {result.rowCount} rows · {result.elapsedMs}ms
       </div>
-      <div className="overflow-x-auto rounded-md border bg-card">
+      <div className="overflow-x-auto rounded-xl border bg-card shadow-sm shadow-black/[0.03]">
         <table className="min-w-full text-xs">
           <thead className="bg-muted/40 text-left text-[10px] uppercase tracking-wider text-muted-foreground">
             <tr>

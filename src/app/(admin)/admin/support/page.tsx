@@ -19,6 +19,7 @@ import {
 import { getAdminSupabase } from "@/lib/supabase/admin";
 import { requireAdmin } from "@/features/admin/server";
 import { AdminPageHeader } from "@/components/admin/page-header";
+import { AdminSection } from "@/components/admin/kit";
 import {
   adminListTickets,
   getSupportMetrics,
@@ -90,7 +91,7 @@ export default async function AdminSupportPage({ searchParams }: Props) {
   const now = Date.now();
 
   return (
-    <div className="space-y-5">
+    <AdminSection>
       <AdminPageHeader
         title="Support"
         subtitle="First-party tickets · live chat · delivery failures"
@@ -217,7 +218,7 @@ export default async function AdminSupportPage({ searchParams }: Props) {
           ))}
         </ul>
       )}
-    </div>
+    </AdminSection>
   );
 }
 

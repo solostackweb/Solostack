@@ -9,6 +9,7 @@ import { ChevronLeft } from "lucide-react";
 import { getInvoiceDetail, listAdminNotes } from "@/features/admin/queries";
 import { recordAdminAction, requireAdmin } from "@/features/admin/server";
 import { AdminPageHeader } from "@/components/admin/page-header";
+import { AdminSection, KpiGrid, StatCard } from "@/components/admin/kit";
 import { AdminNotesPanel } from "@/components/admin/admin-notes";
 import {
   formatCurrencyAmount,
@@ -41,7 +42,7 @@ export default async function AdminInvoiceDetailPage({ params }: Props) {
   });
 
   return (
-    <div className="space-y-6">
+    <AdminSection>
       <Link
         href="/admin/invoices"
         className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
@@ -68,22 +69,19 @@ export default async function AdminInvoiceDetailPage({ params }: Props) {
         }
       />
 
-      <section className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <Tile label="Status" value={invoice.status} />
-        <Tile
-          label="Total"
-          value={formatCurrencyAmount(invoice.total_amount, invoice.currency)}
-        />
-        <Tile label="Issued" value={formatIstStamp(invoice.issue_date)} />
-        <Tile label="Due" value={formatIstStamp(invoice.due_date)} />
-      </section>
+      <KpiGrid cols={4}>
+        <StatCard label="Status" value={invoice.status} />
+        <StatCard label="Total" value={formatCurrencyAmount(invoice.total_amount, invoice.currency)} />
+        <StatCard label="Issued" value={formatIstStamp(invoice.issue_date)} />
+        <StatCard label="Due" value={formatIstStamp(invoice.due_date)} />
+      </KpiGrid>
 
       <section className="space-y-2">
         <Section count={items.length}>Line items</Section>
         {items.length === 0 ? (
           <Empty>No items.</Empty>
         ) : (
-          <ul className="overflow-hidden rounded-md border bg-card text-xs">
+          <ul className="overflow-hidden rounded-xl border bg-card shadow-sm shadow-black/[0.03] text-xs">
             {items.map((it) => (
               <li
                 key={it.id}
@@ -109,7 +107,7 @@ export default async function AdminInvoiceDetailPage({ params }: Props) {
         {deliveries.length === 0 ? (
           <Empty>No deliveries logged.</Empty>
         ) : (
-          <ul className="overflow-hidden rounded-md border bg-card text-xs">
+          <ul className="overflow-hidden rounded-xl border bg-card shadow-sm shadow-black/[0.03] text-xs">
             {deliveries.map((d) => (
               <li
                 key={d.id}
@@ -144,20 +142,10 @@ export default async function AdminInvoiceDetailPage({ params }: Props) {
       </section>
 
       <AdminNotesPanel targetType="invoice" targetId={invoice.id} notes={notes} />
-    </div>
+    </AdminSection>
   );
 }
 
-function Tile({ label, value }: { label: string; value: React.ReactNode }) {
-  return (
-    <div className="rounded-md border bg-card px-3 py-2">
-      <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
-        {label}
-      </div>
-      <div className="mt-0.5 truncate text-sm font-semibold">{value}</div>
-    </div>
-  );
-}
 function Section({
   count,
   children,

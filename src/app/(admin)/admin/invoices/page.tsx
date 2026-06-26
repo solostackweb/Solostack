@@ -8,6 +8,7 @@
 import Link from "next/link";
 import { listInvoices } from "@/features/admin/queries";
 import { AdminPageHeader } from "@/components/admin/page-header";
+import { AdminSection } from "@/components/admin/kit";
 import { formatCurrencyAmount, formatIstStamp } from "@/features/admin/format";
 import { cn } from "@/lib/utils";
 
@@ -38,7 +39,7 @@ export default async function AdminInvoicesPage({ searchParams }: Props) {
   const totalPages = Math.max(1, Math.ceil(result.total / PAGE_SIZE));
 
   return (
-    <div className="space-y-5">
+    <AdminSection>
       <AdminPageHeader
         title="Invoices"
         subtitle={`${result.total.toLocaleString("en-IN")} matches · page ${page} / ${totalPages}`}
@@ -81,7 +82,7 @@ export default async function AdminInvoicesPage({ searchParams }: Props) {
         </Link>
       </form>
 
-      <div className="overflow-hidden rounded-md border bg-card">
+      <div className="overflow-hidden rounded-xl border bg-card shadow-sm shadow-black/[0.03]">
         <table className="w-full text-sm">
           <thead className="bg-muted/40 text-left text-[11px] uppercase tracking-wider text-muted-foreground">
             <tr>
@@ -151,7 +152,7 @@ export default async function AdminInvoicesPage({ searchParams }: Props) {
       {totalPages > 1 ? (
         <Pagination page={page} totalPages={totalPages} q={q} status={status} />
       ) : null}
-    </div>
+    </AdminSection>
   );
 }
 

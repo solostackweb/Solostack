@@ -73,7 +73,7 @@ export function UserActions({ user }: UserActionsProps) {
         Actions
       </h2>
 
-      <div className="space-y-2 rounded-md border bg-card p-3">
+      <div className="space-y-2 rounded-xl border bg-card shadow-sm shadow-black/[0.03] p-3">
         {/* View as — routine */}
         <form action="/api/admin/view-as/start" method="post">
           <input type="hidden" name="userId" value={user.id} />

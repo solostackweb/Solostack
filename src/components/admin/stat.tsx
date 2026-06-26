@@ -45,7 +45,7 @@ export function Stat({
   return (
     <div
       className={cn(
-        "rounded-md border bg-card px-4 py-3 border-l-4",
+        "rounded-xl border bg-card shadow-sm shadow-black/[0.03] px-4 py-3 border-l-4",
         TONE_CLASSES[tone],
         className,
       )}

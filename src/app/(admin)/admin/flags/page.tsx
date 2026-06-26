@@ -32,7 +32,7 @@ export default async function AdminFlagsPage() {
       ) : (
         <iframe
           src={trimmed}
-          className="w-full flex-1 rounded-md border bg-card"
+          className="w-full flex-1 rounded-xl border bg-card shadow-sm shadow-black/[0.03]"
           loading="lazy"
           title="PostHog feature flags"
           referrerPolicy="strict-origin-when-cross-origin"

@@ -18,6 +18,7 @@ import { ChevronLeft } from "lucide-react";
 import { getSubscriptionDetail } from "@/features/admin/queries";
 import { recordAdminAction, requireAdmin } from "@/features/admin/server";
 import { AdminPageHeader } from "@/components/admin/page-header";
+import { AdminSection, KpiGrid, StatCard } from "@/components/admin/kit";
 import { SubscriptionActions } from "@/components/admin/subscription-actions";
 import {
   formatIstStamp,
@@ -49,7 +50,7 @@ export default async function AdminSubscriptionDetail({ params }: Props) {
   });
 
   return (
-    <div className="space-y-6">
+    <AdminSection>
       <Link
         href="/admin/subscriptions"
         className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
@@ -84,15 +85,12 @@ export default async function AdminSubscriptionDetail({ params }: Props) {
         }
       />
 
-      <section className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <Tile label="Plan" value={subscription.plan} />
-        <Tile label="Status" value={subscription.status} />
-        <Tile label="Cycle" value={subscription.billing_cycle} />
-        <Tile
-          label="Period ends"
-          value={formatIstStamp(subscription.current_period_end)}
-        />
-      </section>
+      <KpiGrid cols={4}>
+        <StatCard label="Plan" value={subscription.plan} />
+        <StatCard label="Status" value={subscription.status} />
+        <StatCard label="Cycle" value={subscription.billing_cycle} />
+        <StatCard label="Period ends" value={formatIstStamp(subscription.current_period_end)} />
+      </KpiGrid>
 
       <SubscriptionActions
         subscription={{
@@ -110,7 +108,7 @@ export default async function AdminSubscriptionDetail({ params }: Props) {
         {payments.length === 0 ? (
           <Empty>No payments on file.</Empty>
         ) : (
-          <ul className="overflow-hidden rounded-md border bg-card text-xs">
+          <ul className="overflow-hidden rounded-xl border bg-card shadow-sm shadow-black/[0.03] text-xs">
             {payments.map((p) => (
               <li
                 key={p.id}
@@ -157,7 +155,7 @@ export default async function AdminSubscriptionDetail({ params }: Props) {
         {events.length === 0 ? (
           <Empty>No billing events for this user.</Empty>
         ) : (
-          <ul className="overflow-hidden rounded-md border bg-card text-xs">
+          <ul className="overflow-hidden rounded-xl border bg-card shadow-sm shadow-black/[0.03] text-xs">
             {events.map((e) => (
               <li
                 key={e.id}
@@ -197,18 +195,7 @@ export default async function AdminSubscriptionDetail({ params }: Props) {
           </ul>
         )}
       </section>
-    </div>
-  );
-}
-
-function Tile({ label, value }: { label: string; value: React.ReactNode }) {
-  return (
-    <div className="rounded-md border bg-card px-3 py-2">
-      <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
-        {label}
-      </div>
-      <div className="mt-0.5 truncate text-sm font-semibold">{value}</div>
-    </div>
+    </AdminSection>
   );
 }
 

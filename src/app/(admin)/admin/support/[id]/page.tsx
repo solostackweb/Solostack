@@ -11,6 +11,7 @@ import { ChevronLeft, User, ExternalLink } from "lucide-react";
 
 import { requireAdmin } from "@/features/admin/server";
 import { AdminPageHeader } from "@/components/admin/page-header";
+import { AdminSection, Panel } from "@/components/admin/kit";
 import { adminGetTicketThread, listCannedResponses } from "@/features/support/ticket-server";
 import { getTicketCustomerContext } from "@/features/support/admin-tickets";
 import { AdminTicketReply } from "@/features/support/components/admin-ticket-reply";
@@ -39,7 +40,7 @@ export default async function AdminTicketPage({ params }: Props) {
   ]);
 
   return (
-    <div className="space-y-4">
+    <AdminSection className="space-y-4">
       <Link
         href="/admin/support"
         className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
@@ -62,7 +63,7 @@ export default async function AdminTicketPage({ params }: Props) {
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_280px]">
         {/* Conversation */}
         <div className="space-y-3">
-          <div className="space-y-3 rounded-lg border bg-card p-4">
+          <div className="space-y-3 rounded-xl border bg-card p-4 shadow-sm shadow-black/[0.03]">
             {messages.length === 0 ? (
               <p className="text-sm text-muted-foreground">No messages.</p>
             ) : (
@@ -100,18 +101,12 @@ export default async function AdminTicketPage({ params }: Props) {
 
         {/* Sidebar */}
         <aside className="space-y-4">
-          <div className="rounded-lg border bg-card p-3">
-            <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              Ticket
-            </h3>
+          <Panel title="Ticket" className="p-4">
             <AdminTicketControls ticket={ticket} />
-          </div>
+          </Panel>
 
-          <div className="rounded-lg border bg-card p-3 text-xs">
-            <h3 className="mb-2 font-semibold uppercase tracking-wider text-muted-foreground">
-              Customer
-            </h3>
-            <dl className="space-y-1.5">
+          <Panel title="Customer" className="p-4">
+            <dl className="space-y-1.5 text-xs">
               <div className="flex justify-between">
                 <dt className="text-muted-foreground">Plan</dt>
                 <dd className="font-medium capitalize">{context.plan}</dd>
@@ -145,9 +140,9 @@ export default async function AdminTicketPage({ params }: Props) {
             ) : (
               <p className="mt-3 text-[11px] text-muted-foreground">Guest (no account)</p>
             )}
-          </div>
+          </Panel>
         </aside>
       </div>
-    </div>
+    </AdminSection>
   );
 }

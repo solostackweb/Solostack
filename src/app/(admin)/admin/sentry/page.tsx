@@ -16,6 +16,7 @@ import {
   Activity,
 } from "lucide-react";
 import { AdminPageHeader } from "@/components/admin/page-header";
+import { KpiGrid, StatCard } from "@/components/admin/kit";
 import {
   getSentryIssues,
   getSentryStats24h,
@@ -97,32 +98,32 @@ export default async function AdminSentryPage({ searchParams }: Props) {
       />
 
       {/* Metric bar */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <MetricCard
-          icon={<Activity className="h-4 w-4 text-blue-500" />}
+      <KpiGrid cols={4}>
+        <StatCard
+          icon={Activity}
           label="Events (24h)"
           value={stats.total}
           tone={stats.total > 100 ? "alert" : stats.total > 20 ? "warn" : "ok"}
         />
-        <MetricCard
-          icon={<ShieldAlert className="h-4 w-4 text-red-500" />}
+        <StatCard
+          icon={ShieldAlert}
           label="Fatal issues"
           value={fatalCount}
           tone={fatalCount > 0 ? "alert" : "ok"}
         />
-        <MetricCard
-          icon={<Bug className="h-4 w-4 text-orange-500" />}
+        <StatCard
+          icon={Bug}
           label="Unresolved"
           value={issues.length}
           tone={issues.length > 20 ? "warn" : "ok"}
         />
-        <MetricCard
-          icon={<AlertTriangle className="h-4 w-4 text-amber-500" />}
+        <StatCard
+          icon={AlertTriangle}
           label="Total events"
           value={totalEvents}
           tone="ok"
         />
-      </div>
+      </KpiGrid>
 
       {/* Tabs */}
       <div className="flex gap-1 overflow-x-auto border-b border-border/60 pb-px">

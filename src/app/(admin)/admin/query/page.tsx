@@ -8,6 +8,7 @@
  */
 
 import { AdminPageHeader } from "@/components/admin/page-header";
+import { AdminSection } from "@/components/admin/kit";
 import { SqlRunner } from "@/components/admin/sql-runner";
 import { requireAdmin } from "@/features/admin/server";
 
@@ -17,7 +18,7 @@ export default async function AdminQueryPage() {
   await requireAdmin();
 
   return (
-    <div className="space-y-5">
+    <AdminSection>
       <AdminPageHeader
         title="SQL"
         subtitle="Read-only query against public schema · 30s timeout · audited"
@@ -29,6 +30,6 @@ export default async function AdminQueryPage() {
         <code>EXPLAIN</code> are allowed. Schema reference:{" "}
         <code>information_schema.columns</code> works too.
       </p>
-    </div>
+    </AdminSection>
   );
 }

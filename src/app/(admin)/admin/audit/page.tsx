@@ -14,6 +14,7 @@
 import Link from "next/link";
 import { getAdminSupabase } from "@/lib/supabase/admin";
 import { AdminPageHeader } from "@/components/admin/page-header";
+import { AdminSection } from "@/components/admin/kit";
 import { JsonViewer } from "@/components/admin/json-viewer";
 import {
   formatIstStamp,
@@ -55,7 +56,7 @@ export default async function AdminAuditPage({ searchParams }: Props) {
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   return (
-    <div className="space-y-5">
+    <AdminSection>
       <AdminPageHeader
         title="Audit log"
         subtitle={
@@ -79,7 +80,7 @@ export default async function AdminAuditPage({ searchParams }: Props) {
       )}
 
       <Pagination page={page} totalPages={totalPages} />
-    </div>
+    </AdminSection>
   );
 }
 
@@ -90,7 +91,7 @@ function AuditRow({ row }: { row: AdminActionRow }) {
   const hasMeta = meta && Object.keys(meta).length > 0;
 
   return (
-    <li className="rounded-md border bg-card p-3 text-xs">
+    <li className="rounded-xl border bg-card shadow-sm shadow-black/[0.03] p-3 text-xs">
       <div className="flex flex-wrap items-center gap-2">
         <span
           className={cn(
