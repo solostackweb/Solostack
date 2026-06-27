@@ -16,7 +16,7 @@ import { ExternalLink, TrendingUp, TrendingDown, Minus } from "lucide-react";
 
 import { listEmails, listSuppressions } from "@/features/admin/queries";
 import { AdminPageHeader } from "@/components/admin/page-header";
-import { AdminSection } from "@/components/admin/kit";
+import { AdminSection, StatCard } from "@/components/admin/kit";
 import {
   formatIstStamp,
   formatRelative,
@@ -490,31 +490,13 @@ function BrevoCard({
   value: string | number;
   tone?: CardTone;
 }) {
-  const toneClass =
-    tone === "good"
-      ? "text-emerald-600 dark:text-emerald-400"
-      : tone === "warn"
-        ? "text-amber-600 dark:text-amber-400"
-        : tone === "bad"
-          ? "text-red-600 dark:text-red-400"
-          : "text-foreground";
-
-  const ToneIcon =
-    tone === "good"
-      ? TrendingUp
-      : tone === "bad"
-        ? TrendingDown
-        : Minus;
-
+  const kitTone =
+    tone === "good" ? "ok" : tone === "bad" ? "alert" : tone === "warn" ? "warn" : "neutral";
   return (
-    <div className="rounded-lg border bg-card p-3">
-      <p className="mb-1 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
-        {label}
-      </p>
-      <div className={cn("flex items-center gap-1 text-lg font-semibold tabular-nums", toneClass)}>
-        <ToneIcon className="h-3.5 w-3.5 shrink-0" aria-hidden />
-        {typeof value === "number" ? value.toLocaleString() : value}
-      </div>
-    </div>
+    <StatCard
+      label={label}
+      value={typeof value === "number" ? value.toLocaleString() : value}
+      tone={kitTone}
+    />
   );
 }

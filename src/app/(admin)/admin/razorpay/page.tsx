@@ -16,7 +16,7 @@ import { ExternalLink } from "lucide-react";
 
 import { requireAdmin } from "@/features/admin/server";
 import { AdminPageHeader } from "@/components/admin/page-header";
-import { AdminSection } from "@/components/admin/kit";
+import { AdminSection, StatCard } from "@/components/admin/kit";
 import { cn } from "@/lib/utils";
 import {
   isRazorpayConfigured,
@@ -276,24 +276,14 @@ function KpiCard({
   value: string | number;
   tone?: CardTone;
 }) {
-  const valueClass =
-    tone === "good"
-      ? "text-emerald-600 dark:text-emerald-400"
-      : tone === "warn"
-        ? "text-amber-600 dark:text-amber-400"
-        : tone === "bad"
-          ? "text-red-600 dark:text-red-400"
-          : "text-foreground";
-
+  const kitTone =
+    tone === "good" ? "ok" : tone === "bad" ? "alert" : tone === "warn" ? "warn" : "neutral";
   return (
-    <div className="rounded-lg border bg-card p-3">
-      <p className="mb-1 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
-        {label}
-      </p>
-      <p className={cn("text-lg font-semibold tabular-nums", valueClass)}>
-        {typeof value === "number" ? value.toLocaleString("en-IN") : value}
-      </p>
-    </div>
+    <StatCard
+      label={label}
+      value={typeof value === "number" ? value.toLocaleString("en-IN") : value}
+      tone={kitTone}
+    />
   );
 }
 
