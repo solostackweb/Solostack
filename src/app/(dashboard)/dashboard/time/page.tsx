@@ -9,6 +9,10 @@ import {
 import { getTimeAnalytics } from "@/features/time/analytics";
 import { listProjects } from "@/features/projects/server";
 import { listClients } from "@/features/clients/server";
+import { canUseFeature, getCurrentSubscription } from "@/features/subscription/server";
+import { UpgradeCard } from "@/components/shared/upgrade-card";
+import { PageHeader } from "@/components/shared/page-header";
+import { Clock } from "lucide-react";
 
 export const metadata = { title: "Time" };
 export const dynamic = "force-dynamic";
@@ -22,6 +26,30 @@ export default async function TimePage({
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
+  // Time tracking is a Pro feature. Free users see an upgrade prompt instead.
+  if (!(await canUseFeature("time.tracking"))) {
+    const sub = await getCurrentSubscription();
+    return (
+      <div className="space-y-6">
+        <PageHeader
+          title="Time tracking"
+          description="Track billable hours and turn them into invoices."
+        />
+        <UpgradeCard
+          icon={Clock}
+          title="Time tracking is a Pro feature"
+          description={`Your ${sub?.plan ?? "free"} plan doesn't include time tracking. Upgrade to Pro to log hours, set billable rates, and bill unbilled time in one click.`}
+          features={[
+            "Start/stop timers and manual entries",
+            "Billable rates per project",
+            "Turn unbilled time into an invoice in one click",
+            "Timesheet analytics and PDF export",
+          ]}
+        />
+      </div>
+    );
+  }
+
   const sp = await searchParams;
   const str = (k: string): string => (typeof sp[k] === "string" ? (sp[k] as string) : "");
 

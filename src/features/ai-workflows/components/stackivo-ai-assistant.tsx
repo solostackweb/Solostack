@@ -61,6 +61,8 @@ import {
   welcomeDocWhatsappFromAiAction,
   answerFromDocsAction,
   answerBusinessQuestionAction,
+  consumeAiMessageQuotaAction,
+  getAiUsageAction,
   getAssistantSuggestionsAction,
   remindOverdueInvoicesFromAiAction,
   invoiceUnbilledTimeFromAiAction,
@@ -127,6 +129,13 @@ import {
 // Types
 // ---------------------------------------------------------------------------
 
+/**
+ * Feature flag: the AI docs/support answering surface is temporarily disabled
+ * pre-launch (it needs more validation). Set to `true` to restore the support
+ * quick-action and docs Q&A behaviour.
+ */
+const SUPPORT_ENABLED = false;
+
 export function StackivoAiAssistant({ clients, projects }: StackivoAiAssistantProps) {
   const router = useRouter();
   const [mounted, setMounted] = React.useState(false);
@@ -137,6 +146,7 @@ export function StackivoAiAssistant({ clients, projects }: StackivoAiAssistantPr
   const [mode, setMode] = React.useState<AiMode>("general");
   const [input, setInput] = React.useState("");
   const [suggestions, setSuggestions] = React.useState<AssistantSuggestion[]>([]);
+  const [aiUsage, setAiUsage] = React.useState<{ used: number; limit: number; plan: string } | null>(null);
   const suggestionsLoaded = React.useRef(false);
   const submitRef = React.useRef<((text?: string) => void) | null>(null);
 
@@ -233,6 +243,18 @@ export function StackivoAiAssistant({ clients, projects }: StackivoAiAssistantPr
   }, []);
 
   React.useEffect(() => { setMounted(true); }, []);
+
+  // Refresh the AI usage indicator each time the panel opens.
+  React.useEffect(() => {
+    if (!open) return;
+    let active = true;
+    getAiUsageAction().then((u) => {
+      if (active) setAiUsage(u);
+    });
+    return () => {
+      active = false;
+    };
+  }, [open]);
 
   React.useEffect(() => {
     if (!mounted) return;
@@ -500,9 +522,20 @@ export function StackivoAiAssistant({ clients, projects }: StackivoAiAssistantPr
   );
 
   // ----- Conversational support / docs answering -----
-
+  //
+  // TEMPORARILY DISABLED (pre-launch): the docs/support answering surface is
+  // hidden until it's fully validated. Flip SUPPORT_ENABLED back to true to
+  // restore the support quick-action and docs Q&A behaviour.
   const runSupport = React.useCallback(
     async (text: string, fileTicket: boolean) => {
+      if (!SUPPORT_ENABLED) {
+        push({
+          role: "assistant",
+          content:
+            "For product help or questions, email support@stackivo.me or use the chat bubble in the bottom-right — the team will get back to you. Meanwhile, I can help you create invoices, contracts, welcome docs, clients, projects, and time logs.",
+        });
+        return;
+      }
       // Greetings and meta questions ("hi", "can I ask you a question") get a
       // natural reply instead of an empty docs lookup.
       const chat = conversationalReply(text);
@@ -1303,6 +1336,25 @@ export function StackivoAiAssistant({ clients, projects }: StackivoAiAssistantPr
     }
 
     startTransition(async () => {
+      // 0. Monthly AI-message quota (per plan). Counts once per answered
+      //    message; over the cap we stop before any model call and nudge upgrade.
+      const quota = await consumeAiMessageQuotaAction();
+      if (!quota.ok) {
+        const nextTier =
+          quota.plan === "free"
+            ? "Upgrade to Pro for 100 messages a month."
+            : quota.plan === "pro"
+              ? "Upgrade to Business for 500 messages a month."
+              : "Email support@stackivo.me if you need a higher limit.";
+        setAiUsage((u) => (u && u.limit >= 0 ? { ...u, used: u.limit } : u));
+        push({
+          role: "assistant",
+          content: `You've used all ${quota.limit} AI messages included in your ${quota.plan} plan this month. ${nextTier} Your quota resets at the start of next month.`,
+        });
+        return;
+      }
+      setAiUsage((u) => (u && u.limit >= 0 ? { ...u, used: u.used + 1 } : u));
+
       // 1. Interpret the message (intent + structured fields + resolved ids).
       const interpreted = await interpretAiMessageAction({
         message: text,
@@ -1868,7 +1920,7 @@ export function StackivoAiAssistant({ clients, projects }: StackivoAiAssistantPr
                   ))}
                 </div>
 
-                {QUICK_ACTIONS.filter((a) => a.mode === "support").map((action) => (
+                {SUPPORT_ENABLED && QUICK_ACTIONS.filter((a) => a.mode === "support").map((action) => (
                   <button
                     key={action.mode}
                     type="button"
@@ -2025,6 +2077,19 @@ export function StackivoAiAssistant({ clients, projects }: StackivoAiAssistantPr
               </Button>
             </div>
             <div className="mt-2 space-y-1 px-1">
+              {aiUsage && aiUsage.limit >= 0 ? (
+                <p
+                  className={cn(
+                    "text-[11px] font-medium tabular-nums",
+                    aiUsage.used >= aiUsage.limit
+                      ? "text-amber-600 dark:text-amber-400"
+                      : "text-muted-foreground",
+                  )}
+                >
+                  {Math.min(aiUsage.used, aiUsage.limit)}/{aiUsage.limit} AI messages this month
+                  <span className="text-muted-foreground/60"> · {aiUsage.plan} plan</span>
+                </p>
+              ) : null}
               <p className="flex flex-wrap items-center gap-1.5 text-[11px] text-muted-foreground">
                 <Lightbulb className="h-3 w-3 shrink-0 text-primary/60" />
                 Tip: use the

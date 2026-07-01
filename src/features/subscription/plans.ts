@@ -81,6 +81,7 @@ export const PLANS: Record<PlanId, PlanDefinition> = {
       projects_created: Infinity,
       contracts_sent: 0,
       storage_bytes: 100 * 1024 * 1024, // 100 MB
+      ai_messages: 20, // AI assistant replies / month
     },
     modules: FREE_MODULES,
   },
@@ -102,6 +103,7 @@ export const PLANS: Record<PlanId, PlanDefinition> = {
       "projects.files": true,
       "contracts.e_signature": true,
       "contracts.templates_library": true,
+      "time.tracking": true,
       "time.billable_rates": true,
       "time.reports_export": true,
       "pulse.advanced_reports": true,
@@ -114,6 +116,7 @@ export const PLANS: Record<PlanId, PlanDefinition> = {
       projects_created: Infinity,
       contracts_sent: Infinity,
       storage_bytes: 5 * 1024 * 1024 * 1024, // 5 GB
+      ai_messages: 100, // AI assistant replies / month
     },
     modules: ALL_MODULES,
   },
@@ -138,6 +141,7 @@ export const PLANS: Record<PlanId, PlanDefinition> = {
       "projects.collaborators": true,
       "contracts.e_signature": true,
       "contracts.templates_library": true,
+      "time.tracking": true,
       "time.billable_rates": true,
       "time.reports_export": true,
       "pulse.advanced_reports": true,
@@ -152,6 +156,7 @@ export const PLANS: Record<PlanId, PlanDefinition> = {
       projects_created: Infinity,
       contracts_sent: Infinity,
       storage_bytes: 50 * 1024 * 1024 * 1024, // 50 GB
+      ai_messages: 500, // AI assistant replies / month
     },
     modules: ALL_MODULES,
   },
@@ -188,3 +193,15 @@ export function minimumPlanForLimit(
   }
   return null;
 }
+
+
+/**
+ * Per-plan output-token ceiling for a single AI assistant reply. Bounds the
+ * worst-case cost/length of any one answer; conversational replies are short,
+ * so this only caps outliers. Higher tiers get roomier answers.
+ */
+export const AI_REPLY_MAX_TOKENS: Record<PlanId, number> = {
+  free: 700,
+  pro: 1500,
+  business: 2500,
+};

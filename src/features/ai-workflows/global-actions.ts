@@ -38,6 +38,10 @@ import { getInvoiceShareUrl } from "@/features/documents/urls";
 import { getUnbilledTime } from "@/features/time/server";
 import { BUILTIN_WELCOME_TEMPLATES } from "@/features/welcome-documents/templates";
 import { sendWelcomeDocumentAction } from "@/features/welcome-documents/delivery";
+import { getUsageSnapshot, getCurrentSubscription } from "@/features/subscription/server";
+import { incrementUsage } from "@/features/subscription/usage";
+import { effectivePlan } from "@/features/subscription/features";
+import { AI_REPLY_MAX_TOKENS } from "@/features/subscription/plans";
 import {
   ensureWelcomePublicToken,
 } from "@/features/welcome-documents/server";
@@ -110,6 +114,57 @@ async function checkAiRateLimit(userId: string): Promise<boolean> {
   if (bucket.count >= AI_RATE_LIMIT) return false;
   bucket.count += 1;
   return true;
+}
+
+/** Per-plan output-token ceiling for one AI reply (resolves the caller's plan). */
+async function aiReplyMaxTokens(): Promise<number> {
+  const sub = await getCurrentSubscription();
+  return AI_REPLY_MAX_TOKENS[effectivePlan(sub)];
+}
+
+/**
+ * Monthly AI-message quota, per plan: Free 20 / Pro 100 / Business 500.
+ * Call this ONCE per user message the assistant is about to answer. It reads
+ * the current month's usage, blocks when the cap is hit, and otherwise
+ * increments the counter. Fails OPEN on any metering error so an infra hiccup
+ * never blocks a paying user.
+ */
+export async function consumeAiMessageQuotaAction(): Promise<
+  | { ok: true }
+  | { ok: false; reason: "quota"; limit: number; plan: string }
+> {
+  await requireUserId();
+  const snap = await getUsageSnapshot("ai_messages");
+  if (!snap) return { ok: true as const };
+  if (snap.limit !== Infinity && snap.used >= snap.limit) {
+    const sub = await getCurrentSubscription();
+    return {
+      ok: false as const,
+      reason: "quota",
+      limit: snap.limit,
+      plan: effectivePlan(sub),
+    };
+  }
+  await incrementUsage("ai_messages");
+  return { ok: true as const };
+}
+
+/**
+ * Read-only snapshot of the caller's AI-message usage this month, for the
+ * in-assistant usage indicator. `limit` is -1 when unlimited (JSON-safe).
+ */
+export async function getAiUsageAction(): Promise<
+  { used: number; limit: number; plan: string } | null
+> {
+  await requireUserId();
+  const snap = await getUsageSnapshot("ai_messages");
+  if (!snap) return null;
+  const sub = await getCurrentSubscription();
+  return {
+    used: snap.used,
+    limit: snap.limit === Infinity ? -1 : snap.limit,
+    plan: effectivePlan(sub),
+  };
 }
 
 async function requireUserId() {
@@ -2123,6 +2178,7 @@ export async function answerFromDocsAction(input: z.infer<typeof aiDocsQuestionS
 
   const ai = await generateStructuredJson({
     temperature: 0.4,
+    maxTokens: await aiReplyMaxTokens(),
     messages: [
       {
         role: "system",
@@ -2473,6 +2529,7 @@ export async function answerBusinessQuestionAction(
 
   const ai = await generateStructuredJson({
     temperature: 0.2,
+    maxTokens: await aiReplyMaxTokens(),
     messages: [
       {
         role: "system",

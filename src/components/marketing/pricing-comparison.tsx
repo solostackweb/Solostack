@@ -18,7 +18,7 @@ const ROWS: Array<{ heading: string; rows: Row[] }> = [
       { feature: "Invoices", free: "Unlimited", pro: "Unlimited", business: "Unlimited" },
       { feature: "Projects", free: "Unlimited", pro: "Unlimited", business: "Unlimited" },
       { feature: "Contracts & proposals", free: "Unlimited", pro: "Unlimited", business: "Unlimited" },
-      { feature: "Time tracking", free: true, pro: true, business: true },
+      { feature: "Time tracking", free: false, pro: true, business: true },
       { feature: "Pulse analytics", free: true, pro: true, business: true },
     ],
   },

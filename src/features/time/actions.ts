@@ -24,6 +24,7 @@ import {
 } from "./server-schemas";
 import { computeAmount, getRunningTimer } from "./server";
 import { recordActivity } from "@/features/activity/server";
+import { canUseFeature } from "@/features/subscription/server";
 
 export type ActionResult<T = undefined> =
   | { ok: true; data?: T; message?: string }
@@ -34,6 +35,14 @@ async function requireUserId(): Promise<string> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect(AUTH_LOGIN_ROUTE);
   return user.id;
+}
+
+/** Pro-feature gate for time tracking. Returns an error result to short-circuit. */
+async function timeGateError(): Promise<{ ok: false; error: string } | null> {
+  const allowed = await canUseFeature("time.tracking");
+  return allowed
+    ? null
+    : { ok: false as const, error: "Time tracking is a Pro feature — upgrade to Pro to log time." };
 }
 
 // --- Manual entry -----------------------------------------------------------
@@ -60,6 +69,8 @@ export async function manualTimeEntryAction(
     };
   }
   const userId = await requireUserId();
+  const __gate = await timeGateError();
+  if (__gate) return __gate;
   const supabase = await getServerSupabase();
   const amount = parsed.data.billable
     ? computeAmount(parsed.data.durationSeconds, parsed.data.hourlyRate)
@@ -118,6 +129,8 @@ export async function updateTimeEntryAction(
     };
   }
   const userId = await requireUserId();
+  const __gate = await timeGateError();
+  if (__gate) return __gate;
   const supabase = await getServerSupabase();
 
   const { data: existing } = await supabase
@@ -168,6 +181,8 @@ export async function bulkUpdateTimeEntriesAction(
   const parsed = bulkTimeActionSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: "Invalid bulk request." };
   const userId = await requireUserId();
+  const __gate = await timeGateError();
+  if (__gate) return __gate;
   const supabase = await getServerSupabase();
   const { ids, action } = parsed.data;
   const now = new Date().toISOString();
@@ -245,6 +260,8 @@ export async function startTimerAction(
   }
 
   const userId = await requireUserId();
+  const __gate = await timeGateError();
+  if (__gate) return __gate;
   const supabase = await getServerSupabase();
   const insertRow = {
     user_id: userId,
@@ -275,6 +292,8 @@ export async function stopTimerAction(): Promise<ActionResult<{ id: string }>> {
   const running = await getRunningTimer();
   if (!running) return { ok: false, error: "No timer is running." };
   await requireUserId();
+  const __gate = await timeGateError();
+  if (__gate) return __gate;
   const supabase = await getServerSupabase();
   const endedAt = new Date();
   const seconds = Math.max(
@@ -311,6 +330,8 @@ export async function deleteTimeEntryAction(
   const idParse = timeEntryIdSchema.safeParse(formData.get("id"));
   if (!idParse.success) return { ok: false, error: "Invalid entry id." };
   await requireUserId();
+  const __gate = await timeGateError();
+  if (__gate) return __gate;
   const supabase = await getServerSupabase();
   // Invoiced entries are part of an issued document — refuse to delete.
   const { data: existing } = await supabase

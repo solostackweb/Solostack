@@ -36,7 +36,7 @@ const TIERS: Tier[] = [
     features: [
       "Up to 5 lifetime clients",
       "Unlimited GST-ready invoices",
-      "Contracts, projects, time tracking, and basic Pulse",
+      "Contracts, projects, and basic Pulse",
       "GST-ready invoicing engine",
       "PDF download & invoice sharing",
       "Basic dashboard & notifications",
@@ -56,7 +56,7 @@ const TIERS: Tier[] = [
       "Unlimited clients & projects",
       "Custom invoice branding (remove watermark)",
       "Advanced contracts and templates",
-      "Advanced time reports and exports",
+      "Time tracking, billable rates & reports",
       "Client portal",
       "Razorpay / UPI payment gateway",
       "Pulse analytics (12-month history)",

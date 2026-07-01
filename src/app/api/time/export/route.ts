@@ -9,6 +9,7 @@ import {
 import { getTimeAnalytics } from "@/features/time/analytics";
 import { renderPdfToBuffer } from "@/features/documents/pdf/render";
 import { TimesheetPdf } from "@/features/documents/pdf/timesheet-pdf";
+import { canUseFeature } from "@/features/subscription/server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -31,6 +32,13 @@ export async function GET(req: Request) {
   const supabase = await getServerSupabase();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  // Time tracking (incl. exports) is a Pro feature.
+  if (!(await canUseFeature("time.tracking"))) {
+    return NextResponse.json(
+      { error: "Time tracking is a Pro feature." },
+      { status: 403 },
+    );
+  }
 
   const url = new URL(req.url);
   const format = url.searchParams.get("format") === "pdf" ? "pdf" : "csv";

@@ -27,6 +27,7 @@ const PERKS_PER_PLAN: Record<PlanId, string[]> = {
     "Custom invoice branding",
     "Client portal",
     "Contract e-signatures",
+    "Time tracking & billable rates",
     "Advanced Pulse reports",
     "5 GB file storage",
   ],

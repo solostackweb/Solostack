@@ -48,6 +48,7 @@ export type FeatureKey =
   | "contracts.e_signature"
   | "contracts.templates_library"
   // Time tracking
+  | "time.tracking"
   | "time.billable_rates"
   | "time.reports_export"
   // Pulse finance
@@ -92,7 +93,8 @@ export type UsageMetric =
   | "clients_created"
   | "projects_created"
   | "contracts_sent"
-  | "storage_bytes";
+  | "storage_bytes"
+  | "ai_messages";
 
 /**
  * `Infinity` represents "unlimited" in the limit tables. JSON-safe because
