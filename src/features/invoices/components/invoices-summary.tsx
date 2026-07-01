@@ -37,8 +37,18 @@ export function computeInvoiceStats(invoices: InvoiceRecord[]): SummaryStats {
   let paidAllTimeCount = 0;
   let emailedCount = 0;
 
+  // Consolidate every invoice to INR so a foreign-currency invoice (e.g. a
+  // $140 export invoice) is never counted as ₹140. Prefer the locked
+  // inr_equivalent; otherwise convert via the stored FX rate; otherwise assume
+  // the amount is already INR.
+  const toInr = (inv: InvoiceRecord): number => {
+    if (inv.inrEquivalent != null) return Number(inv.inrEquivalent) || 0;
+    const rate = Number(inv.fxRateToInr) || 1;
+    return (Number(inv.totalAmount) || 0) * rate;
+  };
+
   for (const inv of invoices) {
-    const total = Number(inv.totalAmount) || 0;
+    const total = toInr(inv);
     if (inv.status === "paid") {
       paidAllTimeAmount += total;
       paidAllTimeCount += 1;
