@@ -70,6 +70,21 @@ const nextConfig: NextConfig = {
   outputFileTracingRoot: process.cwd(),
 
   /**
+   * Ship the marketing knowledge pages (docs / privacy / terms) into the
+   * serverless function bundle. The in-app AI assistant reads their prose at
+   * runtime to answer product/support questions; Next.js does NOT include raw
+   * `src/**` source files in functions by default, which left docs answers
+   * blank in production even though the model was working.
+   */
+  outputFileTracingIncludes: {
+    "/**": [
+      "./src/app/(marketing)/docs/page.tsx",
+      "./src/app/(marketing)/privacy/page.tsx",
+      "./src/app/(marketing)/terms/page.tsx",
+    ],
+  },
+
+  /**
    * Keep heavy server-only packages out of the client bundle entirely.
    * Next.js would otherwise attempt to bundle these into the edge runtime
    * or client chunks, massively bloating the JS payload.

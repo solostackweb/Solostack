@@ -47,6 +47,15 @@ const GROQ_TIMEOUT_MS = 12_000;
 /** One retry on transient failures (timeout / 5xx / 429), with brief backoff. */
 const GROQ_MAX_ATTEMPTS = 2;
 
+/**
+ * Known-stable Groq production model. Groq regularly decommissions preview
+ * models (e.g. qwen/qwen3-32b was retired 2026-06-17), after which the API
+ * rejects requests for them with a 400/404. When the *configured* model is
+ * rejected we transparently retry with this fallback so a single upstream
+ * decommission can never silently break the in-app assistant.
+ */
+const GROQ_FALLBACK_MODEL = "llama-3.3-70b-versatile";
+
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 export async function generateStructuredJson({
@@ -61,73 +70,106 @@ export async function generateStructuredJson({
   const serverEnv = requireServerEnv();
   if (!serverEnv.groqApiKey) return null;
 
-  // Reasoning models (qwen3, deepseek-r1, qwq, …) interleave a chain-of-thought
-  // that corrupts naive JSON parsing. Tell Groq to keep that reasoning out of
-  // the returned content; `parseJsonLoose` is a second line of defence in case
-  // the flag isn't honoured. `max_tokens` must be generous because reasoning
-  // tokens count toward the completion budget on these models.
-  const isReasoningModel = /qwen3|qwq|deepseek-r1|-r1\b|reason/i.test(
-    serverEnv.groqModel,
-  );
-
-  const body = JSON.stringify({
-    model: serverEnv.groqModel,
-    messages,
-    temperature,
-    max_tokens: maxTokens,
-    response_format: { type: "json_object" },
-    ...(isReasoningModel ? { reasoning_format: "hidden" } : {}),
-  });
+  // Try the configured model first, then the stable fallback if the configured
+  // one is rejected as unknown/decommissioned.
+  const models =
+    serverEnv.groqModel === GROQ_FALLBACK_MODEL
+      ? [serverEnv.groqModel]
+      : [serverEnv.groqModel, GROQ_FALLBACK_MODEL];
 
   let lastError: unknown = null;
-  for (let attempt = 1; attempt <= GROQ_MAX_ATTEMPTS; attempt++) {
-    // Abort the request if it exceeds the timeout — frees the function and lets
-    // callers fall back to their local/deterministic path quickly.
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), GROQ_TIMEOUT_MS);
-    try {
-      const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${serverEnv.groqApiKey}`,
-          "Content-Type": "application/json",
-        },
-        body,
-        signal: controller.signal,
-      });
 
-      // Retry transient upstream errors (rate limit / server) once; fail fast
-      // on client errors (bad request, auth) since a retry won't help.
-      if (res.status === 429 || res.status >= 500) {
-        lastError = new Error(`Groq request failed with status ${res.status}`);
-        if (attempt < GROQ_MAX_ATTEMPTS) {
+  for (const model of models) {
+    // Reasoning models (qwen3, deepseek-r1, qwq, …) interleave a chain-of-thought
+    // that corrupts naive JSON parsing. Tell Groq to keep that reasoning out of
+    // the returned content; `parseJsonLoose` is a second line of defence in case
+    // the flag isn't honoured. `max_tokens` must be generous because reasoning
+    // tokens count toward the completion budget on these models.
+    const isReasoningModel = /qwen3|qwq|deepseek-r1|-r1\b|reason/i.test(model);
+
+    const body = JSON.stringify({
+      model,
+      messages,
+      temperature,
+      max_tokens: maxTokens,
+      response_format: { type: "json_object" },
+      ...(isReasoningModel ? { reasoning_format: "hidden" } : {}),
+    });
+
+    let modelRejected = false;
+
+    for (let attempt = 1; attempt <= GROQ_MAX_ATTEMPTS; attempt++) {
+      // Abort the request if it exceeds the timeout — frees the function and lets
+      // callers fall back to their local/deterministic path quickly.
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), GROQ_TIMEOUT_MS);
+      try {
+        const res = await fetch(
+          "https://api.groq.com/openai/v1/chat/completions",
+          {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${serverEnv.groqApiKey}`,
+              "Content-Type": "application/json",
+            },
+            body,
+            signal: controller.signal,
+          },
+        );
+
+        // Retry transient upstream errors (rate limit / server) once.
+        if (res.status === 429 || res.status >= 500) {
+          lastError = new Error(`Groq request failed with status ${res.status}`);
+          if (attempt < GROQ_MAX_ATTEMPTS) {
+            await sleep(300 * attempt);
+            continue;
+          }
+          break; // give up on this model
+        }
+
+        // A 400/404 almost always means the model name is unknown or has been
+        // decommissioned. Don't retry the same model — fall through to the next
+        // candidate (the stable fallback).
+        if (res.status === 400 || res.status === 404) {
+          lastError = new Error(
+            `Groq rejected model "${model}" with status ${res.status}`,
+          );
+          modelRejected = true;
+          break;
+        }
+
+        if (!res.ok) {
+          lastError = new Error(`Groq request failed with status ${res.status}`);
+          break;
+        }
+
+        const json = (await res.json()) as GroqChatResponse;
+        const content = json.choices?.[0]?.message?.content;
+        if (!content) return null;
+        return parseJsonLoose(content);
+      } catch (err) {
+        lastError = err;
+        // Retry once on abort/network errors; otherwise stop this model.
+        const retriable =
+          err instanceof Error &&
+          (err.name === "AbortError" || err.name === "TypeError");
+        if (retriable && attempt < GROQ_MAX_ATTEMPTS) {
           await sleep(300 * attempt);
           continue;
         }
-        throw lastError;
+        break;
+      } finally {
+        clearTimeout(timer);
       }
-      if (!res.ok) {
-        throw new Error(`Groq request failed with status ${res.status}`);
-      }
-
-      const json = (await res.json()) as GroqChatResponse;
-      const content = json.choices?.[0]?.message?.content;
-      if (!content) return null;
-      return parseJsonLoose(content);
-    } catch (err) {
-      lastError = err;
-      // Retry once on abort/network errors; otherwise stop.
-      const retriable =
-        err instanceof Error &&
-        (err.name === "AbortError" || err.name === "TypeError");
-      if (retriable && attempt < GROQ_MAX_ATTEMPTS) {
-        await sleep(300 * attempt);
-        continue;
-      }
-      throw lastError;
-    } finally {
-      clearTimeout(timer);
     }
+
+    // Only advance to the fallback model when the current one was outright
+    // rejected. For transient/network failures we don't, since the fallback
+    // would likely hit the same condition.
+    if (!modelRejected) break;
   }
+
+  // Every candidate failed. Return null so callers fall back gracefully instead
+  // of surfacing an exception.
   return null;
 }

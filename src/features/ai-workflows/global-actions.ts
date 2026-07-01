@@ -2053,22 +2053,54 @@ async function readDocsPageText(relPath: string, limit: number): Promise<string>
 // avoids re-reading three files and (more importantly) keeps the input token
 // cost predictable. Limits are sized to fit the full docs prose without the
 // previous ~90k-char overshoot.
+/**
+ * Accurate, self-contained knowledge fallback. Used when the raw marketing
+ * source pages can't be read at runtime (e.g. a serverless bundle that didn't
+ * ship them). Keep this factual and in sync with /terms and /docs — the model
+ * treats it as an authoritative source, so never state a plan price or feature
+ * here that isn't confirmed on those pages.
+ */
+const EMBEDDED_DOCS_FALLBACK = [
+  "--- STACKIVO CORE KNOWLEDGE ---",
+  "Stackivo is an all-in-one business OS for Indian freelancers and small agencies: invoicing (GST-ready), contracts with e-signatures, client portals, welcome documents, time tracking, and a Pulse analytics dashboard.",
+  "",
+  "REFUND POLICY: You can request a full refund within 30 days of any payment. After 30 days payments are non-refundable, except where required by law. Refunds are processed to the original payment method via Razorpay. If we make a material price change, you can cancel before it applies and request a prorated refund. Repeated refund abuse may lead to account restriction.",
+  "",
+  "SUBSCRIPTIONS & CANCELLATION: Paid plans renew automatically at the end of each billing period unless you cancel first. Cancellation takes effect at the end of the current paid period (you keep access until then). Manage or cancel anytime in Settings → Billing.",
+  "",
+  "PAYMENTS: Clients can pay invoices online via Razorpay (cards, UPI, netbanking). Stackivo is a software platform and does not hold or process your clients' money on your behalf — funds settle through your own connected payment provider.",
+  "",
+  "GST & TAX: Stackivo gives you GST-ready invoicing tools, but you remain responsible for your own tax registration, rates, collection, and filing. For exports, invoices can be issued under LUT without IGST where applicable.",
+  "",
+  "DATA & PRIVACY: Your data belongs to you. You can export or delete your account from Settings; deletion runs after a short grace period, then data is permanently purged. See the Privacy Policy for details.",
+  "",
+  "SUPPORT: Email support@stackivo.me or use the in-app chat bubble (bottom-right). For anything about specific plan prices or features, point the user to the Pricing and Docs pages in the app.",
+].join("\n");
+
 let cachedDocsContext: string | null = null;
 async function getDocsContext(): Promise<string> {
-  if (cachedDocsContext !== null) return cachedDocsContext;
+  // Only treat a non-empty context as cached, so a transient read miss can
+  // recover on a later request instead of being frozen empty forever.
+  if (cachedDocsContext) return cachedDocsContext;
   const [docsText, privacyText, termsText] = await Promise.all([
     readDocsPageText("(marketing)/docs/page.tsx", 28000),
     readDocsPageText("(marketing)/privacy/page.tsx", 8000),
     readDocsPageText("(marketing)/terms/page.tsx", 8000),
   ]);
-  cachedDocsContext = [
+  const combined = [
     docsText ? `--- DOCS ---\n${docsText}` : "",
     privacyText ? `--- PRIVACY POLICY ---\n${privacyText}` : "",
     termsText ? `--- TERMS & CONDITIONS ---\n${termsText}` : "",
   ]
     .filter(Boolean)
     .join("\n\n");
-  return cachedDocsContext;
+  // If we couldn't read the real pages (common on serverless where src/** isn't
+  // shipped), fall back to embedded knowledge so the assistant is never blank.
+  if (combined.trim().length > 200) {
+    cachedDocsContext = combined;
+    return cachedDocsContext;
+  }
+  return EMBEDDED_DOCS_FALLBACK;
 }
 
 export async function answerFromDocsAction(input: z.infer<typeof aiDocsQuestionSchema>) {
