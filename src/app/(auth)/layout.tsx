@@ -46,7 +46,17 @@ export default async function AuthLayout({
           />
         </div>
 
-        <div className="mx-auto grid w-full max-w-[1100px] items-center gap-12 lg:grid-cols-[1.05fr_420px] lg:gap-20">
+        {/*
+          `items-start` (not `items-center`) is deliberate: the value panel
+          and the form card have independent, unrelated heights (the signup
+          card in particular grows tall — OAuth consent line, three inputs,
+          a DPDP disclosure box, a terms checkbox, and a captcha widget).
+          Vertically centering two columns of different heights pushes the
+          shorter one down by half the height difference, which reads as a
+          big dead gap above it. Top-aligning keeps both columns starting
+          at the same y — the standard pattern for split auth screens.
+        */}
+        <div className="mx-auto grid w-full max-w-[1100px] items-start gap-12 lg:grid-cols-[1.05fr_420px] lg:gap-20">
           {/* Left: value panel — desktop only */}
           <div className="hidden lg:block">
             <p className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-3.5 py-1.5 text-[11px] font-semibold uppercase tracking-widest text-primary">
@@ -97,7 +107,7 @@ export default async function AuthLayout({
 
           {/* Right: form card */}
           <div className="mx-auto w-full max-w-[420px] lg:mx-0">
-            <div className="rounded-3xl border border-border/80 bg-card p-7 shadow-xl shadow-primary/[0.06] sm:p-8">
+            <div className="rounded-3xl border border-border/80 bg-card p-6 shadow-xl shadow-primary/[0.06] sm:p-7">
               {children}
             </div>
             <p className="mt-4 text-center text-xs text-muted-foreground/80 lg:hidden">

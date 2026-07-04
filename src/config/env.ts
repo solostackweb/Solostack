@@ -189,7 +189,7 @@ export function requireServerEnv() {
     // model burns hidden chain-of-thought tokens here for no quality gain).
     // Override via GROQ_MODEL if you want a different Groq-hosted model.
     groqModel:
-      optional(process.env.GROQ_MODEL) ?? "llama-3.3-70b-versatile",
+      optional(process.env.GROQ_MODEL) ?? "openai/gpt-oss-120b",
     // -- Cloudflare R2 (Client Portal file storage) -----------------------
     // S3-compatible bucket for client-portal file uploads. We use R2
     // because it has zero egress fees, which lets us host customer

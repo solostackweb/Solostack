@@ -117,6 +117,7 @@ export function ExitIntentModal() {
 
   return (
     <div
+      data-exit-intent
       role="dialog"
       aria-modal="true"
       aria-labelledby="exit-intent-title"

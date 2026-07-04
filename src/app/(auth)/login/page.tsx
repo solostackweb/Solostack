@@ -1,9 +1,8 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ArrowRight, Globe } from "lucide-react";
 import {
   AuthFormFooterLink,
   AuthFormShell,
+  AuthModeSwitch,
 } from "@/features/auth/components/auth-form-shell";
 import { LoginForm } from "@/features/auth/components/login-form";
 import { getCurrentUser } from "@/features/auth/server";
@@ -36,6 +35,7 @@ export default async function LoginPage({ searchParams }: PageProps) {
 
   return (
     <>
+      <AuthModeSwitch active="login" />
       <AuthFormShell
         title="Welcome back"
         description="Log in to your Stackivo workspace."
@@ -49,26 +49,6 @@ export default async function LoginPage({ searchParams }: PageProps) {
       >
         <LoginForm next={next} oauthError={sp.error ?? null} />
       </AuthFormShell>
-
-      {/* Client portal entry — clients land here too; route them clearly. */}
-      <Link
-        href="/portal-access"
-        data-cta="login_portal_access"
-        className="group mt-6 flex items-center gap-3 rounded-2xl border border-border/80 bg-muted/40 px-4 py-3.5 transition-colors hover:border-primary/25 hover:bg-primary/[0.04]"
-      >
-        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
-          <Globe className="h-4 w-4" />
-        </span>
-        <span className="flex-1">
-          <span className="block text-sm font-semibold text-foreground">
-            Client of a Stackivo user?
-          </span>
-          <span className="block text-xs text-muted-foreground">
-            Access your client portal here instead.
-          </span>
-        </span>
-        <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-primary" />
-      </Link>
     </>
   );
 }

@@ -184,7 +184,7 @@ export default function DocsPage() {
             </OL>
             <Callout type="tip">
               You can update everything you enter here later under{" "}
-              <strong>Settings → Business Profile</strong>. Nothing is locked.
+              <strong>Settings → Company</strong>. Nothing is locked.
             </Callout>
 
             <H3>Your dashboard at a glance</H3>
@@ -204,11 +204,12 @@ export default function DocsPage() {
                 <strong>Invoices</strong> — create, send, and track payments
               </li>
               <li>
-                <strong>Contracts</strong> — professional agreements with
-                e-signature (Pro+)
+                <strong>Contracts</strong> — draft professional agreements on
+                any plan; sending &amp; e-signature are Pro+
               </li>
               <li>
                 <strong>Time</strong> — start/stop timer, log hours by project
+                (Pro+)
               </li>
               <li>
                 <strong>Portal</strong> — per-client collaboration spaces (Pro+)
@@ -228,7 +229,7 @@ export default function DocsPage() {
               add up to 5 clients and explore the core product before
               committing. Upgrading to <strong>Pro</strong> (₹499/month or
               ₹399/month billed annually) unlocks unlimited clients, contract
-              sending, e-signatures, the client portal, custom branding, GST
+              sending, e-signatures, time tracking, the client portal, custom branding, GST
               reports, and project file sharing. The{" "}
               <strong>Business plan</strong> (₹1,499/month) adds team
               collaborators, API access, custom portal branding, and priority
@@ -351,7 +352,7 @@ export default function DocsPage() {
             <P>
               Stackivo auto-generates invoice numbers in sequence (e.g.
               INV-001, INV-002). You can change the prefix and starting number
-              under <strong>Settings → Invoice preferences</strong>.
+              under <strong>Settings → Invoice defaults</strong>.
             </P>
 
             <H3>Sending an invoice</H3>
@@ -571,9 +572,14 @@ export default function DocsPage() {
             <P>
               Know exactly where your hours go. Stackivo&apos;s time tracker is
               built for freelancers who need simple, accurate logging without
-              the overhead of complex project management tools. Available on all
-              plans.
+              the overhead of complex project management tools.
             </P>
+
+            <Callout type="info">
+              Time tracking is a <Badge plan="Pro" /> feature. Free plan users
+              can preview it, but logging time, billable rates, and CSV/PDF
+              exports require Pro.
+            </Callout>
 
             <H3>Starting the timer</H3>
             <OL>
@@ -979,8 +985,10 @@ export default function DocsPage() {
 
             <H3>GST settings</H3>
             <P>
-              If you&apos;re GST-registered, enter your GSTIN, legal business
-              name, and SAC/HSN codes. See the{" "}
+              If you&apos;re GST-registered, add your GSTIN and legal business
+              name under <strong>Settings → Company → Tax information</strong>,
+              then set your default tax mode, rates, and SAC/HSN codes under{" "}
+              <strong>Settings → Invoice defaults</strong>. See the{" "}
               <a
                 href="#gst-guide"
                 className="font-medium text-foreground underline underline-offset-4 hover:opacity-70"
@@ -1000,11 +1008,11 @@ export default function DocsPage() {
               <li>Invoice overdue reminder</li>
             </UL>
 
-            <H3>Integrations</H3>
+            <H3>Payments &amp; integrations</H3>
             <P>
-              Under <strong>Settings → Integrations</strong> you can connect
-              Razorpay for online payments. Business plan users also get API
-              key management.
+              Under <strong>Settings → Payments</strong> you can connect
+              Razorpay so clients can pay your invoices online. Business plan
+              users also get API key management.
             </P>
 
             <H3>Security</H3>
@@ -1044,7 +1052,7 @@ export default function DocsPage() {
                     ["Clients", "5 lifetime", "Unlimited", "Unlimited"],
                     ["Invoices", "Unlimited", "Unlimited", "Unlimited"],
                     ["Projects", "Unlimited", "Unlimited", "Unlimited"],
-                    ["Time tracking", "✓", "✓", "✓"],
+                    ["Time tracking", "—", "✓", "✓"],
                     ["Payment links (Razorpay)", "✓", "✓", "✓"],
                     ["Contracts (send + e-sign)", "—", "✓", "✓"],
                     ["Contract templates library", "—", "✓", "✓"],
@@ -1230,7 +1238,7 @@ export default function DocsPage() {
             <H3>Connecting Razorpay</H3>
             <OL>
               <li>
-                Go to <strong>Settings → Integrations → Razorpay</strong>.
+                Go to <strong>Settings → Payments</strong>.
               </li>
               <li>
                 Click <strong>Connect Razorpay</strong> and authorise the

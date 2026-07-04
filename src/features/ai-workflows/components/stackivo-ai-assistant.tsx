@@ -585,6 +585,10 @@ export function StackivoAiAssistant({ clients, projects }: StackivoAiAssistantPr
         content: res.ok
           ? res.data.answer
           : "I couldn't pull that just now — give it a moment and try again, or open Pulse for the full picture.",
+        suggestions:
+          res.ok && res.data.suggestions && res.data.suggestions.length > 0
+            ? res.data.suggestions
+            : undefined,
       });
     },
     [push],
@@ -1291,6 +1295,27 @@ export function StackivoAiAssistant({ clients, projects }: StackivoAiAssistantPr
       return;
     }
 
+    // A bare "yes"/"no" with nothing in progress would otherwise fall through to
+    // the docs/support path and dead-end. Answer helpfully with next-step options.
+    if (
+      mode === "general" &&
+      !pendingField &&
+      !pendingConfirmRef.current &&
+      !activeContract &&
+      !activeInvoice &&
+      !activeWelcomeDoc &&
+      (isAffirmative(text) || isNegative(text))
+    ) {
+      push({
+        role: "assistant",
+        content: isAffirmative(text)
+          ? "Happy to help — what would you like to do?"
+          : "No problem. What would you like to do next?",
+        suggestions: ["Create an invoice", "Draft a contract", "Who owes me money?"],
+      });
+      return;
+    }
+
     // Local short-circuits — handle these WITHOUT a Groq call to save tokens
     // and latency. Only applies mid-flow (a field is pending), where the reply
     // is unambiguous:
@@ -1789,12 +1814,27 @@ export function StackivoAiAssistant({ clients, projects }: StackivoAiAssistantPr
         >
           {/* Header */}
           <div className="sticky top-0 z-10 flex h-14 items-center gap-2 border-b bg-background px-3">
-            <div className="flex min-w-0 flex-1 items-center gap-2 font-semibold">
-              <StackivoMark className="h-6 w-6 shrink-0" bare />
-              <span className="truncate">
-                {mode === "general"
-                  ? ASSISTANT_NAME
-                  : QUICK_ACTIONS.find((a) => a.mode === mode)?.title ?? "New conversation"}
+            <div className="flex min-w-0 flex-1 items-center gap-2.5 font-semibold">
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-indigo-500 text-white shadow-sm shadow-primary/20">
+                {(() => {
+                  const HeaderIcon =
+                    mode === "general"
+                      ? Sparkles
+                      : QUICK_ACTIONS.find((a) => a.mode === mode)?.icon ?? Sparkles;
+                  return <HeaderIcon className="h-4 w-4" />;
+                })()}
+              </span>
+              <span className="flex min-w-0 flex-col leading-tight">
+                <span className="truncate">
+                  {mode === "general"
+                    ? ASSISTANT_NAME
+                    : QUICK_ACTIONS.find((a) => a.mode === mode)?.title ?? "New conversation"}
+                </span>
+                {mode === "general" ? (
+                  <span className="text-[10px] font-medium text-emerald-600 dark:text-emerald-400">
+                    Connected to your workspace
+                  </span>
+                ) : null}
               </span>
             </div>
             <div className="flex shrink-0 items-center gap-0.5">
@@ -1992,10 +2032,10 @@ export function StackivoAiAssistant({ clients, projects }: StackivoAiAssistantPr
                 >
                   <div
                     className={cn(
-                      "max-w-[88%] rounded-2xl border px-4 py-3 text-sm leading-relaxed shadow-sm",
+                      "max-w-[88%] px-4 py-3 text-sm leading-relaxed",
                       message.role === "user"
-                        ? "border-primary bg-primary text-primary-foreground"
-                        : "mr-auto bg-muted/60",
+                        ? "rounded-2xl rounded-br-md bg-primary text-primary-foreground shadow-sm shadow-primary/20"
+                        : "mr-auto rounded-2xl rounded-bl-md border border-border/70 bg-background shadow-sm",
                     )}
                   >
                     {message.content}
@@ -2014,8 +2054,9 @@ export function StackivoAiAssistant({ clients, projects }: StackivoAiAssistantPr
                           type="button"
                           disabled={pending}
                           onClick={() => handleSubmit(s)}
-                          className="rounded-full border bg-background px-3 py-1 text-xs text-foreground transition-colors hover:border-primary/40 hover:bg-primary/5 disabled:opacity-50"
+                          className="inline-flex items-center gap-1.5 rounded-full border border-border/80 bg-background px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:border-primary/40 hover:bg-primary/5 hover:text-foreground disabled:opacity-50"
                         >
+                          <Sparkles className="h-3 w-3 shrink-0 text-primary" />
                           {s}
                         </button>
                       ))}
@@ -2028,7 +2069,7 @@ export function StackivoAiAssistant({ clients, projects }: StackivoAiAssistantPr
             {/* Typing indicator */}
             {pending && (
               <div className="flex justify-start">
-                <div className="rounded-2xl border bg-background px-4 py-3 shadow-sm">
+                <div className="rounded-2xl rounded-bl-md border border-border/70 bg-background px-4 py-3 shadow-sm">
                   <span className="flex items-center gap-1">
                     {[0, 1, 2].map((item) => (
                       <span

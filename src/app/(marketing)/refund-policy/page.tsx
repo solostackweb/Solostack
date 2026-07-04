@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { Clock } from "lucide-react";
 import { ProsePage } from "@/components/marketing/prose-page";
 import { siteConfig } from "@/config/site";
 
@@ -24,6 +25,13 @@ export default function RefundPolicyPage() {
   return (
     <ProsePage
       title="Refund & Cancellation Policy"
+      toc
+      badge={
+        <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-muted/50 px-3 py-1 text-xs font-medium text-muted-foreground">
+          <Clock className="h-3 w-3" />
+          Updated {EFFECTIVE_DATE}
+        </span>
+      }
       lead={
         <>
           Effective: {EFFECTIVE_DATE}. Stackivo is a digital

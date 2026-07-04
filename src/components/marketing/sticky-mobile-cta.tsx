@@ -48,6 +48,7 @@ export function StickyMobileCta({ authState }: Props) {
 
   return (
     <div
+      data-sticky-cta
       className={`pointer-events-none fixed inset-x-0 bottom-0 z-30 flex justify-start pl-4 pr-[68px] pb-3 transition-all duration-300 md:hidden ${
         visible
           ? "translate-y-0 opacity-100"

@@ -1,5 +1,6 @@
 import * as React from "react";
 import Link from "next/link";
+import { Briefcase, Globe } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 /**
@@ -60,6 +61,52 @@ export function AuthFormFooterLink({
         {label}
       </Link>
     </>
+  );
+}
+
+/**
+ * Freelancer / client portal switcher — sits above the auth card title so
+ * the "I'm actually a client" path reads as a first-class choice in the
+ * login flow instead of a bolted-on link buried under the form. Both tabs
+ * are always real links (not a client-side toggle) since the two flows are
+ * genuinely separate pages (password/OAuth login vs. one-time portal code).
+ */
+export function AuthModeSwitch({ active }: { active: "login" | "portal" }) {
+  return (
+    <div
+      role="tablist"
+      aria-label="Choose how you want to sign in"
+      className="mb-6 flex gap-1 rounded-full border border-border bg-muted/50 p-1"
+    >
+      <Link
+        href="/login"
+        role="tab"
+        aria-selected={active === "login"}
+        className={cn(
+          "flex flex-1 items-center justify-center gap-1.5 rounded-full px-3 py-2 text-xs font-semibold transition-colors",
+          active === "login"
+            ? "bg-card text-foreground shadow-sm"
+            : "text-muted-foreground hover:text-foreground",
+        )}
+      >
+        <Briefcase className="h-3.5 w-3.5" />
+        Freelancer
+      </Link>
+      <Link
+        href="/portal-access"
+        role="tab"
+        aria-selected={active === "portal"}
+        className={cn(
+          "flex flex-1 items-center justify-center gap-1.5 rounded-full px-3 py-2 text-xs font-semibold transition-colors",
+          active === "portal"
+            ? "bg-card text-foreground shadow-sm"
+            : "text-muted-foreground hover:text-foreground",
+        )}
+      >
+        <Globe className="h-3.5 w-3.5" />
+        Client portal
+      </Link>
+    </div>
   );
 }
 

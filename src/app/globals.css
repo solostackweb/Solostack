@@ -352,6 +352,18 @@
       scroll-behavior: auto !important;
     }
   }
+
+  /* Printing a legal doc (Privacy / Terms / Refund / Security) should
+     produce a clean page: no nav chrome, no floating CTAs, just the
+     document. The TOC sidebar itself carries its own `print:hidden`. */
+  @media print {
+    header,
+    footer,
+    [data-sticky-cta],
+    [data-exit-intent] {
+      display: none !important;
+    }
+  }
 }
 
 @layer utilities {

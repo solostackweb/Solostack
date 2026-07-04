@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { ShieldCheck } from "lucide-react";
 import { ProsePage } from "@/components/marketing/prose-page";
 import { siteConfig } from "@/config/site";
 
@@ -22,6 +23,13 @@ export default function SecurityPage() {
   return (
     <ProsePage
       title="Security &amp; data protection"
+      toc
+      badge={
+        <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-muted/50 px-3 py-1 text-xs font-medium text-muted-foreground">
+          <ShieldCheck className="h-3 w-3" />
+          DPDP Act compliant
+        </span>
+      }
       lead={
         <>
           Your invoices, contracts, and client records are some of the most

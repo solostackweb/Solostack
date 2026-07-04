@@ -43,7 +43,7 @@ export function SignupForm({
   }
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-4">
       {oauthErrorMessage && !state ? (
         <AuthFormError message={oauthErrorMessage} />
       ) : null}
@@ -58,7 +58,7 @@ export function SignupForm({
 
       <form
         action={formAction}
-        className="space-y-4"
+        className="space-y-3.5"
         onSubmit={(e) => {
           const emailInput = (e.currentTarget as HTMLFormElement).elements.namedItem(
             "email",
@@ -121,7 +121,7 @@ export function SignupForm({
 
         {/* Informed-consent disclosure shown at the point of acceptance, so
             consent is specific + informed (DPDP Act), not just a link. */}
-        <div className="rounded-md border border-border bg-muted/30 p-3 text-[12px] leading-relaxed text-muted-foreground">
+        <div className="rounded-md border border-border bg-muted/30 p-2.5 text-[12px] leading-relaxed text-muted-foreground">
           <p className="font-medium text-foreground">What we collect &amp; why</p>
           <p className="mt-1">
             To run your account we store your name and email (sign-in), and the

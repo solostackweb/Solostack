@@ -56,6 +56,8 @@ export interface AiInvoicePreview {
   status: string;
   terms: string | null;
   notes: string | null;
+  /** True when the client is foreign — an export invoice (zero-rated / LUT). */
+  isExport?: boolean;
 }
 
 export interface AiContractPreview {
@@ -68,6 +70,8 @@ export interface AiContractPreview {
   valueAmount: number | null;
   currency: string;
   sections: Array<{ heading: string; body: string }>;
+  /** True when the client is foreign — cross-border contract. */
+  isInternational?: boolean;
 }
 
 export interface AiWelcomeDocPreview {

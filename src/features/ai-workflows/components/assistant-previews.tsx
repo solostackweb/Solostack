@@ -132,6 +132,15 @@ export function InvoiceDraftPreview({
         <p className="mt-0.5 text-xs text-muted-foreground">
           {preview.invoiceNumber} · {preview.clientName}
         </p>
+        {preview.isExport ? (
+          <p className="mt-1.5 inline-flex items-center gap-1 rounded-md bg-sky-500/10 px-2 py-0.5 text-[11px] font-medium text-sky-700 dark:text-sky-400">
+            Export invoice · {preview.currency} · zero-rated, no GST (supply under LUT)
+          </p>
+        ) : preview.taxTotal > 0 ? (
+          <p className="mt-1.5 inline-flex items-center gap-1 rounded-md bg-emerald-500/10 px-2 py-0.5 text-[11px] font-medium text-emerald-700 dark:text-emerald-400">
+            Domestic invoice · GST applied
+          </p>
+        ) : null}
       </div>
       <div className="rounded-xl border bg-muted/20 p-3 text-xs space-y-1.5">
         <div className="flex justify-between gap-3">
@@ -440,6 +449,11 @@ export function ContractDraftPreview({
           {preview.title} · {preview.clientName}
           {preview.projectName ? ` · ${preview.projectName}` : ""}
         </p>
+        {preview.isInternational ? (
+          <p className="mt-1.5 inline-flex items-center gap-1 rounded-md bg-sky-500/10 px-2 py-0.5 text-[11px] font-medium text-sky-700 dark:text-sky-400">
+            Cross-border · {preview.currency} · governing law + electronic-signature clauses added
+          </p>
+        ) : null}
         {preview.valueAmount && preview.valueAmount > 0 && (
           <p className="mt-0.5 text-xs font-medium">
             {formatAiMoney(preview.valueAmount, preview.currency)}
