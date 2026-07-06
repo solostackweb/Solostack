@@ -91,6 +91,7 @@ import {
   formatAiMoney,
   modeIntro,
   conversationalReply,
+  isBusinessDataQuestion,
   isInformationalQuestion,
   isSkipReply,
   fieldValidationError,
@@ -627,7 +628,7 @@ export function StackivoAiAssistant({ clients, projects }: StackivoAiAssistantPr
         return;
       }
       const d = res.data;
-      const amt = `₹${Math.round(d.totalAmount).toLocaleString("en-IN")}`;
+      const amt = formatMoney(Math.round(d.totalAmount), d.currency);
       let sentOk = false;
       if (opts?.send) {
         const sent = await emailInvoiceFromAiAction({ invoiceId: d.id });
@@ -1600,7 +1601,10 @@ export function StackivoAiAssistant({ clients, projects }: StackivoAiAssistantPr
       // 1c. A question about the user's OWN business numbers (revenue, overdue,
       //     who paid, unbilled, top clients…) is answered from their data, not
       //     routed into a create workflow. Skip while answering a field prompt.
-      if (nlu?.intent === "query" && nlu.confident && (mode === "general" || !pendingField)) {
+      if (
+        (nlu?.intent === "query" || isBusinessDataQuestion(text)) &&
+        (mode === "general" || !pendingField)
+      ) {
         await runQuery(text);
         return;
       }

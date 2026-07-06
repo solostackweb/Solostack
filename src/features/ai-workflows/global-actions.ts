@@ -209,9 +209,9 @@ const MISSING_FIELD_QUESTIONS: Record<string, AiMissingField> = {
   },
   amount: {
     field: "amount",
-    question: "What amount should I invoice (before tax/discount)?",
+    question: "What amount should I invoice?",
     placeholder: "Example: 50000",
-    tip: "Enter the pre-tax amount — GST is added automatically based on your and the client's state.",
+    tip: "Use the selected client's invoice currency.",
   },
   scope: {
     field: "scope",
@@ -366,7 +366,11 @@ function nextMissingField(
             tip: `This is an export invoice, so it's zero-rated — no GST is added. Enter the amount in ${currency}.`,
           };
         }
-        return MISSING_FIELD_QUESTIONS.amount;
+        return {
+          ...MISSING_FIELD_QUESTIONS.amount,
+          question: "What amount should I invoice in INR? (before GST/discount)",
+          tip: "For domestic clients, enter the pre-GST INR amount. GST is added automatically based on your and the client's state.",
+        };
       }
       continue;
     }
@@ -1355,6 +1359,7 @@ export async function invoiceUnbilledTimeFromAiAction(input: { clientId?: string
       invoiceNumber: nextNumber.formatted,
       clientName: cName,
       totalAmount: Math.round(unbilled.totalAmount * 100) / 100,
+      currency: invoiceCurrency,
       hours: hoursOf(unbilled.totalSeconds),
       lineCount: lines.length,
     },
@@ -2291,6 +2296,82 @@ function formatMoneyPlain(value: number, currency?: string | null): string {
   return `${cur} ${new Intl.NumberFormat(cur === "INR" ? "en-IN" : "en-US", { maximumFractionDigits: 2 }).format(value)}`;
 }
 
+function formatInr(value: number): string {
+  return `₹${new Intl.NumberFormat("en-IN", { maximumFractionDigits: 0 }).format(
+    Math.round(Number(value) || 0),
+  )}`;
+}
+
+function localBusinessAnswer(
+  facts: Awaited<ReturnType<typeof getBusinessFacts>>,
+  question: string,
+): { answer: string; suggestions: string[] } | null {
+  const q = question.toLowerCase();
+
+  if (/\b(top|best|biggest|largest)\b/.test(q) && /\b(clients?|customers?)\b/.test(q)) {
+    const rows = facts.clients.topByRevenue.slice(0, 3);
+    if (rows.length === 0) {
+      return {
+        answer:
+          "I don't see paid revenue by client in the last 12 months yet. Once invoices are paid, Pulse will show your top clients here.",
+        suggestions: ["What's my revenue this month?", "Who owes me money?"],
+      };
+    }
+    const list = rows
+      .map((c, i) => `${i + 1}. ${c.name}: ${formatInr(c.paid)} (${Math.round(c.sharePct)}%)`)
+      .join("\n");
+    return {
+      answer: `Your top clients by paid revenue over the last 12 months are:\n${list}`,
+      suggestions: ["Who owes me money?", "What's my revenue this month?"],
+    };
+  }
+
+  if (/\boverdue\b/.test(q)) {
+    return {
+      answer:
+        facts.invoices.overdueTotal > 0
+          ? `You have ${formatInr(facts.invoices.overdueTotal)} overdue across ${facts.invoices.overdueCount} invoice${facts.invoices.overdueCount === 1 ? "" : "s"} right now.`
+          : "You have no overdue invoices right now.",
+      suggestions:
+        facts.invoices.overdueTotal > 0
+          ? ["Show overdue invoices", "Send reminders for my overdue invoices"]
+          : ["Who owes me money?", "What's my revenue this month?"],
+    };
+  }
+
+  if (/\b(outstanding|unpaid|receivable|owe[sd]?|balance due)\b/.test(q)) {
+    return {
+      answer:
+        facts.invoices.outstandingTotal > 0
+          ? `You have ${formatInr(facts.invoices.outstandingTotal)} outstanding across ${facts.invoices.outstandingCount} invoice${facts.invoices.outstandingCount === 1 ? "" : "s"} right now.`
+          : "You don't have any outstanding invoice balance right now.",
+      suggestions: ["Show unpaid invoices", "What's overdue?"],
+    };
+  }
+
+  if (/\bunbilled\b/.test(q)) {
+    return {
+      answer:
+        facts.unbilled.totalValue > 0
+          ? `You have ${formatInr(facts.unbilled.totalValue)} of unbilled time, across ${facts.unbilled.totalHours} tracked hour${facts.unbilled.totalHours === 1 ? "" : "s"}.`
+          : "You don't have any unbilled billable time right now.",
+      suggestions: facts.unbilled.totalValue > 0 ? ["Create an invoice for my unbilled time"] : [],
+    };
+  }
+
+  if (/\b(revenue|earned?|earnings|income|sales|made)\b/.test(q)) {
+    const thisMonth = /\b(this month|month)\b/.test(q);
+    return {
+      answer: thisMonth
+        ? `Your paid revenue this month is ${formatInr(facts.revenue.thisMonthPaid)}.`
+        : `Your paid revenue over the last 12 months is ${formatInr(facts.revenue.last12mPaid)}, with an average of ${formatInr(facts.revenue.averageMonthly)} per month.`,
+      suggestions: ["Who are my top clients?", "Who owes me money?"],
+    };
+  }
+
+  return null;
+}
+
 /**
  * Send a payment reminder email for every overdue / past-due unpaid invoice the
  * user has. Reuses the same reminder template the cron uses. Idempotent per day
@@ -2565,11 +2646,16 @@ export async function answerBusinessQuestionAction(
       ok: true as const,
       data: {
         answer: "You're asking a little fast — give it a few seconds and try again.",
+        suggestions: [],
       },
     };
   }
 
   const facts = await getBusinessFacts();
+  const localAnswer = localBusinessAnswer(facts, parsed.data.question);
+  if (localAnswer) {
+    return { ok: true as const, data: localAnswer };
+  }
 
   const ai = await generateStructuredJson({
     temperature: 0.2,

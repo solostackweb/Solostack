@@ -10,6 +10,9 @@ export interface AiEntityOption {
   id: string;
   name: string;
   clientId?: string | null;
+  currency?: string | null;
+  isForeign?: boolean | null;
+  country?: string | null;
 }
 
 export interface StackivoAiAssistantProps {

@@ -253,6 +253,9 @@ export async function interpretMessage(ctx: InterpretContext): Promise<AiInterpr
     id: c.id,
     name: getClientDisplayName(c),
     business: c.businessName ?? "",
+    country: c.country,
+    currency: c.currency,
+    isForeign: c.isForeign,
   }));
   const projectList = ctx.projects.slice(0, 200).map((p) => ({
     id: p.id,
@@ -285,7 +288,7 @@ export async function interpretMessage(ctx: InterpretContext): Promise<AiInterpr
           "- support: question, page",
           "",
           "NORMALIZE every value — do the interpretation HERE, never echo raw messy text for these:",
-          "- Money (amount, fees, contract value): a plain integer/decimal in the selected client's currency, no symbols/separators. Understand Indian shorthand too: '₹1,50,000' / '1.5L' / '1.5 lakh' / '1,50,000 ruppees' = 150000; '50k' = 50000; '2cr' / '2 crore' = 20000000. NEVER treat a percentage like '50% upfront' as the amount.",
+          "- Money (amount, fees, contract value): a plain integer/decimal in the selected client's currency, no symbols/separators. Use the provided client currency/isForeign facts; domestic Indian clients are INR/GST, foreign clients use their currency and export/zero-rated invoice language. Understand Indian shorthand too: '₹1,50,000' / '1.5L' / '1.5 lakh' / '1,50,000 ruppees' = 150000; '$1200' = 1200; '50k' = 50000; '2cr' / '2 crore' = 20000000. NEVER treat a percentage like '50% upfront' as the amount.",
           "- discount: a percentage as '10%', or a flat amount in the selected client's currency as a plain number. Empty if none.",
           "- dueDate, and project dates/dueDate: an ISO date 'YYYY-MM-DD'. Resolve relative phrases against the provided 'today': 'tomorrow', 'in N days/weeks/months', 'next week', 'next month', 'end of month', weekday names. For a project, put a start in 'dates' and the deadline in 'dueDate'.",
           "- duration (time_entry): total MINUTES as an integer string ('2h 30m' = '150', '1.5 hours' = '90', '45m' = '45').",
@@ -327,6 +330,13 @@ export async function interpretMessage(ctx: InterpretContext): Promise<AiInterpr
 
   const raw = aiJson as Record<string, unknown>;
   const intentRaw = typeof raw.intent === "string" ? raw.intent : "";
+  if (
+    fallback.intent === "query" &&
+    fallback.confident &&
+    (intentRaw === "support" || intentRaw === "general" || !intentRaw)
+  ) {
+    return fallback;
+  }
   const intent = ([...AI_WORKFLOWS, "general", "query"] as string[]).includes(intentRaw)
     ? (intentRaw as AiIntent)
     : fallback.intent;

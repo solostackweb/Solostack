@@ -268,6 +268,9 @@ export async function draftOperationalWorkflow(
             name: getClientDisplayName(client),
             businessName: client.businessName,
             email: client.email,
+            country: client.country,
+            currency: client.currency,
+            isForeign: client.isForeign,
           })),
           projects: ctx.projects.map((project) => ({
             id: project.id,

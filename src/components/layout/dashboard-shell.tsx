@@ -33,7 +33,13 @@ export function DashboardShell({
   children: React.ReactNode;
   profile: BusinessProfile;
   subscription: CurrentSubscription | null;
-  aiClients?: Array<{ id: string; name: string }>;
+  aiClients?: Array<{
+    id: string;
+    name: string;
+    currency?: string | null;
+    isForeign?: boolean | null;
+    country?: string | null;
+  }>;
   aiProjects?: Array<{ id: string; name: string; clientId: string | null }>;
 }) {
   return (

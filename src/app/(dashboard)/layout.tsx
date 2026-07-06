@@ -37,6 +37,9 @@ export default async function DashboardGroupLayout({
       aiClients={clients.map((client) => ({
         id: client.id,
         name: getClientDisplayName(client),
+        currency: client.currency,
+        isForeign: client.isForeign,
+        country: client.country,
       }))}
       aiProjects={projects.map((project) => ({
         id: project.id,

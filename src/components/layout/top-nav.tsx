@@ -12,7 +12,13 @@ import { Separator } from "@/components/ui/separator";
 import { StackivoAiAssistant } from "@/features/ai-workflows/components/stackivo-ai-assistant";
 
 interface TopNavProps {
-  aiClients?: Array<{ id: string; name: string }>;
+  aiClients?: Array<{
+    id: string;
+    name: string;
+    currency?: string | null;
+    isForeign?: boolean | null;
+    country?: string | null;
+  }>;
   aiProjects?: Array<{ id: string; name: string; clientId: string | null }>;
 }
 

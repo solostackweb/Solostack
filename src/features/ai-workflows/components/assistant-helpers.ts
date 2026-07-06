@@ -179,6 +179,17 @@ export function isInformationalQuestion(text: string): boolean {
   );
 }
 
+/** True when the user is asking about their own business metrics/data. */
+export function isBusinessDataQuestion(text: string): boolean {
+  const t = text.trim().toLowerCase();
+  if (/\b(price|pricing|plan|plans|cost|subscription|upgrade)\b/.test(t)) {
+    return false;
+  }
+  return /\b(how much|how many|revenue|earned?|earnings|income|turnover|sales|paid|unpaid|owe[sd]?|outstanding|overdue|unbilled|receivable|collected|this month|last month|this year|this quarter|top clients?|best clients?|biggest clients?|largest clients?|top customer|best customer|made|balance due|collection rate|concentration)\b/.test(
+    t,
+  );
+}
+
 /** Matches a short "skip"/"none" style reply to an optional prompt. */
 export function isSkipReply(text: string): boolean {
   return /^(skip|none|no|n\/a|na|nope|nah|leave it|not now|-|—)$/i.test(text.trim());
@@ -197,7 +208,7 @@ export function fieldValidationError(field: string, text: string): string | null
   switch (field) {
     case "amount":
       if (!hasNumber)
-        return "I need a number for the amount — for example “50000” or “1.5L”. How much should I invoice (before tax)?";
+        return "I need a number for the amount, in the selected client's invoice currency. For example: 50000, 1.5L, or 1200. How much should I invoice?";
       return null;
     case "duration":
       if (!hasNumber)

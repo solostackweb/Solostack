@@ -52,6 +52,7 @@ export async function draftInvoiceWithAi({
           "Return only JSON matching this shape:",
           '{"items":[{"description":"string","quantity":number,"rate":number}],"notes":"string","terms":"string"}',
           "Do not calculate tax, invoice numbers, totals, discounts, payment state, or send anything.",
+          "Respect the client's billing context: domestic Indian clients invoice in INR and may have GST; foreign clients invoice in their configured currency and are export/zero-rated with no GST calculation here.",
           "CRITICAL: the line item description MUST be based on the user's own workDescription (userInput.workDescription). Use it as written, lightly cleaned up — do NOT replace it with the project name, client name, or a generic phrase. The project/client are context only, never the description.",
           "Keep line descriptions professional and under 200 characters.",
           "Use the supplied amount as the rate unless the user clearly described multiple line items.",
@@ -66,6 +67,9 @@ export async function draftInvoiceWithAi({
             businessName: client.businessName,
             email: client.email,
             gstRegistered: client.gstRegistered,
+            country: client.country,
+            currency: client.currency,
+            isForeign: client.isForeign,
           },
           project: project
             ? {
