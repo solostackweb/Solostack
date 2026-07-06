@@ -20,6 +20,7 @@ import {
 import { cn } from "@/lib/utils";
 import { DataTable } from "@/components/data-table/data-table";
 import { EmptyState } from "@/components/shared/empty-state";
+import { IvoEntryPoint, openIvo } from "@/features/ai-workflows/components/ivo-entry-point";
 
 import type { InvoiceRecord } from "../server";
 import type { ClientRecord } from "@/features/clients/server";
@@ -207,6 +208,11 @@ export function InvoicesListView({
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <IvoEntryPoint
+            prompt="Show my unpaid invoices and tell me what I should follow up on."
+            label="Ask Ivo"
+            variant="outline"
+          />
           <Button asChild size="sm">
             <Link href="/dashboard/invoices/new">
               <Plus /> New invoice
@@ -247,6 +253,10 @@ export function InvoicesListView({
                   title="No invoices yet"
                   description="Create your first invoice to start tracking payments."
                   action={{ label: "New invoice", href: "/dashboard/invoices/new" }}
+                  secondaryAction={{
+                    label: "Ask Ivo",
+                    onClick: () => openIvo("Help me create my first invoice."),
+                  }}
                 />
               ) : (
                 <EmptyState

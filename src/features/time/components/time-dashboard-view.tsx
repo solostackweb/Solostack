@@ -12,7 +12,6 @@ import {
   Plus,
   Search,
 } from "lucide-react";
-import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
@@ -50,6 +49,7 @@ import {
   AiWorkflowTriggerButton,
   OperationalAiAgentWorkflow,
 } from "@/features/ai-workflows/components/operational-ai-agent-workflow";
+import { IvoEntryPoint, openIvo } from "@/features/ai-workflows/components/ivo-entry-point";
 import type { AiTimeEntryDraft } from "@/features/ai-workflows/types";
 
 interface TimeDashboardViewProps {
@@ -180,6 +180,11 @@ export function TimeDashboardView({
         description="Track billable hours, log time, and see where your week went."
         actions={
           <div className="flex items-center gap-2">
+            <IvoEntryPoint
+              prompt="What unbilled time should I invoice?"
+              label="Ask Ivo"
+              variant="outline"
+            />
             <AiWorkflowTriggerButton
               active={aiOpen}
               onClick={() => setAiOpen((value) => !value)}
@@ -481,10 +486,13 @@ function UnbilledBanner({ seconds, amount }: { seconds: number; amount: number }
           invoiced yet.
         </span>
       </p>
-      <Button asChild size="sm" className="h-8 shrink-0 self-start sm:self-auto">
-        <Link href="/dashboard/invoices/new">
-          Bill this time <ArrowRight className="ml-1 h-3.5 w-3.5" />
-        </Link>
+      <Button
+        type="button"
+        size="sm"
+        className="h-8 shrink-0 self-start sm:self-auto"
+        onClick={() => openIvo("Create an invoice for my unbilled time")}
+      >
+        Bill this time <ArrowRight className="ml-1 h-3.5 w-3.5" />
       </Button>
     </div>
   );

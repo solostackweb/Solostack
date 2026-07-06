@@ -44,6 +44,7 @@ import { effectivePlan } from "@/features/subscription/features";
 import { AI_REPLY_MAX_TOKENS } from "@/features/subscription/plans";
 import {
   ensureWelcomePublicToken,
+  listWelcomeDocuments,
 } from "@/features/welcome-documents/server";
 import { getWelcomeShareUrl } from "@/features/welcome-documents/routes";
 import { listClients } from "@/features/clients/server";
@@ -2328,7 +2329,49 @@ function localBusinessAnswer(
   const firstName = userName?.trim().split(/\s+/)[0] ?? "";
 
   if (
-    /\b(what should i focus on|what should i do today|priorit(?:y|ies)|today'?s focus|today'?s priorities)\b/.test(
+    /\b(collection plan|collections?|follow ?ups?|follow up|chase|what should i do about.*(outstanding|overdue|receivable)|who to follow up)\b/.test(
+      q,
+    )
+  ) {
+    if (facts.invoices.outstandingTotal <= 0) {
+      return {
+        answer:
+          `${firstName ? `${firstName}, ` : ""}you do not have any outstanding invoice balance right now. Best next move: keep new invoices moving fast, and review unbilled time before it gets stale.`,
+        suggestions:
+          facts.unbilled.totalValue > 0
+            ? ["Create an invoice for my unbilled time", "What should I focus on today?"]
+            : ["What's my revenue this month?", "Who are my top clients?"],
+      };
+    }
+    const aging = facts.invoices.aging;
+    const oldestBucket = aging.d90plus > 0
+      ? `90+ days: ${formatInr(aging.d90plus)}`
+      : aging.d61_90 > 0
+        ? `61-90 days: ${formatInr(aging.d61_90)}`
+        : aging.d31_60 > 0
+          ? `31-60 days: ${formatInr(aging.d31_60)}`
+          : aging.d1_30 > 0
+            ? `1-30 days: ${formatInr(aging.d1_30)}`
+            : `current: ${formatInr(aging.current)}`;
+    const overdueLine =
+      facts.invoices.overdueTotal > 0
+        ? `Start with ${formatInr(facts.invoices.overdueTotal)} overdue across ${facts.invoices.overdueCount} invoice${facts.invoices.overdueCount === 1 ? "" : "s"}.`
+        : `Nothing is overdue yet, so follow up before ${formatInr(facts.invoices.outstandingTotal)} turns late.`;
+    return {
+      answer:
+        `${firstName ? `${firstName}, here is` : "Here is"} the collection plan:\n` +
+        `1. ${overdueLine}\n` +
+        `2. Prioritize the oldest aging bucket (${oldestBucket}) and send a clear payment link reminder.\n` +
+        `3. Then review all unpaid invoices and mark anything already paid so Pulse stays accurate.`,
+      suggestions:
+        facts.invoices.overdueTotal > 0
+          ? ["Show overdue invoices", "Send reminders for my overdue invoices"]
+          : ["Show unpaid invoices", "What should I focus on today?"],
+    };
+  }
+
+  if (
+    /\b(what should i focus on|what should i do today|priorit(?:y|ies)|today'?s focus|today'?s priorities|what needs attention|needs attention|attention|focus)\b/.test(
       q,
     )
   ) {
@@ -2379,7 +2422,10 @@ function localBusinessAnswer(
     };
   }
 
-  if (/\b(top|best|biggest|largest)\b/.test(q) && /\b(clients?|customers?)\b/.test(q)) {
+  if (
+    (/\b(top|best|biggest|largest)\b/.test(q) && /\b(clients?|customers?)\b/.test(q)) ||
+    /\b(concentration|concentrated|dependency|risk)\b/.test(q)
+  ) {
     const rows = facts.clients.topByRevenue.slice(0, 3);
     if (rows.length === 0) {
       return {
@@ -2391,9 +2437,14 @@ function localBusinessAnswer(
     const list = rows
       .map((c, i) => `${i + 1}. ${c.name}: ${formatInr(c.paid)} (${Math.round(c.sharePct)}%)`)
       .join("\n");
+    const risk =
+      facts.clients.revenueConcentrationTop1Pct != null &&
+      facts.clients.revenueConcentrationTop1Pct >= 50
+        ? `\n\nWatch this: your top client is ${Math.round(facts.clients.revenueConcentrationTop1Pct)}% of paid revenue, so it is worth nurturing 1-2 backup accounts.`
+        : "";
     return {
-      answer: `Your top clients by paid revenue over the last 12 months are:\n${list}`,
-      suggestions: ["Who owes me money?", "What's my revenue this month?"],
+      answer: `Your top clients by paid revenue over the last 12 months are:\n${list}${risk}`,
+      suggestions: ["Who owes me money?", "What should I focus on today?"],
     };
   }
 
@@ -2414,9 +2465,12 @@ function localBusinessAnswer(
     return {
       answer:
         facts.invoices.outstandingTotal > 0
-          ? `You have ${formatInr(facts.invoices.outstandingTotal)} outstanding across ${facts.invoices.outstandingCount} invoice${facts.invoices.outstandingCount === 1 ? "" : "s"} right now.`
+          ? `You have ${formatInr(facts.invoices.outstandingTotal)} outstanding across ${facts.invoices.outstandingCount} invoice${facts.invoices.outstandingCount === 1 ? "" : "s"} right now. ${facts.invoices.overdueTotal > 0 ? `${formatInr(facts.invoices.overdueTotal)} of that is overdue, so I would start there.` : "Nothing is overdue yet, so this is a good moment for a gentle follow-up before due dates slip."}`
           : "You don't have any outstanding invoice balance right now.",
-      suggestions: ["Show unpaid invoices", "What's overdue?"],
+      suggestions:
+        facts.invoices.outstandingTotal > 0
+          ? ["Show unpaid invoices", "Give me a collection plan"]
+          : ["What's my revenue this month?", "What should I focus on today?"],
     };
   }
 
@@ -2611,6 +2665,57 @@ export async function listClientsForAiAction() {
     name: c.businessName || c.fullName || "Client",
   }));
   return { ok: true as const, data: { rows } };
+}
+
+/** List projects for the assistant's interactive workspace list. */
+export async function listProjectsForAiAction(input: { filter?: "active" | "all" } = {}) {
+  const userId = await requireUserId();
+  if (!(await checkAiRateLimit(userId))) {
+    return { ok: false as const, error: "You're going a little fast — give it a few seconds." };
+  }
+  const filter = input.filter ?? "active";
+  const projects = await listProjects({ limit: 15 });
+  const clients = await listClients({ limit: 200 });
+  const clientNameById = new Map(
+    clients.map((c) => [c.id, c.businessName || c.fullName || "Client"]),
+  );
+  const activeStatuses = new Set(["lead", "planning", "active", "waiting_on_client", "revision", "review", "on_hold"]);
+  const scoped =
+    filter === "active"
+      ? projects.filter((p) => activeStatuses.has(p.status))
+      : projects;
+  const rows = scoped.slice(0, 15).map((p) => ({
+    id: p.id,
+    name: p.name,
+    clientName: p.clientId ? (clientNameById.get(p.clientId) ?? "Unknown client") : "No client",
+    status: p.status,
+    dueDate: p.dueDate,
+  }));
+  return { ok: true as const, data: { rows, filter } };
+}
+
+/** List welcome documents for the assistant's interactive workspace list. */
+export async function listWelcomeDocsForAiAction(input: { filter?: "open" | "all" } = {}) {
+  const userId = await requireUserId();
+  if (!(await checkAiRateLimit(userId))) {
+    return { ok: false as const, error: "You're going a little fast — give it a few seconds." };
+  }
+  const filter = input.filter ?? "open";
+  const docs = await listWelcomeDocuments();
+  const scoped =
+    filter === "open"
+      ? docs.filter((d) => d.status !== "archived")
+      : docs;
+  const rows = scoped.slice(0, 15).map((d) => ({
+    id: d.id,
+    title: d.title,
+    clientName: d.clientName || "No client",
+    status: d.status,
+    views: d.totalViews,
+    acknowledgements: d.acknowledgementCount,
+    sentAt: d.sentAt,
+  }));
+  return { ok: true as const, data: { rows, filter } };
 }
 
 /**

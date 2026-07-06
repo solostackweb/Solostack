@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/select";
 import { PageHeader } from "@/components/shared/page-header";
 import { EmptyState } from "@/components/shared/empty-state";
+import { IvoEntryPoint, openIvo } from "@/features/ai-workflows/components/ivo-entry-point";
 import { cn } from "@/lib/utils";
 import type { ProjectStatusRow } from "@/lib/supabase/types";
 
@@ -96,9 +97,16 @@ export function ProjectsListView({ projects, clients, autoCreate }: ProjectsList
         title="Projects"
         description="Organize work, files, and billables by engagement."
         actions={
-          <Button size="sm" onClick={() => setCreateOpen(true)}>
-            <Plus /> New project
-          </Button>
+          <div className="flex items-center gap-2">
+            <IvoEntryPoint
+              prompt="Review my active projects and tell me what needs attention."
+              label="Ask Ivo"
+              variant="outline"
+            />
+            <Button size="sm" onClick={() => setCreateOpen(true)}>
+              <Plus /> New project
+            </Button>
+          </div>
         }
       />
 
@@ -168,6 +176,14 @@ export function ProjectsListView({ projects, clients, autoCreate }: ProjectsList
           action={
             projects.length === 0
               ? { label: "Create project", onClick: () => setCreateOpen(true) }
+              : undefined
+          }
+          secondaryAction={
+            projects.length === 0
+              ? {
+                  label: "Ask Ivo",
+                  onClick: () => openIvo("Help me create my first project."),
+                }
               : undefined
           }
         />

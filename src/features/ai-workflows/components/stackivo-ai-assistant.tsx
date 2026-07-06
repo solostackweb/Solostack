@@ -61,6 +61,8 @@ import {
   markInvoicePaidFromAiAction,
   listContractsForAiAction,
   listClientsForAiAction,
+  listProjectsForAiAction,
+  listWelcomeDocsForAiAction,
 } from "@/features/ai-workflows/global-actions";
 import type { AssistantSuggestion } from "@/features/ai-workflows/suggestions";
 import type {
@@ -106,6 +108,8 @@ import {
   InvoiceListBlock,
   ContractListBlock,
   ClientListBlock,
+  ProjectListBlock,
+  WelcomeDocListBlock,
 } from "./assistant-previews";
 import { createTicketAction } from "@/features/support/ticket-actions";
 import {
@@ -116,6 +120,7 @@ import {
   type AiInterpretation,
   type AiMissingField,
 } from "@/features/ai-workflows/types";
+import { IVO_ASK_EVENT, type IvoAskDetail } from "./ivo-entry-point";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -709,6 +714,86 @@ export function StackivoAiAssistant({ clients, projects, user }: StackivoAiAssis
       ),
     });
   }, [push]);
+
+  const runListProjects = React.useCallback(
+    async (filter: "active" | "all") => {
+      const res = await listProjectsForAiAction({ filter });
+      if (!res.ok) {
+        push({ role: "assistant", content: res.error });
+        return;
+      }
+      const { rows } = res.data;
+      if (rows.length === 0) {
+        push({
+          role: "assistant",
+          content:
+            filter === "active"
+              ? "No active projects yet. I can help you create one when you're ready."
+              : "No projects yet. I can help you create your first one.",
+          suggestions: ["Help me create a project"],
+        });
+        return;
+      }
+      push({
+        role: "assistant",
+        content: `Here ${rows.length === 1 ? "is" : "are"} your ${
+          filter === "active" ? "active " : ""
+        }project${rows.length === 1 ? "" : "s"}:`,
+      });
+      push({
+        role: "assistant",
+        content: (
+          <ProjectListBlock
+            rows={rows}
+            onInvoice={(name) => submitRef.current?.(`Create an invoice for project ${name}`)}
+          />
+        ),
+      });
+    },
+    [push],
+  );
+
+  const runListWelcomeDocs = React.useCallback(
+    async (filter: "open" | "all") => {
+      const res = await listWelcomeDocsForAiAction({ filter });
+      if (!res.ok) {
+        push({ role: "assistant", content: res.error });
+        return;
+      }
+      const { rows } = res.data;
+      if (rows.length === 0) {
+        push({
+          role: "assistant",
+          content:
+            filter === "open"
+              ? "No active welcome documents yet. I can help you prepare one for a client."
+              : "No welcome documents yet. I can help you draft the first one.",
+          suggestions: ["Help me prepare a welcome document"],
+        });
+        return;
+      }
+      const needsAttention = rows.filter(
+        (r) => r.status === "draft" || (r.status === "published" && !r.sentAt),
+      ).length;
+      push({
+        role: "assistant",
+        content:
+          needsAttention > 0
+            ? `Here are your welcome documents. ${needsAttention} need attention before they are fully sent.`
+            : "Here are your welcome documents. Nothing obvious needs attention right now.",
+      });
+      push({
+        role: "assistant",
+        content: (
+          <WelcomeDocListBlock
+            rows={rows}
+            onCreate={() => submitRef.current?.("Help me prepare a welcome document for a client")}
+          />
+        ),
+      });
+    },
+    [push],
+  );
 
   // ----- Interactive invoice list (Open / Mark paid / Remind per row) -----
 
@@ -1589,6 +1674,23 @@ export function StackivoAiAssistant({ clients, projects, user }: StackivoAiAssis
           await runListClients();
           return;
         }
+        if (
+          /\b(show|list|view|see|review)\b/.test(lc) &&
+          /\b(projects?|engagements?|work)\b/.test(lc) &&
+          !pendingField
+        ) {
+          await runListProjects(/\b(all|every|completed|archived|cancelled)\b/.test(lc) ? "all" : "active");
+          return;
+        }
+        if (
+          /\b(show|list|view|see|review|attention)\b/.test(lc) &&
+          /\b(welcome|onboarding)\b/.test(lc) &&
+          /\b(docs?|documents?|guides?)\b/.test(lc) &&
+          !pendingField
+        ) {
+          await runListWelcomeDocs(/\b(all|every|archived)\b/.test(lc) ? "all" : "open");
+          return;
+        }
       }
 
       // 1c. A question about the user's OWN business numbers (revenue, overdue,
@@ -1751,12 +1853,27 @@ export function StackivoAiAssistant({ clients, projects, user }: StackivoAiAssis
     runListInvoices,
     runListContracts,
     runListClients,
+    runListProjects,
+    runListWelcomeDocs,
     userFirstName,
   ]);
 
   // Keep a live ref to handleSubmit so list rows (rendered as message content)
   // can dispatch a follow-up prompt without depending on declaration order.
   submitRef.current = handleSubmit;
+
+  React.useEffect(() => {
+    const handleAskIvo = (event: Event) => {
+      const detail = (event as CustomEvent<IvoAskDetail>).detail;
+      const prompt = detail?.prompt?.trim();
+      setOpen(true);
+      if (prompt) {
+        window.setTimeout(() => submitRef.current?.(prompt), 80);
+      }
+    };
+    window.addEventListener(IVO_ASK_EVENT, handleAskIvo);
+    return () => window.removeEventListener(IVO_ASK_EVENT, handleAskIvo);
+  }, []);
 
   // ----- Render -----
 

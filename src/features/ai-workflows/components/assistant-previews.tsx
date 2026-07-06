@@ -1,5 +1,16 @@
 import * as React from "react";
-import { Bookmark, Check, CheckCircle2, ExternalLink, Mail, MessageCircle, ReceiptText, Send } from "lucide-react";
+import {
+  Bookmark,
+  BookOpen,
+  Check,
+  CheckCircle2,
+  ExternalLink,
+  FolderKanban,
+  Mail,
+  MessageCircle,
+  ReceiptText,
+  Send,
+} from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { BUILTIN_WELCOME_TEMPLATES } from "@/features/welcome-documents/templates";
@@ -14,6 +25,8 @@ import type {
   AiInvoiceListRow,
   AiContractListRow,
   AiClientListRow,
+  AiProjectListRow,
+  AiWelcomeDocListRow,
 } from "./assistant-types";
 
 /**
@@ -734,6 +747,83 @@ export function ClientListBlock({
             </a>
             <button type="button" onClick={() => onInvoice(r.name)} className={ROW_CHIP}>
               <ReceiptText className="h-3 w-3" /> Invoice
+            </button>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+export function ProjectListBlock({
+  rows,
+  onInvoice,
+}: {
+  rows: AiProjectListRow[];
+  onInvoice: (name: string) => void;
+}) {
+  if (rows.length === 0) {
+    return <p className="text-sm text-muted-foreground">No projects yet.</p>;
+  }
+  return (
+    <div className="space-y-2">
+      {rows.map((r) => (
+        <div key={r.id} className="rounded-xl border bg-muted/20 p-2.5">
+          <p className="truncate text-xs font-semibold">{r.name}</p>
+          <p className="text-[11px] text-muted-foreground">
+            {r.clientName} · {r.status.replace(/_/g, " ")}
+            {r.dueDate ? ` · due ${r.dueDate}` : ""}
+          </p>
+          <div className="mt-2 flex flex-wrap gap-1.5">
+            <a href={`/dashboard/projects/${r.id}`} className={ROW_CHIP}>
+              <ExternalLink className="h-3 w-3" /> Open
+            </a>
+            <button type="button" onClick={() => onInvoice(r.name)} className={ROW_CHIP}>
+              <ReceiptText className="h-3 w-3" /> Invoice
+            </button>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+export function WelcomeDocListBlock({
+  rows,
+  onCreate,
+}: {
+  rows: AiWelcomeDocListRow[];
+  onCreate: () => void;
+}) {
+  if (rows.length === 0) {
+    return (
+      <div className="space-y-2">
+        <p className="text-sm text-muted-foreground">No welcome documents yet.</p>
+        <button type="button" onClick={onCreate} className={ROW_CHIP}>
+          <BookOpen className="h-3 w-3" /> Draft one
+        </button>
+      </div>
+    );
+  }
+  return (
+    <div className="space-y-2">
+      {rows.map((r) => (
+        <div key={r.id} className="rounded-xl border bg-muted/20 p-2.5">
+          <p className="truncate text-xs font-semibold">{r.title}</p>
+          <p className="text-[11px] text-muted-foreground">
+            {r.clientName} · {r.status}
+            {r.sentAt ? ` · sent ${r.sentAt.slice(0, 10)}` : ""}
+          </p>
+          <p className="mt-0.5 text-[11px] text-muted-foreground">
+            {r.views} view{r.views === 1 ? "" : "s"} · {r.acknowledgements} acknowledgement
+            {r.acknowledgements === 1 ? "" : "s"}
+          </p>
+          <div className="mt-2 flex flex-wrap gap-1.5">
+            <a href={`/dashboard/welcome/${r.id}`} className={ROW_CHIP}>
+              <ExternalLink className="h-3 w-3" /> Open
+            </a>
+            <button type="button" onClick={onCreate} className={ROW_CHIP}>
+              <FolderKanban className="h-3 w-3" /> New doc
             </button>
           </div>
         </div>

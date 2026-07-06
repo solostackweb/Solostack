@@ -36,7 +36,7 @@ export async function getAssistantSuggestions(): Promise<AssistantSuggestion[]> 
       title: `${inr(f.invoices.overdueTotal)} overdue across ${f.invoices.overdueCount} invoice${plural(
         f.invoices.overdueCount,
       )} — chase it`,
-      prompt: "Send reminders for my overdue invoices",
+      prompt: "Give me a collection plan for my overdue invoices",
     });
   }
 
@@ -56,7 +56,7 @@ export async function getAssistantSuggestions(): Promise<AssistantSuggestion[]> 
       title: `${inr(f.invoices.outstandingTotal)} outstanding across ${f.invoices.outstandingCount} invoice${plural(
         f.invoices.outstandingCount,
       )}`,
-      prompt: "Show my outstanding invoices",
+      prompt: "Show my outstanding invoices and tell me who to follow up with",
     });
   }
 
@@ -79,7 +79,7 @@ export async function getAssistantSuggestions(): Promise<AssistantSuggestion[]> 
       title: `Your top client is ${Math.round(
         f.clients.revenueConcentrationTop1Pct,
       )}% of revenue`,
-      prompt: "Who are my top clients?",
+      prompt: "Who are my top clients and is my revenue too concentrated?",
     });
   }
 

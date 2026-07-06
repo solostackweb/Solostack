@@ -52,6 +52,7 @@ import {
   AiWorkflowTriggerButton,
   OperationalAiAgentWorkflow,
 } from "@/features/ai-workflows/components/operational-ai-agent-workflow";
+import { IvoEntryPoint, openIvo } from "@/features/ai-workflows/components/ivo-entry-point";
 import type { AiContractDraft } from "@/features/ai-workflows/types";
 
 interface ContractsListViewProps {
@@ -172,6 +173,11 @@ export function ContractsListView({
         description="Draft, send, and collect signatures on your agreements."
         actions={
           <div className="flex items-center gap-2">
+            <IvoEntryPoint
+              prompt="Show contracts awaiting signature and tell me what to follow up on."
+              label="Ask Ivo"
+              variant="outline"
+            />
             <AiWorkflowTriggerButton
               active={aiOpen}
               onClick={() => setAiOpen((value) => !value)}
@@ -255,6 +261,14 @@ export function ContractsListView({
               ? {
                   label: "Create contract",
                   href: "/dashboard/contracts/new",
+                }
+              : undefined
+          }
+          secondaryAction={
+            contracts.length === 0
+              ? {
+                  label: "Ask Ivo",
+                  onClick: () => openIvo("Help me draft my first contract."),
                 }
               : undefined
           }

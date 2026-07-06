@@ -188,7 +188,7 @@ export function isBusinessDataQuestion(text: string): boolean {
   if (/\b(price|pricing|plan|plans|cost|subscription|upgrade)\b/.test(t)) {
     return false;
   }
-  return /\b(how much|how many|revenue|earned?|earnings|income|turnover|sales|paid|unpaid|owe[sd]?|outstanding|overdue|unbilled|receivable|collected|this month|last month|this year|this quarter|top clients?|best clients?|biggest clients?|largest clients?|top customer|best customer|made|balance due|collection rate|concentration|cash ?flow|business summary|how am i doing|what should i focus on|what should i do today|priorit(?:y|ies)|today'?s focus|today'?s priorities)\b/.test(
+  return /\b(how much|how many|revenue|earned?|earnings|income|turnover|sales|paid|unpaid|owe[sd]?|outstanding|overdue|unbilled|receivable|receivables|collected|collection|collections|follow ?up|followups?|this month|last month|this year|this quarter|top clients?|best clients?|biggest clients?|largest clients?|top customers?|best customers?|top customer|best customer|made|balance due|collection rate|collection plan|concentration|risk|cash ?flow|business summary|how am i doing|health|focus|attention|what needs attention|what should i focus on|what should i do today|priorit(?:y|ies)|today'?s focus|today'?s priorities)\b/.test(
     t,
   );
 }

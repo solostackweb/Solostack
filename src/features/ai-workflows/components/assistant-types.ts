@@ -121,3 +121,21 @@ export interface AiClientListRow {
   id: string;
   name: string;
 }
+
+export interface AiProjectListRow {
+  id: string;
+  name: string;
+  clientName: string;
+  status: string;
+  dueDate: string | null;
+}
+
+export interface AiWelcomeDocListRow {
+  id: string;
+  title: string;
+  clientName: string;
+  status: string;
+  views: number;
+  acknowledgements: number;
+  sentAt: string | null;
+}

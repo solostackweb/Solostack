@@ -23,6 +23,7 @@ import {
 import { formatINR, formatPercent } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import type { RevenuePoint } from "@/features/pulse/server";
+import { IvoEntryPoint } from "@/features/ai-workflows/components/ivo-entry-point";
 
 export interface BusinessCommandCenterProps {
   collectedAllTime: number;
@@ -116,15 +117,22 @@ export function BusinessCommandCenter({
                 Cash collected from paid invoices
               </p>
             </div>
-            <span
-              className={cn(
-                "inline-flex shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold",
-                state.className,
-              )}
-            >
-              <state.Icon className="h-3.5 w-3.5" />
-              {state.label}
-            </span>
+            <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
+              <span
+                className={cn(
+                  "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold",
+                  state.className,
+                )}
+              >
+                <state.Icon className="h-3.5 w-3.5" />
+                {state.label}
+              </span>
+              <IvoEntryPoint
+                variant="secondary"
+                prompt="What should I focus on today?"
+                label="Ask Ivo"
+              />
+            </div>
           </div>
 
           <div className="mt-6 space-y-4">
@@ -198,6 +206,16 @@ export function BusinessCommandCenter({
                   {formatINR(totalReceivables, { compact: true })}
                 </p>
               </div>
+              {totalReceivables > 0 ? (
+                <div className="mt-3">
+                  <IvoEntryPoint
+                    variant="outline"
+                    prompt="What should I do about my outstanding and overdue invoices?"
+                    label="Ask Ivo for a collection plan"
+                    className="w-full justify-center"
+                  />
+                </div>
+              ) : null}
             </div>
           </div>
         </div>

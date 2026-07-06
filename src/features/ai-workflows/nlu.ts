@@ -72,7 +72,7 @@ function matchWorkflowKeyword(
 
 // Terms that signal the user is asking about THEIR OWN business data/numbers.
 const DATA_QUESTION =
-  /\b(how much|how many|revenue|earned?|earnings|income|turnover|sales|paid|unpaid|owe[sd]?|outstanding|overdue|unbilled|receivable|collected|this month|last month|this year|this quarter|top client|best client|made|balance due|cash ?flow|business summary|how am i doing|what should i focus on|what should i do today|priorit(?:y|ies)|today'?s focus|today'?s priorities)\b/;
+  /\b(how much|how many|revenue|earned?|earnings|income|turnover|sales|paid|unpaid|owe[sd]?|outstanding|overdue|unbilled|receivable|receivables|collected|collection|collections|follow ?up|followups?|this month|last month|this year|this quarter|top clients?|best clients?|biggest clients?|largest clients?|top customers?|best customers?|made|balance due|cash ?flow|business summary|how am i doing|health|collection plan|focus|attention|what needs attention|what should i focus on|what should i do today|priorit(?:y|ies)|today'?s focus|today'?s priorities|concentration|risk)\b/;
 const PRICING_TERMS = /\b(price|pricing|plan|plans|cost|subscription|upgrade)\b/;
 
 function detectIntentLocally(text: string): { intent: AiIntent; confident: boolean } {
@@ -276,7 +276,7 @@ export async function interpretMessage(ctx: InterpretContext): Promise<AiInterpr
           "- If the user clearly asks to start or switch task ('now create a client', 'actually make an invoice'), set that intent with confident=true.",
           "- If the message only adds detail to the current workflow, keep the current workflow as the intent.",
           "- For product/help questions use 'support'; for greetings or small talk use 'general'.",
-          "- Use 'query' when the user ASKS ABOUT THEIR OWN business data/numbers or operational priorities — revenue, earnings, who paid / who owes, overdue or outstanding amounts, unbilled time/hours, top clients, this month / last month, GST collected, counts, business summary, cash flow, or what to focus on today. ('how much did Acme pay me', 'what's overdue', 'revenue this month', 'who hasn't paid', 'unbilled hours on X', 'how am I doing?', 'what should I focus on today?'). Do NOT use 'support' for their own numbers — 'support' is only product help / how-to / pricing / plans / policy.",
+          "- Use 'query' when the user ASKS ABOUT THEIR OWN business data/numbers or operational priorities — revenue, earnings, who paid / who owes, overdue or outstanding amounts, receivables, collection plan, follow-ups, unbilled time/hours, top clients, concentration risk, this month / last month, GST collected, counts, business summary, cash flow, or what needs attention today. ('how much did Acme pay me', 'what's overdue', 'revenue this month', 'who hasn't paid', 'unbilled hours on X', 'how am I doing?', 'what should I focus on today?', 'give me a collection plan'). Do NOT use 'support' for their own numbers — 'support' is only product help / how-to / pricing / plans / policy.",
           "",
           "FIELD KEYS by intent:",
           "- invoice: workDescription, amount, quantity, dueDate, discount, notes",

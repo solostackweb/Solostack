@@ -7,6 +7,7 @@ import { Plus, Upload, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DataTable } from "@/components/data-table/data-table";
 import { EmptyState } from "@/components/shared/empty-state";
+import { IvoEntryPoint, openIvo } from "@/features/ai-workflows/components/ivo-entry-point";
 import { cn } from "@/lib/utils";
 
 import type { ClientRecord } from "../server";
@@ -84,6 +85,11 @@ export function ClientsListView({ clients, autoCreate }: ClientsListViewProps) {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <IvoEntryPoint
+            prompt="Show my clients and tell me who I should follow up with."
+            label="Ask Ivo"
+            variant="outline"
+          />
           <Button
             onClick={() => setImportOpen(true)}
             variant="outline"
@@ -133,6 +139,14 @@ export function ClientsListView({ clients, autoCreate }: ClientsListViewProps) {
                 : "Try adjusting your search or filters, or add a new client."
             }
             action={{ label: "Add client", onClick: handleAdd }}
+            secondaryAction={
+              clients.length === 0
+                ? {
+                    label: "Ask Ivo",
+                    onClick: () => openIvo("Help me add my first client."),
+                  }
+                : undefined
+            }
           />
         }
       />

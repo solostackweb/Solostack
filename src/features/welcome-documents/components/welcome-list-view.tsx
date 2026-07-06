@@ -56,6 +56,7 @@ import {
   AiWorkflowTriggerButton,
   OperationalAiAgentWorkflow,
 } from "@/features/ai-workflows/components/operational-ai-agent-workflow";
+import { IvoEntryPoint, openIvo } from "@/features/ai-workflows/components/ivo-entry-point";
 import type { AiWelcomeDraft } from "@/features/ai-workflows/types";
 
 type StatusFilter = "all" | "draft" | "published" | "archived";
@@ -187,6 +188,11 @@ export function WelcomeListView({ documents, clients }: Props) {
         description="One personalised guide per client. Duplicate any document to reuse it for the next client."
         actions={
           <div className="flex items-center gap-2">
+            <IvoEntryPoint
+              prompt="Review my welcome documents and tell me what needs attention."
+              label="Ask Ivo"
+              variant="outline"
+            />
             <AiWorkflowTriggerButton
               active={aiOpen}
               onClick={() => setAiOpen((value) => !value)}
@@ -268,6 +274,14 @@ export function WelcomeListView({ documents, clients }: Props) {
           action={
             documents.length === 0
               ? { label: "Create welcome doc", href: WELCOME_DOCUMENT_NEW }
+              : undefined
+          }
+          secondaryAction={
+            documents.length === 0
+              ? {
+                  label: "Ask Ivo",
+                  onClick: () => openIvo("Help me prepare my first welcome document."),
+                }
               : undefined
           }
         />

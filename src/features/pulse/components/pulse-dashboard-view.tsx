@@ -41,6 +41,7 @@ import { RevenueChart as DashboardRevenueChart } from "@/components/dashboard/re
 import type { PulseAnalytics } from "../analytics";
 import type { PulseInsights } from "../insights";
 import { secondsToHours } from "@/features/time/types";
+import { IvoEntryPoint } from "@/features/ai-workflows/components/ivo-entry-point";
 
 export type PulseRange = "3m" | "6m" | "12m";
 
@@ -115,38 +116,44 @@ export function PulseDashboardView({
         title="Pulse"
         description="Revenue, receivables, collection health, and your top clients — at a glance."
         actions={
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button size="sm" variant="outline">
-                <Download className="h-4 w-4" /> Export
-                <ChevronDown className="h-3.5 w-3.5 opacity-60" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56">
-              <DropdownMenuLabel>Branded PDF</DropdownMenuLabel>
-              <DropdownMenuItem asChild>
-                <a href={exportHref("pdf")} target="_blank" rel="noopener noreferrer">
-                  <FileText className="h-4 w-4" /> Financial report
-                </a>
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuLabel>CSV</DropdownMenuLabel>
-              <DropdownMenuItem asChild>
-                <a href={exportHref("csv", "summary")}>Financial summary</a>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <a href={exportHref("csv", "ledger")}>Invoice ledger</a>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <a href={exportHref("csv", "clients")}>Client revenue</a>
-              </DropdownMenuItem>
-              {analytics.gst.inUse ? (
+          <div className="flex items-center gap-2">
+            <IvoEntryPoint
+              prompt="Give me a business summary from Pulse and tell me what needs attention."
+              label="Ask Ivo"
+            />
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button size="sm" variant="outline">
+                  <Download className="h-4 w-4" /> Export
+                  <ChevronDown className="h-3.5 w-3.5 opacity-60" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuLabel>Branded PDF</DropdownMenuLabel>
                 <DropdownMenuItem asChild>
-                  <a href={exportHref("csv", "gst")}>GST report</a>
+                  <a href={exportHref("pdf")} target="_blank" rel="noopener noreferrer">
+                    <FileText className="h-4 w-4" /> Financial report
+                  </a>
                 </DropdownMenuItem>
-              ) : null}
-            </DropdownMenuContent>
-          </DropdownMenu>
+                <DropdownMenuSeparator />
+                <DropdownMenuLabel>CSV</DropdownMenuLabel>
+                <DropdownMenuItem asChild>
+                  <a href={exportHref("csv", "summary")}>Financial summary</a>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <a href={exportHref("csv", "ledger")}>Invoice ledger</a>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <a href={exportHref("csv", "clients")}>Client revenue</a>
+                </DropdownMenuItem>
+                {analytics.gst.inUse ? (
+                  <DropdownMenuItem asChild>
+                    <a href={exportHref("csv", "gst")}>GST report</a>
+                  </DropdownMenuItem>
+                ) : null}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         }
       />
 

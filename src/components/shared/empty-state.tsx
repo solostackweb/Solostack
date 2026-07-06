@@ -12,6 +12,11 @@ export interface EmptyStateProps {
     onClick?: () => void;
     href?: string;
   };
+  secondaryAction?: {
+    label: string;
+    onClick?: () => void;
+    href?: string;
+  };
   className?: string;
 }
 
@@ -20,6 +25,7 @@ export function EmptyState({
   title,
   description,
   action,
+  secondaryAction,
   className,
 }: EmptyStateProps) {
   return (
@@ -50,25 +56,38 @@ export function EmptyState({
           {description}
         </p>
       ) : null}
-      {action ? (
-        <div className="mt-6">
-          {action.href ? (
-            <Button
-              asChild
-              size="sm"
-              className="font-semibold shadow-md shadow-primary/15 transition-shadow hover:shadow-lg hover:shadow-primary/25"
-            >
-              <a href={action.href}>{action.label}</a>
-            </Button>
-          ) : (
-            <Button
-              size="sm"
-              onClick={action.onClick}
-              className="font-semibold shadow-md shadow-primary/15 transition-shadow hover:shadow-lg hover:shadow-primary/25"
-            >
-              {action.label}
-            </Button>
-          )}
+      {action || secondaryAction ? (
+        <div className="mt-6 flex flex-wrap items-center justify-center gap-2">
+          {secondaryAction ? (
+            secondaryAction.href ? (
+              <Button asChild size="sm" variant="outline">
+                <a href={secondaryAction.href}>{secondaryAction.label}</a>
+              </Button>
+            ) : (
+              <Button size="sm" variant="outline" onClick={secondaryAction.onClick}>
+                {secondaryAction.label}
+              </Button>
+            )
+          ) : null}
+          {action ? (
+            action.href ? (
+              <Button
+                asChild
+                size="sm"
+                className="font-semibold shadow-md shadow-primary/15 transition-shadow hover:shadow-lg hover:shadow-primary/25"
+              >
+                <a href={action.href}>{action.label}</a>
+              </Button>
+            ) : (
+              <Button
+                size="sm"
+                onClick={action.onClick}
+                className="font-semibold shadow-md shadow-primary/15 transition-shadow hover:shadow-lg hover:shadow-primary/25"
+              >
+                {action.label}
+              </Button>
+            )
+          ) : null}
         </div>
       ) : null}
     </div>
