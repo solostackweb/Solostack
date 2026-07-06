@@ -127,18 +127,21 @@ export const ASSISTANT_NAME = "Ivo";
  * nothing. Returns null for substantive questions, which fall through to the
  * docs / data flow.
  */
-export function conversationalReply(text: string): string | null {
+export function conversationalReply(text: string, userName?: string | null): string | null {
   const t = text.trim().toLowerCase().replace(/[!.?,]+$/g, "");
+  const name = userName?.trim().split(/\s+/)[0] ?? "";
+  const hey = name ? `Hey ${name}` : "Hey there";
+  const you = name ? `${name}, ` : "";
 
   // Greetings — tolerant of common typos (helo, helloo, hii, heyy, gud morning).
   if (/^(hi+|hey+|h(e|a)l+o+|hii+|heyy+|yo+|hiya|hello+|namaste|namaskar|hii?ya|good ?(morning|afternoon|evening|day)|gud ?(morning|mrng|eve))\b/.test(t)) {
-    return "Hey there! \u{1F44B} I'm Ivo, your Stackivo assistant. I can create invoices, contracts and welcome docs, add clients and projects, log time, or just answer a question. What's on your plate today?";
+    return `${hey}. I'm Ivo, your Stackivo assistant. I can create invoices, contracts and welcome docs, add clients and projects, log time, or just answer a question. What's on your plate today?`;
   }
   if (/^(thanks?|thank ?(you|u)|thnx|thnks|thanx|thx|ty|tysm|great|perfect|awesome|cool|nice|ok+|okay|okey|k|got it|cheers|appreciate it)( (so much|a lot|you|u|man|mate|buddy|bro))?$/.test(t)) {
-    return "Anytime! \u{1F642} What would you like to do next?";
+    return `${name ? `Anytime, ${name}.` : "Anytime."} What would you like to do next?`;
   }
   if (/\b(can|could|may) i ask( you)?( a| you a)? ?(question|something|doubt)?\b|^ask you|are you (there|online|here)|you there/.test(t)) {
-    return "Of course \u2014 ask away. I can help with invoices, contracts, welcome docs, clients, projects, time logs, or how Stackivo works.";
+    return `Of course${name ? `, ${name}` : ""} — ask away. I can help with invoices, contracts, welcome docs, clients, projects, time logs, or how Stackivo works.`;
   }
   if (/what'?s your name|whats your name|your name|who are you|what are you/.test(t)) {
     return "I'm Ivo \u2014 your built-in Stackivo assistant. Think of me as the teammate who handles the invoicing, contracts and admin so you can focus on the actual work. What can I do for you?";
@@ -147,17 +150,17 @@ export function conversationalReply(text: string): string | null {
     return "Quite a lot! I can draft and send invoices & contracts, prepare welcome documents, add clients and projects, log billable time, and answer questions about Stackivo or freelancing in general. Just describe what you need \u2014 like \u201cInvoice Acme $1,200 for a landing page, due in 15 days.\u201d";
   }
   if (/how are you|how'?s it going|how do you do|how have you been|hope you('| a)re (doing )?(well|good)/.test(t)) {
-    return "Doing great, thanks for asking! \u{1F60A} More importantly \u2014 how can I help you today?";
+    return `Doing well, thanks for asking. More importantly, ${you}what can I take off your plate today?`;
   }
   if (/\bare you (a )?(bot|robot|ai|human|real)\b|who (made|built|created) you|are you chatgpt/.test(t)) {
     return "I'm Ivo, Stackivo's built-in AI assistant \u2014 here to take the busywork off your plate. Want me to create an invoice, draft a contract, or answer something?";
   }
   // Light empathy for venting / a rough day, then gently offer to help.
   if (/^(i'?m|im|feeling|so|really) (tired|exhausted|stressed|busy|overwhelmed|swamped|drained|done)\b|too much work|so much work|long day|rough day|tough day|hate (invoicing|paperwork|admin|this)/.test(t)) {
-    return "I hear you \u2014 running things solo is a lot. \u{1F499} Let me take some off your plate: I can chase overdue invoices, draft an invoice from a single line, or set up a contract. Want me to handle one of those?";
+    return `I hear you${name ? `, ${name}` : ""}. Running things solo can get heavy fast. Let me take something concrete off your plate: I can chase overdue invoices, draft an invoice from one line, or set up a contract. Want me to handle one of those?`;
   }
   if (/^(bye+|goodbye|see ya|see you|cya|good ?night|gn|gtg|talk later|that'?s all|nothing else|i'?m good|no that'?s it)$/.test(t)) {
-    return "Catch you later! \u{1F44B} I'm right here whenever you need me.";
+    return `Catch you later${name ? `, ${name}` : ""}. I'm right here whenever you need me.`;
   }
   return null;
 }

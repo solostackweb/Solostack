@@ -127,7 +127,7 @@ import {
  */
 const SUPPORT_ENABLED = true;
 
-export function StackivoAiAssistant({ clients, projects }: StackivoAiAssistantProps) {
+export function StackivoAiAssistant({ clients, projects, user }: StackivoAiAssistantProps) {
   const router = useRouter();
   const [mounted, setMounted] = React.useState(false);
   const [panelSlot, setPanelSlot] = React.useState<HTMLElement | null>(null);
@@ -140,6 +140,10 @@ export function StackivoAiAssistant({ clients, projects }: StackivoAiAssistantPr
   const [aiUsage, setAiUsage] = React.useState<{ used: number; limit: number; plan: string } | null>(null);
   const suggestionsLoaded = React.useRef(false);
   const submitRef = React.useRef<((text?: string) => void) | null>(null);
+  const userFirstName = React.useMemo(
+    () => user?.name?.trim().split(/\s+/)[0] ?? "",
+    [user?.name],
+  );
 
   // Load proactive "Today" nudges once when the panel first opens.
   React.useEffect(() => {
@@ -528,7 +532,7 @@ export function StackivoAiAssistant({ clients, projects }: StackivoAiAssistantPr
       }
       // Greetings and meta questions ("hi", "can I ask you a question") get a
       // natural reply instead of an empty docs lookup.
-      const chat = conversationalReply(text);
+      const chat = conversationalReply(text, userFirstName);
       if (chat) {
         push({ role: "assistant", content: chat });
         return;
@@ -559,7 +563,7 @@ export function StackivoAiAssistant({ clients, projects }: StackivoAiAssistantPr
         });
       }
     },
-    [push],
+    [push, userFirstName],
   );
 
   // ----- Data-aware Q&A (answers about the user's own business numbers) -----
@@ -1321,7 +1325,7 @@ export function StackivoAiAssistant({ clients, projects }: StackivoAiAssistantPr
         });
         return;
       }
-      const chat = conversationalReply(text);
+      const chat = conversationalReply(text, userFirstName);
       if (chat) {
         push({ role: "assistant", content: chat });
         push({
@@ -1382,7 +1386,7 @@ export function StackivoAiAssistant({ clients, projects }: StackivoAiAssistantPr
       // 1b. If a contract draft is open, revise it in place — unless the user
       // is starting a brand-new document or confidently switching workflow.
       if (activeContract) {
-        const chat = conversationalReply(text);
+        const chat = conversationalReply(text, userFirstName);
         if (chat) {
           push({ role: "assistant", content: chat });
           return;
@@ -1425,7 +1429,7 @@ export function StackivoAiAssistant({ clients, projects }: StackivoAiAssistantPr
       // 1c. If an invoice draft is open, revise it in place from the message —
       // unless the user is clearly starting a new invoice or switching workflow.
       if (activeInvoice) {
-        const chat = conversationalReply(text);
+        const chat = conversationalReply(text, userFirstName);
         if (chat) { push({ role: "assistant", content: chat }); return; }
         const switchingAway =
           !!nlu?.confident && nlu.intent !== "general" && nlu.intent !== "invoice";
@@ -1458,7 +1462,7 @@ export function StackivoAiAssistant({ clients, projects }: StackivoAiAssistantPr
 
       // 1d. If a welcome doc draft is open, revise it in place from the message.
       if (activeWelcomeDoc) {
-        const chat = conversationalReply(text);
+        const chat = conversationalReply(text, userFirstName);
         if (chat) { push({ role: "assistant", content: chat }); return; }
         const switchingAway =
           !!nlu?.confident && nlu.intent !== "general" && nlu.intent !== "welcome_document";
@@ -1497,7 +1501,7 @@ export function StackivoAiAssistant({ clients, projects }: StackivoAiAssistantPr
         pendingField &&
         !(nlu?.confident && nlu.intent !== "general" && nlu.intent !== mode)
       ) {
-        const chat = conversationalReply(text);
+        const chat = conversationalReply(text, userFirstName);
         if (chat) {
           push({ role: "assistant", content: chat });
           push({
@@ -1747,6 +1751,7 @@ export function StackivoAiAssistant({ clients, projects }: StackivoAiAssistantPr
     runListInvoices,
     runListContracts,
     runListClients,
+    userFirstName,
   ]);
 
   // Keep a live ref to handleSubmit so list rows (rendered as message content)
@@ -1901,11 +1906,10 @@ export function StackivoAiAssistant({ clients, projects }: StackivoAiAssistantPr
                     {ASSISTANT_NAME} · Stackivo AI
                   </p>
                   <h2 className="mt-1.5 text-xl font-semibold tracking-tight">
-                    {greeting} — I&apos;m {ASSISTANT_NAME} 👋
+                    {greeting}{userFirstName ? `, ${userFirstName}` : ""} — I&apos;m {ASSISTANT_NAME}
                   </h2>
                   <p className="mt-1.5 max-w-xs text-sm leading-relaxed text-muted-foreground">
-                    Tell me what you need in plain words, or pick a task below. I&apos;ll take it
-                    from there.
+                    Tell me what you need in plain words. I&apos;ll help with the admin and keep the next step clear.
                   </p>
                 </div>
 

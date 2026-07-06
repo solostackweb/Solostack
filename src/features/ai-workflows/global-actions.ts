@@ -2233,7 +2233,8 @@ export async function answerFromDocsAction(input: z.infer<typeof aiDocsQuestionS
     };
   }
 
-  const combinedContext = await getDocsContext();
+  const [combinedContext, profile] = await Promise.all([getDocsContext(), getProfile()]);
+  const userName = profile?.displayName || profile?.fullName || "";
 
   const ai = await generateStructuredJson({
     temperature: 0.4,
@@ -2243,7 +2244,7 @@ export async function answerFromDocsAction(input: z.infer<typeof aiDocsQuestionS
         role: "system",
         content: [
           "You are Ivo, Stackivo's friendly in-app assistant, talking directly to a Stackivo user (an Indian freelancer or agency owner).",
-          "Talk like a warm, encouraging human teammate — natural, concise and a little personable, never stiff, corporate, or robotic. It's fine to show a bit of warmth or light humour when it fits. Vary your phrasing; don't sound scripted. If the user seems stressed or stuck, acknowledge it briefly before helping. Only introduce yourself as Ivo if they ask who you are.",
+          "Talk like a warm, encouraging human teammate — natural, concise and a little personable, never stiff, corporate, or robotic. Use the user's first name occasionally when it feels natural, but do not force it into every reply. Vary your phrasing; don't sound scripted. If the user seems stressed or stuck, acknowledge it briefly before helping. Only introduce yourself as Ivo if they ask who you are.",
           "Your source of truth is the provided Stackivo documentation, privacy policy, and terms.",
           "Guidelines:",
           "- Understand casual, natural phrasing and map it to the right topic (e.g. 'what about billing' → Plans & Billing; 'how do I get paid' / 'can clients pay online' → Payments/Razorpay; 'is my data safe' → privacy).",
@@ -2260,6 +2261,10 @@ export async function answerFromDocsAction(input: z.infer<typeof aiDocsQuestionS
         content: JSON.stringify({
           question: parsed.data.question,
           recentMessages: (parsed.data.history ?? []).slice(-6),
+          user: {
+            name: userName,
+            businessName: profile?.businessName ?? "",
+          },
           context: combinedContext,
           requiredShape: {
             answer: "string",
@@ -2317,8 +2322,10 @@ function formatInr(value: number): string {
 function localBusinessAnswer(
   facts: Awaited<ReturnType<typeof getBusinessFacts>>,
   question: string,
+  userName?: string | null,
 ): { answer: string; suggestions: string[] } | null {
   const q = question.toLowerCase();
+  const firstName = userName?.trim().split(/\s+/)[0] ?? "";
 
   if (
     /\b(what should i focus on|what should i do today|priorit(?:y|ies)|today'?s focus|today'?s priorities)\b/.test(
@@ -2355,7 +2362,7 @@ function localBusinessAnswer(
       );
     }
     return {
-      answer: `Today's focus:\n${priorities.slice(0, 3).map((p, i) => `${i + 1}. ${p}`).join("\n")}`,
+      answer: `${firstName ? `${firstName}, here is` : "Here is"} today's focus:\n${priorities.slice(0, 3).map((p, i) => `${i + 1}. ${p}`).join("\n")}`,
       suggestions: ["Show unpaid invoices", "Who are my top clients?"],
     };
   }
@@ -2367,7 +2374,7 @@ function localBusinessAnswer(
         : `${Math.round(facts.revenue.collectionRatePct)}% collection rate`;
     return {
       answer:
-        `Here is the quick picture: ${formatInr(facts.revenue.thisMonthPaid)} paid this month, ${formatInr(facts.revenue.last12mPaid)} paid over the last 12 months, ${formatInr(facts.invoices.outstandingTotal)} outstanding, and ${formatInr(facts.invoices.overdueTotal)} overdue. You have ${formatInr(facts.unbilled.totalValue)} unbilled time and ${collection}.`,
+        `${firstName ? `${firstName}, here is` : "Here is"} the quick picture: ${formatInr(facts.revenue.thisMonthPaid)} paid this month, ${formatInr(facts.revenue.last12mPaid)} paid over the last 12 months, ${formatInr(facts.invoices.outstandingTotal)} outstanding, and ${formatInr(facts.invoices.overdueTotal)} overdue. You have ${formatInr(facts.unbilled.totalValue)} unbilled time and ${collection}.`,
       suggestions: ["What should I focus on today?", "Who owes me money?"],
     };
   }
@@ -2715,8 +2722,9 @@ export async function answerBusinessQuestionAction(
     };
   }
 
-  const facts = await getBusinessFacts();
-  const localAnswer = localBusinessAnswer(facts, parsed.data.question);
+  const [facts, profile] = await Promise.all([getBusinessFacts(), getProfile()]);
+  const userName = profile?.displayName || profile?.fullName || "";
+  const localAnswer = localBusinessAnswer(facts, parsed.data.question, userName);
   if (localAnswer) {
     return { ok: true as const, data: localAnswer };
   }
@@ -2729,7 +2737,7 @@ export async function answerBusinessQuestionAction(
         role: "system",
         content: [
           "You are Stackivo's business co-pilot for an Indian freelancer / agency owner.",
-          "Answer the user's question about THEIR OWN business using ONLY the provided `facts` (already computed from their account). Talk like a sharp, friendly teammate.",
+          "Answer the user's question about THEIR OWN business using ONLY the provided `facts` (already computed from their account). Talk like a sharp, friendly teammate. Use the user's first name occasionally when it feels natural, but do not force it.",
           "GROUNDING — this is critical:",
           "- Never invent, guess, or estimate a number that isn't in `facts`. If the exact figure isn't present, say you don't have that specific number and point them to the right place: Pulse (revenue, receivables, collection, GST), Time (hours, unbilled), or the Invoices/Clients pages for a specific record.",
           "- The snapshot covers roughly the last 12 months, plus this month, plus a LIVE receivables snapshot (outstanding/overdue are 'right now', not period-bound). If they ask about a period you don't have, say so.",
@@ -2747,6 +2755,10 @@ export async function answerBusinessQuestionAction(
         content: JSON.stringify({
           question: parsed.data.question,
           recentMessages: (parsed.data.history ?? []).slice(-6),
+          user: {
+            name: userName,
+            businessName: profile?.businessName ?? "",
+          },
           facts,
           today: facts.today,
           requiredShape: { answer: "string", suggestions: ["string"] },

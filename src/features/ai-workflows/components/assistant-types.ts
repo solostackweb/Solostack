@@ -18,6 +18,10 @@ export interface AiEntityOption {
 export interface StackivoAiAssistantProps {
   clients: AiEntityOption[];
   projects: AiEntityOption[];
+  user?: {
+    name?: string | null;
+    businessName?: string | null;
+  };
 }
 
 export type AiMode =

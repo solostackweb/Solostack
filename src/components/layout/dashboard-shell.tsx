@@ -51,7 +51,14 @@ export function DashboardShell({
           data-dashboard-content
           className="flex min-w-0 flex-1 flex-col"
         >
-          <TopNav aiClients={aiClients} aiProjects={aiProjects} />
+          <TopNav
+            aiClients={aiClients}
+            aiProjects={aiProjects}
+            aiUser={{
+              name: profile.displayName || profile.fullName,
+              businessName: profile.businessName,
+            }}
+          />
           <main
             className="flex-1"
             style={{

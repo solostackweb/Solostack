@@ -20,9 +20,13 @@ interface TopNavProps {
     country?: string | null;
   }>;
   aiProjects?: Array<{ id: string; name: string; clientId: string | null }>;
+  aiUser?: {
+    name?: string | null;
+    businessName?: string | null;
+  };
 }
 
-export function TopNav({ aiClients = [], aiProjects = [] }: TopNavProps) {
+export function TopNav({ aiClients = [], aiProjects = [], aiUser }: TopNavProps) {
   return (
     <header
       className="sticky top-0 z-30 flex items-center gap-2 border-b bg-background/80 px-3 shadow-sm backdrop-blur-xl md:gap-3 md:px-6"
@@ -57,7 +61,7 @@ export function TopNav({ aiClients = [], aiProjects = [] }: TopNavProps) {
 
       {/* Right cluster — theme toggle hidden on mobile (lives inside user menu) */}
       <div className="flex items-center gap-0.5 md:gap-1">
-        <StackivoAiAssistant clients={aiClients} projects={aiProjects} />
+        <StackivoAiAssistant clients={aiClients} projects={aiProjects} user={aiUser} />
         <NotificationsMenu />
         <span className="hidden md:inline-flex">
           <ThemeToggle />
