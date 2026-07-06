@@ -347,6 +347,8 @@ function nextMissingField(
   workflow: AiWorkflow,
   fields: AiFields,
   resolved: { clientId?: string; amount?: number; projectId?: string; projectSkipped?: boolean },
+  /** Billing currency of the resolved client — used to phrase money prompts. */
+  currency?: string,
 ): AiMissingField | null {
   for (const spec of AI_FIELD_SEQUENCE[workflow]) {
     const key = spec.field;
@@ -356,7 +358,16 @@ function nextMissingField(
       continue;
     }
     if (key === "amount") {
-      if (!resolved.amount || resolved.amount <= 0) return MISSING_FIELD_QUESTIONS.amount;
+      if (!resolved.amount || resolved.amount <= 0) {
+        if (currency && currency !== "INR") {
+          return {
+            field: "amount",
+            question: `What amount should I invoice in ${currency}? (before any discount)`,
+            tip: `This is an export invoice, so it's zero-rated — no GST is added. Enter the amount in ${currency}.`,
+          };
+        }
+        return MISSING_FIELD_QUESTIONS.amount;
+      }
       continue;
     }
     if (key === "projectId") {
@@ -1009,12 +1020,26 @@ export async function createInvoiceFromAiAction(input: AiCreateInput) {
   const fallbackDueDays = profile?.invoiceDefaultDueDays ?? 15;
   const originalSubtotal = amountFromField(field(fields, "amount"));
 
-  const missing = nextMissingField("invoice", fields, {
-    clientId,
-    amount: originalSubtotal,
-    projectId,
-    projectSkipped,
-  });
+  // Resolve the client's billing currency up front so money prompts (amount)
+  // can be phrased in the right currency for international clients.
+  let clientCurrency = "INR";
+  if (clientId) {
+    const { data: curRow } = await supabase
+      .from("clients")
+      .select("currency, is_foreign")
+      .eq("id", clientId)
+      .eq("user_id", userId)
+      .maybeSingle();
+    const cur = curRow as { currency?: string | null; is_foreign?: boolean | null } | null;
+    clientCurrency = cur?.is_foreign ? cur.currency || "USD" : "INR";
+  }
+
+  const missing = nextMissingField(
+    "invoice",
+    fields,
+    { clientId, amount: originalSubtotal, projectId, projectSkipped },
+    clientCurrency,
+  );
   if (missing) {
     return { ok: false as const, error: missing.question, missing };
   }
@@ -2245,8 +2270,10 @@ const aiWelcomeDocIdSchema = z.object({
 /** Sentinel for the "describe it myself" choice in the welcome template picker. */
 const WELCOME_CUSTOM = "__custom__";
 
-function formatInrPlain(value: number): string {
-  return `INR ${new Intl.NumberFormat("en-IN", { maximumFractionDigits: 2 }).format(value)}`;
+/** Plain-text money for emails, in the invoice's own currency (e.g. "USD 62,500"). */
+function formatMoneyPlain(value: number, currency?: string | null): string {
+  const cur = (currency || "INR").toUpperCase();
+  return `${cur} ${new Intl.NumberFormat(cur === "INR" ? "en-IN" : "en-US", { maximumFractionDigits: 2 }).format(value)}`;
 }
 
 /**
@@ -2320,7 +2347,7 @@ export async function remindOverdueInvoicesFromAiAction() {
 
     const rendered = renderInvoiceReminderEmail({
       invoiceNumber: inv.invoice_number,
-      amountFormatted: formatInrPlain(total),
+      amountFormatted: formatMoneyPlain(total, inv.currency),
       dueDate: inv.due_date ?? todayIso,
       clientName: c.full_name ?? "there",
       senderName,
