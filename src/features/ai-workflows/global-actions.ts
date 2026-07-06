@@ -436,6 +436,21 @@ function amountFromPrompt(prompt: string) {
   // Drop percentage figures (e.g. "50% upfront") first so they're never
   // mistaken for the amount, then strip thousands separators.
   const normalized = prompt.replace(/\d+(?:\.\d+)?\s*%/g, " ").replace(/,/g, "");
+  const suffix = normalized.match(
+    /\b(\d+(?:\.\d+)?)\s*(k|thousand|lakhs?|lacs?|lac|l|crores?|crore|cr)\b/i,
+  );
+  if (suffix) {
+    const n = Number(suffix[1]);
+    const unit = suffix[2].toLowerCase();
+    const mult =
+      unit === "k" || unit === "thousand"
+        ? 1e3
+        : unit.startsWith("cr") || unit.startsWith("crore")
+          ? 1e7
+          : 1e5;
+    const amount = n * mult;
+    return Number.isFinite(amount) && amount > 0 ? Math.round(amount) : 0;
+  }
   const match =
     normalized.match(new RegExp(`${CURRENCY_TOKEN}\\s*(\\d+(?:\\.\\d+)?)`, "i")) ??
     normalized.match(new RegExp(`(\\d+(?:\\.\\d+)?)\\s*${CURRENCY_TOKEN}`, "i")) ??

@@ -184,10 +184,8 @@ export function requireServerEnv() {
     // when unset, AI workflow actions return a deterministic local draft so the
     // UI can still be exercised in dev without network access.
     groqApiKey: optional(process.env.GROQ_API_KEY),
-    // Default to a fast, non-reasoning model: it's cheaper and more reliable for
-    // the structured JSON extraction/drafting the assistant does (a reasoning
-    // model burns hidden chain-of-thought tokens here for no quality gain).
-    // Override via GROQ_MODEL if you want a different Groq-hosted model.
+    // Default to Groq's current production GPT-OSS model for structured
+    // extraction and workflow drafting. Override via GROQ_MODEL if needed.
     groqModel:
       optional(process.env.GROQ_MODEL) ?? "openai/gpt-oss-120b",
     // -- Cloudflare R2 (Client Portal file storage) -----------------------

@@ -80,19 +80,15 @@ export async function generateStructuredJson({
   let lastError: unknown = null;
 
   for (const model of models) {
-    // Reasoning models handle chain-of-thought differently, and getting the
-    // params wrong makes Groq reject the request (which would silently fall back
-    // to a weaker model). Two families:
-    //   • qwen3 / deepseek-r1 / qwq — support `reasoning_format: hidden`, which
-    //     keeps the CoT out of `content`.
-    //   • openai/gpt-oss-* — do NOT support `reasoning_format` (400). They put
-    //     reasoning in a separate `reasoning` field (so `content` stays clean
-    //     JSON) and instead accept `reasoning_effort`. We use "low" to stay fast
-    //     and predictable for structured extraction.
-    // Either way reasoning tokens count toward the completion budget, so we floor
-    // max_tokens for reasoning models to avoid truncating the JSON answer.
+    // Reasoning models handle chain-of-thought differently. With Groq JSON mode,
+    // reasoning must be returned separately or hidden; raw reasoning in content
+    // is rejected. GPT-OSS also accepts `reasoning_effort`, so keep it low for
+    // fast structured extraction while still requesting hidden reasoning.
+    // Reasoning tokens count toward the completion budget, so floor max_tokens
+    // for reasoning models to avoid truncating the JSON answer.
     const isGptOss = /gpt-oss|oss-120|oss-20/i.test(model);
-    const isReasoningModel = /qwen3|qwq|deepseek-r1|-r1\b|reason/i.test(model);
+    const isReasoningModel =
+      isGptOss || /qwen3|qwq|deepseek-r1|-r1\b|reason/i.test(model);
     const effectiveMaxTokens =
       isGptOss || isReasoningModel ? Math.max(maxTokens, 4000) : maxTokens;
 
