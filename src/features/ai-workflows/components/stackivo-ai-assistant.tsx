@@ -13,10 +13,9 @@ import {
   FileSignature,
   FileText,
   Headphones,
-  LayoutDashboard,
   Lightbulb,
   Mail,
-  LayoutGrid,
+  LayoutDashboard,
   MessageCircle,
   Plus,
   ReceiptText,
@@ -27,14 +26,6 @@ import {
 
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { StackivoMark } from "@/components/brand/stackivo-logo";
 import { cn } from "@/lib/utils";
 import { INDIAN_STATES } from "@/features/gst/state-codes";
@@ -131,11 +122,10 @@ import {
 // ---------------------------------------------------------------------------
 
 /**
- * Feature flag: the AI docs/support answering surface is temporarily disabled
- * pre-launch (it needs more validation). Set to `true` to restore the support
- * quick-action and docs Q&A behaviour.
+ * Product/docs Q&A is live. Unknown or weakly-covered questions still require
+ * explicit user confirmation before creating a human support ticket.
  */
-const SUPPORT_ENABLED = false;
+const SUPPORT_ENABLED = true;
 
 export function StackivoAiAssistant({ clients, projects }: StackivoAiAssistantProps) {
   const router = useRouter();
@@ -524,9 +514,8 @@ export function StackivoAiAssistant({ clients, projects }: StackivoAiAssistantPr
 
   // ----- Conversational support / docs answering -----
   //
-  // TEMPORARILY DISABLED (pre-launch): the docs/support answering surface is
-  // hidden until it's fully validated. Flip SUPPORT_ENABLED back to true to
-  // restore the support quick-action and docs Q&A behaviour.
+  // Answers product/docs questions directly. If the docs are not enough, Ivo
+  // offers to forward the issue to support, but never files a ticket silently.
   const runSupport = React.useCallback(
     async (text: string, fileTicket: boolean) => {
       if (!SUPPORT_ENABLED) {
@@ -1842,37 +1831,20 @@ export function StackivoAiAssistant({ clients, projects }: StackivoAiAssistantPr
               </span>
             </div>
             <div className="flex shrink-0 items-center gap-0.5">
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8"
-                    aria-label="What can I do?"
-                  >
-                    <LayoutGrid className="h-4 w-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56">
-                  <DropdownMenuLabel>Start a workflow</DropdownMenuLabel>
-                  {QUICK_ACTIONS.map((action) => (
-                    <DropdownMenuItem
-                      key={action.mode}
-                      onSelect={() => selectMode(action.mode)}
-                      className="gap-2"
-                    >
-                      <action.icon className="h-3.5 w-3.5 text-muted-foreground" />
-                      {action.title}
-                    </DropdownMenuItem>
-                  ))}
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onSelect={handleNewConversation} className="gap-2">
-                    <Plus className="h-3.5 w-3.5 text-muted-foreground" />
-                    New conversation
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+              {aiUsage && aiUsage.limit >= 0 ? (
+                <span
+                  className={cn(
+                    "mr-1 hidden items-center rounded-full border px-2 py-1 text-[11px] font-semibold tabular-nums sm:inline-flex",
+                    aiUsage.used >= aiUsage.limit
+                      ? "border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300"
+                      : "border-primary/20 bg-primary/5 text-primary",
+                  )}
+                  title={`${Math.min(aiUsage.used, aiUsage.limit)}/${aiUsage.limit} AI messages this month · ${aiUsage.plan} plan`}
+                >
+                  {Math.min(aiUsage.used, aiUsage.limit)}/{aiUsage.limit}
+                  <span className="ml-1 text-muted-foreground">AI</span>
+                </span>
+              ) : null}
               <Button
                 type="button"
                 variant="ghost"
@@ -2122,26 +2094,11 @@ export function StackivoAiAssistant({ clients, projects }: StackivoAiAssistantPr
               </Button>
             </div>
             <div className="mt-2 space-y-1 px-1">
-              {aiUsage && aiUsage.limit >= 0 ? (
-                <p
-                  className={cn(
-                    "text-[11px] font-medium tabular-nums",
-                    aiUsage.used >= aiUsage.limit
-                      ? "text-amber-600 dark:text-amber-400"
-                      : "text-muted-foreground",
-                  )}
-                >
-                  {Math.min(aiUsage.used, aiUsage.limit)}/{aiUsage.limit} AI messages this month
-                  <span className="text-muted-foreground/60"> · {aiUsage.plan} plan</span>
-                </p>
-              ) : null}
               <p className="flex flex-wrap items-center gap-1.5 text-[11px] text-muted-foreground">
                 <Lightbulb className="h-3 w-3 shrink-0 text-primary/60" />
-                Tip: use the
-                <LayoutGrid className="inline h-3 w-3 shrink-0" />
-                menu to switch tasks, or
+                Tip: use
                 <Plus className="inline h-3 w-3 shrink-0" />
-                to start a new chat.
+                to start fresh, or just ask Ivo to switch tasks.
               </p>
               <p className="text-center text-[10px] text-muted-foreground/70">
                 AI can make mistakes — please review everything before approving or sending.

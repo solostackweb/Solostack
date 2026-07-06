@@ -190,6 +190,11 @@
   }
 }
 
+.stackivo-ai-open button[aria-label="Open support chat"],
+.stackivo-ai-open [role="dialog"][aria-label="Support chat"] {
+  display: none !important;
+}
+
 /* Mobile / PWA: the rail is hidden below md, so render the panel as a
    full-screen overlay that slides in from the right. */
 @media (max-width: 767px) {

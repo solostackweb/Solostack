@@ -318,7 +318,7 @@ const MISSING_FIELD_QUESTIONS: Record<string, AiMissingField> = {
     question: "Any discount? Enter an amount or %, or reply “skip”.",
     placeholder: "Example: 5000 or 10%",
     optional: true,
-    suggestions: ["No discount", "10%", "₹5000 off"],
+    suggestions: ["No discount", "10%"],
   },
   dueDate: {
     field: "dueDate",
@@ -333,6 +333,17 @@ const MISSING_FIELD_QUESTIONS: Record<string, AiMissingField> = {
 /** Human-readable state name for a GST state code (for confirmation summaries). */
 function stateName(code: string): string {
   return INDIAN_STATES.find((s) => s.code === code)?.name ?? "—";
+}
+
+function discountQuestion(currency?: string): AiMissingField {
+  const cur = (currency || "INR").toUpperCase();
+  const flatExample = cur === "INR" ? "₹5000 off" : `${cur} 5 off`;
+  return {
+    ...MISSING_FIELD_QUESTIONS.discount,
+    question: `Any discount? Enter a ${cur} amount or %, or reply “skip”.`,
+    placeholder: cur === "INR" ? "Example: ₹5000 or 10%" : `Example: ${cur} 5 or 10%`,
+    suggestions: ["No discount", "10%", flatExample],
+  };
 }
 
 /**
@@ -395,6 +406,7 @@ function nextMissingField(
       }
       if (!satisfied) {
         const q = MISSING_FIELD_QUESTIONS[key] ?? { field: key, question: `Add ${key}? (or reply skip)` };
+        if (key === "discount") return discountQuestion(currency);
         return { ...q, optional: true };
       }
       continue;
@@ -2307,6 +2319,58 @@ function localBusinessAnswer(
   question: string,
 ): { answer: string; suggestions: string[] } | null {
   const q = question.toLowerCase();
+
+  if (
+    /\b(what should i focus on|what should i do today|priorit(?:y|ies)|today'?s focus|today'?s priorities)\b/.test(
+      q,
+    )
+  ) {
+    const priorities: string[] = [];
+    if (facts.invoices.overdueTotal > 0) {
+      priorities.push(
+        `Chase ${formatInr(facts.invoices.overdueTotal)} overdue across ${facts.invoices.overdueCount} invoice${facts.invoices.overdueCount === 1 ? "" : "s"}.`,
+      );
+    }
+    if (facts.unbilled.totalValue > 0) {
+      priorities.push(
+        `Invoice ${formatInr(facts.unbilled.totalValue)} of unbilled time (${facts.unbilled.totalHours}h).`,
+      );
+    }
+    if (facts.invoices.outstandingTotal > 0 && facts.invoices.overdueTotal === 0) {
+      priorities.push(
+        `Keep an eye on ${formatInr(facts.invoices.outstandingTotal)} outstanding receivables.`,
+      );
+    }
+    if (
+      facts.clients.revenueConcentrationTop1Pct != null &&
+      facts.clients.revenueConcentrationTop1Pct >= 50
+    ) {
+      priorities.push(
+        `Reduce concentration risk: your top client is ${Math.round(facts.clients.revenueConcentrationTop1Pct)}% of revenue.`,
+      );
+    }
+    if (priorities.length === 0) {
+      priorities.push(
+        "No urgent cash-flow flags right now. Good day to review your pipeline, follow up with warm leads, or package recent work into a case study.",
+      );
+    }
+    return {
+      answer: `Today's focus:\n${priorities.slice(0, 3).map((p, i) => `${i + 1}. ${p}`).join("\n")}`,
+      suggestions: ["Show unpaid invoices", "Who are my top clients?"],
+    };
+  }
+
+  if (/\b(business summary|how am i doing|cash ?flow|summary|overview)\b/.test(q)) {
+    const collection =
+      facts.revenue.collectionRatePct == null
+        ? "collection rate unavailable yet"
+        : `${Math.round(facts.revenue.collectionRatePct)}% collection rate`;
+    return {
+      answer:
+        `Here is the quick picture: ${formatInr(facts.revenue.thisMonthPaid)} paid this month, ${formatInr(facts.revenue.last12mPaid)} paid over the last 12 months, ${formatInr(facts.invoices.outstandingTotal)} outstanding, and ${formatInr(facts.invoices.overdueTotal)} overdue. You have ${formatInr(facts.unbilled.totalValue)} unbilled time and ${collection}.`,
+      suggestions: ["What should I focus on today?", "Who owes me money?"],
+    };
+  }
 
   if (/\b(top|best|biggest|largest)\b/.test(q) && /\b(clients?|customers?)\b/.test(q)) {
     const rows = facts.clients.topByRevenue.slice(0, 3);
