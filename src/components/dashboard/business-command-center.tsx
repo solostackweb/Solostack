@@ -24,7 +24,6 @@ import { formatINR, formatPercent } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import type { RevenuePoint } from "@/features/pulse/server";
 import { IvoEntryPoint } from "@/features/ai-workflows/components/ivo-entry-point";
-import type { AssistantSuggestion } from "@/features/ai-workflows/suggestions";
 
 export interface BusinessCommandCenterProps {
   collectedAllTime: number;
@@ -34,7 +33,6 @@ export interface BusinessCommandCenterProps {
   weeklyBillableSeconds?: number;
   weeklyBillableAmount?: number;
   revenueSeries: RevenuePoint[];
-  assistantSuggestions?: AssistantSuggestion[];
 }
 
 function formatMonthLabel(key: string) {
@@ -62,7 +60,6 @@ export function BusinessCommandCenter({
   weeklyBillableSeconds = 0,
   weeklyBillableAmount = 0,
   revenueSeries,
-  assistantSuggestions = [],
 }: BusinessCommandCenterProps) {
   const totalReceivables = outstanding + overdueAmount;
   const overdueShare =
@@ -81,7 +78,6 @@ export function BusinessCommandCenter({
         ? 100
         : 0;
   const bestMonth = Math.max(0, ...revenueSeries.map((point) => point.paid));
-  const ivoInsight = assistantSuggestions[0] ?? null;
 
   const state =
     overdueAmount > 0
@@ -196,50 +192,6 @@ export function BusinessCommandCenter({
               />
             </div>
 
-            <div className="grid gap-3 lg:grid-cols-2">
-              {ivoInsight ? (
-                <div className="flex min-h-[72px] flex-col justify-between gap-2 rounded-lg border border-primary/10 bg-background/70 px-3 py-2.5">
-                  <div className="min-w-0">
-                    <p className="text-[11px] font-semibold uppercase tracking-wider text-primary">
-                      Ivo insight
-                    </p>
-                    <p className="mt-0.5 line-clamp-2 text-sm leading-snug text-foreground">
-                      {ivoInsight.title}
-                    </p>
-                  </div>
-                  <IvoEntryPoint
-                    prompt={ivoInsight.prompt}
-                    label="Ask"
-                    variant="ghost"
-                    className="h-7 w-fit shrink-0 justify-center px-2"
-                  />
-                </div>
-              ) : null}
-
-              <div className="flex min-h-[72px] flex-col justify-between gap-2 rounded-lg border border-border/60 bg-muted/20 p-3">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <p className="text-xs font-semibold text-foreground">
-                      Receivables at risk
-                    </p>
-                    <p className="mt-0.5 line-clamp-2 text-xs leading-snug text-muted-foreground">
-                      Prioritize overdue invoices before chasing new revenue.
-                    </p>
-                  </div>
-                  <p className="shrink-0 font-mono text-sm font-semibold tabular-nums">
-                    {formatINR(totalReceivables, { compact: true })}
-                  </p>
-                </div>
-                {totalReceivables > 0 ? (
-                  <IvoEntryPoint
-                    variant="ghost"
-                    prompt="What should I do about my outstanding and overdue invoices?"
-                    label="Collection plan"
-                    className="h-7 w-fit justify-center px-2"
-                  />
-                ) : null}
-              </div>
-            </div>
           </div>
         </div>
 

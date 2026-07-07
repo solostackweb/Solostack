@@ -22,7 +22,6 @@ import {
 import { getBusinessProfile } from "@/features/onboarding/server";
 import { getCurrentSubscription } from "@/features/subscription/server";
 import { FreePlanBanner } from "@/components/dashboard/free-plan-banner";
-import { getAssistantSuggestions } from "@/features/ai-workflows/suggestions";
 
 export const metadata = { title: "Dashboard" };
 export const dynamic = "force-dynamic";
@@ -39,18 +38,15 @@ function firstNameOf(
 // ─── Async streaming sections ────────────────────────────────────────────────
 
 async function KpiSection() {
-  const [
-    {
-      collectedAllTime,
-      outstanding,
-      overdueAmount,
-      activeProjects,
-      weeklyBillableSeconds,
-      weeklyBillableAmount,
-      revenueSeries,
-    },
-    assistantSuggestions,
-  ] = await Promise.all([getKpiSnapshot(), getAssistantSuggestions()]);
+  const {
+    collectedAllTime,
+    outstanding,
+    overdueAmount,
+    activeProjects,
+    weeklyBillableSeconds,
+    weeklyBillableAmount,
+    revenueSeries,
+  } = await getKpiSnapshot();
   return (
     <BusinessCommandCenterLazy
       collectedAllTime={collectedAllTime}
@@ -60,7 +56,6 @@ async function KpiSection() {
       weeklyBillableSeconds={weeklyBillableSeconds}
       weeklyBillableAmount={weeklyBillableAmount}
       revenueSeries={revenueSeries}
-      assistantSuggestions={assistantSuggestions}
     />
   );
 }
