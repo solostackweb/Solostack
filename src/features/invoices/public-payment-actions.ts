@@ -38,6 +38,7 @@ import { getUserPaymentMethod } from "@/features/billing/payment-methods";
 import { requireServerEnv } from "@/config/env";
 import { generateReceiptForInvoice } from "./receipts";
 import { sendInvoiceReceiptAction } from "./delivery";
+import { formatCurrencyAmount } from "@/lib/format";
 import type { InvoicePaymentAttemptRow, InvoiceRow } from "@/lib/supabase/types";
 
 export type PublicPaymentResult =
@@ -338,7 +339,7 @@ export async function verifyInvoicePaymentAction(input: {
     user_id: invoice.user_id,
     type: "invoice_paid",
     title: `Invoice ${invoice.invoice_number} paid`,
-    message: `Your client just paid ${invoice.currency} ${invoice.total_amount}. Payout to your bank in 1-2 business days.`,
+    message: `Your client just paid ${formatCurrencyAmount(Number(invoice.total_amount), invoice.currency)}. Payout to your bank in 1-2 business days.`,
   } as never);
 
   if (payerEmail) {

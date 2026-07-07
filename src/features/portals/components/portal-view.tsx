@@ -68,6 +68,7 @@ import { EnablePushButton } from "./enable-push-button";
 import { PortalQrCard } from "./portal-qr-card";
 import { PortalFileUploadButton } from "./file-upload-button";
 import { TypingDots } from "./typing-dots";
+import { formatCurrencyAmount } from "@/lib/format";
 import {
   invitePortalMemberAction,
   deletePortalFileAction,
@@ -2611,17 +2612,13 @@ function EmptyState({
 // ============================================================================
 
 function formatPortalCurrency(currency: string, amount: number): string {
-  if (!Number.isFinite(amount)) return `${currency} 0`;
-  return `${currency} ${new Intl.NumberFormat("en-IN", {
-    minimumFractionDigits: Number.isInteger(amount) ? 0 : 2,
-    maximumFractionDigits: 2,
-  }).format(amount)}`;
+  return formatCurrencyAmount(amount, currency);
 }
 
 function formatGroupedPortalCurrency(
   invoices: Array<{ total_amount: number; currency: string | null }>,
 ): string {
-  if (invoices.length === 0) return "INR 0";
+  if (invoices.length === 0) return formatPortalCurrency("INR", 0);
   const totals = new Map<string, number>();
   for (const invoice of invoices) {
     const currency = (invoice.currency || "INR").toUpperCase();

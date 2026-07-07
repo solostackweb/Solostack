@@ -467,7 +467,7 @@ export function EditInvoiceView({
                 <p className="text-xs leading-relaxed text-muted-foreground">
                   Clients pay using the method set in your{" "}
                   <Link
-                    href="/dashboard/settings/invoice"
+                    href="/dashboard/settings/payments"
                     className="font-medium text-primary hover:underline"
                   >
                     payment settings

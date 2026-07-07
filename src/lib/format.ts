@@ -26,17 +26,42 @@ export function formatMoney(
   currency = "INR",
   locale?: string,
 ): string {
+  return formatCurrencyAmount(value, currency, locale);
+}
+
+const CURRENCY_SYMBOLS: Record<string, string> = {
+  INR: "₹",
+  USD: "$",
+  EUR: "€",
+  GBP: "£",
+  JPY: "¥",
+  AUD: "A$",
+  CAD: "C$",
+  SGD: "S$",
+  AED: "د.إ",
+};
+
+export function formatCurrencyAmount(
+  value: number,
+  currency = "INR",
+  locale?: string,
+): string {
   const safe = Number.isFinite(value) ? value : 0;
   const cur = (currency || "INR").toUpperCase();
   const loc = locale || (cur === "INR" ? "en-IN" : "en-US");
+  const symbol = CURRENCY_SYMBOLS[cur];
+  const sign = safe < 0 ? "-" : "";
+  const absolute = Math.abs(safe);
+
   try {
-    return new Intl.NumberFormat(loc, {
-      style: "currency",
-      currency: cur,
-      maximumFractionDigits: cur === "INR" ? 0 : 2,
-    }).format(safe);
+    const amount = new Intl.NumberFormat(loc, {
+      minimumFractionDigits: Number.isInteger(absolute) ? 0 : 2,
+      maximumFractionDigits: 2,
+    }).format(absolute);
+
+    return symbol ? `${sign}${symbol}${amount}` : `${sign}${cur} ${amount}`;
   } catch {
-    return `${cur} ${safe.toFixed(2)}`;
+    return `${sign}${symbol ?? `${cur} `}${absolute.toFixed(2)}`;
   }
 }
 

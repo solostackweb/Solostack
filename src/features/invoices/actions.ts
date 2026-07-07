@@ -27,6 +27,7 @@ import { recordActivity } from "@/features/activity/server";
 import { markTimeEntriesInvoiced } from "@/features/time/server";
 import { createNotification } from "@/features/notifications/server";
 import { generateReceiptForInvoice } from "./receipts";
+import { formatCurrencyAmount } from "@/lib/format";
 import type { ClientRow, UserProfileRow } from "@/lib/supabase/types";
 
 export type ActionResult<T = undefined> =
@@ -609,7 +610,7 @@ export async function setInvoiceStatusAction(
     await createNotification({
       type: "invoice_paid",
       title: `Invoice ${invoice.invoice_number} marked paid`,
-      message: `${invoice.currency} ${Number(invoice.total_amount).toFixed(2)} has been recorded as paid.`,
+      message: `${formatCurrencyAmount(Number(invoice.total_amount), invoice.currency)} has been recorded as paid.`,
     });
   }
 

@@ -24,6 +24,7 @@ import { dispatchDelivery } from "@/features/email/send";
 import { getEmailSender } from "@/features/email/senders";
 import { renderInvoiceReminderEmail } from "@/features/email/templates";
 import { getInvoiceShareUrl } from "@/features/documents/urls";
+import { formatCurrencyAmount } from "@/lib/format";
 
 import { recordCronRun } from "@/lib/cron/record";
 
@@ -112,7 +113,7 @@ export async function GET(req: Request): Promise<Response> {
         user_id: inv.user_id,
         type: "invoice_overdue",
         title: `Invoice ${inv.invoice_number} is overdue`,
-        message: `Due ${inv.due_date} · ${inv.currency} ${inv.total_amount}`,
+        message: `Due ${inv.due_date} · ${formatCurrency(Number(inv.total_amount), inv.currency)}`,
       } as never);
       await admin.from("activity_events").insert({
         user_id: inv.user_id,
@@ -241,9 +242,5 @@ function daysBetween(dueIso: string, todayIso: string): number {
 }
 
 function formatCurrency(value: number, currency: string): string {
-  const amount = new Intl.NumberFormat("en-IN", {
-    minimumFractionDigits: Number.isInteger(value) ? 0 : 2,
-    maximumFractionDigits: 2,
-  }).format(value);
-  return `${currency} ${amount}`;
+  return formatCurrencyAmount(value, currency);
 }

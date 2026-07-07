@@ -23,6 +23,7 @@ import {
 } from "@react-pdf/renderer";
 import { pdfColors, pdfSpacing, pdfSizes, pdfFonts, pdfRadii, pdfTracking, pdfLineHeights } from "./theme";
 import type { ResolvedBrand } from "./brand";
+import { formatCurrencyAmount } from "@/lib/format";
 
 // =============================================================================
 // PAGE
@@ -1026,10 +1027,5 @@ export function formatDateTime(iso: string | null | undefined): string {
 }
 
 export function formatCurrency(value: number, currency: string): string {
-  if (!Number.isFinite(value)) return `${currency} 0`;
-  const amount = new Intl.NumberFormat("en-IN", {
-    minimumFractionDigits: Number.isInteger(value) ? 0 : 2,
-    maximumFractionDigits: 2,
-  }).format(value);
-  return `${currency} ${amount}`;
+  return formatCurrencyAmount(value, currency);
 }

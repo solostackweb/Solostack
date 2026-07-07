@@ -15,6 +15,7 @@ import { getUserPaymentMethod } from "@/features/billing/payment-methods";
 import { PublicUpiPanel } from "@/features/invoices/components/public-upi-panel";
 import { renderUpiQrSvg } from "@/features/invoices/upi";
 import { getOrCreateInvoiceVirtualAccount } from "@/features/billing/razorpay/smart-collect";
+import { formatCurrencyAmount } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -547,10 +548,5 @@ export default async function PublicInvoicePage({ params }: Props) {
 }
 
 function fmt(value: number, currency: string): string {
-  if (!Number.isFinite(value)) return `${currency} 0`;
-  const amt = new Intl.NumberFormat("en-IN", {
-    minimumFractionDigits: Number.isInteger(value) ? 0 : 2,
-    maximumFractionDigits: 2,
-  }).format(value);
-  return `${currency} ${amt}`;
+  return formatCurrencyAmount(value, currency);
 }

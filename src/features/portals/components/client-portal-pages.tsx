@@ -38,6 +38,7 @@ import { UpdatesSection } from "./updates-section";
 import { MeetingsSection } from "./meetings-section";
 import type { ViewProps } from "./portal-view";
 import type { PortalFileRow, PortalDocumentType } from "@/lib/supabase/types";
+import { formatCurrencyAmount } from "@/lib/format";
 
 type ClientPortalProps = ViewProps;
 
@@ -1269,11 +1270,7 @@ function categoryLabel(category: string): string {
 }
 
 function formatPortalCurrency(currency: string, amount: number): string {
-  if (!Number.isFinite(amount)) return `${currency} 0`;
-  return `${currency} ${new Intl.NumberFormat("en-IN", {
-    minimumFractionDigits: Number.isInteger(amount) ? 0 : 2,
-    maximumFractionDigits: 2,
-  }).format(amount)}`;
+  return formatCurrencyAmount(amount, currency);
 }
 
 function formatPortalCurrencyGroups(

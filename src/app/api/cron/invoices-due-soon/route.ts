@@ -27,6 +27,7 @@ import { dispatchDelivery } from "@/features/email/send";
 import { getEmailSender } from "@/features/email/senders";
 import { renderInvoiceReminderEmail } from "@/features/email/templates";
 import { getInvoiceShareUrl } from "@/features/documents/urls";
+import { formatCurrencyAmount } from "@/lib/format";
 
 import { recordCronRun } from "@/lib/cron/record";
 
@@ -205,11 +206,7 @@ export async function GET(req: Request): Promise<Response> {
 }
 
 function formatCurrency(value: number, currency: string): string {
-  const amount = new Intl.NumberFormat("en-IN", {
-    minimumFractionDigits: Number.isInteger(value) ? 0 : 2,
-    maximumFractionDigits: 2,
-  }).format(value);
-  return `${currency} ${amount}`;
+  return formatCurrencyAmount(value, currency);
 }
 
 /** Whole days from `fromIso` to `toIso` (UTC midnights). */

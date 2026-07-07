@@ -15,6 +15,7 @@ import {
 import { PortalView } from "@/features/portals/components/portal-view";
 import { isR2Configured } from "@/lib/r2/client";
 import { portalClientHome } from "@/features/portals/routes";
+import { formatCurrencyAmount } from "@/lib/format";
 
 export const metadata = { title: "Portal" };
 
@@ -298,18 +299,13 @@ function PortalMoneyStat({ label, value }: { label: string; value: string }) {
 function formatGroupedMoney(
   invoices: Array<{ total_amount: number; currency: string | null }>,
 ): string {
-  if (invoices.length === 0) return "INR 0";
+  if (invoices.length === 0) return formatCurrencyAmount(0, "INR");
   const totals = new Map<string, number>();
   for (const invoice of invoices) {
     const currency = (invoice.currency || "INR").toUpperCase();
     totals.set(currency, (totals.get(currency) ?? 0) + Number(invoice.total_amount));
   }
   return Array.from(totals.entries())
-    .map(([currency, amount]) => {
-      const value = new Intl.NumberFormat("en-IN", {
-        maximumFractionDigits: 2,
-      }).format(amount);
-      return `${currency} ${value}`;
-    })
+    .map(([currency, amount]) => formatCurrencyAmount(amount, currency))
     .join(" + ");
 }

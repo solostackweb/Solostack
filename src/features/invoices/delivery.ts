@@ -26,6 +26,7 @@ import { dispatchDelivery, pdfAttachment } from "@/features/email/send";
 import { getEmailSender } from "@/features/email/senders";
 import { recordActivity } from "@/features/activity/server";
 import { createNotification } from "@/features/notifications/server";
+import { formatCurrencyAmount } from "@/lib/format";
 
 export type ActionResult<T = undefined> =
   | { ok: true; data?: T; message?: string }
@@ -436,9 +437,5 @@ function roundMoney(value: number): number {
 }
 
 function formatCurrency(value: number, currency: string): string {
-  const amount = new Intl.NumberFormat("en-IN", {
-    minimumFractionDigits: Number.isInteger(value) ? 0 : 2,
-    maximumFractionDigits: 2,
-  }).format(value);
-  return `${currency} ${amount}`;
+  return formatCurrencyAmount(value, currency);
 }
