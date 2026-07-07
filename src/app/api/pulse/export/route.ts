@@ -54,7 +54,7 @@ export async function GET(req: Request) {
         .toISOString()
         .slice(0, 10);
 
-  const rangeLabel = `${fmtDay(from)} – ${fmtDay(to)}`;
+  const rangeLabel = `${fmtDay(from)} - ${fmtDay(to)}`;
   const stamp = new Date().toISOString().slice(0, 10);
 
   if (format === "pdf") {
@@ -85,7 +85,7 @@ export async function GET(req: Request) {
     const analytics = await getPulseAnalytics({ from, to });
     if (!analytics.gst.inUse) {
       return NextResponse.json(
-        { error: "GST report not available — no GST registration or GST invoices." },
+        { error: "GST report not available - no GST registration or GST invoices." },
         { status: 400 },
       );
     }

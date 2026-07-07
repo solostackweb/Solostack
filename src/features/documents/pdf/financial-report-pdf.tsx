@@ -65,7 +65,7 @@ export function FinancialReportPdf({ data }: { data: FinancialReportPdfData }) {
               label: "Collection rate",
               value:
                 a.invoices.collectionRatePct === null
-                  ? "—"
+                  ? "-"
                   : `${Math.round(a.invoices.collectionRatePct)}%`,
             },
           ]}
@@ -73,10 +73,11 @@ export function FinancialReportPdf({ data }: { data: FinancialReportPdfData }) {
 
         <MetaGrid
           items={[
+            { label: "Issued value", value: inr(a.invoices.issuedTotal) },
             { label: "Overdue", value: inr(a.receivables.overdueTotal) },
             {
               label: "Avg days to pay",
-              value: a.cashFlow.avgDaysToPay === null ? "—" : `${a.cashFlow.avgDaysToPay}d`,
+              value: a.cashFlow.avgDaysToPay === null ? "-" : `${a.cashFlow.avgDaysToPay}d`,
             },
             {
               label: "Invoices paid",
@@ -86,14 +87,14 @@ export function FinancialReportPdf({ data }: { data: FinancialReportPdfData }) {
               label: "Top client share",
               value:
                 ins.concentration.top1Pct === null
-                  ? "—"
+                  ? "-"
                   : `${Math.round(ins.concentration.top1Pct)}%`,
             },
           ]}
         />
 
         <Section eyebrow="Revenue by month">
-          <LineItemsTable<{ month: string; paid: number }>
+          <LineItemsTable<{ month: string; paid: number; issued: number; paidInvoices: number; issuedInvoices: number }>
             brand={data.brand}
             rows={a.revenue.series}
             columns={[
@@ -110,6 +111,55 @@ export function FinancialReportPdf({ data }: { data: FinancialReportPdfData }) {
                 align: "right",
                 render: (r) => <TableCellText align="right" bold>{inr(r.paid)}</TableCellText>,
               },
+              {
+                key: "i",
+                header: "Issued",
+                flex: 2,
+                align: "right",
+                render: (r) => <TableCellText align="right">{inr(r.issued)}</TableCellText>,
+              },
+              {
+                key: "c",
+                header: "Paid / issued",
+                flex: 1.5,
+                align: "right",
+                render: (r) => (
+                  <TableCellText align="right">
+                    {r.paidInvoices}/{r.issuedInvoices}
+                  </TableCellText>
+                ),
+              },
+            ]}
+            zebra={false}
+          />
+        </Section>
+
+        <Section eyebrow="Invoice funnel">
+          <LineItemsTable<{ stage: string; count: number; rate: string }>
+            brand={data.brand}
+            rows={[
+              { stage: "Issued", count: a.funnel.issued, rate: "100%" },
+              {
+                stage: "Viewed",
+                count: a.funnel.viewed,
+                rate:
+                  a.funnel.viewedRatePct === null
+                    ? "-"
+                    : `${Math.round(a.funnel.viewedRatePct)}%`,
+              },
+              {
+                stage: "Paid",
+                count: a.funnel.paid,
+                rate:
+                  a.funnel.paidRatePct === null
+                    ? "-"
+                    : `${Math.round(a.funnel.paidRatePct)}%`,
+              },
+            ]}
+            columns={[
+              { key: "s", header: "Stage", flex: 2, render: (r) => <TableCellText>{r.stage}</TableCellText> },
+              { key: "c", header: "Count", flex: 1, align: "right", render: (r) => <TableCellText align="right">{r.count}</TableCellText> },
+              { key: "r", header: "Rate", flex: 1, align: "right", render: (r) => <TableCellText align="right">{r.rate}</TableCellText> },
             ]}
             zebra={false}
           />
@@ -162,6 +212,24 @@ export function FinancialReportPdf({ data }: { data: FinancialReportPdfData }) {
           </Section>
         ) : null}
 
+        <Section eyebrow="Time profitability">
+          <LineItemsTable<{ metric: string; value: string }>
+            brand={data.brand}
+            rows={[
+              { metric: "Tracked hours", value: `${(ins.profitability.trackedSeconds / 3600).toFixed(2)}h` },
+              { metric: "Billable hours", value: `${(ins.profitability.billableSeconds / 3600).toFixed(2)}h` },
+              { metric: "Invoiced time value", value: inr(ins.profitability.invoicedAmount) },
+              { metric: "Unbilled time value", value: inr(ins.profitability.unbilledAmount) },
+              { metric: "Effective rate", value: `${inr(ins.profitability.effectiveRate)}/hr` },
+            ]}
+            columns={[
+              { key: "m", header: "Metric", flex: 2, render: (r) => <TableCellText>{r.metric}</TableCellText> },
+              { key: "v", header: "Value", flex: 2, align: "right", render: (r) => <TableCellText align="right" bold>{r.value}</TableCellText> },
+            ]}
+            zebra={false}
+          />
+        </Section>
+
         {ins.concentration.byClient.length > 0 ? (
           <Section eyebrow="Top clients">
             <LineItemsTable<{ name: string; paid: number; pct: number }>
@@ -177,7 +245,7 @@ export function FinancialReportPdf({ data }: { data: FinancialReportPdfData }) {
           </Section>
         ) : null}
 
-        <DocumentFooter brand={data.brand} label={`Financial report · ${data.rangeLabel}`} />
+        <DocumentFooter brand={data.brand} label={`Financial report - ${data.rangeLabel}`} />
       </DocumentPage>
     </Document>
   );

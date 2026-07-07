@@ -20,10 +20,10 @@ import { getPulseInsights, type PulseInsights } from "./insights";
 
 function csvCell(v: string | number | boolean): string {
   const s = typeof v === "boolean" ? (v ? "Yes" : "No") : String(v);
-  if (/[",\n]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
+  if (/[",\r\n]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
   return s;
 }
-const BOM = "﻿";
+const BOM = "\uFEFF";
 const fmt = (n: number) => (Math.round(n * 100) / 100).toFixed(2);
 
 // --- Summary CSV ------------------------------------------------------------
@@ -36,6 +36,7 @@ export function buildSummaryCsv(
   const rows: Array<[string, string]> = [
     ["Range", `${a.range.from} to ${a.range.to}`],
     ["Revenue (paid)", fmt(a.revenue.paid)],
+    ["Revenue (issued)", fmt(a.invoices.issuedTotal)],
     ["Average monthly", fmt(a.revenue.averageMonthly)],
     ["MoM growth %", a.revenue.momGrowthPct === null ? "" : fmt(a.revenue.momGrowthPct)],
     ["Invoices issued", String(a.invoices.issuedCount)],
@@ -54,6 +55,8 @@ export function buildSummaryCsv(
     ["Funnel issued", String(a.funnel.issued)],
     ["Funnel viewed", String(a.funnel.viewed)],
     ["Funnel paid", String(a.funnel.paid)],
+    ["Viewed rate %", a.funnel.viewedRatePct === null ? "" : fmt(a.funnel.viewedRatePct)],
+    ["Paid rate %", a.funnel.paidRatePct === null ? "" : fmt(a.funnel.paidRatePct)],
     ["Top client share %", insights.concentration.top1Pct === null ? "" : fmt(insights.concentration.top1Pct)],
     ["Top 3 share %", insights.concentration.top3Pct === null ? "" : fmt(insights.concentration.top3Pct)],
     ["New clients", String(insights.clients.newCount)],
@@ -162,7 +165,7 @@ export async function getInvoiceLedger(opts: {
     return {
       issueDate: r.issue_date,
       number: r.invoice_number,
-      clientName: r.client_id ? (names.get(r.client_id) ?? "Unknown client") : "—",
+      clientName: r.client_id ? (names.get(r.client_id) ?? "Unknown client") : "-",
       status: r.status,
       taxable: Math.max(0, taxable),
       tax: (Number(r.gst_amount) || 0) * ratio,

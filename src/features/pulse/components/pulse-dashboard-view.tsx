@@ -29,6 +29,7 @@ import {
   ComposedChart,
   Pie,
   PieChart,
+  PolarAngleAxis,
   RadialBar,
   RadialBarChart,
   ResponsiveContainer,
@@ -308,6 +309,8 @@ export function PulseDashboardView({
         <ClientMixCard concentration={insights.concentration} />
       </div>
 
+      <OperatingDetailsCard analytics={analytics} insights={insights} />
+
       <div className="grid gap-4 lg:grid-cols-2">
         <AgingCard receivables={receivables} />
         <FunnelCard funnel={funnel} />
@@ -534,8 +537,8 @@ function PaymentHealthCard({ analytics }: { analytics: PulseAnalytics }) {
   const data = [{ name: "Collected", value: rate, fill: "hsl(var(--primary))" }];
   return (
     <Card>
-      <CardContent className="grid gap-5 p-5 md:grid-cols-[220px_1fr]">
-        <div>
+      <CardContent className="grid gap-5 p-5 md:grid-cols-[minmax(0,1fr)_150px_minmax(132px,160px)] md:items-center">
+        <div className="min-w-0">
           <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
             Payment health
           </p>
@@ -544,29 +547,97 @@ function PaymentHealthCard({ analytics }: { analytics: PulseAnalytics }) {
             A compact read on whether invoices are turning into cash quickly.
           </p>
         </div>
-        <div className="grid gap-4 sm:grid-cols-[180px_1fr]">
-          <div className="relative h-[170px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <RadialBarChart
-                innerRadius="72%"
-                outerRadius="100%"
-                data={data}
-                startAngle={180}
-                endAngle={-180}
-              >
-                <RadialBar dataKey="value" cornerRadius={999} background={{ fill: "hsl(var(--muted))" }} />
-              </RadialBarChart>
-            </ResponsiveContainer>
-            <div className="absolute inset-0 flex flex-col items-center justify-center">
-              <p className="text-3xl font-bold tabular-nums">{rate}%</p>
-              <p className="text-[11px] text-muted-foreground">collected</p>
+        <div className="relative mx-auto h-[142px] w-[142px]">
+          <ResponsiveContainer width="100%" height="100%">
+            <RadialBarChart
+              innerRadius="72%"
+              outerRadius="100%"
+              data={data}
+              startAngle={90}
+              endAngle={-270}
+            >
+              <PolarAngleAxis type="number" domain={[0, 100]} tick={false} />
+              <RadialBar
+                dataKey="value"
+                cornerRadius={999}
+                background={{ fill: "hsl(var(--muted))" }}
+              />
+            </RadialBarChart>
+          </ResponsiveContainer>
+          <div className="absolute inset-0 flex flex-col items-center justify-center">
+            <p className="text-3xl font-bold tabular-nums">{rate}%</p>
+            <p className="text-[11px] text-muted-foreground">collected</p>
+          </div>
+        </div>
+        <div className="grid gap-2">
+          <MetricRow label="Invoices paid" value={`${analytics.invoices.paidCount}/${analytics.invoices.issuedCount}`} />
+          <MetricRow label="Avg days to pay" value={avgDays !== null ? `${avgDays}d` : "-"} />
+          <MetricRow label="Outstanding" value={formatINR(analytics.receivables.outstandingTotal)} />
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function MetricRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-center justify-between gap-3 rounded-lg border bg-muted/15 px-3 py-2.5">
+      <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+        {label}
+      </span>
+      <span className="shrink-0 text-sm font-bold tabular-nums">{value}</span>
+    </div>
+  );
+}
+
+function OperatingDetailsCard({
+  analytics,
+  insights,
+}: {
+  analytics: PulseAnalytics;
+  insights: PulseInsights;
+}) {
+  const billablePct =
+    insights.profitability.trackedSeconds > 0
+      ? Math.round((insights.profitability.billableSeconds / insights.profitability.trackedSeconds) * 100)
+      : null;
+  const items = [
+    { label: "Issued value", value: formatINR(analytics.invoices.issuedTotal), sub: `${analytics.invoices.issuedCount} invoices` },
+    { label: "Paid value", value: formatINR(analytics.invoices.paidTotal), sub: `${analytics.invoices.paidCount} invoices` },
+    { label: "Viewed rate", value: analytics.funnel.viewedRatePct === null ? "-" : `${Math.round(analytics.funnel.viewedRatePct)}%`, sub: `${analytics.funnel.viewed}/${analytics.funnel.issued} viewed` },
+    { label: "Paid rate", value: analytics.funnel.paidRatePct === null ? "-" : `${Math.round(analytics.funnel.paidRatePct)}%`, sub: `${analytics.funnel.paid}/${analytics.funnel.issued} paid` },
+    { label: "Top 3 share", value: insights.concentration.top3Pct === null ? "-" : `${Math.round(insights.concentration.top3Pct)}%`, sub: "Client concentration" },
+    { label: "New clients", value: String(insights.clients.newCount), sub: `${insights.clients.returningCount} returning` },
+    { label: "Billable time", value: billablePct === null ? "-" : `${billablePct}%`, sub: `${secondsToHours(insights.profitability.billableSeconds)}h billable` },
+    { label: "Unbilled time value", value: formatINR(insights.profitability.unbilledAmount), sub: `${secondsToHours(insights.profitability.unbilledSeconds)}h not invoiced` },
+  ];
+
+  return (
+    <Card>
+      <CardContent className="space-y-4 p-5">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
+              Operating details
+            </p>
+            <h3 className="mt-2 text-lg font-semibold tracking-tight">Full business pulse</h3>
+          </div>
+          <IvoEntryPoint
+            prompt="Explain these Pulse operating details and tell me what I should improve first."
+            label="Ask Ivo"
+            variant="ghost"
+          />
+        </div>
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {items.map((item) => (
+            <div key={item.label} className="rounded-lg border bg-muted/15 p-3">
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                {item.label}
+              </p>
+              <p className="mt-1 text-base font-bold tabular-nums">{item.value}</p>
+              <p className="mt-0.5 truncate text-[11px] text-muted-foreground">{item.sub}</p>
             </div>
-          </div>
-          <div className="grid content-center gap-3">
-            <Mini label="Invoices paid" value={`${analytics.invoices.paidCount}/${analytics.invoices.issuedCount}`} />
-            <Mini label="Avg days to pay" value={avgDays !== null ? `${avgDays}d` : "—"} />
-            <Mini label="Outstanding" value={formatINR(analytics.receivables.outstandingTotal)} />
-          </div>
+          ))}
         </div>
       </CardContent>
     </Card>
