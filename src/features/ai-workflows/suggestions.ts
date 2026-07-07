@@ -83,6 +83,15 @@ export async function getAssistantSuggestions(): Promise<AssistantSuggestion[]> 
     });
   }
 
+  if (out.length === 0) {
+    out.push({
+      id: "healthy_focus",
+      tone: "info",
+      title: "No urgent cash-flow flags right now — ask Ivo for today's focus",
+      prompt: "What should I focus on today?",
+    });
+  }
+
   // Alerts first, then keep it to a tidy handful.
   out.sort((a, b) => (a.tone === b.tone ? 0 : a.tone === "alert" ? -1 : 1));
   return out.slice(0, 4);

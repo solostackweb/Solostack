@@ -22,6 +22,8 @@ import {
 import { getBusinessProfile } from "@/features/onboarding/server";
 import { getCurrentSubscription } from "@/features/subscription/server";
 import { FreePlanBanner } from "@/components/dashboard/free-plan-banner";
+import { getAssistantSuggestions } from "@/features/ai-workflows/suggestions";
+import { IvoWorkspaceNudges } from "@/features/ai-workflows/components/ivo-workspace-nudges";
 
 export const metadata = { title: "Dashboard" };
 export const dynamic = "force-dynamic";
@@ -58,6 +60,11 @@ async function KpiSection() {
       revenueSeries={revenueSeries}
     />
   );
+}
+
+async function IvoNudgesSection() {
+  const suggestions = await getAssistantSuggestions();
+  return <IvoWorkspaceNudges suggestions={suggestions} />;
 }
 
 async function FeedSection() {
@@ -227,6 +234,10 @@ export default async function DashboardPage() {
       ) : null}
 
       {profile ? <ProfileCompletenessAlert profile={profile} /> : null}
+
+      <Suspense fallback={null}>
+        <IvoNudgesSection />
+      </Suspense>
 
       {/* KPI tiles + revenue chart — fast DB aggregates */}
       <Suspense fallback={<KpiSkeleton />}>

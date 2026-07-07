@@ -2218,6 +2218,150 @@ async function getDocsContext(): Promise<string> {
   return EMBEDDED_DOCS_FALLBACK;
 }
 
+function localSupportAnswer(question: string, userName?: string | null): { answer: string; usedDocs: boolean } | null {
+  const q = question.toLowerCase();
+  const firstName = userName?.trim().split(/\s+/)[0] ?? "";
+  const lead = firstName ? `${firstName}, ` : "";
+
+  if (/\b(create|make|raise|send|draft).*\binvoice|\binvoice\b.*\b(create|make|send|draft)\b|how.*\binvoice\b/.test(q)) {
+    return {
+      usedDocs: true,
+      answer:
+        `${lead}to create an invoice, go to Invoices → New invoice, choose the client, add line items, GST/discounts if needed, then save and send. You can also ask Ivo directly: “Invoice Acme ₹50,000 for website design, due in 15 days.”`,
+    };
+  }
+
+  if (/\b(gst|tax|cgst|sgst|igst|lut|export invoice|international invoice|foreign client)\b/.test(q)) {
+    return {
+      usedDocs: true,
+      answer:
+        "Stackivo supports GST-ready invoicing for Indian freelancers and agencies. Domestic invoices can apply GST based on your profile and client state; foreign/export clients can use their own currency and are treated as export invoices, with no GST added where zero-rating/LUT applies. You remain responsible for your own GST registration, rates, and filing.",
+    };
+  }
+
+  if (/\b(razorpay|payment link|pay online|client pay|upi|card|netbanking|get paid|payment gateway)\b/.test(q)) {
+    return {
+      usedDocs: true,
+      answer:
+        "Clients can pay invoices online through Razorpay using supported methods like UPI, cards, and netbanking. Stackivo creates the invoice/payment workflow, but the money settles through your connected payment provider; Stackivo does not hold client funds.",
+    };
+  }
+
+  if (/\bpartial payment|part payment|advance payment|split payment|pay partly|installment|instalment\b/.test(q)) {
+    return {
+      usedDocs: true,
+      answer:
+        "Online payment links are for the invoice amount. For partial arrangements, record the payment manually on the invoice and issue or update the balance invoice as needed.",
+    };
+  }
+
+  if (/\b(overdue|reminder|remind|follow up|follow-up|chase payment|late payment)\b/.test(q)) {
+    return {
+      usedDocs: true,
+      answer:
+        "Stackivo helps track unpaid and overdue invoices. You can open Ivo and ask “show overdue invoices” or “send reminders for overdue invoices”; Ivo will ask before sending anything outward.",
+    };
+  }
+
+  if (/\b(contract|agreement|proposal|signature|sign|esign|e-sign|signed)\b/.test(q)) {
+    return {
+      usedDocs: true,
+      answer:
+        "Contracts in Stackivo can be drafted, sent to a client, signed online, and stored in the client profile. You can start from Contracts → New contract, or ask Ivo to draft one from a short brief.",
+    };
+  }
+
+  if (/\b(welcome doc|welcome document|onboarding|client guide|kickoff)\b/.test(q)) {
+    return {
+      usedDocs: true,
+      answer:
+        "Welcome documents are client-ready onboarding guides. You can create one from Welcome documents, choose a template, customize the sections, publish it, and share it with the client. Ivo can also draft one from your working style and client context.",
+    };
+  }
+
+  if (/\b(time tracking|track time|log time|timer|billable hours?|unbilled time)\b/.test(q)) {
+    return {
+      usedDocs: true,
+      answer:
+        "Use Time to run a timer or add manual entries against projects. Billable unbilled time can later be turned into an invoice; Ivo can help with “log 2h on wireframes, billable” or “create an invoice for my unbilled time.”",
+    };
+  }
+
+  if (/\b(pulse|analytics|dashboard|insight|report|revenue report|business summary)\b/.test(q)) {
+    return {
+      usedDocs: true,
+      answer:
+        "Pulse is Stackivo’s business dashboard for revenue, receivables, collection health, top clients, GST totals, and time profitability. You can ask Ivo questions like “what should I focus on today?” or “who are my top clients?” and it will answer from your workspace data.",
+    };
+  }
+
+  if (/\b(client portal|portal|client login|share files|client files)\b/.test(q)) {
+    return {
+      usedDocs: true,
+      answer:
+        "Client portals give clients a shared place to access related work such as documents, files, invoices, and project updates where enabled. Open the client or portal area in Stackivo to manage what is shared.",
+    };
+  }
+
+  if (/\b(add client|client record|customer|contact|billing details|gstin)\b/.test(q)) {
+    return {
+      usedDocs: true,
+      answer:
+        "To add a client, go to Clients → Add client and enter their contact, billing, GST, currency, and address details. You can also tell Ivo something like “Add Riya from Acme, riya@acme.com, Mumbai” and it will walk you through the missing fields.",
+    };
+  }
+
+  if (/\b(project|engagement|kanban|status|pipeline)\b/.test(q)) {
+    return {
+      usedDocs: true,
+      answer:
+        "Projects help group files, invoices, contracts, and time entries by engagement. You can create one from Projects → New project, track its status, and later invoice related work or time.",
+    };
+  }
+
+  if (/\b(plan|pricing|price|cost|subscription|upgrade|downgrade|billing)\b/.test(q)) {
+    return {
+      usedDocs: true,
+      answer:
+        "You can manage your subscription from Settings → Billing. Stackivo’s exact plan prices and current feature comparison should be checked on the Pricing page, because pricing can change. Paid plans renew automatically unless cancelled before renewal.",
+    };
+  }
+
+  if (/\b(cancel|cancellation|refund|money back|renewal)\b/.test(q)) {
+    return {
+      usedDocs: true,
+      answer:
+        "You can cancel from Settings → Billing; cancellation takes effect at the end of the current paid period. Stackivo’s terms allow a full refund request within 30 days of payment, with refunds processed back through the original payment method via Razorpay.",
+    };
+  }
+
+  if (/\b(privacy|data|delete account|export data|security|safe|gdpr|dpdp)\b/.test(q)) {
+    return {
+      usedDocs: true,
+      answer:
+        "Your workspace data belongs to you. You can export or delete your account from Settings; deletion runs after a short grace period and then data is permanently purged. For privacy-specific questions, check the Privacy Policy or contact support@stackivo.me.",
+    };
+  }
+
+  if (/\b(ai|ivo|assistant|message limit|ai limit|quota|usage)\b/.test(q)) {
+    return {
+      usedDocs: true,
+      answer:
+        "Ivo is Stackivo’s in-app AI assistant for drafting and sending workspace documents, answering business questions, and helping with admin workflows. AI usage is tracked against your plan, and the assistant will tell you when you are near or over your monthly allowance.",
+    };
+  }
+
+  if (/\b(contact support|human support|support email|talk to support|raise ticket|help desk|helpdesk)\b/.test(q)) {
+    return {
+      usedDocs: true,
+      answer:
+        "You can reach Stackivo support at support@stackivo.me or through the in-app support/help area. If you want, Ivo can also forward your question to the support team, but it will ask before creating a ticket.",
+    };
+  }
+
+  return null;
+}
+
 export async function answerFromDocsAction(input: z.infer<typeof aiDocsQuestionSchema>) {
   const parsed = aiDocsQuestionSchema.safeParse(input);
   if (!parsed.success) {
@@ -2236,6 +2380,8 @@ export async function answerFromDocsAction(input: z.infer<typeof aiDocsQuestionS
 
   const [combinedContext, profile] = await Promise.all([getDocsContext(), getProfile()]);
   const userName = profile?.displayName || profile?.fullName || "";
+  const local = localSupportAnswer(parsed.data.question, userName);
+  if (local) return { ok: true as const, data: local };
 
   const ai = await generateStructuredJson({
     temperature: 0.4,
