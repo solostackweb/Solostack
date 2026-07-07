@@ -29,6 +29,7 @@ import { cn } from "@/lib/utils";
 import { getClientInitials, getClientDisplayName } from "@/features/clients/utils";
 import type { ClientRecord } from "@/features/clients/server";
 import type { ProjectRecord } from "@/features/projects/server";
+import { getStateName } from "@/features/gst/state-codes";
 import {
   invoiceFormSchema,
   computeInvoiceTotals,
@@ -80,6 +81,15 @@ function buildDefaults(
     notes: profile?.invoiceDefaultNotes ?? "",
     terms: profile?.invoiceDefaultTerms ?? "",
   };
+}
+
+function automaticTaxMode(
+  sellerStateCode?: string | null,
+  clientStateCode?: string | null,
+): "intra" | "inter" {
+  return sellerStateCode && clientStateCode && sellerStateCode === clientStateCode
+    ? "intra"
+    : "inter";
 }
 
 /**
@@ -174,11 +184,20 @@ export function CreateInvoiceView({
     if (!gstEnabled) {
       setValue("gstRate", 0, { shouldValidate: true });
       setValue("taxMode", "intra", { shouldValidate: true });
+      return;
     }
-  }, [gstEnabled, setValue]);
+    setValue("taxMode", automaticTaxMode(profile?.stateCode, selectedClient?.stateCode), {
+      shouldValidate: true,
+    });
+  }, [gstEnabled, profile?.stateCode, selectedClient?.stateCode, setValue]);
 
-  const effectiveTaxMode = gstEnabled ? watched.taxMode ?? "intra" : "intra";
+  const effectiveTaxMode = gstEnabled
+    ? automaticTaxMode(profile?.stateCode, selectedClient?.stateCode)
+    : "intra";
   const effectiveGstRate = gstEnabled ? watched.gstRate ?? 0 : 0;
+  const sellerStateName = profile?.stateCode ? getStateName(profile.stateCode) : null;
+  const clientStateName = selectedClient?.stateCode ? getStateName(selectedClient.stateCode) : null;
+  const hasBothDomesticStates = Boolean(profile?.stateCode && selectedClient?.stateCode);
 
   const totals = React.useMemo(
     () =>
@@ -504,23 +523,20 @@ export function CreateInvoiceView({
               <SectionCard label={gstEnabled ? "GST & discount" : "Discount"}>
                 <div className="grid gap-5 sm:grid-cols-2">
                   {gstEnabled ? (
-                  <Field label="Tax mode">
-                    <div className="inline-flex rounded-md bg-muted p-0.5">
-                      {(["intra", "inter"] as const).map((mode) => (
-                        <button
-                          key={mode}
-                          type="button"
-                          onClick={() => setValue("taxMode", mode)}
-                          className={cn(
-                            "rounded-[5px] px-3 py-1 text-xs font-medium transition-colors",
-                            watched.taxMode === mode
-                              ? "bg-background text-foreground shadow-sm"
-                              : "text-muted-foreground hover:text-foreground",
-                          )}
-                        >
-                          {mode === "intra" ? "Intra-state" : "Inter-state"}
-                        </button>
-                      ))}
+                  <Field label="GST mode">
+                    <div className="rounded-md border bg-muted/30 px-3 py-2 text-sm">
+                      <p className="font-medium">
+                        {effectiveTaxMode === "intra"
+                          ? "Intra-state: CGST + SGST"
+                          : "Inter-state: IGST"}
+                      </p>
+                      <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                        {effectiveTaxMode === "intra"
+                          ? `Seller and client are both in ${sellerStateName ?? "the same state"}. GST is split equally between CGST and SGST.`
+                          : hasBothDomesticStates
+                            ? `Seller is in ${sellerStateName} and client is in ${clientStateName}, so IGST is applied.`
+                            : "Add both seller and client states for exact place-of-supply classification. Until then, Stackivo previews IGST and the server will recalculate before saving."}
+                      </p>
                     </div>
                   </Field>
                   ) : (

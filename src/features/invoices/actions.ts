@@ -217,6 +217,9 @@ export async function createInvoiceAction(
   const supabase = await getServerSupabase();
 
   const parties = await resolveParties(userId, parsed.data.clientId);
+  // GST mode is deliberately computed on the server from the seller state and
+  // client's domestic state/place of supply. The client payload does not get to
+  // choose CGST+SGST vs IGST, which prevents incorrect tax splits.
   const totals = calculateInvoice({
     lines: parsed.data.lines,
     discount: parsed.data.discount,
@@ -375,6 +378,7 @@ export async function updateInvoiceAction(
   }
 
   const parties = await resolveParties(userId, parsed.data.clientId);
+  // Same server-side GST classification as createInvoiceAction.
   const totals = calculateInvoice({
     lines: parsed.data.lines,
     discount: parsed.data.discount,

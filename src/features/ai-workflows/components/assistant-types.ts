@@ -56,7 +56,11 @@ export interface AiInvoicePreview {
   originalSubtotal: number;
   discount: number;
   subtotal: number;
+  cgstAmount?: number;
+  sgstAmount?: number;
+  igstAmount?: number;
   taxTotal: number;
+  taxMode?: "non_gst" | "cgst_sgst" | "igst";
   totalAmount: number;
   currency: string;
   dueDate: string;

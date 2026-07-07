@@ -1170,7 +1170,7 @@ export async function createInvoiceFromAiAction(input: AiCreateInput) {
   const [{ data: invoiceRow }, { data: clientRow }] = await Promise.all([
     supabase
       .from("invoices")
-      .select("id, invoice_number, currency, subtotal, discount_amount, gst_amount, total_amount, due_date, status, notes, terms")
+      .select("id, invoice_number, currency, subtotal, discount_amount, cgst_amount, sgst_amount, igst_amount, gst_amount, tax_mode, total_amount, due_date, status, notes, terms")
       .eq("id", invoiceId)
       .eq("user_id", userId)
       .maybeSingle(),
@@ -1188,7 +1188,11 @@ export async function createInvoiceFromAiAction(input: AiCreateInput) {
         currency: string;
         subtotal: number;
         discount_amount: number;
+        cgst_amount?: number;
+        sgst_amount?: number;
+        igst_amount?: number;
         gst_amount: number;
+        tax_mode?: "non_gst" | "cgst_sgst" | "igst";
         total_amount: number;
         due_date: string;
         status: string;
@@ -1223,7 +1227,11 @@ export async function createInvoiceFromAiAction(input: AiCreateInput) {
         originalSubtotal,
         discount: Number(invoice?.discount_amount ?? discount),
         subtotal: Number(invoice?.subtotal ?? netSubtotal),
+        cgstAmount: Number(invoice?.cgst_amount ?? 0),
+        sgstAmount: Number(invoice?.sgst_amount ?? 0),
+        igstAmount: Number(invoice?.igst_amount ?? 0),
         taxTotal: Number(invoice?.gst_amount ?? 0),
+        taxMode: invoice?.tax_mode,
         totalAmount: Number(invoice?.total_amount ?? netSubtotal),
         currency: invoice?.currency ?? profile?.defaultCurrency ?? "INR",
         isExport: !!billingClient?.is_foreign,
@@ -1355,15 +1363,24 @@ export async function invoiceUnbilledTimeFromAiAction(input: { clientId?: string
     return { ok: false as const, error: "The invoice was saved but its id was not returned." };
   }
 
-  const { data: cRow } = await supabase
-    .from("clients")
-    .select("full_name, business_name")
-    .eq("id", clientId)
-    .maybeSingle();
+  const [{ data: cRow }, { data: invoiceRow }] = await Promise.all([
+    supabase
+      .from("clients")
+      .select("full_name, business_name")
+      .eq("id", clientId)
+      .maybeSingle(),
+    supabase
+      .from("invoices")
+      .select("total_amount, currency")
+      .eq("id", res.data.id)
+      .eq("user_id", userId)
+      .maybeSingle(),
+  ]);
   const cName =
     (cRow as { full_name?: string | null; business_name?: string | null } | null)?.business_name ||
     (cRow as { full_name?: string | null } | null)?.full_name ||
     "your client";
+  const savedInvoice = invoiceRow as { total_amount?: number | null; currency?: string | null } | null;
 
   return {
     ok: true as const,
@@ -1371,8 +1388,8 @@ export async function invoiceUnbilledTimeFromAiAction(input: { clientId?: string
       id: res.data.id,
       invoiceNumber: nextNumber.formatted,
       clientName: cName,
-      totalAmount: Math.round(unbilled.totalAmount * 100) / 100,
-      currency: invoiceCurrency,
+      totalAmount: Math.round(Number(savedInvoice?.total_amount ?? unbilled.totalAmount) * 100) / 100,
+      currency: savedInvoice?.currency || invoiceCurrency,
       hours: hoursOf(unbilled.totalSeconds),
       lineCount: lines.length,
     },
@@ -1947,7 +1964,7 @@ export async function refineInvoiceFromAiAction(
   const [{ data: invoiceRow }, { data: clientRow }] = await Promise.all([
     supabase
       .from("invoices")
-      .select("id, invoice_number, currency, subtotal, discount_amount, gst_amount, total_amount, due_date, status, notes, terms")
+      .select("id, invoice_number, currency, subtotal, discount_amount, cgst_amount, sgst_amount, igst_amount, gst_amount, tax_mode, total_amount, due_date, status, notes, terms")
       .eq("id", invoice.id)
       .eq("user_id", userId)
       .maybeSingle(),
@@ -1966,7 +1983,11 @@ export async function refineInvoiceFromAiAction(
         currency?: string;
         subtotal?: number;
         discount_amount?: number;
+        cgst_amount?: number;
+        sgst_amount?: number;
+        igst_amount?: number;
         gst_amount?: number;
+        tax_mode?: "non_gst" | "cgst_sgst" | "igst";
         total_amount?: number;
         due_date?: string;
         status?: string;
@@ -1993,7 +2014,11 @@ export async function refineInvoiceFromAiAction(
       originalSubtotal,
       discount: Number(row?.discount_amount ?? discount),
       subtotal: Number(row?.subtotal ?? netSubtotal),
+      cgstAmount: Number(row?.cgst_amount ?? 0),
+      sgstAmount: Number(row?.sgst_amount ?? 0),
+      igstAmount: Number(row?.igst_amount ?? 0),
       taxTotal: Number(row?.gst_amount ?? 0),
+      taxMode: row?.tax_mode,
       totalAmount: Number(row?.total_amount ?? netSubtotal),
       currency: row?.currency ?? invoice.currency,
       dueDate: row?.due_date ?? dueDate,

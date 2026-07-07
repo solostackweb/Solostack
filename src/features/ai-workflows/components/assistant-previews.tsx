@@ -174,12 +174,28 @@ export function InvoiceDraftPreview({
             </span>
           </div>
         )}
-        {preview.taxTotal > 0 && (
+        {preview.taxMode === "cgst_sgst" && (preview.cgstAmount || preview.sgstAmount) ? (
+          <>
+            <div className="flex justify-between gap-3">
+              <span className="text-muted-foreground">CGST</span>
+              <span>{formatAiMoney(preview.cgstAmount, preview.currency)}</span>
+            </div>
+            <div className="flex justify-between gap-3">
+              <span className="text-muted-foreground">SGST</span>
+              <span>{formatAiMoney(preview.sgstAmount, preview.currency)}</span>
+            </div>
+          </>
+        ) : preview.taxMode === "igst" && preview.igstAmount ? (
+          <div className="flex justify-between gap-3">
+            <span className="text-muted-foreground">IGST</span>
+            <span>{formatAiMoney(preview.igstAmount, preview.currency)}</span>
+          </div>
+        ) : preview.taxTotal > 0 ? (
           <div className="flex justify-between gap-3">
             <span className="text-muted-foreground">Tax</span>
             <span>{formatAiMoney(preview.taxTotal, preview.currency)}</span>
           </div>
-        )}
+        ) : null}
         <div className="flex justify-between gap-3 border-t pt-1.5 font-semibold">
           <span>Total</span>
           <span>{formatAiMoney(preview.totalAmount, preview.currency)}</span>
