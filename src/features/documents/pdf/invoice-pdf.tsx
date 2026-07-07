@@ -10,8 +10,8 @@ import "server-only";
  *   4. Parties  — From left                       │ Billed To right   (vertical divider)
  *   5. Line items table
  *   6. Totals (right-aligned)
- *   7. Notes / Terms (side-by-side if both present)
- *   8. Signature (left-aligned)
+ *   7. Signature (left-aligned)
+ *   8. Declaration / Notes / Terms
  *   9. Fixed branded footer
  *
  * Everything is written inline — no heavy primitives wrappers that fight
@@ -588,7 +588,7 @@ export function InvoicePdf({
           }}
         />
 
-        {/* ── 6b. LEGAL BLOCK — words, HSN/SAC, reverse charge, declaration ── */}
+        {/* ── 6b. LEGAL DETAILS — words, HSN/SAC, reverse charge ── */}
         <View style={s.legal}>
           <Text style={s.legalLine}>
             Amount in words: {invoiceAmountInWords(data.totalAmount, data.currency)}
@@ -643,6 +643,19 @@ export function InvoicePdf({
               </Text>
             </View>
           ) : null}
+        </View>
+
+        {/* ── 7. SIGNATURE — before closing text so it stays on page one when space allows ── */}
+        {data.seller.signature ? (
+          <SignatureBlock
+            label="Authorised signature"
+            signature={data.seller.signature}
+            fallbackName={brand.businessName}
+          />
+        ) : null}
+
+        {/* ── 8. CLOSING BLOCK — declaration / notes / terms ── */}
+        <View style={s.legal}>
           <Text style={s.legalDecl}>
             Declaration: We declare that this {docLabel.toLowerCase()} shows the actual price
             of the goods / services described and that all particulars are true and correct.
@@ -653,7 +666,6 @@ export function InvoicePdf({
           </Text>
         </View>
 
-        {/* ── 7+8. CLOSING BLOCK (kept together) ─────────────── */}
         {(data.notes || data.terms) ? (
           <View style={s.notesRow}>
             {data.notes ? (
@@ -671,15 +683,6 @@ export function InvoicePdf({
               </View>
             ) : null}
           </View>
-        ) : null}
-
-        
-        {data.seller.signature ? (
-          <SignatureBlock
-            label="Authorised signature"
-            signature={data.seller.signature}
-            fallbackName={brand.businessName}
-          />
         ) : null}
 
       </Page>

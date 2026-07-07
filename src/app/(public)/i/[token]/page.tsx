@@ -260,17 +260,17 @@ export default async function PublicInvoicePage({ params }: Props) {
                     Details
                   </p>
                   <dl className="space-y-1">
-                    <div className="flex gap-2 text-xs sm:flex-row-reverse">
+                    <div className="flex justify-between gap-3 text-xs sm:justify-end">
                       <dt className="text-slate-400">Issue date</dt>
                       <dd className="font-medium text-slate-700">{fmtDate(viewModel.issueDate)}</dd>
                     </div>
-                    <div className="flex gap-2 text-xs sm:flex-row-reverse">
+                    <div className="flex justify-between gap-3 text-xs sm:justify-end">
                       <dt className="text-slate-400">Due date</dt>
                       <dd className={`font-medium ${isOverdue ? "text-red-600" : "text-slate-700"}`}>
                         {fmtDate(viewModel.dueDate)}
                       </dd>
                     </div>
-                    <div className="flex gap-2 text-xs sm:flex-row-reverse">
+                    <div className="flex justify-between gap-3 text-xs sm:justify-end">
                       <dt className="text-slate-400">Type</dt>
                       <dd className="font-medium text-slate-700">{docLabel}</dd>
                     </div>
@@ -420,6 +420,45 @@ export default async function PublicInvoicePage({ params }: Props) {
                       </p>
                     </div>
                   )}
+                </div>
+              )}
+
+              {viewModel.seller.signature && (
+                <div className="mt-8 border-t border-slate-100 pt-6">
+                  <p className="mb-3 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                    Authorised signature
+                  </p>
+                  <div className="w-full max-w-[280px]">
+                    <div className="flex h-20 items-end border-b border-slate-300 pb-2">
+                      {viewModel.seller.signature.type === "type" &&
+                      viewModel.seller.signature.textValue ? (
+                        <p
+                          className="text-3xl leading-none text-slate-900"
+                          style={{
+                            fontFamily:
+                              viewModel.seller.signature.fontFamily ?? "cursive",
+                          }}
+                        >
+                          {viewModel.seller.signature.textValue}
+                        </p>
+                      ) : viewModel.seller.signature.imageUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={viewModel.seller.signature.imageUrl}
+                          alt="Authorised signature"
+                          className="max-h-16 max-w-full object-contain"
+                        />
+                      ) : null}
+                    </div>
+                    <p className="mt-2 text-sm font-semibold text-slate-900">
+                      {viewModel.seller.signature.legalName ?? senderName}
+                    </p>
+                    {viewModel.seller.signature.signedAt ? (
+                      <p className="mt-0.5 text-xs text-slate-500">
+                        Signed {fmtDate(viewModel.seller.signature.signedAt)}
+                      </p>
+                    ) : null}
+                  </div>
                 </div>
               )}
             </div>
