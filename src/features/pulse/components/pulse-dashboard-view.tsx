@@ -296,12 +296,6 @@ export function PulseDashboardView({
         />
       </div>
 
-      <PulseBrief
-        analytics={analytics}
-        insights={insights}
-        rangeLabel={rangeLabel}
-      />
-
       <RevenueStudio
         series={revenue.series}
         totalPaid={revenue.paid}
@@ -393,97 +387,6 @@ function formatMonthLabel(key: string) {
     month: "short",
     year: "2-digit",
   });
-}
-
-function PulseBrief({
-  analytics,
-  insights,
-  rangeLabel,
-}: {
-  analytics: PulseAnalytics;
-  insights: PulseInsights;
-  rangeLabel: string;
-}) {
-  const receivables = analytics.receivables;
-  const concentration = insights.concentration.top1Pct;
-  const collectionRate = analytics.invoices.collectionRatePct;
-  const focus = [
-    {
-      label: "Cash attention",
-      value:
-        receivables.overdueTotal > 0
-          ? `${formatINR(receivables.overdueTotal)} overdue`
-          : `${formatINR(receivables.outstandingTotal)} outstanding`,
-      detail:
-        receivables.overdueTotal > 0
-          ? "Prioritize overdue follow-ups before new work."
-          : "No overdue balance. Keep current invoices warm.",
-      tone: receivables.overdueTotal > 0 ? "warning" : "good",
-    },
-    {
-      label: "Client balance",
-      value: concentration != null ? `${Math.round(concentration)}% top client` : "Not enough data",
-      detail:
-        concentration != null && concentration >= 50
-          ? "Revenue is concentrated. Nurture backups or expand smaller accounts."
-          : "Client concentration looks manageable in this range.",
-      tone: concentration != null && concentration >= 50 ? "warning" : "good",
-    },
-    {
-      label: "Collection rhythm",
-      value: collectionRate != null ? `${Math.round(collectionRate)}% collected` : "No invoices",
-      detail:
-        collectionRate != null && collectionRate < 80
-          ? "Tighten payment reminders and due dates."
-          : "Your invoice flow is converting well.",
-      tone: collectionRate != null && collectionRate < 80 ? "warning" : "good",
-    },
-  ];
-
-  return (
-    <div className="rounded-2xl border border-primary/15 bg-[radial-gradient(circle_at_top_left,hsl(var(--primary)/0.10),transparent_34%),linear-gradient(135deg,hsl(var(--background)),hsl(var(--muted)/0.45))] p-4 shadow-sm shadow-primary/[0.04]">
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-        <div className="max-w-xl">
-          <div className="flex items-center gap-2">
-            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-sm">
-              <Sparkles className="h-4 w-4" />
-            </span>
-            <p className="text-[11px] font-bold uppercase tracking-widest text-primary">
-              Pulse focus
-            </p>
-          </div>
-          <h2 className="mt-3 text-xl font-semibold tracking-tight">
-            A sharper operating read for {rangeLabel.toLowerCase()}.
-          </h2>
-          <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
-            Pulse now blends revenue, collection, concentration, GST, and time signals so the
-            next business move is easier to spot.
-          </p>
-        </div>
-        <div className="grid flex-1 gap-3 sm:grid-cols-3">
-          {focus.map((item) => (
-            <div key={item.label} className="rounded-xl border bg-background/75 p-3 shadow-sm">
-              <div className="flex items-center justify-between gap-2">
-                <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                  {item.label}
-                </p>
-                <span
-                  className={cn(
-                    "h-2 w-2 rounded-full",
-                    item.tone === "warning" ? "bg-amber-500" : "bg-emerald-500",
-                  )}
-                />
-              </div>
-              <p className="mt-2 text-sm font-bold tabular-nums">{item.value}</p>
-              <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">
-                {item.detail}
-              </p>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
 }
 
 function RevenueStudio({
@@ -680,7 +583,7 @@ function ClientMixCard({
 
   return (
     <Card>
-      <CardContent className="grid gap-5 p-5 md:grid-cols-[220px_1fr]">
+      <CardContent className="space-y-5 p-5">
         <div>
           <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
             Client mix
@@ -690,8 +593,8 @@ function ClientMixCard({
             See whether growth depends on one account or a healthier spread.
           </p>
         </div>
-        <div className="grid gap-4 sm:grid-cols-[170px_1fr]">
-          <div className="h-[170px]">
+        <div className="grid min-w-0 gap-4 sm:grid-cols-[150px_minmax(0,1fr)]">
+          <div className="h-[150px] min-w-0">
             {rows.length > 0 ? (
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
@@ -699,8 +602,8 @@ function ClientMixCard({
                     data={rows}
                     dataKey="paid"
                     nameKey="name"
-                    innerRadius={48}
-                    outerRadius={78}
+                    innerRadius={42}
+                    outerRadius={68}
                     paddingAngle={3}
                     stroke="hsl(var(--background))"
                     strokeWidth={3}
@@ -725,17 +628,20 @@ function ClientMixCard({
               </div>
             )}
           </div>
-          <div className="space-y-2">
+          <div className="min-w-0 space-y-2">
             {rows.length === 0 ? (
               <p className="py-10 text-sm text-muted-foreground">No paid client revenue yet.</p>
             ) : (
               rows.map((row, index) => (
-                <div key={row.clientId ?? row.name} className="flex items-center justify-between gap-3 rounded-lg border bg-muted/15 px-3 py-2">
-                  <span className="flex min-w-0 items-center gap-2">
+                <div
+                  key={row.clientId ?? row.name}
+                  className="flex min-w-0 items-center justify-between gap-3 rounded-lg border bg-muted/15 px-3 py-2"
+                >
+                  <span className="flex min-w-0 flex-1 items-center gap-2">
                     <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: colors[index % colors.length] }} />
                     <span className="truncate text-sm font-medium">{row.name}</span>
                   </span>
-                  <span className="text-xs font-semibold tabular-nums text-muted-foreground">
+                  <span className="shrink-0 text-xs font-semibold tabular-nums text-muted-foreground">
                     {Math.round(row.pct)}%
                   </span>
                 </div>
