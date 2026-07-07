@@ -12,6 +12,7 @@ import {
   FileText,
   FolderKanban,
   Landmark,
+  LineChart,
   Timer,
   Minus,
   Percent,
@@ -20,6 +21,21 @@ import {
   TrendingUp,
   Wallet,
 } from "lucide-react";
+import {
+  Area,
+  Bar,
+  CartesianGrid,
+  Cell,
+  ComposedChart,
+  Pie,
+  PieChart,
+  RadialBar,
+  RadialBarChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
 
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -37,7 +53,6 @@ import { PageHeader } from "@/components/shared/page-header";
 import { EmptyState } from "@/components/shared/empty-state";
 import { formatINR } from "@/lib/format";
 import { cn } from "@/lib/utils";
-import { RevenueChart as DashboardRevenueChart } from "@/components/dashboard/revenue-chart";
 import type { PulseAnalytics } from "../analytics";
 import type { PulseInsights } from "../insights";
 import { secondsToHours } from "@/features/time/types";
@@ -78,20 +93,32 @@ export function PulseDashboardView({
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const isCustom = Boolean(custom.from && custom.to);
+  const [draftRange, setDraftRange] = React.useState(custom);
+  const customRangeInvalid = Boolean(
+    draftRange.from && draftRange.to && draftRange.from > draftRange.to,
+  );
+
+  React.useEffect(() => {
+    setDraftRange(custom);
+  }, [custom.from, custom.to]);
 
   const setPreset = (r: PulseRange) => {
+    setDraftRange({ from: "", to: "" });
     router.replace(`${pathname}?range=${r}`);
   };
-  const setCustom = (patch: { from?: string; to?: string }) => {
+
+  const applyCustom = () => {
+    if (!draftRange.from || !draftRange.to || customRangeInvalid) return;
     const sp = new URLSearchParams(searchParams.toString());
     sp.delete("range");
-    const from = patch.from ?? custom.from;
-    const to = patch.to ?? custom.to;
-    if (from) sp.set("from", from);
-    else sp.delete("from");
-    if (to) sp.set("to", to);
-    else sp.delete("to");
+    sp.set("from", draftRange.from);
+    sp.set("to", draftRange.to);
     router.replace(`${pathname}?${sp.toString()}`);
+  };
+
+  const clearCustom = () => {
+    setDraftRange({ from: "", to: "" });
+    router.replace(`${pathname}?range=${range}`);
   };
 
   const { revenue, invoices, receivables, cashFlow, funnel } = analytics;
@@ -176,25 +203,52 @@ export function PulseDashboardView({
             </button>
           ))}
         </div>
-        <div className="flex items-end gap-2">
-          <label className="space-y-1">
-            <span className="text-[11px] font-medium text-muted-foreground">From</span>
-            <Input
-              type="date"
-              value={custom.from}
-              onChange={(e) => setCustom({ from: e.target.value })}
-              className="h-9 w-[150px]"
-            />
-          </label>
-          <label className="space-y-1">
-            <span className="text-[11px] font-medium text-muted-foreground">To</span>
-            <Input
-              type="date"
-              value={custom.to}
-              onChange={(e) => setCustom({ to: e.target.value })}
-              className="h-9 w-[150px]"
-            />
-          </label>
+        <div className="space-y-1">
+          <div className="flex items-end gap-2">
+            <label className="space-y-1">
+              <span className="text-[11px] font-medium text-muted-foreground">From</span>
+              <Input
+                type="date"
+                value={draftRange.from}
+                onChange={(e) =>
+                  setDraftRange((current) => ({ ...current, from: e.target.value }))
+                }
+                className="h-9 w-[150px]"
+                max={draftRange.to || undefined}
+              />
+            </label>
+            <label className="space-y-1">
+              <span className="text-[11px] font-medium text-muted-foreground">To</span>
+              <Input
+                type="date"
+                value={draftRange.to}
+                onChange={(e) =>
+                  setDraftRange((current) => ({ ...current, to: e.target.value }))
+                }
+                className="h-9 w-[150px]"
+                min={draftRange.from || undefined}
+              />
+            </label>
+            <Button
+              type="button"
+              size="sm"
+              onClick={applyCustom}
+              disabled={!draftRange.from || !draftRange.to || customRangeInvalid}
+              className="h-9"
+            >
+              Apply
+            </Button>
+            {(draftRange.from || draftRange.to || isCustom) ? (
+              <Button type="button" size="sm" variant="ghost" onClick={clearCustom} className="h-9">
+                Clear
+              </Button>
+            ) : null}
+          </div>
+          {customRangeInvalid ? (
+            <p className="text-xs font-medium text-destructive">
+              End date must be on or after start date.
+            </p>
+          ) : null}
         </div>
       </div>
 
@@ -242,14 +296,30 @@ export function PulseDashboardView({
         />
       </div>
 
-      <DashboardRevenueChart series={revenue.series} />
+      <PulseBrief
+        analytics={analytics}
+        insights={insights}
+        rangeLabel={rangeLabel}
+      />
+
+      <RevenueStudio
+        series={revenue.series}
+        totalPaid={revenue.paid}
+        issuedTotal={invoices.issuedTotal}
+        rangeLabel={rangeLabel}
+      />
+
+      <div className="grid gap-4 lg:grid-cols-2">
+        <PaymentHealthCard analytics={analytics} />
+        <ClientMixCard concentration={insights.concentration} />
+      </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
         <AgingCard receivables={receivables} />
         <FunnelCard funnel={funnel} />
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className="grid gap-4 lg:grid-cols-[1fr_1fr]">
         <ProjectRevenueCard byProject={insights.byProject} />
         <ProfitabilityCard p={insights.profitability} />
       </div>
@@ -311,6 +381,370 @@ export function PulseDashboardView({
       </Card>
 
     </div>
+  );
+}
+
+// --- Premium pulse modules --------------------------------------------------
+
+function formatMonthLabel(key: string) {
+  const [year, month] = key.split("-").map(Number);
+  if (!year || !month) return key;
+  return new Date(Date.UTC(year, month - 1, 1)).toLocaleDateString("en-IN", {
+    month: "short",
+    year: "2-digit",
+  });
+}
+
+function PulseBrief({
+  analytics,
+  insights,
+  rangeLabel,
+}: {
+  analytics: PulseAnalytics;
+  insights: PulseInsights;
+  rangeLabel: string;
+}) {
+  const receivables = analytics.receivables;
+  const concentration = insights.concentration.top1Pct;
+  const collectionRate = analytics.invoices.collectionRatePct;
+  const focus = [
+    {
+      label: "Cash attention",
+      value:
+        receivables.overdueTotal > 0
+          ? `${formatINR(receivables.overdueTotal)} overdue`
+          : `${formatINR(receivables.outstandingTotal)} outstanding`,
+      detail:
+        receivables.overdueTotal > 0
+          ? "Prioritize overdue follow-ups before new work."
+          : "No overdue balance. Keep current invoices warm.",
+      tone: receivables.overdueTotal > 0 ? "warning" : "good",
+    },
+    {
+      label: "Client balance",
+      value: concentration != null ? `${Math.round(concentration)}% top client` : "Not enough data",
+      detail:
+        concentration != null && concentration >= 50
+          ? "Revenue is concentrated. Nurture backups or expand smaller accounts."
+          : "Client concentration looks manageable in this range.",
+      tone: concentration != null && concentration >= 50 ? "warning" : "good",
+    },
+    {
+      label: "Collection rhythm",
+      value: collectionRate != null ? `${Math.round(collectionRate)}% collected` : "No invoices",
+      detail:
+        collectionRate != null && collectionRate < 80
+          ? "Tighten payment reminders and due dates."
+          : "Your invoice flow is converting well.",
+      tone: collectionRate != null && collectionRate < 80 ? "warning" : "good",
+    },
+  ];
+
+  return (
+    <div className="rounded-2xl border border-primary/15 bg-[radial-gradient(circle_at_top_left,hsl(var(--primary)/0.10),transparent_34%),linear-gradient(135deg,hsl(var(--background)),hsl(var(--muted)/0.45))] p-4 shadow-sm shadow-primary/[0.04]">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div className="max-w-xl">
+          <div className="flex items-center gap-2">
+            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-sm">
+              <Sparkles className="h-4 w-4" />
+            </span>
+            <p className="text-[11px] font-bold uppercase tracking-widest text-primary">
+              Pulse focus
+            </p>
+          </div>
+          <h2 className="mt-3 text-xl font-semibold tracking-tight">
+            A sharper operating read for {rangeLabel.toLowerCase()}.
+          </h2>
+          <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
+            Pulse now blends revenue, collection, concentration, GST, and time signals so the
+            next business move is easier to spot.
+          </p>
+        </div>
+        <div className="grid flex-1 gap-3 sm:grid-cols-3">
+          {focus.map((item) => (
+            <div key={item.label} className="rounded-xl border bg-background/75 p-3 shadow-sm">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                  {item.label}
+                </p>
+                <span
+                  className={cn(
+                    "h-2 w-2 rounded-full",
+                    item.tone === "warning" ? "bg-amber-500" : "bg-emerald-500",
+                  )}
+                />
+              </div>
+              <p className="mt-2 text-sm font-bold tabular-nums">{item.value}</p>
+              <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">
+                {item.detail}
+              </p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function RevenueStudio({
+  series,
+  totalPaid,
+  issuedTotal,
+  rangeLabel,
+}: {
+  series: PulseAnalytics["revenue"]["series"];
+  totalPaid: number;
+  issuedTotal: number;
+  rangeLabel: string;
+}) {
+  const hasData = totalPaid > 0 || issuedTotal > 0;
+
+  return (
+    <Card className="overflow-hidden border-border/70 shadow-sm shadow-primary/[0.03]">
+      <CardContent className="p-0">
+        <div className="flex flex-col gap-4 border-b bg-muted/20 p-5 lg:flex-row lg:items-start lg:justify-between">
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-primary/10 to-cyan-500/10 text-primary ring-1 ring-primary/15">
+                <LineChart className="h-4 w-4" />
+              </span>
+              <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
+                Revenue studio
+              </p>
+            </div>
+            <h3 className="mt-3 text-lg font-semibold tracking-tight">
+              Paid revenue vs issued pipeline
+            </h3>
+            <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
+              Compare what actually came in with what was issued during {rangeLabel.toLowerCase()}.
+            </p>
+          </div>
+          <div className="grid grid-cols-2 gap-2 sm:min-w-[280px]">
+            <Mini label="Paid" value={formatINR(totalPaid)} />
+            <Mini label="Issued" value={formatINR(issuedTotal)} />
+          </div>
+        </div>
+        <div className="p-5 pl-2">
+          {hasData ? (
+            <div className="h-[320px] w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <ComposedChart data={series} margin={{ top: 8, right: 18, left: 0, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="pulse-paid-fill" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity={0.28} />
+                      <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity={0.02} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" opacity={0.55} />
+                  <XAxis
+                    dataKey="month"
+                    tickFormatter={formatMonthLabel}
+                    tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
+                    tickLine={false}
+                    axisLine={false}
+                  />
+                  <YAxis
+                    yAxisId="money"
+                    tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
+                    tickLine={false}
+                    axisLine={false}
+                    tickFormatter={(v) => formatINR(v as number, { compact: true })}
+                    width={56}
+                  />
+                  <YAxis yAxisId="count" orientation="right" hide />
+                  <Tooltip content={<PulseChartTooltip />} />
+                  <Bar
+                    yAxisId="money"
+                    dataKey="issued"
+                    name="Issued"
+                    barSize={18}
+                    radius={[6, 6, 0, 0]}
+                    fill="hsl(var(--muted-foreground) / 0.18)"
+                  />
+                  <Area
+                    yAxisId="money"
+                    type="monotone"
+                    dataKey="paid"
+                    name="Paid"
+                    stroke="hsl(var(--primary))"
+                    strokeWidth={2.5}
+                    fill="url(#pulse-paid-fill)"
+                    activeDot={{ r: 4, fill: "hsl(var(--primary))", strokeWidth: 0 }}
+                  />
+                  <Bar
+                    yAxisId="count"
+                    dataKey="paidInvoices"
+                    name="Paid invoices"
+                    barSize={6}
+                    radius={[999, 999, 0, 0]}
+                    fill="hsl(160 84% 39% / 0.58)"
+                  />
+                </ComposedChart>
+              </ResponsiveContainer>
+            </div>
+          ) : (
+            <div className="flex h-[260px] flex-col items-center justify-center gap-2 text-center">
+              <p className="text-sm font-medium">No invoice movement in this range</p>
+              <p className="max-w-sm text-xs text-muted-foreground">
+                Create or collect invoices to see revenue, pipeline, and payment volume here.
+              </p>
+            </div>
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function PulseChartTooltip({
+  active,
+  payload,
+  label,
+}: {
+  active?: boolean;
+  payload?: Array<{ dataKey?: string; value?: number; name?: string }>;
+  label?: string;
+}) {
+  if (!active || !payload?.length) return null;
+  const paid = payload.find((p) => p.dataKey === "paid")?.value ?? 0;
+  const issued = payload.find((p) => p.dataKey === "issued")?.value ?? 0;
+  const paidInvoices = payload.find((p) => p.dataKey === "paidInvoices")?.value ?? 0;
+  return (
+    <div className="rounded-xl border bg-popover px-3.5 py-2.5 text-xs shadow-xl shadow-primary/10">
+      <p className="font-semibold text-popover-foreground">{formatMonthLabel(label ?? "")}</p>
+      <p className="mt-1.5 tabular-nums text-muted-foreground">
+        Paid: <span className="font-bold text-foreground">{formatINR(paid)}</span>
+      </p>
+      <p className="tabular-nums text-muted-foreground">
+        Issued: <span className="font-bold text-foreground">{formatINR(issued)}</span>
+      </p>
+      <p className="text-muted-foreground">
+        Paid invoices: <span className="font-semibold text-foreground">{paidInvoices}</span>
+      </p>
+    </div>
+  );
+}
+
+function PaymentHealthCard({ analytics }: { analytics: PulseAnalytics }) {
+  const rate = Math.max(0, Math.min(100, Math.round(analytics.invoices.collectionRatePct ?? 0)));
+  const avgDays = analytics.cashFlow.avgDaysToPay;
+  const data = [{ name: "Collected", value: rate, fill: "hsl(var(--primary))" }];
+  return (
+    <Card>
+      <CardContent className="grid gap-5 p-5 md:grid-cols-[220px_1fr]">
+        <div>
+          <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
+            Payment health
+          </p>
+          <h3 className="mt-3 text-lg font-semibold tracking-tight">Collection quality</h3>
+          <p className="mt-1 text-sm text-muted-foreground">
+            A compact read on whether invoices are turning into cash quickly.
+          </p>
+        </div>
+        <div className="grid gap-4 sm:grid-cols-[180px_1fr]">
+          <div className="relative h-[170px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <RadialBarChart
+                innerRadius="72%"
+                outerRadius="100%"
+                data={data}
+                startAngle={180}
+                endAngle={-180}
+              >
+                <RadialBar dataKey="value" cornerRadius={999} background={{ fill: "hsl(var(--muted))" }} />
+              </RadialBarChart>
+            </ResponsiveContainer>
+            <div className="absolute inset-0 flex flex-col items-center justify-center">
+              <p className="text-3xl font-bold tabular-nums">{rate}%</p>
+              <p className="text-[11px] text-muted-foreground">collected</p>
+            </div>
+          </div>
+          <div className="grid content-center gap-3">
+            <Mini label="Invoices paid" value={`${analytics.invoices.paidCount}/${analytics.invoices.issuedCount}`} />
+            <Mini label="Avg days to pay" value={avgDays !== null ? `${avgDays}d` : "—"} />
+            <Mini label="Outstanding" value={formatINR(analytics.receivables.outstandingTotal)} />
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function ClientMixCard({
+  concentration,
+}: {
+  concentration: PulseInsights["concentration"];
+}) {
+  const rows = concentration.byClient.slice(0, 5);
+  const colors = ["hsl(var(--primary))", "hsl(160 84% 39%)", "hsl(38 92% 50%)", "hsl(199 89% 48%)", "hsl(262 83% 58%)"];
+
+  return (
+    <Card>
+      <CardContent className="grid gap-5 p-5 md:grid-cols-[220px_1fr]">
+        <div>
+          <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
+            Client mix
+          </p>
+          <h3 className="mt-3 text-lg font-semibold tracking-tight">Revenue concentration</h3>
+          <p className="mt-1 text-sm text-muted-foreground">
+            See whether growth depends on one account or a healthier spread.
+          </p>
+        </div>
+        <div className="grid gap-4 sm:grid-cols-[170px_1fr]">
+          <div className="h-[170px]">
+            {rows.length > 0 ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={rows}
+                    dataKey="paid"
+                    nameKey="name"
+                    innerRadius={48}
+                    outerRadius={78}
+                    paddingAngle={3}
+                    stroke="hsl(var(--background))"
+                    strokeWidth={3}
+                  >
+                    {rows.map((_, index) => (
+                      <Cell key={index} fill={colors[index % colors.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    formatter={(value) => formatINR(Number(value))}
+                    contentStyle={{
+                      borderRadius: 12,
+                      borderColor: "hsl(var(--border))",
+                      background: "hsl(var(--popover))",
+                    }}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="flex h-full items-center justify-center rounded-full border border-dashed text-xs text-muted-foreground">
+                No revenue
+              </div>
+            )}
+          </div>
+          <div className="space-y-2">
+            {rows.length === 0 ? (
+              <p className="py-10 text-sm text-muted-foreground">No paid client revenue yet.</p>
+            ) : (
+              rows.map((row, index) => (
+                <div key={row.clientId ?? row.name} className="flex items-center justify-between gap-3 rounded-lg border bg-muted/15 px-3 py-2">
+                  <span className="flex min-w-0 items-center gap-2">
+                    <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: colors[index % colors.length] }} />
+                    <span className="truncate text-sm font-medium">{row.name}</span>
+                  </span>
+                  <span className="text-xs font-semibold tabular-nums text-muted-foreground">
+                    {Math.round(row.pct)}%
+                  </span>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 

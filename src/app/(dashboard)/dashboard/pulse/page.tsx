@@ -113,7 +113,7 @@ export default async function PulsePage({
       insights={insights}
       topClients={topClients}
       range={range}
-      custom={{ from: hasCustom ? sp.from! : "", to: hasCustom ? sp.to! : "" }}
+      custom={{ from: sp.from ?? "", to: sp.to ?? "" }}
     />
   );
 }

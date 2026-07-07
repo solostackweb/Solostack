@@ -16,6 +16,9 @@ export interface PulseRevenuePoint {
   /** YYYY-MM (UTC). */
   month: string;
   paid: number;
+  issued: number;
+  paidInvoices: number;
+  issuedInvoices: number;
 }
 
 export interface AgingBuckets {
@@ -188,7 +191,13 @@ export async function getPulseAnalytics(opts: {
     const d = new Date(
       Date.UTC(fromDate.getUTCFullYear(), fromDate.getUTCMonth() + i, 1),
     );
-    buckets.set(monthKey(d), { month: monthKey(d), paid: 0 });
+    buckets.set(monthKey(d), {
+      month: monthKey(d),
+      paid: 0,
+      issued: 0,
+      paidInvoices: 0,
+      issuedInvoices: 0,
+    });
   }
 
   let paidTotal = 0;
@@ -217,6 +226,11 @@ export async function getPulseAnalytics(opts: {
     if (r.status !== "draft") {
       issuedCount += 1;
       issuedTotal += total;
+      const issuedBucket = buckets.get(monthKey(new Date(`${r.issue_date}T00:00:00Z`)));
+      if (issuedBucket) {
+        issuedBucket.issued += total;
+        issuedBucket.issuedInvoices += 1;
+      }
     }
     if (r.viewed_at || r.status === "viewed" || r.status === "paid") {
       viewedCount += 1;
@@ -225,7 +239,10 @@ export async function getPulseAnalytics(opts: {
       paidCount += 1;
       paidTotal += total;
       const b = buckets.get(monthKey(new Date(r.paid_at)));
-      if (b) b.paid += total;
+      if (b) {
+        b.paid += total;
+        b.paidInvoices += 1;
+      }
       if (r.issue_date) {
         const d =
           (new Date(r.paid_at).getTime() -
@@ -294,6 +311,9 @@ export async function getPulseAnalytics(opts: {
   const series = Array.from(buckets.values()).map((b) => ({
     month: b.month,
     paid: round2(b.paid),
+    issued: round2(b.issued),
+    paidInvoices: b.paidInvoices,
+    issuedInvoices: b.issuedInvoices,
   }));
 
   let momGrowthPct: number | null = null;

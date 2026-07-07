@@ -132,6 +132,15 @@ import { IVO_ASK_EVENT, type IvoAskDetail } from "./ivo-entry-point";
  */
 const SUPPORT_ENABLED = true;
 
+function formatAssistantMessageContent(content: string): string {
+  return content
+    .replace(/\s+(\d+\.\s+)/g, "\n$1")
+    .replace(/\s+([-*]\s+)/g, "\n$1")
+    .replace(/([.!?])\s+(Next:|Focus:|Watch:|Tip:)/g, "$1\n$2")
+    .replace(/^\n+/, "")
+    .trim();
+}
+
 export function StackivoAiAssistant({ clients, projects, user }: StackivoAiAssistantProps) {
   const router = useRouter();
   const [mounted, setMounted] = React.useState(false);
@@ -2129,13 +2138,15 @@ export function StackivoAiAssistant({ clients, projects, user }: StackivoAiAssis
                 >
                   <div
                     className={cn(
-                      "max-w-[88%] px-4 py-3 text-sm leading-relaxed",
+                      "max-w-[88%] whitespace-pre-line px-4 py-3 text-sm leading-relaxed",
                       message.role === "user"
                         ? "rounded-2xl rounded-br-md bg-primary text-primary-foreground shadow-sm shadow-primary/20"
                         : "mr-auto rounded-2xl rounded-bl-md border border-border/70 bg-background shadow-sm",
                     )}
                   >
-                    {message.content}
+                    {message.role === "assistant" && typeof message.content === "string"
+                      ? formatAssistantMessageContent(message.content)
+                      : message.content}
                     {message.role === "assistant" && message.tip ? (
                       <span className="mt-2 flex items-start gap-1.5 rounded-lg border border-primary/15 bg-primary/[0.04] px-2.5 py-1.5 text-xs text-muted-foreground">
                         <Lightbulb className="mt-0.5 h-3 w-3 shrink-0 text-primary/70" />
