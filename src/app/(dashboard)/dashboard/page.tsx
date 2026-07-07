@@ -23,7 +23,6 @@ import { getBusinessProfile } from "@/features/onboarding/server";
 import { getCurrentSubscription } from "@/features/subscription/server";
 import { FreePlanBanner } from "@/components/dashboard/free-plan-banner";
 import { getAssistantSuggestions } from "@/features/ai-workflows/suggestions";
-import { IvoWorkspaceNudges } from "@/features/ai-workflows/components/ivo-workspace-nudges";
 
 export const metadata = { title: "Dashboard" };
 export const dynamic = "force-dynamic";
@@ -40,15 +39,18 @@ function firstNameOf(
 // ─── Async streaming sections ────────────────────────────────────────────────
 
 async function KpiSection() {
-  const {
-    collectedAllTime,
-    outstanding,
-    overdueAmount,
-    activeProjects,
-    weeklyBillableSeconds,
-    weeklyBillableAmount,
-    revenueSeries,
-  } = await getKpiSnapshot();
+  const [
+    {
+      collectedAllTime,
+      outstanding,
+      overdueAmount,
+      activeProjects,
+      weeklyBillableSeconds,
+      weeklyBillableAmount,
+      revenueSeries,
+    },
+    assistantSuggestions,
+  ] = await Promise.all([getKpiSnapshot(), getAssistantSuggestions()]);
   return (
     <BusinessCommandCenterLazy
       collectedAllTime={collectedAllTime}
@@ -58,13 +60,9 @@ async function KpiSection() {
       weeklyBillableSeconds={weeklyBillableSeconds}
       weeklyBillableAmount={weeklyBillableAmount}
       revenueSeries={revenueSeries}
+      assistantSuggestions={assistantSuggestions}
     />
   );
-}
-
-async function IvoNudgesSection() {
-  const suggestions = await getAssistantSuggestions();
-  return <IvoWorkspaceNudges suggestions={suggestions} />;
 }
 
 async function FeedSection() {
@@ -234,10 +232,6 @@ export default async function DashboardPage() {
       ) : null}
 
       {profile ? <ProfileCompletenessAlert profile={profile} /> : null}
-
-      <Suspense fallback={null}>
-        <IvoNudgesSection />
-      </Suspense>
 
       {/* KPI tiles + revenue chart — fast DB aggregates */}
       <Suspense fallback={<KpiSkeleton />}>

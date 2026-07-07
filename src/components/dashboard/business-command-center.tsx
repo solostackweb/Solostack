@@ -24,6 +24,7 @@ import { formatINR, formatPercent } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import type { RevenuePoint } from "@/features/pulse/server";
 import { IvoEntryPoint } from "@/features/ai-workflows/components/ivo-entry-point";
+import type { AssistantSuggestion } from "@/features/ai-workflows/suggestions";
 
 export interface BusinessCommandCenterProps {
   collectedAllTime: number;
@@ -33,6 +34,7 @@ export interface BusinessCommandCenterProps {
   weeklyBillableSeconds?: number;
   weeklyBillableAmount?: number;
   revenueSeries: RevenuePoint[];
+  assistantSuggestions?: AssistantSuggestion[];
 }
 
 function formatMonthLabel(key: string) {
@@ -60,6 +62,7 @@ export function BusinessCommandCenter({
   weeklyBillableSeconds = 0,
   weeklyBillableAmount = 0,
   revenueSeries,
+  assistantSuggestions = [],
 }: BusinessCommandCenterProps) {
   const totalReceivables = outstanding + overdueAmount;
   const overdueShare =
@@ -78,6 +81,7 @@ export function BusinessCommandCenter({
         ? 100
         : 0;
   const bestMonth = Math.max(0, ...revenueSeries.map((point) => point.paid));
+  const ivoInsight = assistantSuggestions[0] ?? null;
 
   const state =
     overdueAmount > 0
@@ -191,6 +195,25 @@ export function BusinessCommandCenter({
                 tone="default"
               />
             </div>
+
+            {ivoInsight ? (
+              <div className="flex flex-col gap-2 rounded-lg border border-primary/10 bg-background/70 px-3 py-2.5 sm:flex-row sm:items-center sm:justify-between">
+                <div className="min-w-0">
+                  <p className="text-[11px] font-semibold uppercase tracking-wider text-primary">
+                    Ivo insight
+                  </p>
+                  <p className="mt-0.5 truncate text-sm text-foreground">
+                    {ivoInsight.title}
+                  </p>
+                </div>
+                <IvoEntryPoint
+                  prompt={ivoInsight.prompt}
+                  label="Ask"
+                  variant="ghost"
+                  className="h-8 shrink-0 justify-center px-2.5"
+                />
+              </div>
+            ) : null}
 
             <div className="rounded-lg border border-border/60 bg-muted/20 p-3">
               <div className="flex items-center justify-between gap-3">
