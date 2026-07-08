@@ -1,13 +1,6 @@
 "use client";
 
 import * as React from "react";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { INDIAN_STATES } from "@/features/gst/state-codes";
 
 /**
@@ -41,26 +34,22 @@ export function StateSelect({
     onValueChange?.(next);
   };
   return (
-    <>
-      <Select value={selected} onValueChange={handleChange}>
-        <SelectTrigger id={id}>
-          <SelectValue placeholder={placeholder} />
-        </SelectTrigger>
-        <SelectContent>
-          {INDIAN_STATES.map((s) => (
-            <SelectItem key={s.code} value={s.code}>
-              {s.name}{" "}
-              <span className="text-muted-foreground">({s.code})</span>
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-      <input
-        type="hidden"
-        name={name}
-        value={selected}
-        required={required}
-      />
-    </>
+    <select
+      id={id}
+      name={name}
+      value={selected}
+      required={required}
+      onChange={(event) => handleChange(event.target.value)}
+      className="flex h-11 w-full rounded-md border border-input bg-background px-3 text-sm shadow-sm transition-all focus:border-primary/40 focus:outline-none focus:ring-4 focus:ring-primary/15 disabled:cursor-not-allowed disabled:opacity-50"
+    >
+      <option value="" disabled>
+        {placeholder}
+      </option>
+      {INDIAN_STATES.map((s) => (
+        <option key={s.code} value={s.code}>
+          {s.name} ({s.code})
+        </option>
+      ))}
+    </select>
   );
 }
