@@ -34,7 +34,7 @@ export const primaryNav: NavItem[] = [
   { title: "Contracts",    href: "/dashboard/contracts",icon: FileSignature },
   { title: "Welcome Docs", href: "/dashboard/welcome",  icon: BookOpen },
   { title: "Portal",       href: "/dashboard/portal",   icon: Workflow,      proRequired: true },
-  { title: "Time",         href: "/dashboard/time",     icon: Clock },
+  { title: "Time",         href: "/dashboard/time",     icon: Clock,         proRequired: true },
   { title: "Pulse",        href: "/dashboard/pulse",    icon: Activity,      proRequired: true },
 ];
 

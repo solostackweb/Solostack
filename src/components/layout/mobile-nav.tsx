@@ -78,7 +78,11 @@ export function MobileNav() {
           <p className="mb-1.5 px-3 text-[10px] font-bold uppercase tracking-widest text-muted-foreground/70">
             Workspace
           </p>
-          <SidebarNav items={primaryNav} onNavigate={() => setOpen(false)} />
+          <SidebarNav
+            items={primaryNav}
+            onNavigate={() => setOpen(false)}
+            isFreePlan={plan === "free"}
+          />
 
           <Separator className="my-3" />
 
