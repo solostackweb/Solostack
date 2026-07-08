@@ -246,13 +246,15 @@ const SelectContent = React.forwardRef<HTMLDivElement, SelectContentProps>(
         tabIndex={-1}
         data-state={ctx.open ? "open" : "closed"}
         className={cn(
-          "fixed z-50 min-w-[8rem] overflow-y-auto overflow-x-hidden overscroll-contain rounded-md border bg-popover p-1 text-popover-foreground shadow-md outline-none",
+          "fixed z-[70] min-w-[8rem] overflow-y-auto overflow-x-hidden overscroll-contain rounded-md border bg-popover p-1 text-popover-foreground shadow-md outline-none",
           ctx.open
             ? "animate-in fade-in-0 zoom-in-95"
             : "pointer-events-none hidden",
           className,
         )}
         style={style}
+        onWheel={(event) => event.stopPropagation()}
+        onTouchMove={(event) => event.stopPropagation()}
         onKeyDown={(event) => {
           if (event.key === "Escape") {
             event.preventDefault();
@@ -289,7 +291,7 @@ type SelectItemProps = React.HTMLAttributes<HTMLButtonElement> & {
 };
 
 const SelectItem = React.forwardRef<HTMLButtonElement, SelectItemProps>(
-  ({ className, children, value, disabled, textValue, onClick, ...props }, forwardedRef) => {
+  ({ className, children, value, disabled, textValue, onClick, onPointerDown, ...props }, forwardedRef) => {
     const ctx = useSelectContext("SelectItem");
     const localRef = React.useRef<HTMLButtonElement | null>(null);
     const selected = ctx.value === value;
@@ -320,6 +322,15 @@ const SelectItem = React.forwardRef<HTMLButtonElement, SelectItemProps>(
           selected && "bg-accent/70 text-accent-foreground",
           className,
         )}
+        onPointerDown={(event) => {
+          onPointerDown?.(event);
+          if (event.defaultPrevented || disabled) return;
+          if (event.pointerType !== "mouse") return;
+          event.preventDefault();
+          ctx.setValue(value);
+          ctx.setOpen(false);
+          ctx.triggerRef.current?.focus();
+        }}
         onClick={(event) => {
           onClick?.(event);
           if (event.defaultPrevented || disabled) return;
