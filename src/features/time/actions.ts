@@ -30,6 +30,9 @@ export type ActionResult<T = undefined> =
   | { ok: true; data?: T; message?: string }
   | { ok: false; error: string; fieldErrors?: Record<string, string[]> };
 
+const optionalFormValue = (value: FormDataEntryValue | null) =>
+  typeof value === "string" ? value : undefined;
+
 async function requireUserId(): Promise<string> {
   const supabase = await getServerSupabase();
   const { data: { user } } = await supabase.auth.getUser();
@@ -52,14 +55,14 @@ export async function manualTimeEntryAction(
   formData: FormData,
 ): Promise<ActionResult<{ id: string }>> {
   const parsed = manualTimeEntrySchema.safeParse({
-    description: formData.get("description"),
-    projectId: formData.get("projectId"),
-    clientId: formData.get("clientId"),
+    description: optionalFormValue(formData.get("description")),
+    projectId: optionalFormValue(formData.get("projectId")),
+    clientId: optionalFormValue(formData.get("clientId")),
     startedAt: formData.get("startedAt"),
     durationSeconds: formData.get("durationSeconds"),
     billable: formData.get("billable") ?? "false",
     hourlyRate: formData.get("hourlyRate") ?? 0,
-    tags: formData.get("tags") ?? undefined,
+    tags: optionalFormValue(formData.get("tags")),
   });
   if (!parsed.success) {
     return {
@@ -112,14 +115,14 @@ export async function updateTimeEntryAction(
 ): Promise<ActionResult> {
   const parsed = updateTimeEntrySchema.safeParse({
     id: formData.get("id"),
-    description: formData.get("description"),
-    projectId: formData.get("projectId"),
-    clientId: formData.get("clientId"),
+    description: optionalFormValue(formData.get("description")),
+    projectId: optionalFormValue(formData.get("projectId")),
+    clientId: optionalFormValue(formData.get("clientId")),
     startedAt: formData.get("startedAt"),
     durationSeconds: formData.get("durationSeconds"),
     billable: formData.get("billable") ?? "false",
     hourlyRate: formData.get("hourlyRate") ?? 0,
-    tags: formData.get("tags") ?? undefined,
+    tags: optionalFormValue(formData.get("tags")),
   });
   if (!parsed.success) {
     return {
@@ -240,9 +243,9 @@ export async function startTimerAction(
   formData: FormData,
 ): Promise<ActionResult<{ id: string }>> {
   const parsed = startTimerSchema.safeParse({
-    description: formData.get("description"),
-    projectId: formData.get("projectId"),
-    clientId: formData.get("clientId"),
+    description: optionalFormValue(formData.get("description")),
+    projectId: optionalFormValue(formData.get("projectId")),
+    clientId: optionalFormValue(formData.get("clientId")),
     hourlyRate: formData.get("hourlyRate") ?? 0,
     billable: formData.get("billable") ?? "true",
   });
