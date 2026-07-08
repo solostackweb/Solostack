@@ -8,13 +8,6 @@ import { ResponsiveModal } from "@/components/ui/responsive-modal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { manualTimeEntryAction, updateTimeEntryAction } from "../actions";
 import { useSubscription } from "@/features/subscription/hooks/use-subscription";
@@ -178,9 +171,10 @@ export function ManualEntryDialog({
           </Field>
 
           <Field label="Project">
-            <Select
+            <select
               value={values.projectId}
-              onValueChange={(v) => {
+              onChange={(e) => {
+                const v = e.target.value;
                 const proj = projects.find((x) => x.id === v);
                 const bill = !!proj?.billingEnabled;
                 setValues((prev) => ({
@@ -190,19 +184,15 @@ export function ManualEntryDialog({
                   hourlyRate: bill ? (proj?.hourlyRate || defaultHourlyRate) : prev.hourlyRate,
                 }));
               }}
+              className="flex h-12 w-full rounded-md border border-input bg-background px-3 text-sm shadow-sm transition-all focus:border-primary/40 focus:outline-none focus:ring-4 focus:ring-primary/15"
             >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={NO_PROJECT}>No project</SelectItem>
+              <option value={NO_PROJECT}>No project</option>
                 {projects.map((p) => (
-                  <SelectItem key={p.id} value={p.id}>
+                  <option key={p.id} value={p.id}>
                     {p.name}
-                  </SelectItem>
+                  </option>
                 ))}
-              </SelectContent>
-            </Select>
+            </select>
           </Field>
 
           <div className="grid gap-4 sm:grid-cols-3">

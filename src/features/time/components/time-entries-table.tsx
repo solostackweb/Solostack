@@ -14,7 +14,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
-import { formatINR } from "@/lib/format";
+import { formatINR, formatMoney } from "@/lib/format";
 
 import { dateKeyFromISO, formatDuration } from "../types";
 import type { TimeEntryRecord } from "../server";
@@ -241,7 +241,7 @@ function EntryRow({
           </span>
           {entry.billable && (
             <span className="hidden w-20 text-right text-sm tabular-nums text-muted-foreground sm:inline">
-              {formatINR(Number(entry.amount) || 0)}
+              {formatTimeEntryAmount(entry)}
             </span>
           )}
         </div>
@@ -285,6 +285,16 @@ function EntryRow({
       </div>
     </li>
   );
+}
+
+function formatTimeEntryAmount(entry: TimeEntryRecord) {
+  if (entry.invoiceId && entry.invoiceDisplayAmount !== null) {
+    return formatMoney(
+      Number(entry.invoiceDisplayAmount) || 0,
+      entry.invoiceCurrency || "INR",
+    );
+  }
+  return formatINR(Number(entry.amount) || 0);
 }
 
 interface GroupedEntries {

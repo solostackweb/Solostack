@@ -10,7 +10,7 @@ import "server-only";
  */
 
 import { getServerSupabase } from "@/lib/supabase/server";
-import type { TimeEntryRow } from "@/lib/supabase/types";
+import type { InvoiceRow, TimeEntryRow } from "@/lib/supabase/types";
 
 export interface TimeEntryRecord {
   id: string;
@@ -26,6 +26,9 @@ export interface TimeEntryRecord {
   tags: string[];
   invoiceId: string | null;
   invoicedAt: string | null;
+  invoiceCurrency: string | null;
+  invoiceFxRateToInr: number | null;
+  invoiceDisplayAmount: number | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -45,9 +48,85 @@ export function mapTimeEntryRow(row: TimeEntryRow): TimeEntryRecord {
     tags: row.tags ?? [],
     invoiceId: row.invoice_id ?? null,
     invoicedAt: row.invoiced_at ?? null,
+    invoiceCurrency: null,
+    invoiceFxRateToInr: null,
+    invoiceDisplayAmount: null,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
+}
+
+async function enrichEntriesWithInvoiceMeta(
+  entries: TimeEntryRecord[],
+): Promise<TimeEntryRecord[]> {
+  const invoiceIds = Array.from(
+    new Set(entries.map((e) => e.invoiceId).filter((id): id is string => !!id)),
+  );
+  if (invoiceIds.length === 0) return entries;
+
+  const supabase = await getServerSupabase();
+  const { data } = await supabase
+    .from("invoices")
+    .select("id, currency, fx_rate_to_inr, total_amount")
+    .in("id", invoiceIds);
+
+  const byId = new Map(
+    ((data as Pick<InvoiceRow, "id" | "currency" | "fx_rate_to_inr" | "total_amount">[] | null) ?? [])
+      .map((inv) => [
+        inv.id,
+        {
+          currency: (inv.currency || "INR").toUpperCase(),
+          fxRateToInr: Number(inv.fx_rate_to_inr) || 1,
+          totalAmount: Number(inv.total_amount) || 0,
+        },
+      ]),
+  );
+
+  const { data: invoiceEntryRows } = await supabase
+    .from("time_entries")
+    .select("invoice_id, duration_seconds, amount")
+    .in("invoice_id", invoiceIds);
+
+  const invoiceEntryTotals = new Map<string, { seconds: number; amount: number }>();
+  for (const row of (invoiceEntryRows as Array<{
+    invoice_id: string | null;
+    duration_seconds: number | null;
+    amount: number | string | null;
+  }> | null) ?? []) {
+    if (!row.invoice_id) continue;
+    const current = invoiceEntryTotals.get(row.invoice_id) ?? { seconds: 0, amount: 0 };
+    current.seconds += Number(row.duration_seconds) || 0;
+    current.amount += Number(row.amount) || 0;
+    invoiceEntryTotals.set(row.invoice_id, current);
+  }
+
+  return entries.map((entry) => {
+    const invoice = entry.invoiceId ? byId.get(entry.invoiceId) : undefined;
+    if (!invoice) return entry;
+    const storedAmount = Number(entry.amount) || 0;
+    const invoiceEntryTotal = invoiceEntryTotals.get(entry.invoiceId || "");
+    const allocatedInvoiceAmount =
+      storedAmount === 0 &&
+      invoice.totalAmount > 0 &&
+      invoiceEntryTotal &&
+      invoiceEntryTotal.seconds > 0
+        ? Math.round(
+            invoice.totalAmount *
+              (entry.durationSeconds / invoiceEntryTotal.seconds) *
+              100,
+          ) / 100
+        : null;
+    const convertedStoredAmount =
+      storedAmount > 0 && invoice.currency !== "INR" && invoice.fxRateToInr > 0
+        ? Math.round((storedAmount / invoice.fxRateToInr) * 100) / 100
+        : storedAmount;
+    return {
+      ...entry,
+      invoiceCurrency: invoice.currency,
+      invoiceFxRateToInr: invoice.fxRateToInr,
+      invoiceDisplayAmount: allocatedInvoiceAmount ?? convertedStoredAmount,
+    };
+  });
 }
 
 /**
@@ -85,7 +164,7 @@ export async function listTimeEntries(
   if (typeof opts.billable === "boolean") q = q.eq("billable", opts.billable);
   const { data, error } = await q;
   if (error || !data) return [];
-  return (data as unknown as TimeEntryRow[]).map(mapTimeEntryRow);
+  return enrichEntriesWithInvoiceMeta((data as unknown as TimeEntryRow[]).map(mapTimeEntryRow));
 }
 
 export interface PagedTimeEntries {
@@ -136,7 +215,9 @@ export async function listTimeEntriesPaged(
   q = q.range(fromIdx, fromIdx + pageSize - 1);
 
   const { data, count } = await q;
-  const entries = ((data as unknown as TimeEntryRow[]) ?? []).map(mapTimeEntryRow);
+  const entries = await enrichEntriesWithInvoiceMeta(
+    ((data as unknown as TimeEntryRow[]) ?? []).map(mapTimeEntryRow),
+  );
   return { entries, total: count ?? 0 };
 }
 
