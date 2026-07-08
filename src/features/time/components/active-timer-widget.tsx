@@ -156,8 +156,8 @@ export function ActiveTimerWidget({
           className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/60 to-transparent"
         />
       ) : null}
-      <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center">
-        <div className="flex flex-1 items-center gap-2.5">
+      <CardContent className="grid gap-3 p-4 sm:grid-cols-[minmax(260px,1fr)_minmax(180px,240px)_auto] sm:items-center">
+        <div className="flex min-w-0 items-center gap-2.5">
           <span
             aria-hidden
             className={cn(
@@ -181,7 +181,7 @@ export function ActiveTimerWidget({
             onChange={(e) => setDescription(e.target.value)}
             placeholder={isRunning ? "Timing…" : "What are you working on?"}
             disabled={isRunning}
-            className="h-9 border-transparent bg-transparent shadow-none focus-visible:border-input focus-visible:bg-background"
+            className="h-9 min-w-0 border-transparent bg-transparent shadow-none focus-visible:border-input focus-visible:bg-background"
           />
         </div>
 
@@ -190,7 +190,7 @@ export function ActiveTimerWidget({
           onValueChange={setProjectId}
           disabled={isRunning}
         >
-          <SelectTrigger className="h-9 w-full sm:w-48">
+          <SelectTrigger className="h-9 w-full">
             <SelectValue placeholder="Project" />
           </SelectTrigger>
           <SelectContent>
@@ -203,7 +203,7 @@ export function ActiveTimerWidget({
           </SelectContent>
         </Select>
 
-        <div className="flex items-center gap-3">
+        <div className="flex shrink-0 items-center justify-between gap-3 sm:justify-end">
           <span
             className={cn(
               "font-mono text-xl font-bold tabular-nums tracking-tight",
