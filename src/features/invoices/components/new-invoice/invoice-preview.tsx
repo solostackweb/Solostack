@@ -214,7 +214,7 @@ export function InvoicePreview({
           <p className="mb-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
             Authorised Signature
           </p>
-          <div className="flex min-h-16 w-48 items-end border-b border-border pb-2">
+          <div className="flex min-h-16 w-60 items-end border-b border-border pb-2">
             {signatureReady && profile?.signatureType === "type" && profile.signatureTextValue ? (
               <span
                 className="text-3xl italic text-card-foreground"
@@ -232,12 +232,14 @@ export function InvoicePreview({
                 {profile.signatureTextValue}
               </span>
             ) : signatureReady && profile?.signatureImageUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={profile.signatureImageUrl}
-                alt="Authorised signature"
-                className="max-h-14 object-contain dark:invert"
-              />
+              <span className="inline-flex max-w-full rounded-md border border-border/70 bg-white px-3 py-2 shadow-sm">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={profile.signatureImageUrl}
+                  alt="Authorised signature"
+                  className="max-h-12 max-w-[180px] object-contain"
+                />
+              </span>
             ) : (
               <span className="text-sm italic text-muted-foreground">Awaiting signature setup</span>
             )}

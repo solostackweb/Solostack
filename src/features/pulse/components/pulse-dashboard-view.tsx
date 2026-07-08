@@ -537,7 +537,7 @@ function PaymentHealthCard({ analytics }: { analytics: PulseAnalytics }) {
   const data = [{ name: "Collected", value: rate, fill: "hsl(var(--primary))" }];
   return (
     <Card>
-      <CardContent className="flex flex-wrap items-center gap-x-7 gap-y-5 p-5">
+      <CardContent className="flex min-w-0 flex-wrap items-center gap-x-7 gap-y-5 overflow-hidden p-5">
         <div className="min-w-[220px] flex-1 basis-[240px]">
           <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
             Payment health
@@ -569,7 +569,7 @@ function PaymentHealthCard({ analytics }: { analytics: PulseAnalytics }) {
             <p className="text-[11px] text-muted-foreground">collected</p>
           </div>
         </div>
-        <div className="grid min-w-[210px] flex-1 basis-[220px] gap-2">
+        <div className="grid min-w-[210px] flex-1 basis-[220px] gap-2 overflow-hidden">
           <MetricRow label="Invoices paid" value={`${analytics.invoices.paidCount}/${analytics.invoices.issuedCount}`} />
           <MetricRow label="Avg days to pay" value={avgDays !== null ? `${avgDays}d` : "-"} />
           <MetricRow label="Outstanding" value={formatINR(analytics.receivables.outstandingTotal)} />
@@ -581,11 +581,11 @@ function PaymentHealthCard({ analytics }: { analytics: PulseAnalytics }) {
 
 function MetricRow({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex items-center justify-between gap-3 rounded-lg border bg-muted/15 px-3 py-2.5">
-      <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+    <div className="flex min-w-0 items-center justify-between gap-3 rounded-lg border bg-muted/15 px-3 py-2.5">
+      <span className="min-w-0 truncate text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
         {label}
       </span>
-      <span className="shrink-0 text-sm font-bold tabular-nums">{value}</span>
+      <span className="max-w-[55%] shrink-0 truncate text-right text-sm font-bold tabular-nums">{value}</span>
     </div>
   );
 }
@@ -615,12 +615,12 @@ function OperatingDetailsCard({
   return (
     <Card>
       <CardContent className="space-y-4 p-5">
-        <div className="flex items-center justify-between gap-3">
-          <div>
+        <div className="flex min-w-0 items-center justify-between gap-3">
+          <div className="min-w-0">
             <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
               Operating details
             </p>
-            <h3 className="mt-2 text-lg font-semibold tracking-tight">Full business pulse</h3>
+            <h3 className="mt-2 truncate text-lg font-semibold tracking-tight">Full business pulse</h3>
           </div>
           <IvoEntryPoint
             prompt="Explain these Pulse operating details and tell me what I should improve first."
@@ -630,11 +630,11 @@ function OperatingDetailsCard({
         </div>
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {items.map((item) => (
-            <div key={item.label} className="rounded-lg border bg-muted/15 p-3">
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+            <div key={item.label} className="min-w-0 rounded-lg border bg-muted/15 p-3">
+              <p className="truncate text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
                 {item.label}
               </p>
-              <p className="mt-1 text-base font-bold tabular-nums">{item.value}</p>
+              <p className="mt-1 truncate text-base font-bold tabular-nums" title={item.value}>{item.value}</p>
               <p className="mt-0.5 truncate text-[11px] text-muted-foreground">{item.sub}</p>
             </div>
           ))}
@@ -654,13 +654,13 @@ function ClientMixCard({
 
   return (
     <Card>
-      <CardContent className="space-y-5 p-5">
-        <div>
+      <CardContent className="min-w-0 space-y-5 overflow-hidden p-5">
+        <div className="min-w-0">
           <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
             Client mix
           </p>
-          <h3 className="mt-3 text-lg font-semibold tracking-tight">Revenue concentration</h3>
-          <p className="mt-1 text-sm text-muted-foreground">
+          <h3 className="mt-3 truncate text-lg font-semibold tracking-tight">Revenue concentration</h3>
+          <p className="mt-1 truncate text-sm text-muted-foreground">
             See whether growth depends on one account or a healthier spread.
           </p>
         </div>
@@ -700,6 +700,7 @@ function ClientMixCard({
                 <div
                   key={row.clientId ?? row.name}
                   className="flex min-w-0 items-center justify-between gap-3 rounded-lg border bg-muted/15 px-3 py-2"
+                  title={`${row.name}: ${Math.round(row.pct)}%`}
                 >
                   <span className="flex min-w-0 flex-1 items-center gap-2">
                     <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: colors[index % colors.length] }} />
