@@ -53,6 +53,50 @@ function newSectionId() {
   return `s_${Math.random().toString(36).slice(2, 9)}`;
 }
 
+function replaceKnownPlaceholders(
+  value: string,
+  replacements: Record<string, string | null | undefined>,
+) {
+  return value.replace(/\[([^\]\n]{2,80})\]/g, (match, rawKey: string) => {
+    const replacement = replacements[rawKey.trim().toLowerCase()];
+    return replacement && replacement.trim() ? replacement : match;
+  });
+}
+
+function buildContractPlaceholderReplacements(args: {
+  clientName: string | null;
+  clientBusinessName: string | null;
+  projectName: string | null;
+  freelancerName: string | null;
+  freelancerLegalName: string | null;
+  contractValue: string | null;
+}) {
+  const {
+    clientName,
+    clientBusinessName,
+    projectName,
+    freelancerName,
+    freelancerLegalName,
+    contractValue,
+  } = args;
+  const clientOrBusiness = clientBusinessName || clientName;
+  const projectOrClient = projectName || clientOrBusiness;
+  return {
+    "client name": clientName,
+    "client legal name": clientOrBusiness,
+    "client/business name": clientOrBusiness,
+    "client/project name": projectOrClient,
+    "party two legal name": clientOrBusiness,
+    "project name": projectName,
+    "project/opportunity": projectName,
+    "freelancer/business name": freelancerLegalName || freelancerName,
+    "freelancer/business legal name": freelancerLegalName || freelancerName,
+    "party one legal name": freelancerLegalName || freelancerName,
+    "currency and amount": contractValue,
+    amount: contractValue,
+  } satisfies Record<string, string | null | undefined>;
+}
+
 /**
  * Two-step contract builder:
  *   1. Pick a template (or blank)
@@ -93,6 +137,7 @@ export function ContractBuilderView({
     [projects, clientId],
   );
   const client = clients.find((c) => c.id === clientId) ?? null;
+  const project = projects.find((p) => p.id === projectId) ?? null;
   const selectedCurrency = (client?.currency || "INR").toUpperCase();
 
   const handlePickTemplate = (t: ContractTemplate) => {
@@ -251,6 +296,47 @@ export function ContractBuilderView({
 
   const clientDisplayName = client ? getClientDisplayName(client) : null;
   const freelancerName = getDisplayName(profile) || profile?.fullName || "";
+  const placeholderReplacements = React.useMemo(
+    () =>
+      buildContractPlaceholderReplacements({
+        clientName: clientDisplayName,
+        clientBusinessName: client?.businessName ?? null,
+        projectName: project?.name ?? null,
+        freelancerName,
+        freelancerLegalName: profile?.legalName || profile?.businessName || null,
+        contractValue: value === "" ? null : formatMoney(Number(value), selectedCurrency),
+      }),
+    [
+      clientDisplayName,
+      client?.businessName,
+      project?.name,
+      freelancerName,
+      profile?.legalName,
+      profile?.businessName,
+      value,
+      selectedCurrency,
+    ],
+  );
+
+  React.useEffect(() => {
+    setTitle((prev) => {
+      const next = replaceKnownPlaceholders(prev, placeholderReplacements);
+      return next === prev ? prev : next;
+    });
+    setSections((prev) => {
+      let changed = false;
+      const next = prev.map((section) => {
+        const heading = replaceKnownPlaceholders(section.heading, placeholderReplacements);
+        const body = replaceKnownPlaceholders(section.body, placeholderReplacements);
+        if (heading !== section.heading || body !== section.body) changed = true;
+        return changed && (heading !== section.heading || body !== section.body)
+          ? { ...section, heading, body }
+          : section;
+      });
+      return changed ? next : prev;
+    });
+  }, [placeholderReplacements]);
+
   const previewData = {
     title: title || "Untitled contract",
     kind,
