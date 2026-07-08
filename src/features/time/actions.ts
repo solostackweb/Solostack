@@ -59,7 +59,7 @@ export async function manualTimeEntryAction(
     durationSeconds: formData.get("durationSeconds"),
     billable: formData.get("billable") ?? "false",
     hourlyRate: formData.get("hourlyRate") ?? 0,
-    tags: formData.get("tags"),
+    tags: formData.get("tags") ?? undefined,
   });
   if (!parsed.success) {
     return {
@@ -119,7 +119,7 @@ export async function updateTimeEntryAction(
     durationSeconds: formData.get("durationSeconds"),
     billable: formData.get("billable") ?? "false",
     hourlyRate: formData.get("hourlyRate") ?? 0,
-    tags: formData.get("tags"),
+    tags: formData.get("tags") ?? undefined,
   });
   if (!parsed.success) {
     return {
