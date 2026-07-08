@@ -67,7 +67,7 @@ export function InvoicePreview({
   ].filter((v): v is string => Boolean(v && v.trim()));
 
   return (
-    <div className="overflow-hidden rounded-lg border bg-white shadow-xl shadow-black/5 ring-1 ring-black/5 dark:bg-white dark:text-slate-900">
+    <div className="overflow-hidden rounded-lg border bg-card text-card-foreground shadow-xl shadow-black/5 ring-1 ring-border/70">
       {/* Top accent rule */}
       <div className="h-1 w-full" style={{ backgroundColor: accent }} />
 
@@ -92,14 +92,14 @@ export function InvoicePreview({
             )}
             <div>
               <p className="text-sm font-semibold">{businessName}</p>
-              <p className="text-[11px] text-slate-500">{tagline}</p>
+              <p className="text-[11px] text-muted-foreground">{tagline}</p>
             </div>
           </div>
           <div className="text-right">
             <p className="text-lg font-semibold tracking-tight">
               {values.invoiceNumber || "INV-—"}
             </p>
-            <p className="text-[10px] uppercase tracking-wider text-slate-400">
+            <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
               Tax Invoice
             </p>
           </div>
@@ -108,44 +108,44 @@ export function InvoicePreview({
         {/* From / Bill to / Dates — 3 columns */}
         <div className="mb-8 grid grid-cols-3 gap-4 text-[11px]">
           <div>
-            <p className="mb-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+            <p className="mb-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
               From
             </p>
-            <p className="text-sm font-semibold text-slate-900">{businessName}</p>
+            <p className="text-sm font-semibold text-card-foreground">{businessName}</p>
             {fromLines.length > 0 ? (
-              <p className="mt-0.5 text-[11px] leading-relaxed text-slate-500">
+              <p className="mt-0.5 text-[11px] leading-relaxed text-muted-foreground">
                 {fromLines.join(", ")}
               </p>
             ) : null}
             {profile?.gstRegistered && profile?.gstin ? (
-              <p className="text-[11px] text-slate-500">GSTIN {profile.gstin}</p>
+              <p className="text-[11px] text-muted-foreground">GSTIN {profile.gstin}</p>
             ) : (
-              <p className="text-[11px] text-slate-400">GST not registered</p>
+              <p className="text-[11px] text-muted-foreground/80">GST not registered</p>
             )}
           </div>
           <div>
-            <p className="mb-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+            <p className="mb-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
               Bill To
             </p>
-            <p className="text-sm font-semibold text-slate-900">
+            <p className="text-sm font-semibold text-card-foreground">
               {clientName || "—"}
             </p>
             {clientCompany && (
-              <p className="text-[11px] text-slate-500">{clientCompany}</p>
+              <p className="text-[11px] text-muted-foreground">{clientCompany}</p>
             )}
             {clientEmail && (
-              <p className="text-[11px] text-slate-500">{clientEmail}</p>
+              <p className="text-[11px] text-muted-foreground">{clientEmail}</p>
             )}
           </div>
           <div className="text-right">
-            <p className="mb-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+            <p className="mb-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
               Dates
             </p>
-            <p className="text-[11px] text-slate-500">
-              Issued <span className="font-medium text-slate-900">{issueDate}</span>
+            <p className="text-[11px] text-muted-foreground">
+              Issued <span className="font-medium text-card-foreground">{issueDate}</span>
             </p>
-            <p className="text-[11px] text-slate-500">
-              Due <span className="font-medium text-slate-900">{dueDate}</span>
+            <p className="text-[11px] text-muted-foreground">
+              Due <span className="font-medium text-card-foreground">{dueDate}</span>
             </p>
           </div>
         </div>
@@ -154,7 +154,7 @@ export function InvoicePreview({
         <div className="mb-8">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-slate-200 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+              <tr className="border-b border-border text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
                 <th className="pb-2 text-left">Description</th>
                 <th className="pb-2 w-10 text-right">Qty</th>
                 <th className="pb-2 w-28 text-right pr-4">Rate</th>
@@ -166,27 +166,27 @@ export function InvoicePreview({
                 values.items.map((item, i) => (
                   <tr
                     key={item.id ?? i}
-                    className="border-b border-slate-100 last:border-b-0"
+                    className="border-b border-border/70 last:border-b-0"
                   >
-                    <td className="py-3 text-slate-900">
+                    <td className="py-3 text-card-foreground">
                       {item.description || (
-                        <span className="text-slate-400">Untitled item</span>
+                        <span className="text-muted-foreground">Untitled item</span>
                       )}
                     </td>
-                    <td className="py-3 text-right tabular-nums text-slate-600">
+                    <td className="py-3 text-right tabular-nums text-muted-foreground">
                       {item.quantity || 0}
                     </td>
-                    <td className="py-3 pr-4 text-right tabular-nums text-slate-600">
+                    <td className="py-3 pr-4 text-right tabular-nums text-muted-foreground">
                       {formatMoney(Number(item.rate) || 0, currency)}
                     </td>
-                    <td className="py-3 text-right font-medium tabular-nums text-slate-900">
+                    <td className="py-3 text-right font-medium tabular-nums text-card-foreground">
                       {formatMoney(computeItemAmount({ quantity: item.quantity, rate: item.rate }), currency)}
                     </td>
                   </tr>
                 ))
               ) : (
                 <tr>
-                  <td colSpan={4} className="py-6 text-center text-sm text-slate-400">
+                  <td colSpan={4} className="py-6 text-center text-sm text-muted-foreground">
                     No items added yet
                   </td>
                 </tr>
@@ -204,20 +204,20 @@ export function InvoicePreview({
               taxMode={values.taxMode}
               currency={currency}
               variant="document"
-              className={cn("[&_*]:text-slate-700")}
+              className={cn("[&>div>span:first-child]:text-muted-foreground")}
             />
           </div>
         </div>
 
         {/* Signature — single authorised block, full width */}
-        <div className="border-t border-slate-200 pt-6">
-          <p className="mb-2 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+        <div className="border-t border-border pt-6">
+          <p className="mb-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
             Authorised Signature
           </p>
-          <div className="flex min-h-16 w-48 items-end border-b border-slate-300 pb-2">
+          <div className="flex min-h-16 w-48 items-end border-b border-border pb-2">
             {signatureReady && profile?.signatureType === "type" && profile.signatureTextValue ? (
               <span
-                className="text-3xl italic text-slate-900"
+                className="text-3xl italic text-card-foreground"
                 style={{
                   fontFamily:
                     profile.signatureFontFamily === "great-vibes"
@@ -236,37 +236,37 @@ export function InvoicePreview({
               <img
                 src={profile.signatureImageUrl}
                 alt="Authorised signature"
-                className="max-h-14 object-contain"
+                className="max-h-14 object-contain dark:invert"
               />
             ) : (
-              <span className="text-sm italic text-slate-400">Awaiting signature setup</span>
+              <span className="text-sm italic text-muted-foreground">Awaiting signature setup</span>
             )}
           </div>
-          <p className="mt-2 text-[11px] font-medium text-slate-700">{businessName}</p>
+          <p className="mt-2 text-[11px] font-medium text-card-foreground">{businessName}</p>
           {signatureReady && (
-            <p className="text-[10px] text-slate-400">For and on behalf of {businessName}</p>
+            <p className="text-[10px] text-muted-foreground">For and on behalf of {businessName}</p>
           )}
         </div>
 
         {/* Notes + terms */}
         {(values.notes || values.terms) && (
-          <div className="mt-6 grid grid-cols-2 gap-6 border-t border-slate-100 pt-6 text-[11px]">
+          <div className="mt-6 grid grid-cols-2 gap-6 border-t border-border pt-6 text-[11px]">
             {values.notes && (
               <div>
-                <p className="mb-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                <p className="mb-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
                   Notes
                 </p>
-                <p className="whitespace-pre-line leading-relaxed text-slate-600">
+                <p className="whitespace-pre-line leading-relaxed text-muted-foreground">
                   {values.notes}
                 </p>
               </div>
             )}
             {values.terms && (
               <div>
-                <p className="mb-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                <p className="mb-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
                   Terms
                 </p>
-                <p className="whitespace-pre-line leading-relaxed text-slate-600">
+                <p className="whitespace-pre-line leading-relaxed text-muted-foreground">
                   {values.terms}
                 </p>
               </div>
