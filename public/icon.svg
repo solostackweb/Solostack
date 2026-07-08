@@ -6,6 +6,10 @@
     </linearGradient>
   </defs>
   <rect width="512" height="512" rx="113" ry="113" fill="url(#stackivoGradient)"/>
-  <rect x="96" y="148" width="280" height="76" rx="38" fill="#FFFFFF"/>
-  <rect x="136" y="288" width="280" height="76" rx="38" fill="#FFFFFF" opacity="0.92"/>
+  <!-- Bar 1 — full width -->
+  <rect x="88" y="96"  width="336" height="68" rx="34" fill="#FFFFFF"/>
+  <!-- Bar 2 — 72 % width -->
+  <rect x="88" y="228" width="242" height="68" rx="34" fill="#FFFFFF" opacity="0.72"/>
+  <!-- Bar 3 — 47 % width -->
+  <rect x="88" y="360" width="158" height="68" rx="34" fill="#FFFFFF" opacity="0.40"/>
 </svg>

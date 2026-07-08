@@ -4,11 +4,10 @@ import { cn } from "@/lib/utils";
 /**
  * Stackivo brand system.
  *
- * The mark is two offset rounded "stadium" bars locked into a square
- * container — reads simultaneously as a stylised "S" monogram and as a
- * pair of stacked plates (Stackivo). Two bars (not three) keeps the
- * silhouette crisp at favicon sizes; the diagonal offset gives the mark
- * directionality so it never sits dead-on-centre.
+ * The mark is three left-aligned rounded bars in a square container, each
+ * progressively shorter and more transparent — reading as a stack (Stackivo)
+ * and as a data/progress metaphor. The three-step cascade works at every size
+ * from 16 px favicon to large marketing lockups.
  *
  * Three components:
  *   - <StackivoMark/>     — square icon mark, all variants, all sizes.
@@ -67,23 +66,14 @@ export function StackivoMark({
         height="70%"
         xmlns="http://www.w3.org/2000/svg"
       >
-        <rect
-          x="96"
-          y="148"
-          width="280"
-          height="76"
-          rx="38"
-          fill={barFill}
-        />
-        <rect
-          x="136"
-          y="288"
-          width="280"
-          height="76"
-          rx="38"
-          fill={barFill}
-          opacity={variant === "outline" ? 0.65 : 0.92}
-        />
+        {/* Bar 1 — full width, full opacity */}
+        <rect x="88" y="96"  width="336" height="68" rx="34" fill={barFill} />
+        {/* Bar 2 — 72 % width */}
+        <rect x="88" y="228" width="242" height="68" rx="34" fill={barFill}
+              opacity={variant === "outline" ? 0.55 : 0.72} />
+        {/* Bar 3 — 47 % width */}
+        <rect x="88" y="360" width="158" height="68" rx="34" fill={barFill}
+              opacity={variant === "outline" ? 0.30 : 0.40} />
       </svg>
     </span>
   );
@@ -153,5 +143,5 @@ export function stackivoMarkSvgString(opts?: {
   const gradient = opts?.fill
     ? ""
     : `<defs><linearGradient id="stk-${size}" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#2563EB"/><stop offset="100%" stop-color="#4F46E5"/></linearGradient></defs>`;
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="${size}" height="${size}">${gradient}<rect x="0" y="0" width="512" height="512" rx="113" fill="${containerFill}"/><rect x="96" y="148" width="280" height="76" rx="38" fill="${barFill}"/><rect x="136" y="288" width="280" height="76" rx="38" fill="${barFill}" opacity="0.92"/></svg>`;
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="${size}" height="${size}">${gradient}<rect x="0" y="0" width="512" height="512" rx="113" fill="${containerFill}"/><rect x="88" y="96" width="336" height="68" rx="34" fill="${barFill}"/><rect x="88" y="228" width="242" height="68" rx="34" fill="${barFill}" opacity="0.72"/><rect x="88" y="360" width="158" height="68" rx="34" fill="${barFill}" opacity="0.40"/></svg>`;
 }

@@ -1,0 +1,9 @@
+<svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <rect width="512" height="512" rx="96" fill="#2563EB"/>
+  <!-- Bar 1 – full width -->
+  <rect x="88" y="156" width="336" height="64" rx="32" fill="white"/>
+  <!-- Bar 2 – 72% -->
+  <rect x="88" y="240" width="242" height="64" rx="32" fill="white" fill-opacity="0.72"/>
+  <!-- Bar 3 – 47% -->
+  <rect x="88" y="324" width="158" height="64" rx="32" fill="white" fill-opacity="0.40"/>
+</svg>

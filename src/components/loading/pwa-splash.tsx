@@ -86,16 +86,8 @@ export function PwaSplash() {
       }}
       className="dark:bg-[#0a1020] bg-white"
     >
-      {/* Brand icon — calm breathe */}
-      <div
-        style={{
-          animation: "brand-breathe 2.2s cubic-bezier(0.45,0,0.55,1) infinite",
-          willChange: "transform, opacity",
-        }}
-        className="motion-reduce:animate-none"
-      >
-        <BrandLoader size="xl" animate={false} />
-      </div>
+      {/* Brand icon — internal cascade animation handles everything */}
+      <BrandLoader size="xl" animate />
 
       {/* Wordmark */}
       <p
