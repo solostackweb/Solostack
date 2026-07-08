@@ -4,7 +4,10 @@
 
 @layer base {
   :root {
-    /* --font-sans and --font-mono are injected on <html> by next/font (see app/layout.tsx). */
+    /* Build-safe system stacks. Avoid next/font/google so builds never depend on Google Fonts. */
+    --font-sans: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    --font-display: var(--font-sans);
 
     --background: 0 0% 100%;
     --foreground: 222 47% 11%;

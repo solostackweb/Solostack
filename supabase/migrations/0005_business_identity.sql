@@ -3,7 +3,7 @@
 --                              client GST fields, lifetime client tracking.
 -- -----------------------------------------------------------------------------
 -- Source of truth:
---   docs/product/SoloStack GST Compliances.docx (v1.0 MVP Compliance Logic)
+--   Stackivo GST compliance matrix (v1.0 MVP logic)
 --
 -- Adds the columns that drive:
 --   * Onboarding state machine (`onboarding_completed`, `onboarding_step`)

@@ -18,7 +18,7 @@
  * Deploy: see README.md in this folder.
  */
 
-export default {
+const worker = {
   /**
    * @param {ForwardableEmailMessage} message
    * @param {{ STACKIVO_INBOUND_URL: string, SUPPORT_INBOUND_SECRET: string, FORWARD_TO?: string }} env
@@ -76,6 +76,8 @@ export default {
     }
   },
 };
+
+export default worker;
 
 async function streamToString(stream) {
   const reader = stream.getReader();

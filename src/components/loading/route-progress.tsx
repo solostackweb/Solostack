@@ -24,8 +24,6 @@ const BAR_COLOR = "hsl(var(--primary))";
 
 export function RouteProgress() {
   const pathname = usePathname();
-  const [active, setActive] = React.useState(false);
-  const [visible, setVisible] = React.useState(false);
   const timerRef = React.useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const prevPathRef = React.useRef(pathname);
 
@@ -36,8 +34,6 @@ export function RouteProgress() {
 
     // New route landed — complete the bar
     clearTimeout(timerRef.current);
-    setActive(false);
-    setVisible(false);
   }, [pathname]);
 
   // Kick off the bar before navigation (on link click / router push)

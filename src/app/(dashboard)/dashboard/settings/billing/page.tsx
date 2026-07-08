@@ -1,5 +1,5 @@
 import * as React from "react";
-import { ArrowRight, Check, Users, FileText, Palette, BarChart2 } from "lucide-react";
+import { ArrowRight, Users, FileText, Palette, BarChart2 } from "lucide-react";
 import Link from "next/link";
 import {
   SettingsPageHeader,
@@ -230,7 +230,7 @@ function UpgradeInterstitial({
           {PRO_BENEFITS.map(({ icon: Icon, text }) => (
             <li key={text} className="flex items-center gap-2.5 text-sm">
               <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary/10">
-                <Check className="h-3 w-3 text-primary" />
+                <Icon className="h-3 w-3 text-primary" />
               </span>
               <span className="text-muted-foreground">{text}</span>
             </li>
@@ -252,21 +252,6 @@ function UpgradeInterstitial({
       </div>
     </div>
   );
-}
-
-function humaniseMetric(metric: string): string {
-  switch (metric) {
-    case "clients_created":
-      return "client";
-    case "invoices_created":
-      return "monthly invoice";
-    case "projects_created":
-      return "monthly project";
-    case "storage_bytes":
-      return "storage";
-    default:
-      return metric.replace(/_/g, " ");
-  }
 }
 
 function humaniseFeature(feature: string): string {

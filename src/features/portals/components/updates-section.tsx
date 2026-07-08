@@ -4,8 +4,8 @@ import * as React from "react";
 import { useRouter } from "next/navigation";
 import {
   Plus, Loader2, Trash2, CheckCircle2, MessageSquare,
-  XCircle, ThumbsUp, RotateCcw, ChevronDown, ChevronUp,
-  TrendingUp, Share2,
+  ThumbsUp, RotateCcw, ChevronDown, ChevronUp,
+  TrendingUp,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";

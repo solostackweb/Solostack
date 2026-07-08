@@ -9,9 +9,7 @@
     "lint": "eslint .",
     "type-check": "tsc --noEmit",
     "security:client-env": "node scripts/verify-client-env.mjs",
-    "verify:admin-actions": "node scripts/verify-admin-actions.mjs",
-    "test:e2e": "playwright test",
-    "test:e2e:install": "playwright install --with-deps chromium"
+    "verify:admin-actions": "node scripts/verify-admin-actions.mjs"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1046.0",
@@ -63,7 +61,6 @@
     "zod": "^3.24.1"
   },
   "devDependencies": {
-    "@playwright/test": "^1.60.0",
     "@types/node": "^22.10.5",
     "@types/nodemailer": "^6.4.17",
     "@types/qrcode": "^1.5.5",

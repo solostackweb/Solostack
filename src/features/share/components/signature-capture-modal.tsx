@@ -383,6 +383,8 @@ export function SignatureCaptureModal({
                 >
                   {uploadedImage ? (
                     <div className="space-y-2">
+                      {/* Signature previews are local data/blob URLs; Next Image adds no benefit here. */}
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
                         src={uploadedImage}
                         alt="Uploaded signature"

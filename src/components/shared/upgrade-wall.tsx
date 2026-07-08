@@ -42,7 +42,6 @@ interface UpgradeWallProps {
  */
 export function UpgradeWall({
   icon: Icon = Sparkles,
-  feature: _feature,
   title,
   description,
   benefits,

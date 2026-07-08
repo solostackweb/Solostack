@@ -7,7 +7,7 @@
  *   * PDF generation (later).
  *
  * Tax behaviour anchored to:
- *   docs/product/Stackivo GST Compliances.docx — §6 / §7
+ *   Stackivo GST compliance matrix — §6 / §7
  *
  * Money is handled as `number` of currency units (e.g. INR rupees) at two
  * decimal precision. We round each component HALF-UP after computing it,

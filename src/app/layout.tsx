@@ -1,44 +1,10 @@
 import type { Metadata, Viewport } from "next";
-import { Inter, JetBrains_Mono, Space_Grotesk } from "next/font/google";
 import Script from "next/script";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { AppProviders } from "@/components/providers/app-providers";
 import { siteConfig } from "@/config/site";
 import "./globals.css";
-
-/**
- * Self-hosted, preloaded, swap-display fonts.
- *
- * Binding to the CSS variables already consumed by `tailwind.config.ts`
- * (`--font-sans`, `--font-mono`) means every existing `font-sans` /
- * `font-mono` class in the codebase now hits real Inter / JetBrains Mono
- * — no FOUT swap, no post-load `text-balance` reflow, stable hero metrics.
- */
-const fontSans = Inter({
-  subsets: ["latin"],
-  variable: "--font-sans",
-  display: "swap",
-  preload: true,
-});
-
-const fontMono = JetBrains_Mono({
-  subsets: ["latin"],
-  variable: "--font-mono",
-  display: "swap",
-  preload: false,
-});
-
-// Display/heading font — a geometric grotesk that gives headings personality
-// while Inter stays the workhorse body face. Exposed as `--font-display` and
-// consumed via the Tailwind `font-display` family + the `font-display` utility.
-const fontDisplay = Space_Grotesk({
-  subsets: ["latin"],
-  variable: "--font-display",
-  display: "swap",
-  weight: ["500", "600", "700"],
-  preload: true,
-});
 
 export const metadata: Metadata = {
   applicationName: siteConfig.name,
@@ -123,8 +89,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html
       lang="en"
       suppressHydrationWarning
-      className={`${fontSans.variable} ${fontMono.variable} ${fontDisplay.variable}`}
-    >
+      >
       <body className="font-sans antialiased">
         {/*
           Capture beforeinstallprompt before React hydrates.

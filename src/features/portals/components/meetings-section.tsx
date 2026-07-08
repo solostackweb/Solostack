@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import {
   Video, Plus, Loader2, CheckCircle2, XCircle,
   CalendarDays, Link2, ExternalLink, ChevronDown, ChevronUp,
-  Clock, CalendarPlus, Rss, Check,
+  CalendarPlus, Rss, Check,
 } from "lucide-react";
 import { sharePortalMeetingOnWhatsApp } from "@/lib/whatsapp";
 import { portalClientHome } from "../routes";

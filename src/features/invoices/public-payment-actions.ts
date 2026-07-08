@@ -236,6 +236,36 @@ export async function verifyInvoicePaymentAction(input: {
     };
   }
 
+  const { data: attemptRow } = await admin
+    .from("invoice_payment_attempts")
+    .select("invoice_id, amount, currency, status, payment_method")
+    .eq("invoice_id", invoice.id)
+    .eq("razorpay_order_id", input.razorpayOrderId)
+    .eq("payment_method", "stackivo_managed")
+    .maybeSingle();
+  const attempt =
+    attemptRow as
+      | {
+          invoice_id: string;
+          amount: number | string | null;
+          currency: string | null;
+          status: string | null;
+          payment_method: string | null;
+        }
+      | null;
+  if (!attempt) {
+    return { ok: false, error: "Payment order does not match this invoice." };
+  }
+  const expectedAmount = Number(invoice.total_amount);
+  const attemptAmount = Number(attempt.amount);
+  if (
+    !Number.isFinite(attemptAmount) ||
+    Math.round(attemptAmount * 100) !== Math.round(expectedAmount * 100) ||
+    (attempt.currency || "INR").toUpperCase() !== (invoice.currency || "INR").toUpperCase()
+  ) {
+    return { ok: false, error: "Payment order amount does not match this invoice." };
+  }
+
   // HMAC verify with PLATFORM secret -----------------------------------
   const expected = crypto
     .createHmac("sha256", env.razorpayKeySecret)

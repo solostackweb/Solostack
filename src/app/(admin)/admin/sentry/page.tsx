@@ -223,34 +223,3 @@ export default async function AdminSentryPage({ searchParams }: Props) {
     </div>
   );
 }
-
-function MetricCard({
-  icon, label, value, tone,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  value: number;
-  tone: "ok" | "warn" | "alert";
-}) {
-  return (
-    <div className={cn(
-      "rounded-lg border p-3",
-      tone === "alert" ? "border-red-500/30 bg-red-500/5"
-      : tone === "warn" ? "border-amber-500/30 bg-amber-500/5"
-      : "border-border/60 bg-card",
-    )}>
-      <div className="flex items-center gap-2">
-        {icon}
-        <span className="text-[11px] text-muted-foreground">{label}</span>
-      </div>
-      <div className={cn(
-        "mt-1.5 text-2xl font-semibold tabular-nums",
-        tone === "alert" ? "text-red-600 dark:text-red-400"
-        : tone === "warn" ? "text-amber-600 dark:text-amber-400"
-        : "text-foreground",
-      )}>
-        {value.toLocaleString("en-IN")}
-      </div>
-    </div>
-  );
-}

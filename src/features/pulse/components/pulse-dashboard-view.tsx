@@ -100,7 +100,7 @@ export function PulseDashboardView({
   );
 
   React.useEffect(() => {
-    setDraftRange(custom);
+    setDraftRange({ from: custom.from, to: custom.to });
   }, [custom.from, custom.to]);
 
   const setPreset = (r: PulseRange) => {

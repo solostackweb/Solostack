@@ -327,9 +327,8 @@ export async function duplicateContractAction(
 }
 
 /**
- * "Send for signature" placeholder — sets status to `sent`, records a sent
- * timestamp, and ensures a `public_token` exists so the recipient view
- * (`/sign/:token`) can resolve the contract via `getContractByPublicToken`.
+ * Send for signature: sets status to `sent`, records a sent timestamp, and
+ * ensures a `public_token` exists so the recipient view can resolve it.
  */
 export async function requestSignatureAction(
   _prev: ActionResult | undefined,

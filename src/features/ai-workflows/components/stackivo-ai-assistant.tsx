@@ -6,21 +6,9 @@ import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import {
   ArrowUp,
-  Bookmark,
-  Check,
-  Clock,
-  ExternalLink,
-  FileSignature,
-  FileText,
-  Headphones,
   Lightbulb,
-  Mail,
-  LayoutDashboard,
-  MessageCircle,
   Plus,
-  ReceiptText,
   Sparkles,
-  Users,
   X,
 } from "lucide-react";
 
@@ -28,8 +16,6 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { StackivoMark } from "@/components/brand/stackivo-logo";
 import { cn } from "@/lib/utils";
-import { INDIAN_STATES } from "@/features/gst/state-codes";
-import { BUILTIN_WELCOME_TEMPLATES } from "@/features/welcome-documents/templates";
 import { saveAsTemplateAction } from "@/features/welcome-documents/actions";
 import {
   approveInvoiceFromAiAction,
@@ -66,7 +52,6 @@ import {
 } from "@/features/ai-workflows/global-actions";
 import type { AssistantSuggestion } from "@/features/ai-workflows/suggestions";
 import type {
-  AiEntityOption,
   StackivoAiAssistantProps,
   AiMode,
   Message,
@@ -81,7 +66,6 @@ import {
   MODE_PLACEHOLDERS,
   newId,
   formatMoney,
-  formatAiMoney,
   modeIntro,
   conversationalReply,
   isBusinessDataQuestion,
@@ -93,7 +77,6 @@ import {
   isAbandonFlow,
 } from "./assistant-helpers";
 import {
-  SectionList,
   ResultBlock,
   ConfirmBlock,
   InvoiceDraftPreview,

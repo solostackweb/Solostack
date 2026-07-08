@@ -77,8 +77,6 @@ export async function generateStructuredJson({
       ? [serverEnv.groqModel]
       : [serverEnv.groqModel, GROQ_FALLBACK_MODEL];
 
-  let lastError: unknown = null;
-
   for (const model of models) {
     // Reasoning models handle chain-of-thought differently. With Groq JSON mode,
     // reasoning must be returned separately or hidden; raw reasoning in content
@@ -125,7 +123,6 @@ export async function generateStructuredJson({
 
         // Retry transient upstream errors (rate limit / server) once.
         if (res.status === 429 || res.status >= 500) {
-          lastError = new Error(`Groq request failed with status ${res.status}`);
           if (attempt < GROQ_MAX_ATTEMPTS) {
             await sleep(300 * attempt);
             continue;
@@ -137,15 +134,11 @@ export async function generateStructuredJson({
         // decommissioned. Don't retry the same model — fall through to the next
         // candidate (the stable fallback).
         if (res.status === 400 || res.status === 404) {
-          lastError = new Error(
-            `Groq rejected model "${model}" with status ${res.status}`,
-          );
           modelRejected = true;
           break;
         }
 
         if (!res.ok) {
-          lastError = new Error(`Groq request failed with status ${res.status}`);
           break;
         }
 
@@ -154,7 +147,6 @@ export async function generateStructuredJson({
         if (!content) return null;
         return parseJsonLoose(content);
       } catch (err) {
-        lastError = err;
         // Retry once on abort/network errors; otherwise stop this model.
         const retriable =
           err instanceof Error &&

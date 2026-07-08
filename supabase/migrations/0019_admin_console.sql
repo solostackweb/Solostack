@@ -11,7 +11,7 @@
 --
 -- Auth model is OUT of band: admin status lives on
 --   `auth.users.raw_app_meta_data -> 'role' = 'admin'`
--- and is set manually via SQL. See ADMIN_PANEL_AUDIT.md §2.2.
+-- and is set manually via SQL.
 --
 -- All three tables are RLS-enabled and have NO authenticated policy --
 -- they are read/written exclusively by the service-role client through

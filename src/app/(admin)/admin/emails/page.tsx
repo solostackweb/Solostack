@@ -12,7 +12,7 @@
  */
 
 import Link from "next/link";
-import { ExternalLink, TrendingUp, TrendingDown, Minus } from "lucide-react";
+import { ExternalLink } from "lucide-react";
 
 import { listEmails, listSuppressions } from "@/features/admin/queries";
 import { AdminPageHeader } from "@/components/admin/page-header";

@@ -2,7 +2,7 @@
 -- 0001_init_schema.sql — Core SoloStack schema
 -- -----------------------------------------------------------------------------
 -- Mirrors the tables defined in:
---   docs/product/solostack_implementation_document_suite.md § 2.1
+--   Original Stackivo implementation specification, § 2.1
 --
 -- Design notes:
 --   * Every business table has a `user_id uuid` column referencing

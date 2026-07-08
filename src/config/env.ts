@@ -66,7 +66,7 @@ export const env = {
   // Browser-safe by design. Unset → script never loads.
   clarityProjectId: optional(process.env.NEXT_PUBLIC_CLARITY_PROJECT_ID) ?? "",
   // Cal.com booking link for the founder-call slot. Embedded at /talk.
-  // Format: https://cal.com/<handle>/<event> — see SALES_SETUP_GUIDE.md.
+  // Format: https://cal.com/<handle>/<event>.
   // Unset → /talk renders an honest "coming soon" stub with the
   // contact form + email fallback.
   calComUrl: optional(process.env.NEXT_PUBLIC_CAL_COM_URL) ?? "",

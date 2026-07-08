@@ -73,7 +73,7 @@ export function parseDeviceInfo(userAgent: string): {
       browser,
       device_type: deviceType,
     };
-  } catch (error) {
+  } catch {
     // Fallback if parsing fails
     return {
       os: "unknown",

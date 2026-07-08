@@ -61,7 +61,6 @@ export function BusinessCommandCenter({
   weeklyBillableAmount = 0,
   revenueSeries,
 }: BusinessCommandCenterProps) {
-  const totalReceivables = outstanding + overdueAmount;
   const overdueShare =
     outstanding > 0 ? Math.min(100, (overdueAmount / outstanding) * 100) : 0;
   const collectedShare =

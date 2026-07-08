@@ -18,7 +18,6 @@ import {
   Section,
   TableCellText,
   formatCurrency,
-  type TableColumn,
 } from "./primitives";
 import type { FinancialReportPdfData } from "@/features/pulse/report";
 
