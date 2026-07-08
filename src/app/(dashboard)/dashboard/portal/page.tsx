@@ -1,6 +1,6 @@
 import { PageHeader } from "@/components/shared/page-header";
 import { UpgradeCard } from "@/components/shared/upgrade-card";
-import { LayoutDashboard } from "lucide-react";
+import { Workflow } from "lucide-react";
 import {
   canUseFeature,
   getCurrentSubscription,
@@ -22,7 +22,7 @@ export default async function PortalIndexPage() {
           description="Branded shared workspaces for your clients."
         />
         <UpgradeCard
-          icon={LayoutDashboard}
+          icon={Workflow}
           title="Client Portal is a Pro feature"
           description={`Your ${sub?.plan ?? "free"} plan doesn't include portals. Upgrade to share files, contracts, and invoices in a branded space your clients will love.`}
           features={[

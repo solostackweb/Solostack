@@ -534,11 +534,16 @@ function PulseChartTooltip({
 function PaymentHealthCard({ analytics }: { analytics: PulseAnalytics }) {
   const rate = Math.max(0, Math.min(100, Math.round(analytics.invoices.collectionRatePct ?? 0)));
   const avgDays = analytics.cashFlow.avgDaysToPay;
+  const issuedCount = analytics.invoices.issuedCount || 0;
+  const unpaidCount = Math.max(0, issuedCount - analytics.invoices.paidCount);
+  const healthLabel =
+    rate >= 80 ? "Healthy cash cycle" : rate >= 50 ? "Needs follow-up" : "Cash attention";
   const data = [{ name: "Collected", value: rate, fill: "hsl(var(--primary))" }];
   return (
     <Card>
-      <CardContent className="grid gap-5 p-5 md:grid-cols-[minmax(0,1fr)_150px_minmax(132px,160px)] md:items-center">
-        <div className="min-w-0">
+      <CardContent className="grid gap-5 p-5 md:grid-cols-[minmax(0,1fr)_142px] xl:grid-cols-[minmax(0,1fr)_142px_minmax(170px,206px)]">
+        <div className="flex min-w-0 flex-col justify-between gap-5">
+          <div>
           <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
             Payment health
           </p>
@@ -546,6 +551,15 @@ function PaymentHealthCard({ analytics }: { analytics: PulseAnalytics }) {
           <p className="mt-1 text-sm text-muted-foreground">
             A compact read on whether invoices are turning into cash quickly.
           </p>
+          </div>
+          <div className="rounded-lg border bg-muted/15 px-3 py-2.5">
+            <p className="text-sm font-semibold">{healthLabel}</p>
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              {unpaidCount === 0
+                ? "Every issued invoice in this range is paid."
+                : `${unpaidCount} invoice${unpaidCount === 1 ? "" : "s"} still need cash collection.`}
+            </p>
+          </div>
         </div>
         <div className="relative mx-auto h-[142px] w-[142px]">
           <ResponsiveContainer width="100%" height="100%">
@@ -569,7 +583,7 @@ function PaymentHealthCard({ analytics }: { analytics: PulseAnalytics }) {
             <p className="text-[11px] text-muted-foreground">collected</p>
           </div>
         </div>
-        <div className="grid gap-2">
+        <div className="grid gap-2 md:col-span-2 md:grid-cols-3 xl:col-span-1 xl:grid-cols-1 xl:self-center">
           <MetricRow label="Invoices paid" value={`${analytics.invoices.paidCount}/${analytics.invoices.issuedCount}`} />
           <MetricRow label="Avg days to pay" value={avgDays !== null ? `${avgDays}d` : "-"} />
           <MetricRow label="Outstanding" value={formatINR(analytics.receivables.outstandingTotal)} />
@@ -683,14 +697,7 @@ function ClientMixCard({
                       <Cell key={index} fill={colors[index % colors.length]} />
                     ))}
                   </Pie>
-                  <Tooltip
-                    formatter={(value) => formatINR(Number(value))}
-                    contentStyle={{
-                      borderRadius: 12,
-                      borderColor: "hsl(var(--border))",
-                      background: "hsl(var(--popover))",
-                    }}
-                  />
+                  <Tooltip content={<ClientMixTooltip />} />
                 </PieChart>
               </ResponsiveContainer>
             ) : (
@@ -722,6 +729,25 @@ function ClientMixCard({
         </div>
       </CardContent>
     </Card>
+  );
+}
+
+function ClientMixTooltip({
+  active,
+  payload,
+}: {
+  active?: boolean;
+  payload?: Array<{ name?: string; value?: number }>;
+}) {
+  if (!active || !payload?.length) return null;
+  const item = payload[0];
+  return (
+    <div className="rounded-xl border border-border bg-popover px-3.5 py-2.5 text-xs text-popover-foreground shadow-xl shadow-black/10">
+      <p className="font-semibold">{item.name ?? "Client"}</p>
+      <p className="mt-1 tabular-nums text-muted-foreground">
+        Revenue: <span className="font-bold text-popover-foreground">{formatINR(Number(item.value) || 0)}</span>
+      </p>
+    </div>
   );
 }
 

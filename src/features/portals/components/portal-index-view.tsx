@@ -8,6 +8,7 @@ import {
   Clock3,
   LayoutDashboard,
   Users,
+  Workflow,
 } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
@@ -96,7 +97,7 @@ export function PortalIndexView({
         <div className="min-w-0">
           {ownedPortals.length === 0 ? (
             <EmptyState
-              icon={LayoutDashboard}
+              icon={Workflow}
               title="No portals yet"
               description="Create a portal to share files, contracts, and invoices with a client in one branded space."
             />
