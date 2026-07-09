@@ -186,8 +186,17 @@ const SelectContent = React.forwardRef<HTMLDivElement, SelectContentProps>(
     const ctx = useSelectContext("SelectContent");
     const [mounted, setMounted] = React.useState(false);
     const [style, setStyle] = React.useState<React.CSSProperties>({});
+    const [portalTarget, setPortalTarget] = React.useState<HTMLElement | null>(null);
 
     React.useEffect(() => setMounted(true), []);
+
+    React.useLayoutEffect(() => {
+      if (!ctx.open) return;
+      const trigger = ctx.triggerRef.current;
+      setPortalTarget(
+        trigger?.closest("[data-stackivo-modal-content]") as HTMLElement | null,
+      );
+    }, [ctx.open, ctx.triggerRef]);
 
     const setRefs = React.useCallback(
       (node: HTMLDivElement | null) => {
@@ -205,23 +214,34 @@ const SelectContent = React.forwardRef<HTMLDivElement, SelectContentProps>(
         const trigger = ctx.triggerRef.current;
         if (!trigger) return;
         const rect = trigger.getBoundingClientRect();
+        const containerRect = portalTarget?.getBoundingClientRect();
         const gap = 4;
         const width = rect.width;
+        const viewportWidth = containerRect?.width ?? window.innerWidth;
+        const topSpace = containerRect ? rect.top - containerRect.top : rect.top;
+        const bottomSpace = containerRect
+          ? containerRect.bottom - rect.bottom
+          : window.innerHeight - rect.bottom;
         const maxHeight = Math.max(
           120,
-          side === "top" ? rect.top - gap - 8 : window.innerHeight - rect.bottom - gap - 8,
+          side === "top" ? topSpace - gap - 8 : bottomSpace - gap - 8,
         );
+        const baseLeft = containerRect ? rect.left - containerRect.left : rect.left;
+        const baseTop = containerRect ? rect.bottom - containerRect.top : rect.bottom;
+        const baseBottom = containerRect
+          ? containerRect.bottom - rect.top
+          : window.innerHeight - rect.top;
         const left =
           align === "end"
-            ? rect.right - width
+            ? baseLeft + rect.width - width
             : align === "center"
-              ? rect.left + rect.width / 2 - width / 2
-              : rect.left;
+              ? baseLeft + rect.width / 2 - width / 2
+              : baseLeft;
 
         setStyle({
-          left: Math.max(8, Math.min(left, window.innerWidth - width - 8)),
-          top: side === "top" ? undefined : rect.bottom + gap,
-          bottom: side === "top" ? window.innerHeight - rect.top + gap : undefined,
+          left: Math.max(8, Math.min(left, viewportWidth - width - 8)),
+          top: side === "top" ? undefined : baseTop + gap,
+          bottom: side === "top" ? baseBottom + gap : undefined,
           width,
           maxHeight,
         });
@@ -234,7 +254,7 @@ const SelectContent = React.forwardRef<HTMLDivElement, SelectContentProps>(
         window.removeEventListener("resize", updatePosition);
         window.removeEventListener("scroll", updatePosition, true);
       };
-    }, [align, ctx.open, ctx.triggerRef, side]);
+    }, [align, ctx.open, ctx.triggerRef, portalTarget, side]);
 
     if (!mounted) return null;
 
@@ -246,7 +266,8 @@ const SelectContent = React.forwardRef<HTMLDivElement, SelectContentProps>(
         tabIndex={-1}
         data-state={ctx.open ? "open" : "closed"}
         className={cn(
-          "fixed z-[70] min-w-[8rem] overflow-y-auto overflow-x-hidden overscroll-contain rounded-md border bg-popover p-1 text-popover-foreground shadow-md outline-none",
+          portalTarget ? "absolute" : "fixed",
+          "z-[70] min-w-[8rem] overflow-y-auto overflow-x-hidden overscroll-contain rounded-md border bg-popover p-1 text-popover-foreground shadow-md outline-none",
           ctx.open
             ? "animate-in fade-in-0 zoom-in-95"
             : "pointer-events-none hidden",
@@ -266,7 +287,7 @@ const SelectContent = React.forwardRef<HTMLDivElement, SelectContentProps>(
       >
         {children}
       </div>,
-      document.body,
+      portalTarget ?? document.body,
     );
   },
 );

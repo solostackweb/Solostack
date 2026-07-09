@@ -55,6 +55,7 @@ const SheetContent = React.forwardRef<
     <SheetOverlay />
     <SheetPrimitive.Content
       ref={ref}
+      data-stackivo-modal-content=""
       className={cn(sheetVariants({ side }), className)}
       {...props}
     >
