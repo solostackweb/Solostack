@@ -1,6 +1,6 @@
 import { Suspense } from "react";
 import Link from "next/link";
-import { Plus } from "lucide-react";
+import { FileText, FolderKanban, UserPlus } from "lucide-react";
 
 import { ActivityTimeline } from "@/components/dashboard/activity-timeline";
 import { BusinessCommandCenterLazy } from "@/components/dashboard/business-command-center-lazy";
@@ -198,15 +198,27 @@ export default async function DashboardPage() {
         title={`Welcome back, ${greetingName}`}
         description="Here's what's happening with your business today."
         actions={
-          <Button
-            asChild
-            size="sm"
-            className="shadow-md shadow-primary/15 transition-shadow hover:shadow-lg hover:shadow-primary/20"
-          >
-            <Link href="/dashboard/invoices/new">
-              <Plus /> New invoice
-            </Link>
-          </Button>
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            <Button asChild size="sm" variant="outline">
+              <Link href="/dashboard/clients?create=1">
+                <UserPlus /> New client
+              </Link>
+            </Button>
+            <Button asChild size="sm" variant="outline">
+              <Link href="/dashboard/projects?create=1">
+                <FolderKanban /> New project
+              </Link>
+            </Button>
+            <Button
+              asChild
+              size="sm"
+              className="shadow-md shadow-primary/15 transition-shadow hover:shadow-lg hover:shadow-primary/20"
+            >
+              <Link href="/dashboard/invoices/new">
+                <FileText /> New invoice
+              </Link>
+            </Button>
+          </div>
         }
       />
 
