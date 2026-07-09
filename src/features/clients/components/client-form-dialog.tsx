@@ -12,6 +12,7 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { StateSelect } from "@/features/onboarding/components/state-select";
 import { useProfile } from "@/features/profile/context";
+import { isValidStateCode } from "@/features/gst/state-codes";
 
 import type { ClientRecord } from "../server";
 import {
@@ -65,6 +66,10 @@ function phoneInputValueForCountry(rawPhone: string | null | undefined, countryC
   if (!phone || !dialCode) return phone;
   return phone.startsWith(dialCode) ? phone.slice(dialCode.length).trim() : phone;
 }
+function stateCodeFromGstin(gstin: string): string | null {
+  const code = gstin.trim().slice(0, 2);
+  return isValidStateCode(code) ? code : null;
+}
 
 // Both `createClientAction` + `updateClientAction` resolve to this shape;
 // the client-side form only reads `ok` / `error` / `fieldErrors`.
@@ -106,6 +111,10 @@ export function ClientFormDialog({
   const [currency, setCurrency] = React.useState<string>(
     client?.currency ?? "INR",
   );
+  const [gstin, setGstin] = React.useState<string>(client?.gstin ?? "");
+  const [selectedStateCode, setSelectedStateCode] = React.useState<string>(
+    client?.stateCode ?? "",
+  );
 
   // Reset transient state when the dialog re-opens or switches client.
   React.useEffect(() => {
@@ -114,6 +123,8 @@ export function ClientFormDialog({
       setGstRegistered(client?.gstRegistered ?? false);
       setCountry(client?.country ?? "IN");
       setCurrency(client?.currency ?? "INR");
+      setGstin(client?.gstin ?? "");
+      setSelectedStateCode(client?.stateCode ?? "");
     }
   }, [open, client]);
 
@@ -194,6 +205,7 @@ export function ClientFormDialog({
                   const c = e.target.value;
                   setCountry(c);
                   setCurrency(c === "IN" ? "INR" : currencyForCountry(c));
+                  if (c !== "IN") setSelectedStateCode("");
                 }}
                 className="block h-9 w-full rounded-md border bg-background px-3 text-sm"
               >
@@ -289,7 +301,13 @@ export function ClientFormDialog({
             <Field label="GSTIN" required error={errs?.gstin?.[0]}>
               <Input
                 name="gstin"
-                defaultValue={client?.gstin ?? ""}
+                value={gstin}
+                onChange={(event) => {
+                  const next = event.target.value.toUpperCase();
+                  setGstin(next);
+                  const nextStateCode = stateCodeFromGstin(next);
+                  if (nextStateCode) setSelectedStateCode(nextStateCode);
+                }}
                 maxLength={15}
                 placeholder="22AAAAA0000A1Z5"
                 className="font-mono uppercase"
@@ -306,7 +324,8 @@ export function ClientFormDialog({
             >
               <StateSelect
                 name="stateCode"
-                defaultValue={client?.stateCode ?? undefined}
+                value={selectedStateCode}
+                onValueChange={setSelectedStateCode}
                 required={userHasGstRegistration && gstRegistered}
               />
             </Field>
