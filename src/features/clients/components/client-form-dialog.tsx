@@ -20,25 +20,25 @@ import {
   type ActionResult,
 } from "../actions";
 
-const COUNTRIES: { code: string; name: string; currency: string; locale: string }[] = [
-  { code: "IN", name: "India", currency: "INR", locale: "en-IN" },
-  { code: "US", name: "United States", currency: "USD", locale: "en-US" },
-  { code: "GB", name: "United Kingdom", currency: "GBP", locale: "en-GB" },
-  { code: "AE", name: "United Arab Emirates", currency: "AED", locale: "en-AE" },
-  { code: "AU", name: "Australia", currency: "AUD", locale: "en-AU" },
-  { code: "CA", name: "Canada", currency: "CAD", locale: "en-CA" },
-  { code: "SG", name: "Singapore", currency: "SGD", locale: "en-SG" },
-  { code: "DE", name: "Germany", currency: "EUR", locale: "de-DE" },
-  { code: "FR", name: "France", currency: "EUR", locale: "fr-FR" },
-  { code: "NL", name: "Netherlands", currency: "EUR", locale: "nl-NL" },
-  { code: "ES", name: "Spain", currency: "EUR", locale: "es-ES" },
-  { code: "IE", name: "Ireland", currency: "EUR", locale: "en-IE" },
-  { code: "CH", name: "Switzerland", currency: "CHF", locale: "de-CH" },
-  { code: "JP", name: "Japan", currency: "JPY", locale: "ja-JP" },
-  { code: "NZ", name: "New Zealand", currency: "NZD", locale: "en-NZ" },
-  { code: "ZA", name: "South Africa", currency: "ZAR", locale: "en-ZA" },
-  { code: "SA", name: "Saudi Arabia", currency: "SAR", locale: "ar-SA" },
-  { code: "ZZ", name: "Other (international)", currency: "USD", locale: "en-US" },
+const COUNTRIES: { code: string; name: string; currency: string; locale: string; phoneCode: string }[] = [
+  { code: "IN", name: "India", currency: "INR", locale: "en-IN", phoneCode: "+91" },
+  { code: "US", name: "United States", currency: "USD", locale: "en-US", phoneCode: "+1" },
+  { code: "GB", name: "United Kingdom", currency: "GBP", locale: "en-GB", phoneCode: "+44" },
+  { code: "AE", name: "United Arab Emirates", currency: "AED", locale: "en-AE", phoneCode: "+971" },
+  { code: "AU", name: "Australia", currency: "AUD", locale: "en-AU", phoneCode: "+61" },
+  { code: "CA", name: "Canada", currency: "CAD", locale: "en-CA", phoneCode: "+1" },
+  { code: "SG", name: "Singapore", currency: "SGD", locale: "en-SG", phoneCode: "+65" },
+  { code: "DE", name: "Germany", currency: "EUR", locale: "de-DE", phoneCode: "+49" },
+  { code: "FR", name: "France", currency: "EUR", locale: "fr-FR", phoneCode: "+33" },
+  { code: "NL", name: "Netherlands", currency: "EUR", locale: "nl-NL", phoneCode: "+31" },
+  { code: "ES", name: "Spain", currency: "EUR", locale: "es-ES", phoneCode: "+34" },
+  { code: "IE", name: "Ireland", currency: "EUR", locale: "en-IE", phoneCode: "+353" },
+  { code: "CH", name: "Switzerland", currency: "CHF", locale: "de-CH", phoneCode: "+41" },
+  { code: "JP", name: "Japan", currency: "JPY", locale: "ja-JP", phoneCode: "+81" },
+  { code: "NZ", name: "New Zealand", currency: "NZD", locale: "en-NZ", phoneCode: "+64" },
+  { code: "ZA", name: "South Africa", currency: "ZAR", locale: "en-ZA", phoneCode: "+27" },
+  { code: "SA", name: "Saudi Arabia", currency: "SAR", locale: "ar-SA", phoneCode: "+966" },
+  { code: "ZZ", name: "Other (international)", currency: "USD", locale: "en-US", phoneCode: "" },
 ];
 
 const CURRENCIES = ["USD", "EUR", "GBP", "AUD", "CAD", "SGD", "AED", "CHF", "JPY", "NZD", "ZAR", "SAR", "INR"];
@@ -48,6 +48,22 @@ function localeForCountry(code: string): string {
 }
 function currencyForCountry(code: string): string {
   return COUNTRIES.find((c) => c.code === code)?.currency ?? "USD";
+}
+function phoneCodeForCountry(code: string): string {
+  return COUNTRIES.find((c) => c.code === code)?.phoneCode ?? "";
+}
+function normalizePhoneForCountry(rawPhone: FormDataEntryValue | null, countryCode: string): string | null {
+  const phone = String(rawPhone ?? "").trim();
+  if (!phone) return null;
+  if (phone.startsWith("+")) return phone;
+  const dialCode = phoneCodeForCountry(countryCode);
+  return dialCode ? `${dialCode} ${phone}` : phone;
+}
+function phoneInputValueForCountry(rawPhone: string | null | undefined, countryCode: string): string {
+  const phone = rawPhone?.trim() ?? "";
+  const dialCode = phoneCodeForCountry(countryCode);
+  if (!phone || !dialCode) return phone;
+  return phone.startsWith(dialCode) ? phone.slice(dialCode.length).trim() : phone;
 }
 
 // Both `createClientAction` + `updateClientAction` resolve to this shape;
@@ -104,6 +120,8 @@ export function ClientFormDialog({
   const errs = state && !state.ok ? state.fieldErrors : undefined;
   const userHasGstRegistration = profile?.gstRegistered ?? false;
   const isDomestic = country === "IN";
+  const selectedPhoneCode = phoneCodeForCountry(country);
+  const phoneDefaultValue = phoneInputValueForCountry(client?.phone, country);
 
   const handleSubmit = (formData: FormData) => {
     const draftClient = {
@@ -117,6 +135,8 @@ export function ClientFormDialog({
     formData.set("country", country);
     formData.set("currency", isDomestic ? "INR" : currency);
     formData.set("locale", localeForCountry(country));
+    const normalizedPhone = normalizePhoneForCountry(formData.get("phone"), country);
+    if (normalizedPhone) formData.set("phone", normalizedPhone);
     formData.set("gstRegistered", finalGstRegistered ? "true" : "false");
     if (isEdit) formData.set("id", client.id);
     startTransition(async () => {
@@ -166,40 +186,6 @@ export function ClientFormDialog({
           )}
 
           <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Client name" required error={errs?.fullName?.[0]}>
-              <Input
-                name="fullName"
-                defaultValue={client?.fullName ?? ""}
-                required
-                placeholder="Acme Corp."
-              />
-            </Field>
-            <Field label="Business name" error={errs?.businessName?.[0]}>
-              <Input
-                name="businessName"
-                defaultValue={client?.businessName ?? ""}
-                placeholder="Legal entity, if different"
-              />
-            </Field>
-            <Field label="Email" error={errs?.email?.[0]}>
-              <Input
-                name="email"
-                type="email"
-                defaultValue={client?.email ?? ""}
-                placeholder="contact@acme.com"
-              />
-            </Field>
-            <Field label="Phone" error={errs?.phone?.[0]}>
-              <Input
-                name="phone"
-                type="tel"
-                defaultValue={client?.phone ?? ""}
-                placeholder={isDomestic ? "+91 ..." : "+1 ..."}
-              />
-            </Field>
-          </div>
-
-          <div className="grid gap-4 sm:grid-cols-2">
             <Field label="Country / region" error={errs?.country?.[0]}>
               <select
                 name="country"
@@ -234,6 +220,48 @@ export function ClientFormDialog({
                 </select>
               </Field>
             ) : null}
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field label="Client name" required error={errs?.fullName?.[0]}>
+              <Input
+                name="fullName"
+                defaultValue={client?.fullName ?? ""}
+                required
+                placeholder="Acme Corp."
+              />
+            </Field>
+            <Field label="Business name" error={errs?.businessName?.[0]}>
+              <Input
+                name="businessName"
+                defaultValue={client?.businessName ?? ""}
+                placeholder="Legal entity, if different"
+              />
+            </Field>
+            <Field label="Email" error={errs?.email?.[0]}>
+              <Input
+                name="email"
+                type="email"
+                defaultValue={client?.email ?? ""}
+                placeholder="contact@acme.com"
+              />
+            </Field>
+            <Field label="Phone" error={errs?.phone?.[0]}>
+              <div className="flex h-9 rounded-md border border-input bg-background shadow-sm transition-all focus-within:border-primary/40 focus-within:ring-4 focus-within:ring-primary/15">
+                {selectedPhoneCode ? (
+                  <span className="inline-flex min-w-14 items-center justify-center border-r px-3 text-sm font-medium text-muted-foreground">
+                    {selectedPhoneCode}
+                  </span>
+                ) : null}
+                <Input
+                  name="phone"
+                  type="tel"
+                  defaultValue={phoneDefaultValue}
+                  placeholder={selectedPhoneCode ? "Phone number" : "+ country code and number"}
+                  className="h-full flex-1 border-0 bg-transparent shadow-none focus-visible:ring-0"
+                />
+              </div>
+            </Field>
           </div>
 
           {isDomestic && (

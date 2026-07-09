@@ -310,6 +310,14 @@ const SelectItem = React.forwardRef<HTMLButtonElement, SelectItemProps>(
       ctx.registerItem(value, label);
     }, [children, ctx, textValue, value]);
 
+    const commitSelection = React.useCallback(() => {
+      ctx.setValue(value);
+      ctx.setOpen(false);
+      window.requestAnimationFrame(() => {
+        ctx.triggerRef.current?.focus();
+      });
+    }, [ctx, value]);
+
     return (
       <button
         ref={setRefs}
@@ -325,18 +333,16 @@ const SelectItem = React.forwardRef<HTMLButtonElement, SelectItemProps>(
         onPointerDown={(event) => {
           onPointerDown?.(event);
           if (event.defaultPrevented || disabled) return;
-          if (event.pointerType !== "mouse") return;
           event.preventDefault();
-          ctx.setValue(value);
-          ctx.setOpen(false);
-          ctx.triggerRef.current?.focus();
+          event.stopPropagation();
+          commitSelection();
         }}
         onClick={(event) => {
           onClick?.(event);
           if (event.defaultPrevented || disabled) return;
-          ctx.setValue(value);
-          ctx.setOpen(false);
-          ctx.triggerRef.current?.focus();
+          event.preventDefault();
+          event.stopPropagation();
+          commitSelection();
         }}
         {...props}
       >
