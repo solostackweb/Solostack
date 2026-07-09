@@ -1,5 +1,5 @@
 /**
- * /admin/analytics — embedded PostHog dashboard.
+ * /admin/analytics - embedded PostHog dashboard.
  *
  * Per the audit: don't rebuild what PostHog already does. We just
  * iframe the public dashboard URL set in the POSTHOG_DASHBOARD_URL
@@ -26,9 +26,9 @@ export default async function AdminAnalyticsPage() {
             No PostHog dashboard URL configured.
           </p>
           <ol className="list-decimal space-y-1 pl-5">
-            <li>Open PostHog → Dashboards → pick a dashboard.</li>
+            <li>Open PostHog, go to Dashboards, and pick a dashboard.</li>
             <li>
-              Click <strong>Share</strong> → enable a public-share link.
+              Click <strong>Share</strong> and enable a public-share link.
             </li>
             <li>
               Add <code>POSTHOG_DASHBOARD_URL=&lt;url&gt;</code> to your Vercel environment variables.

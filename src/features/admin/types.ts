@@ -1,5 +1,5 @@
 /**
- * Founder Console — shared types.
+ * Founder Console - shared types.
  *
  * The `AdminActionKind` union is the controlled vocabulary of every
  * audited admin operation. Adding a new admin action MUST add a new
@@ -51,14 +51,25 @@ export type AdminActionKind =
   // system
   | "system.note.create"
   | "system.note.update"
-  | "system.note.delete";
+  | "system.note.delete"
+  // support
+  | "support.reply"
+  | "support.status.update"
+  | "support.priority.update"
+  | "support.category.update"
+  | "support.assign"
+  | "support.tag.add"
+  | "support.tag.remove"
+  | "support.canned.create"
+  | "support.canned.update"
+  | "support.canned.delete";
 
 /**
  * Tier of an admin action. Drives the confirmation UX:
  *
- *   routine     → one-click, audited.
- *   sensitive   → typed-confirmation modal (e.g. type email to confirm).
- *   destructive → typed-confirmation + 10s cooldown + email receipt.
+ *   routine     -> one-click, audited.
+ *   sensitive   -> typed-confirmation modal (e.g. type email to confirm).
+ *   destructive -> typed-confirmation + 10s cooldown + email receipt.
  *
  * Centralized here so the policy is enforceable at the call site.
  */
@@ -82,8 +93,18 @@ export const ADMIN_ACTION_TIER: Record<AdminActionKind, AdminActionTier> = {
   "system.note.update": "routine",
   "system.note.delete": "routine",
   "query.sql.run": "routine",
+  "support.reply": "routine",
+  "support.status.update": "routine",
+  "support.priority.update": "routine",
+  "support.category.update": "routine",
+  "support.assign": "routine",
+  "support.tag.add": "routine",
+  "support.tag.remove": "routine",
+  "support.canned.create": "routine",
+  "support.canned.update": "routine",
+  "support.canned.delete": "routine",
 
-  // sensitive — typed confirm
+  // sensitive - typed confirm
   "user.password_reset": "sensitive",
   "user.data_export": "sensitive",
   "user.email_verify_force": "sensitive",
@@ -95,7 +116,7 @@ export const ADMIN_ACTION_TIER: Record<AdminActionKind, AdminActionTier> = {
   "subscription.force_cycle": "sensitive",
   "settings.update": "sensitive",
 
-  // destructive — typed confirm + cooldown + receipt
+  // destructive - typed confirm + cooldown + receipt
   "user.delete_soft": "destructive",
   "notification.broadcast": "destructive",
 };

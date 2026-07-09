@@ -449,7 +449,8 @@ export type AdminActionTargetType =
   | "security_event"
   | "settings"
   | "query"
-  | "system";
+  | "system"
+  | "support_ticket";
 
 export interface AdminActionRow {
   id: string;

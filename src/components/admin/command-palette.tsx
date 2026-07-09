@@ -1,14 +1,14 @@
 "use client";
 
 /**
- * Cmd+K v1 — Founder Console command palette.
+ * Cmd+K v1 - Founder Console command palette.
  *
  * Hotkeys: Cmd+K / Ctrl+K toggle. `/` opens too (mobile-friendly).
  *
  * Hierarchy:
- *   1. Navigation       — static "Go to <page>" commands.
- *   2. Recipes          — saved query lenses (e.g. "Open alerts (24h)").
- *   3. Entity search    — debounced server call returning users /
+ *   1. Navigation       - static "Go to <page>" commands.
+ *   2. Recipes          - saved query lenses (e.g. "Open alerts (24h)").
+ *   3. Entity search    - debounced server call returning users /
  *                          subscriptions / request-ids matching the query.
  *
  * Result selection routes via `router.push()`. The palette closes on
@@ -160,14 +160,14 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
       description="Search users, subscriptions, request ids, or jump to a page."
     >
       <CommandInput
-        placeholder="Search users · paste request id · jump to page…"
+        placeholder="Search users - paste request id - jump to page..."
         value={query}
         onValueChange={setQuery}
       />
       <CommandList>
         <CommandEmpty>
           {loading
-            ? "Searching…"
+            ? "Searching..."
             : query.length >= 2
               ? "No matches."
               : "Type to search."}
@@ -234,7 +234,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
 
 /**
  * Global Cmd+K / Ctrl+K / `/` hotkey listener. Renders nothing on its
- * own — pair with `CommandPalette` controlled by the same state.
+ * own - pair with `CommandPalette` controlled by the same state.
  */
 export function useCommandPaletteShortcut(
   setOpen: React.Dispatch<React.SetStateAction<boolean>>,

@@ -1,9 +1,9 @@
 /**
- * /admin/support — first-party ticket inbox.
+ * /admin/support - first-party ticket inbox.
  *
- *   1. Metric bar  — needs reply / waiting on customer / resolved 7d / SLA breaches
- *   2. Tab bar     — All | Needs reply | Waiting | Resolved | Delivery failures
- *   3. List        — tickets (plan + priority + SLA) → /admin/support/[id]
+ *   1. Metric bar  - needs reply / waiting on customer / resolved 7d / SLA breaches
+ *   2. Tab bar     - All | Needs reply | Waiting | Resolved | Delivery failures
+ *   3. List        - tickets (plan + priority + SLA) -> /admin/support/[id]
  */
 
 import Link from "next/link";
@@ -94,7 +94,7 @@ export default async function AdminSupportPage({ searchParams }: Props) {
     <AdminSection>
       <AdminPageHeader
         title="Support"
-        subtitle="First-party tickets · live chat · delivery failures"
+        subtitle="First-party tickets - live chat - delivery failures"
       />
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -209,7 +209,7 @@ export default async function AdminSupportPage({ searchParams }: Props) {
                   <span className="truncate text-[13px] font-medium">{f.subject ?? f.kind}</span>
                 </div>
                 <div className="mt-1 flex flex-wrap items-center gap-3 text-[11px] text-muted-foreground">
-                  <span>{f.to_email ?? "—"}</span>
+                  <span>{f.to_email ?? "-"}</span>
                   <span>{formatRelative(f.created_at)}</span>
                   {f.error ? <span className="truncate text-red-600/80">{f.error}</span> : null}
                 </div>

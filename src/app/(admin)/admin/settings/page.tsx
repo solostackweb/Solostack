@@ -1,8 +1,8 @@
 /**
- * /admin/settings — platform-wide kill switches and config.
+ * /admin/settings - platform-wide kill switches and config.
  *
  * Renders all rows currently in `platform_settings`. The "Known
- * settings" panel lists keys we expect to see — clicking creates the
+ * settings" panel lists keys we expect to see - clicking creates the
  * row if missing.
  *
  * The full list of supported keys evolves with the app; documenting
@@ -66,7 +66,7 @@ export default async function AdminSettingsPage() {
       hint: "Custom / undocumented key.",
     }));
 
-  // Slack webhook status — never expose the full URL to the client.
+  // Slack webhook status - never expose the full URL to the client.
   const rawWebhook = process.env.OPS_SLACK_WEBHOOK_URL?.trim() ?? null;
   const slackConfigured = !!rawWebhook;
   const slackPreview = rawWebhook ? rawWebhook.slice(0, 40) : null;
@@ -75,7 +75,7 @@ export default async function AdminSettingsPage() {
     <AdminSection>
       <AdminPageHeader
         title="Settings"
-        subtitle="Platform-wide kill switches & config. Service-role only — every change audited."
+        subtitle="Platform-wide kill switches & config. Service-role only - every change audited."
       />
 
       {/* ── Integrations ─────────────────────────────────────────────────── */}

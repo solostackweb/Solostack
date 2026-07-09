@@ -1,16 +1,16 @@
 "use server";
 
 /**
- * Founder Console — MFA enrollment + step-up.
+ * Founder Console - MFA enrollment + step-up.
  *
  * Supabase's MFA API exposes:
  *
- *   - `auth.mfa.enroll({ factorType: 'totp' })`    → returns secret + QR
- *   - `auth.mfa.challenge({ factorId })`           → returns challenge id
- *   - `auth.mfa.verify({ factorId, challengeId, code })` → upgrades to aal2
- *   - `auth.mfa.unenroll({ factorId })`            → removes a factor
+ *   - `auth.mfa.enroll({ factorType: 'totp' })`    -> returns secret + QR
+ *   - `auth.mfa.challenge({ factorId })`           -> returns challenge id
+ *   - `auth.mfa.verify({ factorId, challengeId, code })` -> upgrades to aal2
+ *   - `auth.mfa.unenroll({ factorId })`            -> removes a factor
  *
- * These all run via the user's own session — service-role isn't
+ * These all run via the user's own session - service-role isn't
  * involved. We wrap each step in a server action so the UI is purely
  * form-postable.
  */
@@ -86,7 +86,7 @@ export async function verifyTotpEnrollmentAction(
 }
 
 /**
- * Unenroll a factor (only when there are multiple — at least one
+ * Unenroll a factor (only when there are multiple - at least one
  * verified factor must remain or the admin will lose access entirely).
  */
 export async function unenrollFactorAction(
@@ -110,7 +110,7 @@ export interface MfaStatus {
 
 /**
  * Read the current user's MFA factors + current AAL. Safe to call
- * even when admin role isn't yet verified — used by the layout that
+ * even when admin role isn't yet verified - used by the layout that
  * gates `/admin/mfa`.
  */
 export async function getMfaStatus(): Promise<MfaStatus> {

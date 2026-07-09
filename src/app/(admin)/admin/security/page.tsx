@@ -1,5 +1,5 @@
 /**
- * /admin/security — security_events viewer.
+ * /admin/security - security_events viewer.
  *
  * Filters: severity, kind, request_id, user_id. Defaults to last 7
  * days (counts at top, all severities visible in the list).
@@ -78,15 +78,15 @@ export default async function AdminSecurityPage({ searchParams }: Props) {
         title="Security"
         subtitle={
           <span>
-            Last 7d ·{" "}
+            Last 7d -{" "}
             <span className="text-red-600 dark:text-red-400">
               {result.counts.alert} alert
             </span>{" "}
-            ·{" "}
+            -{" "}
             <span className="text-amber-600 dark:text-amber-400">
               {result.counts.warn} warn
             </span>{" "}
-            ·{" "}
+            -{" "}
             <span className="text-muted-foreground">
               {result.counts.info} info
             </span>
@@ -173,7 +173,7 @@ export default async function AdminSecurityPage({ searchParams }: Props) {
 
       {/* Results */}
       <p className="text-[11px] text-muted-foreground">
-        {result.total.toLocaleString("en-IN")} matches · page {page} /{" "}
+        {result.total.toLocaleString("en-IN")} matches - page {page} /{" "}
         {totalPages}
       </p>
 
@@ -263,7 +263,7 @@ export default async function AdminSecurityPage({ searchParams }: Props) {
             sp={{ severity, kind, request_id: requestId, user_id: userId }}
             disabled={page === 1}
           >
-            ← Prev
+            Prev
           </PageLink>
           <span className="text-muted-foreground tabular-nums">
             Page {page} / {totalPages}
@@ -273,7 +273,7 @@ export default async function AdminSecurityPage({ searchParams }: Props) {
             sp={{ severity, kind, request_id: requestId, user_id: userId }}
             disabled={page === totalPages}
           >
-            Next →
+            Next
           </PageLink>
         </nav>
       ) : null}

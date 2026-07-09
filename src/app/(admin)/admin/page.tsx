@@ -4,7 +4,7 @@
  * A founder-facing operating room: top-level health, work queue,
  * integration status, and recent audit activity. Built on the shared admin
  * design-system kit (src/components/admin/kit.tsx) so it stays consistent with
- * the rest of the console. Data layer is unchanged — this is presentation only.
+ * the rest of the console. Data layer is unchanged - this is presentation only.
  */
 
 import type { ReactNode } from "react";
@@ -196,7 +196,7 @@ export default async function AdminNowPage() {
         title="Command Center"
         subtitle={
           <span className="tabular-nums">
-            {formatIstStamp(new Date().toISOString())} IST · operational view
+            {formatIstStamp(new Date().toISOString())} IST - operational view
           </span>
         }
         actions={
@@ -413,8 +413,8 @@ export default async function AdminNowPage() {
                     <div className="min-w-0">
                       <div className="truncate font-medium">{alert.kind}</div>
                       <div className="mt-0.5 text-[11px] text-muted-foreground">
-                        {alert.request_id ? `req ${shortenId(alert.request_id)} · ` : null}
-                        {alert.user_id ? `user ${shortenId(alert.user_id)} · ` : null}
+                        {alert.request_id ? `req ${shortenId(alert.request_id)} - ` : null}
+                        {alert.user_id ? `user ${shortenId(alert.user_id)} - ` : null}
                         {formatRelative(alert.created_at)}
                       </div>
                     </div>
@@ -461,8 +461,8 @@ export default async function AdminNowPage() {
                     </div>
                     <div className="mt-1 text-[11px] text-muted-foreground">
                       {row.target_type}
-                      {row.target_id ? ` · ${shortenId(row.target_id)}` : ""}
-                      {" · "}
+                      {row.target_id ? ` - ${shortenId(row.target_id)}` : ""}
+                      {" - "}
                       {formatRelative(row.created_at)}
                     </div>
                   </li>

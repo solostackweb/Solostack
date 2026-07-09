@@ -1,12 +1,12 @@
 /**
- * /admin/audit — append-only log of every admin operation.
+ * /admin/audit - append-only log of every admin operation.
  *
  * Backed by `admin_actions` (migration 0019). Phase-1: simple
  * descending list with pagination. Filters (by actor, target, kind)
  * land in Phase 2 when the surface area justifies them.
  *
  * Why this matters: it's the first place to look when something
- * unexpected happens — "what did I do recently that might have caused
+ * unexpected happens - "what did I do recently that might have caused
  * this?" The Now page already surfaces the most recent 10; this view
  * goes deeper.
  */
@@ -61,7 +61,7 @@ export default async function AdminAuditPage({ searchParams }: Props) {
         title="Audit log"
         subtitle={
           <span>
-            {total.toLocaleString("en-IN")} actions · append-only · service-role only
+            {total.toLocaleString("en-IN")} actions - append-only - service-role only
           </span>
         }
       />
@@ -103,7 +103,7 @@ function AuditRow({ row }: { row: AdminActionRow }) {
         <span className="font-medium">{row.kind}</span>
         <span className="text-muted-foreground">
           {row.target_type}
-          {row.target_id ? ` · ${shortenId(row.target_id)}` : ""}
+          {row.target_id ? ` - ${shortenId(row.target_id)}` : ""}
         </span>
         <span className="ml-auto flex items-center gap-3 font-mono tabular-nums text-muted-foreground">
           <span>{row.duration_ms}ms</span>
@@ -148,7 +148,7 @@ function Pagination({
           page === 1 ? "pointer-events-none opacity-40" : "hover:bg-accent",
         )}
       >
-        ← Prev
+        Prev
       </Link>
       <span className="text-muted-foreground tabular-nums">
         Page {page} / {totalPages}
@@ -162,7 +162,7 @@ function Pagination({
             : "hover:bg-accent",
         )}
       >
-        Next →
+        Next
       </Link>
     </nav>
   );

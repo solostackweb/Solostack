@@ -5,7 +5,7 @@
  *
  * Renders the existing notes for a given (target_type, target_id),
  * a compose box, and inline pin/edit/delete controls. Markdown is NOT
- * rendered — these are operational scratchpad notes, plain text only.
+ * rendered - these are operational scratchpad notes, plain text only.
  *
  * The panel is intentionally narrow and dense; pin to the right rail
  * on detail pages.
@@ -106,7 +106,7 @@ export function AdminNotesPanel({
             onChange={(e) => setDraft(e.target.value)}
             rows={3}
             maxLength={4000}
-            placeholder="Quick context for future-you (or your next admin)…"
+            placeholder="Quick context for future-you (or your next admin)..."
             autoFocus
             className="w-full rounded border bg-background px-2 py-1.5 leading-relaxed"
           />

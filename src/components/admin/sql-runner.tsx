@@ -1,9 +1,9 @@
 "use client";
 
 /**
- * /admin/query — the SQL editor client.
+ * /admin/query - the SQL editor client.
  *
- * No CodeMirror / Monaco — a fixed-monospace <textarea> is enough for
+ * No CodeMirror / Monaco - a fixed-monospace <textarea> is enough for
  * Phase 3. Cmd+Enter (or Ctrl+Enter) submits.
  *
  * Saved queries: a fixed library of the most-asked ops questions. The
@@ -108,7 +108,7 @@ export function SqlRunner() {
               Query
             </span>
             <span className="text-[10px] text-muted-foreground">
-              SELECT / WITH / EXPLAIN only · 30s timeout · read-only role
+              SELECT / WITH / EXPLAIN only - 30s timeout - read-only role
             </span>
           </div>
           <textarea
@@ -131,7 +131,7 @@ export function SqlRunner() {
               ) : (
                 <Play className="h-3 w-3" />
               )}
-              Run (⌘↵)
+              Run (Ctrl+Enter)
             </button>
             <button
               type="button"
@@ -146,7 +146,7 @@ export function SqlRunner() {
             </button>
             {result ? (
               <span className="text-[11px] tabular-nums text-muted-foreground">
-                {result.ok ? "✓" : "✗"} {result.rowCount} rows · {result.elapsedMs}ms
+                {result.ok ? "OK" : "ERR"} {result.rowCount} rows - {result.elapsedMs}ms
               </span>
             ) : null}
           </div>
@@ -209,7 +209,7 @@ function ResultPanel({ result }: { result: SqlResult }) {
   return (
     <div className="space-y-1.5">
       <div className="text-[11px] text-muted-foreground tabular-nums">
-        {result.rowCount} rows · {result.elapsedMs}ms
+        {result.rowCount} rows - {result.elapsedMs}ms
       </div>
       <div className="overflow-x-auto rounded-xl border bg-card shadow-sm shadow-black/[0.03]">
         <table className="min-w-full text-xs">
@@ -255,7 +255,7 @@ function ResultPanel({ result }: { result: SqlResult }) {
 }
 
 function renderCell(v: unknown): string {
-  if (v === null || v === undefined) return "—";
+  if (v === null || v === undefined) return "-";
   if (typeof v === "string") return v;
   if (typeof v === "number" || typeof v === "boolean") return String(v);
   try {

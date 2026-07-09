@@ -4,7 +4,7 @@
  *   <Stat label="MRR" value="₹12,400" hint="Δ +₹1,200 wk" tone="ok" />
  *
  * `tone` drives a tiny coloured accent (left border + label colour).
- * Defaults to neutral. Never spam tones — green is for "ok and worth
+ * Defaults to neutral. Never spam tones - green is for "ok and worth
  * celebrating", amber for "warn", red for "alert."
  */
 

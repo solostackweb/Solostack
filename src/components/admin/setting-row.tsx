@@ -5,7 +5,7 @@
  *
  * Renders a key + current value (JSON) + an inline edit form. The
  * value is parsed as JSON, so booleans / numbers / strings / objects
- * all work. The action is sensitive-tier — typed confirm = the key.
+ * all work. The action is sensitive-tier - typed confirm = the key.
  */
 
 import * as React from "react";

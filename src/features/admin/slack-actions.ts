@@ -3,7 +3,7 @@
 /**
  * Admin Slack actions.
  *
- *   testSlackAlertAction() — sends a test message to the configured
+ *   testSlackAlertAction() - sends a test message to the configured
  *                             OPS_SLACK_WEBHOOK_URL. Admin-only.
  */
 
@@ -27,11 +27,11 @@ export async function testSlackAlertAction(): Promise<SlackTestResult> {
   }
 
   const payload = {
-    text: ":white_check_mark: Stackivo admin — test alert",
+    text: ":white_check_mark: Stackivo admin - test alert",
     blocks: [
       {
         type: "header",
-        text: { type: "plain_text", text: "✅ Stackivo Admin — Test Alert" },
+        text: { type: "plain_text", text: "✅ Stackivo Admin - Test Alert" },
       },
       {
         type: "section",

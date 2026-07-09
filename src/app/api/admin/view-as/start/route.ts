@@ -21,7 +21,8 @@ export async function POST(req: Request): Promise<Response> {
   if (!result.ok) {
     return NextResponse.json(result, { status: 400 });
   }
-  // Bounce to the user's dashboard so the admin sees what they see.
-  // The view-as banner persists across the navigation.
-  return NextResponse.redirect(new URL("/dashboard", req.url), 303);
+  // Keep the admin in the founder console. The customer-facing dashboard is
+  // session/RLS-scoped and does not yet support service-role impersonation.
+  // View-as mode currently means read-only admin review with writes disabled.
+  return NextResponse.redirect(new URL(`/admin/users/${userId}`, req.url), 303);
 }

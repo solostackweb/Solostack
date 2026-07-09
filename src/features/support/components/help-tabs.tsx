@@ -1,9 +1,9 @@
 "use client";
 
 /**
- * HelpTabs — two-tab switcher on /help.
- *   - "Help"       → FAQ + quick contact methods (default on load)
- *   - "Contact us" → your tickets + the detailed contact form
+ * HelpTabs - two-tab switcher on /help.
+ *   - "Help"       -> FAQ + quick contact methods (default on load)
+ *   - "Contact us" -> your tickets + the detailed contact form
  */
 
 import * as React from "react";

@@ -1,9 +1,9 @@
 /**
  * Compact collapsible JSON renderer for admin detail screens.
  *
- * Intentionally minimal — every other JSON-viewer dependency on npm
+ * Intentionally minimal - every other JSON-viewer dependency on npm
  * has bloat we don't need. Renders:
- *   - null / undefined as `—`
+ *   - null / undefined as `-`
  *   - string in quotes
  *   - numbers / booleans bare
  *   - arrays / objects as foldable trees
@@ -53,7 +53,7 @@ function Node({
   fieldName?: string;
 }) {
   if (value === null || value === undefined) {
-    return <Leaf field={fieldName} text="—" tone="muted" />;
+    return <Leaf field={fieldName} text="-" tone="muted" />;
   }
   if (typeof value === "string") {
     return <Leaf field={fieldName} text={`"${value}"`} tone="string" />;
@@ -136,7 +136,7 @@ function Container({
           {open}
           {!expanded ? (
             <span className="opacity-60">
-              {isEmpty ? "" : `…${entries.length}`}
+              {isEmpty ? "" : `...${entries.length}`}
             </span>
           ) : null}
           {!expanded ? close : null}

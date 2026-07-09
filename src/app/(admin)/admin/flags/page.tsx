@@ -1,5 +1,5 @@
 /**
- * /admin/flags — embedded PostHog feature-flags page.
+ * /admin/flags - embedded PostHog feature-flags page.
  *
  * Same iframe pattern as /admin/analytics. The URL is read from
  * the POSTHOG_FLAGS_URL environment variable.

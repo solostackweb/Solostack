@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * SlackAlertSection — shows OPS_SLACK_WEBHOOK_URL status and lets the
+ * SlackAlertSection - shows OPS_SLACK_WEBHOOK_URL status and lets the
  * admin fire a test message to verify the integration.
  */
 
@@ -51,7 +51,7 @@ export function SlackAlertSection({
         <div>
           <h2 className="text-sm font-semibold">Slack Ops Alerts</h2>
           <p className="mt-0.5 text-xs text-muted-foreground">
-            OPS_SLACK_WEBHOOK_URL — used by the cron monitor and admin actions to post critical alerts.
+            OPS_SLACK_WEBHOOK_URL - used by the cron monitor and admin actions to post critical alerts.
           </p>
         </div>
         <a
@@ -72,7 +72,7 @@ export function SlackAlertSection({
             <span className="text-foreground font-medium">Configured</span>
             {webhookPreview && (
               <span className="ml-1 font-mono text-muted-foreground">
-                {webhookPreview}…
+                {webhookPreview}...
               </span>
             )}
           </>
@@ -81,7 +81,7 @@ export function SlackAlertSection({
             <XCircle className="h-3.5 w-3.5 shrink-0 text-red-500" />
             <span className="text-red-600 dark:text-red-400 font-medium">Not configured</span>
             <span className="text-muted-foreground ml-1">
-              — add <code className="text-[11px]">OPS_SLACK_WEBHOOK_URL</code> to Vercel environment variables
+              - add <code className="text-[11px]">OPS_SLACK_WEBHOOK_URL</code> to Vercel environment variables
             </span>
           </>
         )}
@@ -119,7 +119,7 @@ export function SlackAlertSection({
             <XCircle className="h-3 w-3" />
           ) : null}
           {state === "loading"
-            ? "Sending…"
+            ? "Sending..."
             : state === "success"
               ? "Sent!"
               : state === "error"

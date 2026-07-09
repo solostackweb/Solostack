@@ -1,5 +1,5 @@
 /**
- * /admin/subscriptions/[id] — detail + actions.
+ * /admin/subscriptions/[id] - detail + actions.
  *
  * Shows:
  *   - Subscription snapshot
@@ -59,15 +59,15 @@ export default async function AdminSubscriptionDetail({ params }: Props) {
       </Link>
 
       <AdminPageHeader
-        title={`${subscription.full_name} · ${subscription.plan}`}
+        title={`${subscription.full_name} - ${subscription.plan}`}
         subtitle={
           <span className="space-x-2">
             <span className="font-mono">{subscription.email}</span>
-            <span className="text-muted-foreground/60">·</span>
+            <span className="text-muted-foreground/60">-</span>
             <span className="font-mono">{shortenId(subscription.id)}</span>
             {subscription.razorpay_subscription_id ? (
               <>
-                <span className="text-muted-foreground/60">·</span>
+                <span className="text-muted-foreground/60">-</span>
                 <span className="font-mono">
                   rzp {shortenId(subscription.razorpay_subscription_id)}
                 </span>

@@ -3,11 +3,11 @@
  *
  * Three stacked sections:
  *
- *   0. Brevo Stats       — 30-day aggregate metrics (delivery/open/click/bounce)
- *   1. Delivery log      — filterable (status, recipient email substring),
+ *   0. Brevo Stats       - 30-day aggregate metrics (delivery/open/click/bounce)
+ *   1. Delivery log      - filterable (status, recipient email substring),
  *                           paginated. Click-through to Brevo dashboard
  *                           if `provider_message_id` exists.
- *   2. Suppression list  — last 100 rows, search by email, remove inline.
+ *   2. Suppression list  - last 100 rows, search by email, remove inline.
  *                           New manual additions via the small add form.
  */
 
@@ -74,13 +74,13 @@ export default async function AdminEmailsPage({ searchParams }: Props) {
         title="Emails"
         subtitle={
           <span>
-            Delivery log + suppressions · last-24h counts:{" "}
+            Delivery log + suppressions - last-24h counts:{" "}
             <span className="text-emerald-600 dark:text-emerald-400">
-              ✓ {emails.counts.delivered}
+              OK {emails.counts.delivered}
             </span>{" "}
-            ·{" "}
+            -{" "}
             <span className="text-red-600 dark:text-red-400">
-              ✗ {emails.counts.failed + emails.counts.bounced + emails.counts.blocked}
+              ERR {emails.counts.failed + emails.counts.bounced + emails.counts.blocked}
             </span>
           </span>
         }
@@ -91,13 +91,13 @@ export default async function AdminEmailsPage({ searchParams }: Props) {
         <section>
           <div className="mb-3 flex items-center justify-between">
             <h2 className="text-sm font-semibold text-foreground">
-              Brevo — Last 30 Days
+              Brevo - Last 30 Days
             </h2>
             {brevoAccount && (
               <span className="text-[11px] text-muted-foreground">
-                {brevoAccount.email} · Plan: {brevoAccount.plan}
+                {brevoAccount.email} - Plan: {brevoAccount.plan}
                 {brevoAccount.creditsLeft !== null
-                  ? ` · ${brevoAccount.creditsLeft.toLocaleString()} sends left`
+                  ? ` - ${brevoAccount.creditsLeft.toLocaleString()} sends left`
                   : ""}
               </span>
             )}
@@ -108,7 +108,7 @@ export default async function AdminEmailsPage({ searchParams }: Props) {
               <BrevoCard label="Delivered" value={brevoStats.delivered} />
               <BrevoCard
                 label="Delivery Rate"
-                value={brevoStats.deliveryRate !== null ? `${brevoStats.deliveryRate}%` : "—"}
+                value={brevoStats.deliveryRate !== null ? `${brevoStats.deliveryRate}%` : "-"}
                 tone={
                   brevoStats.deliveryRate === null
                     ? "neutral"
@@ -121,7 +121,7 @@ export default async function AdminEmailsPage({ searchParams }: Props) {
               />
               <BrevoCard
                 label="Open Rate"
-                value={brevoStats.openRate !== null ? `${brevoStats.openRate}%` : "—"}
+                value={brevoStats.openRate !== null ? `${brevoStats.openRate}%` : "-"}
                 tone={
                   brevoStats.openRate === null
                     ? "neutral"
@@ -134,7 +134,7 @@ export default async function AdminEmailsPage({ searchParams }: Props) {
               />
               <BrevoCard
                 label="Click Rate"
-                value={brevoStats.clickRate !== null ? `${brevoStats.clickRate}%` : "—"}
+                value={brevoStats.clickRate !== null ? `${brevoStats.clickRate}%` : "-"}
                 tone={
                   brevoStats.clickRate === null
                     ? "neutral"
@@ -150,7 +150,7 @@ export default async function AdminEmailsPage({ searchParams }: Props) {
               />
               <BrevoCard
                 label="Bounce Rate"
-                value={brevoStats.bounceRate !== null ? `${brevoStats.bounceRate}%` : "—"}
+                value={brevoStats.bounceRate !== null ? `${brevoStats.bounceRate}%` : "-"}
                 tone={
                   brevoStats.bounceRate === null
                     ? "neutral"
@@ -176,7 +176,7 @@ export default async function AdminEmailsPage({ searchParams }: Props) {
         </section>
       ) : (
         <section className="rounded-lg border border-dashed p-4 text-sm text-muted-foreground">
-          Brevo stats unavailable — set{" "}
+          Brevo stats unavailable - set{" "}
           <code className="text-xs">BREVO_API_KEY</code> in environment
           variables to enable 30-day email metrics.
         </section>
@@ -236,7 +236,7 @@ export default async function AdminEmailsPage({ searchParams }: Props) {
           type="text"
           name="q"
           defaultValue={q ?? ""}
-          placeholder="Recipient email…"
+          placeholder="Recipient email..."
           className="h-8 w-56 rounded border bg-background px-2 text-xs"
         />
         <button
@@ -258,7 +258,7 @@ export default async function AdminEmailsPage({ searchParams }: Props) {
       {/* Delivery log */}
       <section className="space-y-2">
         <SectionTitle>
-          Delivery log · {emails.total.toLocaleString("en-IN")} matches · page{" "}
+          Delivery log - {emails.total.toLocaleString("en-IN")} matches - page{" "}
           {page} / {totalPages}
         </SectionTitle>
         {emails.rows.length === 0 ? (
@@ -310,7 +310,7 @@ export default async function AdminEmailsPage({ searchParams }: Props) {
               q={q}
               disabled={page === 1}
             >
-              ← Prev
+              Prev
             </PageLink>
             <span className="text-muted-foreground tabular-nums">
               Page {page} / {totalPages}
@@ -321,7 +321,7 @@ export default async function AdminEmailsPage({ searchParams }: Props) {
               q={q}
               disabled={page === totalPages}
             >
-              Next →
+              Next
             </PageLink>
           </nav>
         ) : null}
@@ -330,7 +330,7 @@ export default async function AdminEmailsPage({ searchParams }: Props) {
       {/* Suppression list */}
       <section className="space-y-2">
         <SectionTitle>
-          Suppressions · {suppressions.length} recent
+          Suppressions - {suppressions.length} recent
         </SectionTitle>
 
         <div className="flex flex-wrap items-center justify-between gap-3">
@@ -341,7 +341,7 @@ export default async function AdminEmailsPage({ searchParams }: Props) {
               type="text"
               name="supp"
               defaultValue={suppQ ?? ""}
-              placeholder="Filter by email…"
+              placeholder="Filter by email..."
               className="h-7 w-48 rounded border bg-background px-2 text-xs"
             />
             <button
@@ -392,7 +392,7 @@ export default async function AdminEmailsPage({ searchParams }: Props) {
         >
           opens here <ExternalLink className="h-3 w-3" />
         </a>{" "}
-        — search by provider message id to inspect headers.
+        - search by provider message id to inspect headers.
       </p>
     </AdminSection>
   );

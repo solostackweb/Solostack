@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * TicketThread — conversation view + reply box.
+ * TicketThread - conversation view + reply box.
  *
  * Shared by the in-app ticket page (/help/tickets/[id], mode="user") and the
  * guest page (/support/t/[token], mode="guest"). Submitting a reply calls the
@@ -106,7 +106,7 @@ export function TicketThread({ ticket, messages, mode }: Props) {
                     mine ? "text-background/70" : "text-muted-foreground"
                   }`}
                 >
-                  {authorLabel(m)} · {formatStamp(m.created_at)}
+                  {authorLabel(m)} - {formatStamp(m.created_at)}
                 </div>
                 <div className="whitespace-pre-wrap break-words">{m.body}</div>
               </div>
@@ -127,7 +127,7 @@ export function TicketThread({ ticket, messages, mode }: Props) {
             onChange={(e) => setBody(e.target.value)}
             rows={3}
             maxLength={8000}
-            placeholder="Type your reply…"
+            placeholder="Type your reply..."
             className="block w-full resize-none rounded-md border bg-background p-2.5 text-sm"
             onKeyDown={(e) => {
               if ((e.metaKey || e.ctrlKey) && e.key === "Enter") onSend();

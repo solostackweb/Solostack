@@ -21,7 +21,7 @@
  *   </form>
  *
  * The component intentionally keeps everything inside the parent
- * <form> so progressive enhancement works — no JS, no submission.
+ * <form> so progressive enhancement works - no JS, no submission.
  */
 
 import * as React from "react";
@@ -33,7 +33,7 @@ interface TypedConfirmButtonProps {
   label: string;
   /** Exact text the admin must type to enable submission. */
   confirmText: string;
-  /** "sensitive" → typed only. "destructive" → typed + cooldown. */
+  /** "sensitive" -> typed only. "destructive" -> typed + cooldown. */
   tier: "sensitive" | "destructive";
   /** Cooldown in ms; only used when tier='destructive'. Default 10s. */
   cooldownMs?: number;

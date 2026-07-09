@@ -1,10 +1,10 @@
 "use server";
 
 /**
- * Founder Console — server actions.
+ * Founder Console - server actions.
  *
  * Every export here is callable from a `<form>` action or a client
- * onClick → server-action handler. The shape of each action is:
+ * onClick -> server-action handler. The shape of each action is:
  *
  *   1. Re-verify admin role via `runAdminAction()` (which also blocks
  *      writes while in view-as mode).
@@ -14,7 +14,7 @@
  *
  * Sensitive / destructive tier enforcement is the caller's job
  * (TypedConfirmModal must wrap the form). The audit row is written
- * regardless of confirmation — every attempt is forensic-grade.
+ * regardless of confirmation - every attempt is forensic-grade.
  */
 
 import { revalidatePath } from "next/cache";
@@ -66,7 +66,7 @@ export async function startViewAsAction(
         sameSite: "lax",
         secure: process.env.NODE_ENV === "production",
         path: "/",
-        // 1 hour — long enough for a triage session, short enough that
+        // 1 hour - long enough for a triage session, short enough that
         // an admin won't accidentally stay in view-as mode forever.
         maxAge: 60 * 60,
       });
@@ -110,7 +110,7 @@ const userIdSchema = z.string().uuid();
 
 /**
  * Trigger a password reset for a user. We use Supabase Admin's
- * `generateLink` so we don't depend on the user's current session — an
+ * `generateLink` so we don't depend on the user's current session - an
  * admin-initiated reset works even for users whose account is locked.
  *
  * Note: the email is sent by Supabase (not Brevo), so it doesn't go
@@ -228,7 +228,7 @@ export async function adminSuspendUserAction(
       const admin = getAdminSupabase();
       // Supabase types don't expose `ban_duration` on updateUserById,
       // so we use the REST endpoint via the admin client's auth API.
-      // The typed surface is partial — cast through the documented shape.
+      // The typed surface is partial - cast through the documented shape.
       const { error } = await admin.auth.admin.updateUserById(
         parsed.data.userId,
         { ban_duration: durationFromIso(banUntil) } as never,
@@ -276,7 +276,7 @@ export async function adminUnsuspendUserAction(
  *   4. Add their email to suppressions so we never mail them again.
  *
  * We deliberately do NOT delete activity_events / invoices / contracts /
- * billing_payments — those are needed for tax + accounting retention.
+ * billing_payments - those are needed for tax + accounting retention.
  */
 const softDeleteSchema = z.object({
   userId: z.string().uuid(),
@@ -361,7 +361,7 @@ export async function adminSoftDeleteUserAction(
 
       // Suppress the email so we never accidentally mail them again.
       // Support data is first-party (support_tickets) and is removed with the
-      // user's account — no external vendor fan-out needed.
+      // user's account - no external vendor fan-out needed.
       if (oldEmail) {
         await recordSuppression({ email: oldEmail, reason: "manual" });
       }
@@ -374,9 +374,9 @@ export async function adminSoftDeleteUserAction(
         subject: `Soft-deleted ${oldEmail ?? parsed.data.userId}`,
         details: [
           ["User id", parsed.data.userId],
-          ["Email (was)", oldEmail ?? "—"],
-          ["Name (was)", oldName ?? "—"],
-          ["Reason", parsed.data.reason ?? "—"],
+          ["Email (was)", oldEmail ?? "-"],
+          ["Name (was)", oldName ?? "-"],
+          ["Reason", parsed.data.reason ?? "-"],
         ],
         note: "Activity history (invoices, payments, contracts) is preserved for tax retention. The user's email is now suppressed.",
       });
@@ -410,7 +410,7 @@ const dataExportSchema = z.object({
  *     time_entries, subscriptions
  *
  * Sensitive metadata fields (full row JSON) are included verbatim
- * — the user owns this data and is entitled to all of it.
+ * - the user owns this data and is entitled to all of it.
  */
 export async function adminExportUserDataAction(
   input: z.input<typeof dataExportSchema>,
@@ -529,12 +529,12 @@ const compSchema = z.object({
 
 /**
  * Comp a user onto a paid plan for N days. We DO NOT touch Razorpay
- * here — this is a manual entitlement override. The subscription row
+ * here - this is a manual entitlement override. The subscription row
  * is updated to status='active' with a future current_period_end.
  *
  * Use case: gifting Pro to early adopters, fulfilling support promises,
  * or compensating for an outage. Should never collide with a real
- * Razorpay-managed subscription — if `razorpay_subscription_id` is
+ * Razorpay-managed subscription - if `razorpay_subscription_id` is
  * already set, we refuse.
  */
 export async function adminCompPlanAction(
@@ -572,7 +572,7 @@ export async function adminCompPlanAction(
         return {
           ok: false,
           error:
-            "User has an active Razorpay subscription — refusing to overwrite. Cancel it first.",
+            "User has an active Razorpay subscription - refusing to overwrite. Cancel it first.",
         };
       }
 
@@ -615,13 +615,13 @@ export async function adminCompPlanAction(
 }
 
 /**
- * Manual refund record. This does NOT call Razorpay — refunds in
+ * Manual refund record. This does NOT call Razorpay - refunds in
  * Razorpay are issued via their dashboard / API by the founder. This
  * action records the refund in `billing_payments` (creating a negative
  * amount row tagged as a refund) so MRR math + the user's payment
  * history reflect reality.
  *
- * Typical flow: refund in Razorpay → run this action → cancel/comp as
+ * Typical flow: refund in Razorpay -> run this action -> cancel/comp as
  * appropriate.
  */
 const refundSchema = z.object({
@@ -829,13 +829,13 @@ const broadcastSchema = z.object({
   type: z.enum(["announcement", "incident", "maintenance"]),
   title: z.string().min(3).max(140),
   message: z.string().min(3).max(2000).optional(),
-  /** Optional plan filter — default 'all' sends to everyone. */
+  /** Optional plan filter - default 'all' sends to everyone. */
   targetPlan: z.enum(["all", "free", "pro", "business"]).default("all"),
 });
 
 /**
  * Insert one notification row per matching user. This is the only
- * destructive-tier action in Phase 2 — it touches every user. The
+ * destructive-tier action in Phase 2 - it touches every user. The
  * UI gates with a typed-confirm modal ("type SEND to confirm").
  *
  * Concurrency: we batch-insert in chunks of 1000 to avoid hammering
@@ -936,7 +936,7 @@ const settingSchema = z.object({
 
 /**
  * Upsert one row in `platform_settings`. Values are stored as JSONB so
- * callers can pass arrays, objects, primitives — all valid.
+ * callers can pass arrays, objects, primitives - all valid.
  *
  * Sensitive-tier in the UI (typed confirm) because flipping a kill
  * switch (e.g. `email_live_mode_override = false`) has platform-wide
@@ -1157,7 +1157,7 @@ function durationFromIso(iso: string): string {
   return `${hours}h`;
 }
 // ---------------------------------------------------------------------------
-// Bulk actions (Admin hardening A4) — operate on a selected set of users.
+// Bulk actions (Admin hardening A4) - operate on a selected set of users.
 // ---------------------------------------------------------------------------
 
 const bulkIdsSchema = z.object({

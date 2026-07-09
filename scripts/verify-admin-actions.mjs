@@ -28,9 +28,10 @@ import { dirname, resolve } from "node:path";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
-const ACTIONS_PATH = resolve(__dirname, "..", "src", "features", "admin", "actions.ts");
-
-const source = readFileSync(ACTIONS_PATH, "utf8");
+const ACTIONS_PATHS = [
+  resolve(__dirname, "..", "src", "features", "admin", "actions.ts"),
+  resolve(__dirname, "..", "src", "features", "support", "ticket-actions.ts"),
+];
 
 /**
  * Match every `export async function adminXxx(` and find the matching
@@ -41,32 +42,35 @@ const WRITE_RE = /\.(insert|update|delete|upsert)\s*\(/;
 
 const violations = [];
 
-let match;
-while ((match = EXPORT_RE.exec(source)) !== null) {
-  const fnName = match[1];
-  const start = source.indexOf("{", EXPORT_RE.lastIndex);
-  if (start === -1) continue;
+for (const actionsPath of ACTIONS_PATHS) {
+  const source = readFileSync(actionsPath, "utf8");
+  let match;
+  while ((match = EXPORT_RE.exec(source)) !== null) {
+    const fnName = match[1];
+    const start = source.indexOf("{", EXPORT_RE.lastIndex);
+    if (start === -1) continue;
 
-  // Walk braces to find the matching close.
-  let depth = 0;
-  let end = -1;
-  for (let i = start; i < source.length; i++) {
-    const ch = source[i];
-    if (ch === "{") depth++;
-    else if (ch === "}") {
-      depth--;
-      if (depth === 0) {
-        end = i;
-        break;
+    // Walk braces to find the matching close.
+    let depth = 0;
+    let end = -1;
+    for (let i = start; i < source.length; i++) {
+      const ch = source[i];
+      if (ch === "{") depth++;
+      else if (ch === "}") {
+        depth--;
+        if (depth === 0) {
+          end = i;
+          break;
+        }
       }
     }
-  }
-  if (end === -1) continue;
+    if (end === -1) continue;
 
-  const body = source.slice(start, end + 1);
+    const body = source.slice(start, end + 1);
 
-  if (WRITE_RE.test(body) && !body.includes("runAdminAction(")) {
-    violations.push(fnName);
+    if (WRITE_RE.test(body) && !body.includes("runAdminAction(")) {
+      violations.push(`${actionsPath.replace(resolve(__dirname, "..") + "\\", "")}:${fnName}`);
+    }
   }
 }
 

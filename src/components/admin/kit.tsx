@@ -2,7 +2,7 @@
  * Admin Design-System Kit
  * ------------------------
  * Shared, presentational primitives for every admin route. This is the single
- * source of truth for the founder console's look — modern and spacious, but
+ * source of truth for the founder console's look - modern and spacious, but
  * still dense enough for an operating tool. Pages compose these instead of
  * hand-rolling their own Panel / Stat / grid markup.
  *
@@ -10,7 +10,7 @@
  *   - Surfaces: rounded-xl, border, bg-card, soft ring-shadow elevation.
  *   - Rhythm: 8pt spacing scale (gap-3/4/5, p-5/6), generous section gaps.
  *   - Numbers: tabular-nums everywhere data appears.
- *   - Tone: neutral | ok | warn | alert | info — a tiny, disciplined palette.
+ *   - Tone: neutral | ok | warn | alert | info - a tiny, disciplined palette.
  *     Green = good & worth celebrating, amber = watch, red = act, blue = info.
  *
  * All components are server-safe (no hooks / client APIs) so they can be used
@@ -27,7 +27,7 @@ export type Tone = "neutral" | "ok" | "warn" | "alert" | "info";
 type IconType = React.ComponentType<{ className?: string }>;
 
 // ---------------------------------------------------------------------------
-// Tone tokens — one place to tune the whole palette.
+// Tone tokens - one place to tune the whole palette.
 // ---------------------------------------------------------------------------
 
 const TONE_TEXT: Record<Tone, string> = {
@@ -48,10 +48,10 @@ const TONE_CHIP: Record<Tone, string> = {
 
 const TONE_SURFACE: Record<Tone, string> = {
   neutral: "",
-  ok: "border-emerald-500/25 bg-emerald-500/[0.04]",
-  warn: "border-amber-500/25 bg-amber-500/[0.04]",
-  alert: "border-red-500/25 bg-red-500/[0.04]",
-  info: "border-sky-500/25 bg-sky-500/[0.04]",
+  ok: "border-emerald-500/25 bg-emerald-500/[0.045]",
+  warn: "border-amber-500/25 bg-amber-500/[0.045]",
+  alert: "border-red-500/25 bg-red-500/[0.045]",
+  info: "border-sky-500/25 bg-sky-500/[0.045]",
 };
 
 const TONE_DOT: Record<Tone, string> = {
@@ -64,7 +64,7 @@ const TONE_DOT: Record<Tone, string> = {
 
 // Shared elevation for resting surfaces.
 const SURFACE =
-  "rounded-xl border bg-card shadow-sm shadow-black/[0.03] dark:shadow-black/20";
+  "rounded-xl border bg-card/95 shadow-sm shadow-black/[0.035] dark:bg-card dark:shadow-black/25";
 
 // ---------------------------------------------------------------------------
 // Layout
@@ -104,7 +104,7 @@ export function KpiGrid({
   return (
     <div
       className={cn(
-        "grid grid-cols-2 gap-3 sm:gap-4 sm:grid-cols-3",
+        "grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:auto-rows-fr",
         lg[cols],
         className,
       )}
@@ -115,7 +115,7 @@ export function KpiGrid({
 }
 
 // ---------------------------------------------------------------------------
-// Panel — the workhorse surface.
+// Panel - the workhorse surface.
 // ---------------------------------------------------------------------------
 
 export function Panel({
@@ -141,8 +141,8 @@ export function Panel({
   return (
     <section className={cn(SURFACE, "p-5 sm:p-6", TONE_SURFACE[tone], className)}>
       {hasHeader ? (
-        <div className="mb-4 flex items-start justify-between gap-3">
-          <div className="flex items-start gap-3">
+        <div className="mb-4 flex min-w-0 items-start justify-between gap-3">
+          <div className="flex min-w-0 items-start gap-3">
             {Icon ? (
               <span
                 className={cn(
@@ -153,14 +153,14 @@ export function Panel({
                 <Icon className="h-4 w-4" />
               </span>
             ) : null}
-            <div className="space-y-0.5">
+            <div className="min-w-0 space-y-0.5">
               {title ? (
-                <h2 className="text-sm font-semibold tracking-tight sm:text-[15px]">
+                <h2 className="truncate text-sm font-semibold tracking-tight sm:text-[15px]">
                   {title}
                 </h2>
               ) : null}
               {subtitle ? (
-                <p className="text-xs text-muted-foreground">{subtitle}</p>
+                <p className="text-xs leading-relaxed text-muted-foreground">{subtitle}</p>
               ) : null}
             </div>
           </div>
@@ -196,7 +196,7 @@ export function Block({
 }
 
 // ---------------------------------------------------------------------------
-// StatCard — the flagship KPI tile (modern & spacious).
+// StatCard - the flagship KPI tile (modern & spacious).
 // ---------------------------------------------------------------------------
 
 export interface StatDelta {
@@ -283,7 +283,7 @@ export function StatCard({
 
   const base = cn(
     SURFACE,
-    "p-5 transition",
+    "min-h-[132px] p-5 transition",
     TONE_SURFACE[tone],
     href && "hover:border-foreground/15 hover:shadow-md",
     className,
@@ -291,7 +291,13 @@ export function StatCard({
 
   if (href) {
     return (
-      <Link href={href} className={cn(base, "group block")}>
+      <Link
+        href={href}
+        className={cn(
+          base,
+          "group block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+        )}
+      >
         {body}
       </Link>
     );
@@ -355,7 +361,7 @@ export function DataRow({
   );
 }
 
-/** A titled list of label/value pairs — replaces the old MetricCard. */
+/** A titled list of label/value pairs - replaces the old MetricCard. */
 export function MetricList({
   title,
   icon: Icon,
@@ -423,10 +429,90 @@ export function EmptyState({
 }
 
 // ---------------------------------------------------------------------------
+// Table primitives
+// ---------------------------------------------------------------------------
+
+export function AdminTableShell({
+  children,
+  className,
+}: {
+  children: ReactNode;
+  className?: string;
+}) {
+  return (
+    <div
+      className={cn(
+        "overflow-hidden rounded-xl border bg-card/95 shadow-sm shadow-black/[0.035] dark:bg-card dark:shadow-black/25",
+        className,
+      )}
+    >
+      <div className="overflow-x-auto">{children}</div>
+    </div>
+  );
+}
+
+export function AdminTable({
+  children,
+  className,
+}: {
+  children: ReactNode;
+  className?: string;
+}) {
+  return <table className={cn("min-w-full text-sm", className)}>{children}</table>;
+}
+
+export function AdminThead({ children }: { children: ReactNode }) {
+  return (
+    <thead className="bg-muted/45 text-left text-[11px] uppercase tracking-wider text-muted-foreground">
+      {children}
+    </thead>
+  );
+}
+
+export function AdminTh({
+  children,
+  className,
+}: {
+  children?: ReactNode;
+  className?: string;
+}) {
+  return <th className={cn("px-3 py-2.5 font-medium", className)}>{children}</th>;
+}
+
+export function AdminTr({
+  children,
+  className,
+}: {
+  children: ReactNode;
+  className?: string;
+}) {
+  return (
+    <tr
+      className={cn(
+        "border-t border-border/45 transition-colors hover:bg-accent/30",
+        className,
+      )}
+    >
+      {children}
+    </tr>
+  );
+}
+
+export function AdminTd({
+  children,
+  className,
+}: {
+  children: ReactNode;
+  className?: string;
+}) {
+  return <td className={cn("px-3 py-2.5 align-middle", className)}>{children}</td>;
+}
+
+// ---------------------------------------------------------------------------
 // Link helpers
 // ---------------------------------------------------------------------------
 
-/** Subtle "see more →" link used in panel headers. */
+/** Subtle "see more ->" link used in panel headers. */
 export function PanelLink({
   href,
   children,

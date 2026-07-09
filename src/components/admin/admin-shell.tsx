@@ -2,7 +2,7 @@
  * Founder Console chrome.
  *
  *   ┌─────────────────────────────────────────────────────┐
- *   │ topbar  Now · Users · Audit · ...        avatar     │
+ *   │ topbar  Now - Users - Audit - ...        avatar     │
  *   ├──────────┬──────────────────────────────────────────┤
  *   │ sidebar  │ page content                             │
  *   │ (md+)    │                                          │
@@ -10,7 +10,7 @@
  *
  * Mobile: sidebar collapses to a sheet behind a top-bar hamburger.
  *
- * Density is the differentiating principle — smaller font, tighter
+ * Density is the differentiating principle - smaller font, tighter
  * spacing, monospace timestamps. This is not the customer surface.
  */
 
@@ -139,7 +139,7 @@ export function AdminShell({ children, adminEmail, viewingAs }: AdminShellProps)
   }, [pathname]);
 
   return (
-    <div className="flex min-h-screen flex-col bg-background text-[14px]">
+    <div className="flex min-h-screen flex-col bg-background text-[14px] text-foreground">
       {viewingAs ? <ViewAsBanner viewingAs={viewingAs} /> : null}
 
       <TopBar
@@ -151,7 +151,7 @@ export function AdminShell({ children, adminEmail, viewingAs }: AdminShellProps)
         onOpenPalette={() => setPaletteOpen(true)}
       />
 
-      <div className="flex flex-1 bg-muted/20 dark:bg-background">
+      <div className="flex flex-1 bg-muted/25 dark:bg-background">
         <Sidebar
           pathname={pathname}
           mobileOpen={sidebarOpen}
@@ -168,19 +168,19 @@ export function AdminShell({ children, adminEmail, viewingAs }: AdminShellProps)
           />
         ) : null}
 
-        <main className="min-w-0 flex-1 px-4 py-6 sm:px-6 md:px-8">
+        <main className="min-w-0 flex-1 px-4 py-5 sm:px-6 md:px-8 md:py-7">
           <div className="mx-auto w-full max-w-[1520px]">{children}</div>
         </main>
       </div>
 
       <CommandPalette open={paletteOpen} onOpenChange={setPaletteOpen} />
 
-      {/* Mobile palette FAB — desktop uses the top-bar search bar instead. */}
+      {/* Mobile palette FAB - desktop uses the top-bar search bar instead. */}
       <button
         type="button"
         aria-label="Open command palette"
         onClick={() => setPaletteOpen(true)}
-        className="fixed bottom-5 right-5 z-30 flex h-11 w-11 items-center justify-center rounded-full border bg-background shadow-lg hover:bg-accent md:hidden"
+        className="fixed bottom-5 right-5 z-30 flex h-11 w-11 items-center justify-center rounded-full border bg-background shadow-lg shadow-black/10 transition-colors hover:bg-accent md:hidden"
       >
         <Search className="h-4 w-4" />
       </button>
@@ -206,12 +206,12 @@ function TopBar({
   onOpenPalette: () => void;
 }) {
   return (
-    <header className="sticky top-0 z-40 border-b border-border/70 bg-background/95 shadow-sm shadow-black/[0.02] backdrop-blur supports-[backdrop-filter]:bg-background/80">
-      <div className="flex h-14 items-center gap-3 px-4 sm:px-6 md:px-8">
+    <header className="sticky top-0 z-40 border-b border-border/70 bg-background/95 shadow-sm shadow-black/[0.02] backdrop-blur supports-[backdrop-filter]:bg-background/85">
+      <div className="flex h-16 items-center gap-3 px-4 sm:px-6 md:px-8">
         <Button
           variant="ghost"
           size="icon"
-          className="h-8 w-8 md:hidden"
+          className="h-9 w-9 md:hidden"
           aria-label="Toggle navigation"
           onClick={onToggleSidebar}
         >
@@ -220,7 +220,7 @@ function TopBar({
         <Button
           variant="ghost"
           size="icon"
-          className="hidden h-8 w-8 md:inline-flex"
+          className="hidden h-9 w-9 text-muted-foreground md:inline-flex"
           aria-label={sidebarCollapsed ? "Expand navigation" : "Collapse navigation"}
           onClick={onToggleCollapsed}
         >
@@ -233,13 +233,13 @@ function TopBar({
 
         <Link
           href="/admin"
-          className="flex items-center gap-2 font-semibold tracking-tight"
+          className="flex min-w-0 items-center gap-2.5 font-semibold tracking-tight"
         >
-          <span className="flex h-8 w-8 items-center justify-center rounded-md border border-primary/20 bg-primary/10 text-primary">
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-primary/20 bg-primary/10 text-primary shadow-sm shadow-primary/10">
             <Shield className="h-4 w-4" />
           </span>
-          <span className="leading-tight">
-            <span className="block text-sm">Stackivo Command</span>
+          <span className="min-w-0 leading-tight">
+            <span className="block truncate text-sm">Stackivo Command</span>
             <span className="hidden text-[10px] font-medium uppercase tracking-wider text-muted-foreground sm:block">
               founder console
             </span>
@@ -248,26 +248,26 @@ function TopBar({
 
         <button
           type="button"
-          className="ml-2 hidden h-8 flex-1 max-w-xl items-center gap-2 rounded-md border bg-muted/45 px-2.5 text-xs text-muted-foreground shadow-inner shadow-black/[0.02] hover:bg-muted sm:flex"
+          className="ml-2 hidden h-9 max-w-xl flex-1 items-center gap-2 rounded-lg border bg-muted/45 px-3 text-xs text-muted-foreground shadow-inner shadow-black/[0.02] transition-colors hover:border-foreground/15 hover:bg-muted sm:flex"
           onClick={onOpenPalette}
         >
           <Search className="h-3.5 w-3.5" />
-          <span>Search users · jump anywhere…</span>
-          <span className="ml-auto rounded border bg-background/80 px-1 text-[10px] font-medium tracking-wider">
-            ⌘K
+          <span>Search users / jump anywhere...</span>
+          <span className="ml-auto rounded-md border bg-background/80 px-1.5 py-0.5 text-[10px] font-medium tracking-wider text-muted-foreground">
+            Ctrl K
           </span>
         </button>
 
-        <div className="ml-auto flex items-center gap-3">
+        <div className="ml-auto flex min-w-0 items-center gap-2 sm:gap-3">
           <ThemeToggle />
           <Link
             href="/dashboard"
-            className="hidden items-center gap-1 text-xs text-muted-foreground hover:text-foreground sm:inline-flex"
+            className="hidden h-8 items-center gap-1 rounded-lg border bg-background px-2.5 text-xs text-muted-foreground transition-colors hover:bg-accent hover:text-foreground sm:inline-flex"
           >
             <ArrowLeft className="h-3 w-3" />
             Customer app
           </Link>
-          <span className="hidden text-xs text-muted-foreground sm:inline">
+          <span className="hidden max-w-[220px] truncate rounded-full border bg-muted/40 px-2.5 py-1 text-xs text-muted-foreground sm:inline">
             {adminEmail}
           </span>
         </div>
@@ -290,17 +290,17 @@ function Sidebar({
   return (
     <aside
       className={cn(
-        "fixed inset-y-0 left-0 z-40 mt-14 shrink-0 transform border-r border-border/70 bg-sidebar/95 shadow-xl shadow-black/5 backdrop-blur transition-[width,transform] md:sticky md:top-14 md:z-20 md:mt-0 md:h-[calc(100vh-3.5rem)] md:translate-x-0 md:shadow-none",
+        "fixed inset-y-0 left-0 z-40 mt-16 shrink-0 transform border-r border-border/70 bg-sidebar/95 shadow-xl shadow-black/5 backdrop-blur transition-[width,transform] md:sticky md:top-16 md:z-20 md:mt-0 md:h-[calc(100vh-4rem)] md:translate-x-0 md:shadow-none",
         collapsed ? "w-[4.25rem]" : "w-72 md:w-64",
         mobileOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0",
       )}
     >
-      <nav className="flex h-full flex-col gap-3 overflow-y-auto p-3 scrollbar-thin">
+      <nav className="flex h-full flex-col gap-4 overflow-y-auto p-3 scrollbar-thin">
         {NAV_GROUPS.map((group) => (
-          <div key={group.heading} className="flex flex-col gap-0.5">
+          <div key={group.heading} className="flex flex-col gap-1">
             <div
               className={cn(
-                "px-1 pb-0.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60",
+                "px-1 pb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60",
                 collapsed && "sr-only",
               )}
             >
@@ -317,7 +317,7 @@ function Sidebar({
                   key={item.href}
                   href={item.href}
                   className={cn(
-                    "flex h-9 items-center gap-2 rounded-md px-2.5 text-sm transition-colors",
+                    "group relative flex h-9 items-center gap-2 rounded-lg px-2.5 text-sm transition-colors",
                     active
                       ? "bg-primary/10 text-primary font-medium ring-1 ring-primary/15"
                       : "text-muted-foreground hover:bg-accent/70 hover:text-foreground",
@@ -325,7 +325,14 @@ function Sidebar({
                   )}
                   title={collapsed ? item.label : undefined}
                 >
-                  <Icon className="h-3.5 w-3.5" />
+                  <span
+                    className={cn(
+                      "absolute left-0 top-1/2 h-5 w-0.5 -translate-y-1/2 rounded-full bg-primary opacity-0 transition-opacity",
+                      active && "opacity-100",
+                      collapsed && "left-1",
+                    )}
+                  />
+                  <Icon className="h-3.5 w-3.5 shrink-0" />
                   <span className={cn(collapsed && "sr-only")}>
                     {item.label}
                   </span>
@@ -337,7 +344,7 @@ function Sidebar({
         <div className="mt-auto" />
         <div
           className={cn(
-            "rounded-md border border-border/70 bg-background/50 px-3 py-2 text-[11px] text-muted-foreground",
+            "rounded-lg border border-border/70 bg-background/55 px-3 py-2 text-[11px] leading-relaxed text-muted-foreground",
             collapsed && "hidden",
           )}
         >
@@ -350,7 +357,7 @@ function Sidebar({
           collapsed && "hidden",
         )}
       >
-        ⌘K to search
+        Ctrl K to search
       </div>
     </aside>
   );
@@ -364,11 +371,11 @@ function ViewAsBanner({
   viewingAs: { id: string; name: string; email: string };
 }) {
   return (
-    <div className="sticky top-0 z-50 border-b border-amber-500/30 bg-amber-500/10 text-amber-900 dark:text-amber-100">
-      <div className="flex items-center justify-between gap-3 px-4 py-1.5 text-xs sm:px-6 md:px-8 max-w-screen-xl mx-auto w-full">
+    <div className="sticky top-0 z-50 border-b border-amber-500/30 bg-amber-500/10 text-amber-950 backdrop-blur dark:text-amber-100">
+      <div className="mx-auto flex w-full max-w-screen-xl items-center justify-between gap-3 px-4 py-2 text-xs sm:px-6 md:px-8">
         <span>
-          Viewing as <strong>{viewingAs.name}</strong> ({viewingAs.email}).
-          Writes are disabled.
+          Review mode for <strong>{viewingAs.name}</strong> ({viewingAs.email}).
+          Admin writes are disabled.
         </span>
         <form
           action="/api/admin/view-as/stop"
@@ -377,7 +384,7 @@ function ViewAsBanner({
         >
           <button
             type="submit"
-            className="rounded border border-amber-600/40 px-2 py-0.5 hover:bg-amber-500/20"
+            className="rounded-md border border-amber-600/40 bg-background/40 px-2 py-1 font-medium hover:bg-amber-500/20"
           >
             Exit
           </button>

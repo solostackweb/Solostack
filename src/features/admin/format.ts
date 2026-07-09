@@ -7,7 +7,7 @@
  */
 
 /**
- * Format paise (integer) → human readable INR string. Always uses
+ * Format paise (integer) -> human readable INR string. Always uses
  * Indian digit grouping. Defaults to "₹0" for null / undefined.
  */
 export function formatPaiseInr(paise: number | null | undefined): string {
@@ -34,10 +34,10 @@ export function formatCurrencyAmount(
 
 /**
  * Format an ISO timestamp as "YYYY-MM-DD HH:mm" in IST. Stable string
- * with no locale jitter — admins want monospaced grep-able output.
+ * with no locale jitter - admins want monospaced grep-able output.
  */
 export function formatIstStamp(iso: string | null | undefined): string {
-  if (!iso) return "—";
+  if (!iso) return "-";
   try {
     const d = new Date(iso);
     const fmt = new Intl.DateTimeFormat("en-IN", {
@@ -61,11 +61,11 @@ export function formatIstStamp(iso: string | null | undefined): string {
  * Human-friendly relative time ("2m ago", "3h ago", "5d ago").
  */
 export function formatRelative(iso: string | null | undefined): string {
-  if (!iso) return "—";
+  if (!iso) return "-";
   const then = new Date(iso).getTime();
   const now = Date.now();
   const diffSec = Math.round((now - then) / 1000);
-  if (Number.isNaN(diffSec)) return "—";
+  if (Number.isNaN(diffSec)) return "-";
   if (diffSec < 60) return `${diffSec}s ago`;
   const diffMin = Math.round(diffSec / 60);
   if (diffMin < 60) return `${diffMin}m ago`;
@@ -81,10 +81,10 @@ export function formatRelative(iso: string | null | undefined): string {
 
 /**
  * Truncate a UUID for display. Preserves leading 8 chars + final 4.
- *   "abcdef12-1234-5678-9abc-def012345678" → "abcdef12…5678"
+ *   "abcdef12-1234-5678-9abc-def012345678" -> "abcdef12...5678"
  */
 export function shortenId(id: string | null | undefined): string {
-  if (!id) return "—";
+  if (!id) return "-";
   if (id.length <= 16) return id;
-  return `${id.slice(0, 8)}…${id.slice(-4)}`;
+  return `${id.slice(0, 8)}...${id.slice(-4)}`;
 }

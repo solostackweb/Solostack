@@ -1,11 +1,11 @@
 /**
- * /admin/users — list view.
+ * /admin/users - list view.
  *
  * Backed by the `admin_user_overview` Postgres view (single round trip
- * with denormalized counts). Phase-1 is read-only — no actions menu
+ * with denormalized counts). Phase-1 is read-only - no actions menu
  * yet. Detail page exists for inspection.
  *
- * Query params (URL → state, for shareable links):
+ * Query params (URL -> state, for shareable links):
  *   q       free-text search (email / full_name)
  *   plan    free | pro | business | all
  *   status  active | trialing | past_due | canceled | paused | expired | all
@@ -17,7 +17,15 @@
 import Link from "next/link";
 import { listUsers, type ListUsersInput } from "@/features/admin/queries";
 import { AdminPageHeader } from "@/components/admin/page-header";
-import { AdminSection } from "@/components/admin/kit";
+import {
+  AdminSection,
+  AdminTable,
+  AdminTableShell,
+  AdminTd,
+  AdminTh,
+  AdminThead,
+  AdminTr,
+} from "@/components/admin/kit";
 import { UsersBulk } from "@/components/admin/users-bulk";
 import { adminBulkSuppressUsersAction } from "@/features/admin/actions";
 import {
@@ -81,7 +89,7 @@ export default async function AdminUsersPage({ searchParams }: Props) {
         title="Users"
         subtitle={
           <span>
-            {result.total.toLocaleString("en-IN")} accounts · page {page} /{" "}
+            {result.total.toLocaleString("en-IN")} accounts - page {page} /{" "}
             {totalPages}
           </span>
         }
@@ -146,42 +154,39 @@ export default async function AdminUsersPage({ searchParams }: Props) {
 
       {/* Desktop: table */}
       <UsersBulk suppressAction={adminBulkSuppressUsersAction} exportUrl={exportUrl}>
-      <div className="hidden overflow-hidden rounded-xl border bg-card shadow-sm shadow-black/[0.03] md:block">
-        <table className="w-full text-sm">
-          <thead className="bg-muted/40 text-left text-[11px] uppercase tracking-wider text-muted-foreground">
+      <AdminTableShell className="hidden md:block">
+        <AdminTable>
+          <AdminThead>
             <tr>
-              <th className="w-8 px-3 py-2"></th>
-              <th className="px-3 py-2 font-medium">User</th>
-              <th className="px-3 py-2 font-medium">Account</th>
-              <th className="px-3 py-2 font-medium">Plan</th>
-              <th className="px-3 py-2 font-medium">Status</th>
-              <th className="px-3 py-2 font-medium tabular-nums">Paid</th>
-              <th className="px-3 py-2 font-medium tabular-nums">Inv</th>
-              <th className="px-3 py-2 font-medium tabular-nums">Last seen</th>
-              <th className="px-3 py-2 font-medium tabular-nums">Signed up</th>
-              <th className="px-3 py-2 font-medium tabular-nums">Suppr.</th>
+              <AdminTh className="w-8"></AdminTh>
+              <AdminTh>User</AdminTh>
+              <AdminTh>Account</AdminTh>
+              <AdminTh>Plan</AdminTh>
+              <AdminTh>Status</AdminTh>
+              <AdminTh className="tabular-nums">Paid</AdminTh>
+              <AdminTh className="tabular-nums">Inv</AdminTh>
+              <AdminTh className="tabular-nums">Last seen</AdminTh>
+              <AdminTh className="tabular-nums">Signed up</AdminTh>
+              <AdminTh className="tabular-nums">Suppr.</AdminTh>
             </tr>
-          </thead>
+          </AdminThead>
           <tbody>
             {result.rows.length === 0 ? (
               <tr>
                 <td
                   colSpan={10}
-                  className="px-3 py-8 text-center text-xs text-muted-foreground"
+                  className="px-3 py-10 text-center text-xs text-muted-foreground"
                 >
                   No users match these filters.
                 </td>
               </tr>
             ) : (
               result.rows.map((u) => (
-                <tr
-                  key={u.id}
-                  className="border-t border-border/40 hover:bg-accent/30"
-                >
-                  <td className="px-3 py-2">
+                <AdminTr key={u.id}>
+                  <AdminTd>
                     <input type="checkbox" name="ids" value={u.id} aria-label="Select user" />
-                  </td>
-                  <td className="px-3 py-2">
+                  </AdminTd>
+                  <AdminTd>
                     <Link
                       href={`/admin/users/${u.id}`}
                       className="block leading-tight"
@@ -191,29 +196,29 @@ export default async function AdminUsersPage({ searchParams }: Props) {
                         {u.email}
                       </div>
                     </Link>
-                  </td>
-                  <td className="px-3 py-2">
+                  </AdminTd>
+                  <AdminTd>
                     <AccountTypeBadge accountType={u.account_type} />
-                  </td>
-                  <td className="px-3 py-2 text-muted-foreground">
+                  </AdminTd>
+                  <AdminTd className="text-muted-foreground">
                     {u.plan ?? "free"}
-                  </td>
-                  <td className="px-3 py-2">
+                  </AdminTd>
+                  <AdminTd>
                     <StatusBadge status={u.subscription_status} />
-                  </td>
-                  <td className="px-3 py-2 tabular-nums">
+                  </AdminTd>
+                  <AdminTd className="tabular-nums">
                     {formatPaiseInr(u.total_revenue_paise)}
-                  </td>
-                  <td className="px-3 py-2 tabular-nums text-muted-foreground">
+                  </AdminTd>
+                  <AdminTd className="tabular-nums text-muted-foreground">
                     {u.invoice_count}
-                  </td>
-                  <td className="px-3 py-2 tabular-nums text-muted-foreground">
+                  </AdminTd>
+                  <AdminTd className="tabular-nums text-muted-foreground">
                     {formatRelative(u.last_sign_in_at)}
-                  </td>
-                  <td className="px-3 py-2 font-mono text-[11px] tabular-nums text-muted-foreground">
+                  </AdminTd>
+                  <AdminTd className="font-mono text-[11px] tabular-nums text-muted-foreground">
                     {formatIstStamp(u.signed_up_at)}
-                  </td>
-                  <td className="px-3 py-2 tabular-nums text-muted-foreground">
+                  </AdminTd>
+                  <AdminTd className="tabular-nums text-muted-foreground">
                     {u.suppression_count > 0 ? (
                       <span className="text-amber-600 dark:text-amber-400">
                         {u.suppression_count}
@@ -221,13 +226,13 @@ export default async function AdminUsersPage({ searchParams }: Props) {
                     ) : (
                       0
                     )}
-                  </td>
-                </tr>
+                  </AdminTd>
+                </AdminTr>
               ))
             )}
           </tbody>
-        </table>
-      </div>
+        </AdminTable>
+      </AdminTableShell>
       </UsersBulk>
 
       <Pagination
@@ -259,19 +264,19 @@ function Filters({
     <form
       method="get"
       action="/admin/users"
-      className="flex flex-wrap items-center gap-2"
+      className="flex flex-wrap items-center gap-2 rounded-xl border bg-card/95 p-2 shadow-sm shadow-black/[0.025] dark:bg-card"
     >
       <input
         type="text"
         name="q"
         defaultValue={q ?? ""}
-        placeholder="Search email or name…"
-        className="h-8 w-56 rounded border bg-background px-2 text-xs"
+        placeholder="Search email or name..."
+        className="h-9 min-w-0 flex-1 rounded-lg border bg-background px-3 text-xs outline-none transition-colors placeholder:text-muted-foreground/70 focus:border-primary/50 focus:ring-2 focus:ring-primary/15 sm:w-64 sm:flex-none"
       />
       <select
         name="account"
         defaultValue={accountType ?? "all"}
-        className="h-8 rounded border bg-background px-2 text-xs"
+        className="h-9 rounded-lg border bg-background px-2.5 text-xs outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/15"
       >
         <option value="all">All accounts</option>
         <option value="freelancer">Freelancers</option>
@@ -280,7 +285,7 @@ function Filters({
       <select
         name="plan"
         defaultValue={plan ?? "all"}
-        className="h-8 rounded border bg-background px-2 text-xs"
+        className="h-9 rounded-lg border bg-background px-2.5 text-xs outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/15"
       >
         <option value="all">All plans</option>
         <option value="free">Free</option>
@@ -290,7 +295,7 @@ function Filters({
       <select
         name="status"
         defaultValue={status ?? "all"}
-        className="h-8 rounded border bg-background px-2 text-xs"
+        className="h-9 rounded-lg border bg-background px-2.5 text-xs outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/15"
       >
         <option value="all">Any status</option>
         <option value="active">Active</option>
@@ -302,13 +307,13 @@ function Filters({
       </select>
       <button
         type="submit"
-        className="h-8 rounded border bg-background px-3 text-xs hover:bg-accent"
+        className="h-9 rounded-lg bg-foreground px-3 text-xs font-medium text-background transition-colors hover:bg-foreground/90"
       >
         Apply
       </button>
       <Link
         href="/admin/users"
-        className="text-xs text-muted-foreground hover:text-foreground"
+        className="inline-flex h-9 items-center rounded-lg px-2 text-xs text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
       >
         Reset
       </Link>
@@ -322,7 +327,7 @@ function StatusBadge({
   status: string | null;
 }) {
   if (!status)
-    return <span className="text-xs text-muted-foreground">—</span>;
+    return <span className="text-xs text-muted-foreground">-</span>;
   const tone =
     status === "active" || status === "trialing"
       ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
@@ -402,7 +407,7 @@ function Pagination({
             : "hover:bg-accent",
         )}
       >
-        ← Prev
+        Prev
       </Link>
       <span className="text-muted-foreground tabular-nums">
         Page {page} / {totalPages}
@@ -416,7 +421,7 @@ function Pagination({
             : "hover:bg-accent",
         )}
       >
-        Next →
+        Next
       </Link>
     </nav>
   );

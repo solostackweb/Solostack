@@ -1,17 +1,17 @@
 "use client";
 
 /**
- * Founder Console — user-detail action sidebar.
+ * Founder Console - user-detail action sidebar.
  *
  * Renders every Phase-2 admin action that targets a single user.
  *
  * Action tiers (from `@/features/admin/types.ts`):
- *   - routine     → bare button + onClick
- *   - sensitive   → TypedConfirmButton (typed text match)
- *   - destructive → TypedConfirmButton (typed text + 10s cooldown)
+ *   - routine     -> bare button + onClick
+ *   - sensitive   -> TypedConfirmButton (typed text match)
+ *   - destructive -> TypedConfirmButton (typed text + 10s cooldown)
  *
  * Each form uses native `<form action={fn}>` posting to the server
- * actions — no client state library, no fetch, no JS-required path.
+ * actions - no client state library, no fetch, no JS-required path.
  * `useFormStatus` would let us disable buttons during pending, but
  * the `setSubmitting` inside TypedConfirmButton already does that.
  */
@@ -74,10 +74,10 @@ export function UserActions({ user }: UserActionsProps) {
       </h2>
 
       <div className="space-y-2 rounded-xl border bg-card shadow-sm shadow-black/[0.03] p-3">
-        {/* View as — routine */}
+        {/* View as - routine */}
         <form action="/api/admin/view-as/start" method="post">
           <input type="hidden" name="userId" value={user.id} />
-          <ActionRow icon={Eye} title="View as" hint="Read-only impersonation">
+          <ActionRow icon={Eye} title="Review mode" hint="Lock writes while reviewing">
             <button
               type="submit"
               className="inline-flex h-7 items-center justify-center rounded-md border px-3 text-xs hover:bg-accent"
@@ -87,7 +87,7 @@ export function UserActions({ user }: UserActionsProps) {
           </ActionRow>
         </form>
 
-        {/* Password reset — sensitive */}
+        {/* Password reset - sensitive */}
         <form
           action={async () => {
             const res = await adminPasswordResetAction(user.id);
@@ -108,7 +108,7 @@ export function UserActions({ user }: UserActionsProps) {
           </ActionRow>
         </form>
 
-        {/* Force email verify — sensitive */}
+        {/* Force email verify - sensitive */}
         <form
           action={async () => {
             const res = await adminForceVerifyEmailAction(user.id);
@@ -128,12 +128,12 @@ export function UserActions({ user }: UserActionsProps) {
           </ActionRow>
         </form>
 
-        {/* DPDP data export — sensitive */}
+        {/* DPDP data export - sensitive */}
         <form
           action={async () => {
             const res = await adminExportUserDataAction({ userId: user.id });
             if (res.ok && res.data?.signedUrl) {
-              toast.success("Export ready — opening signed URL");
+              toast.success("Export ready - opening signed URL");
               window.open(res.data.signedUrl, "_blank", "noopener,noreferrer");
               router.refresh();
             } else if (!res.ok) {
@@ -154,7 +154,7 @@ export function UserActions({ user }: UserActionsProps) {
           </ActionRow>
         </form>
 
-        {/* Suspend / unsuspend — sensitive */}
+        {/* Suspend / unsuspend - sensitive */}
         {user.isSuspended ? (
           <form
             action={async () => {
@@ -178,10 +178,10 @@ export function UserActions({ user }: UserActionsProps) {
           <SuspendForm user={user} announce={announce} />
         )}
 
-        {/* Comp plan — sensitive */}
+        {/* Comp plan - sensitive */}
         <CompPlanForm user={user} announce={announce} />
 
-        {/* Soft delete — destructive */}
+        {/* Soft delete - destructive */}
         <SoftDeleteForm user={user} announce={announce} />
       </div>
     </section>

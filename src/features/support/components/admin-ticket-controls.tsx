@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * Admin ticket controls — status / priority / category selects + tag editor.
+ * Admin ticket controls - status / priority / category selects + tag editor.
  * Each control calls its server action and refreshes.
  */
 
@@ -103,7 +103,7 @@ export function AdminTicketControls({ ticket }: { ticket: SupportTicket }) {
           disabled={busy}
           onChange={(e) => run(() => adminSetCategoryAction(ticket.id, e.target.value as TicketCategory), "Category updated")}
         >
-          {ticket.category ? null : <option value="">—</option>}
+          {ticket.category ? null : <option value="">-</option>}
           {CATEGORIES.map((c) => (
             <option key={c} value={c}>
               {c}

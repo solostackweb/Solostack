@@ -1,15 +1,15 @@
 "use server";
 
 /**
- * Founder Console — global search.
+ * Founder Console - global search.
  *
  * One server action behind the Cmd+K palette. Resolves a query string
  * to a small UNION of results across users, subscriptions, and
  * security events.
  *
- *   - email / full_name substring → users
- *   - exact UUID                  → user / subscription / security_event
- *   - exact 32-char hex           → security_event by request_id
+ *   - email / full_name substring -> users
+ *   - exact UUID                  -> user / subscription / security_event
+ *   - exact 32-char hex           -> security_event by request_id
  *
  * Returns at most ~15 hits so the palette renders instantly.
  */
@@ -40,13 +40,17 @@ export interface SearchHit {
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const REQUEST_ID_RE = /^[0-9a-f]{32}$/;
 
+function sanitizeOrSearchTerm(value: string): string {
+  return value.trim().replace(/[%_(),]/g, " ").replace(/\s+/g, " ");
+}
+
 export async function adminGlobalSearch(query: string): Promise<SearchHit[]> {
   await requireAdmin();
 
   const q = query.trim();
   if (q.length < 2) return [];
 
-  // Exact UUID lookup — try user_profiles + subscriptions in parallel.
+  // Exact UUID lookup - try user_profiles + subscriptions in parallel.
   if (UUID_RE.test(q)) {
     return resolveByUuid(q);
   }
@@ -104,7 +108,7 @@ async function resolveByUuid(uuid: string): Promise<SearchHit[]> {
     out.push({
       id: sub.id,
       kind: "subscription",
-      label: `Subscription · ${sub.plan}`,
+      label: `Subscription - ${sub.plan}`,
       hint: sub.status,
       href: `/admin/subscriptions/${sub.id}`,
     });
@@ -114,7 +118,7 @@ async function resolveByUuid(uuid: string): Promise<SearchHit[]> {
 
 async function resolveBySubstring(q: string): Promise<SearchHit[]> {
   const admin = getAdminSupabase();
-  const term = q.replace(/[%_]/g, "");
+  const term = sanitizeOrSearchTerm(q);
   const pattern = `%${term}%`;
 
   // Run users + invoices + contracts in parallel so the palette stays
@@ -170,7 +174,7 @@ async function resolveBySubstring(q: string): Promise<SearchHit[]> {
       id: r.id,
       kind: "user",
       label: r.full_name,
-      hint: `${r.email}${r.plan ? ` · ${r.plan}` : ""}`,
+      hint: `${r.email}${r.plan ? ` - ${r.plan}` : ""}`,
       href: `/admin/users/${r.id}`,
     });
   }
@@ -179,7 +183,7 @@ async function resolveBySubstring(q: string): Promise<SearchHit[]> {
       id: r.id,
       kind: "invoice",
       label: r.invoice_number,
-      hint: `${r.status} · ${formatCurrencyAmount(r.total_amount, r.currency)}`,
+      hint: `${r.status} - ${formatCurrencyAmount(r.total_amount, r.currency)}`,
       href: `/admin/invoices/${r.id}`,
     });
   }
@@ -188,7 +192,7 @@ async function resolveBySubstring(q: string): Promise<SearchHit[]> {
       id: r.id,
       kind: "contract",
       label: r.title,
-      hint: `${r.kind} · ${r.status}`,
+      hint: `${r.kind} - ${r.status}`,
       href: `/admin/contracts/${r.id}`,
     });
   }

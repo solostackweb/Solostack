@@ -3,7 +3,7 @@
 /**
  * One-click suppression remove + add actions for /admin/emails.
  *
- * Suppression removal is "routine" tier — single click, no
+ * Suppression removal is "routine" tier - single click, no
  * confirmation, but audited via runAdminAction.
  */
 

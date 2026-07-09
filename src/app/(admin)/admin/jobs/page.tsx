@@ -1,5 +1,5 @@
 /**
- * /admin/jobs — scheduled-job health (Admin hardening A3).
+ * /admin/jobs - scheduled-job health (Admin hardening A3).
  *
  *   - Per-job health cards: last run, status, duration, stale/failing flags.
  *   - Recent runs table across all jobs.
@@ -78,14 +78,14 @@ export default async function AdminJobsPage() {
               </div>
               <p className="mt-1.5 text-xs text-muted-foreground">
                 {h.lastRun
-                  ? `Last run ${formatRelative(h.lastRun.finished_at)} · ${h.lastRun.duration_ms}ms`
+                  ? `Last run ${formatRelative(h.lastRun.finished_at)} - ${h.lastRun.duration_ms}ms`
                   : "Never run"}
               </p>
               <p className="mt-0.5 text-[11px] font-mono text-muted-foreground/80">{h.id}</p>
               {h.failing && h.lastRun?.error ? (
                 <p className="mt-1.5 truncate text-[11px] text-red-600/90">{h.lastRun.error}</p>
               ) : h.stale ? (
-                <p className="mt-1.5 text-[11px] text-amber-600/90">Overdue — no recent successful run.</p>
+                <p className="mt-1.5 text-[11px] text-amber-600/90">Overdue - no recent successful run.</p>
               ) : null}
             </div>
           );

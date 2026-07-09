@@ -22,7 +22,8 @@ import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { getServerSupabase } from "@/lib/supabase/server";
 import { getAdminSupabase } from "@/lib/supabase/admin";
-import { requireAdmin } from "@/features/admin/server";
+import { requireAdmin, runAdminAction } from "@/features/admin/server";
+import type { AdminActionKind } from "@/features/admin/types";
 import { sendEmail } from "@/features/email/service";
 import { getEmailSender } from "@/features/email/senders";
 import { getPublicAppUrl } from "@/features/documents/urls";
@@ -387,75 +388,84 @@ const adminReplySchema = z.object({
 export async function adminReplyAction(
   input: z.infer<typeof adminReplySchema>,
 ): Promise<{ ok: boolean; error?: string }> {
-  const adminUser = await requireAdmin();
   const parsed = adminReplySchema.safeParse(input);
   if (!parsed.success) {
     return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input." };
   }
   const { ticketId, body, internal } = parsed.data;
-  const admin = getAdminSupabase();
+  return runAdminAction(
+    {
+      kind: "support.reply",
+      targetType: "support_ticket",
+      targetId: ticketId,
+      metadata: { internal: Boolean(internal) },
+    },
+    async (adminUser) => {
+      const admin = getAdminSupabase();
 
-  const { data: ticketRow } = await admin
-    .from("support_tickets")
-    .select("*")
-    .eq("id", ticketId)
-    .maybeSingle();
-  if (!ticketRow) return { ok: false, error: "Ticket not found." };
-  const ticket = ticketRow as SupportTicket;
+      const { data: ticketRow } = await admin
+        .from("support_tickets")
+        .select("*")
+        .eq("id", ticketId)
+        .maybeSingle();
+      if (!ticketRow) return { ok: false, error: "Ticket not found." };
+      const ticket = ticketRow as SupportTicket;
 
-  const { error } = await admin.from("support_messages").insert({
-    ticket_id: ticketId,
-    author_type: "agent",
-    author_user_id: adminUser.id,
-    body,
-    via: "in_app",
-    is_internal_note: internal ?? false,
-  } as never);
-  if (error) return { ok: false, error: "Couldn't post the reply." };
+      const { error } = await admin.from("support_messages").insert({
+        ticket_id: ticketId,
+        author_type: "agent",
+        author_user_id: adminUser.id,
+        body,
+        via: "in_app",
+        is_internal_note: internal ?? false,
+      } as never);
+      if (error) return { ok: false, error: "Couldn't post the reply." };
 
-  const nowIso = new Date().toISOString();
+      const nowIso = new Date().toISOString();
 
-  if (!internal) {
-    const update: Record<string, unknown> = {
-      status: "waiting_on_customer",
-      last_message_at: nowIso,
-    };
-    if (!ticket.first_response_at) update.first_response_at = nowIso;
-    await admin.from("support_tickets").update(update as never).eq("id", ticketId);
+      if (!internal) {
+        const update: Record<string, unknown> = {
+          status: "waiting_on_customer",
+          last_message_at: nowIso,
+        };
+        if (!ticket.first_response_at) update.first_response_at = nowIso;
+        await admin.from("support_tickets").update(update as never).eq("id", ticketId);
 
-    // Email the customer (best-effort).
-    try {
-      const sender = getEmailSender("support");
-      const rendered = renderSupportReplyEmail({
-        customerName: ticket.name,
-        subject: ticket.subject,
-        replyBody: body,
-        threadUrl: threadUrlFor(ticket),
-        senderName: sender.name,
-        senderEmail: sender.email,
-      });
-      await sendEmail({
-        type: "support",
-        to: { email: ticket.email, name: ticket.name ?? undefined },
-        replyTo: { email: replyToAddress(ticket.public_token), name: sender.name },
-        subject: rendered.subject,
-        html: rendered.html,
-        text: rendered.text,
-        tags: ["support_reply"],
-        headers: { "X-Stackivo-Ticket": ticket.id },
-      });
-    } catch (err) {
-      log.warn("support.admin_reply.email_failed", {
-        ticketId,
-        error: err instanceof Error ? err.message : String(err),
-      });
-    }
-  }
+        // Email the customer (best-effort).
+        try {
+          const sender = getEmailSender("support");
+          const rendered = renderSupportReplyEmail({
+            customerName: ticket.name,
+            subject: ticket.subject,
+            replyBody: body,
+            threadUrl: threadUrlFor(ticket),
+            senderName: sender.name,
+            senderEmail: sender.email,
+          });
+          await sendEmail({
+            type: "support",
+            to: { email: ticket.email, name: ticket.name ?? undefined },
+            replyTo: { email: replyToAddress(ticket.public_token), name: sender.name },
+            subject: rendered.subject,
+            html: rendered.html,
+            text: rendered.text,
+            tags: ["support_reply"],
+            headers: { "X-Stackivo-Ticket": ticket.id },
+          });
+        } catch (err) {
+          log.warn("support.admin_reply.email_failed", {
+            ticketId,
+            error: err instanceof Error ? err.message : String(err),
+          });
+        }
+      }
 
-  revalidatePath(`/admin/support/${ticketId}`);
-  revalidatePath("/admin/support");
-  if (ticket.user_id) revalidatePath(`/help/tickets/${ticketId}`);
-  return { ok: true };
+      revalidatePath(`/admin/support/${ticketId}`);
+      revalidatePath("/admin/support");
+      if (ticket.user_id) revalidatePath(`/help/tickets/${ticketId}`);
+      return { ok: true };
+    },
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -465,17 +475,28 @@ export async function adminReplyAction(
 async function adminPatchTicket(
   ticketId: string,
   patch: Record<string, unknown>,
+  kind: AdminActionKind,
+  metadata?: Record<string, unknown>,
 ): Promise<{ ok: boolean; error?: string }> {
-  await requireAdmin();
-  const admin = getAdminSupabase();
-  const { error } = await admin
-    .from("support_tickets")
-    .update(patch as never)
-    .eq("id", ticketId);
-  if (error) return { ok: false, error: error.message };
-  revalidatePath(`/admin/support/${ticketId}`);
-  revalidatePath("/admin/support");
-  return { ok: true };
+  return runAdminAction(
+    {
+      kind,
+      targetType: "support_ticket",
+      targetId: ticketId,
+      metadata,
+    },
+    async () => {
+      const admin = getAdminSupabase();
+      const { error } = await admin
+        .from("support_tickets")
+        .update(patch as never)
+        .eq("id", ticketId);
+      if (error) return { ok: false, error: error.message };
+      revalidatePath(`/admin/support/${ticketId}`);
+      revalidatePath("/admin/support");
+      return { ok: true };
+    },
+  );
 }
 
 export async function adminSetStatusAction(ticketId: string, status: TicketStatus) {
@@ -483,19 +504,21 @@ export async function adminSetStatusAction(ticketId: string, status: TicketStatu
   if (status === "resolved" || status === "closed") {
     patch.resolved_at = new Date().toISOString();
   }
-  return adminPatchTicket(ticketId, patch);
+  return adminPatchTicket(ticketId, patch, "support.status.update", { status });
 }
 
 export async function adminSetPriorityAction(ticketId: string, priority: TicketPriority) {
-  return adminPatchTicket(ticketId, { priority });
+  return adminPatchTicket(ticketId, { priority }, "support.priority.update", { priority });
 }
 
 export async function adminSetCategoryAction(ticketId: string, category: TicketCategory) {
-  return adminPatchTicket(ticketId, { category });
+  return adminPatchTicket(ticketId, { category }, "support.category.update", { category });
 }
 
 export async function adminAssignAction(ticketId: string, assigneeUserId: string | null) {
-  return adminPatchTicket(ticketId, { assignee_user_id: assigneeUserId });
+  return adminPatchTicket(ticketId, { assignee_user_id: assigneeUserId }, "support.assign", {
+    assignee_user_id: assigneeUserId,
+  });
 }
 
 export async function adminAddTagAction(ticketId: string, tag: string) {
@@ -510,7 +533,9 @@ export async function adminAddTagAction(ticketId: string, tag: string) {
     .maybeSingle();
   const tags = new Set(((data as { tags?: string[] } | null)?.tags ?? []) as string[]);
   tags.add(clean);
-  return adminPatchTicket(ticketId, { tags: Array.from(tags) });
+  return adminPatchTicket(ticketId, { tags: Array.from(tags) }, "support.tag.add", {
+    tag: clean,
+  });
 }
 
 export async function adminRemoveTagAction(ticketId: string, tag: string) {
@@ -524,7 +549,7 @@ export async function adminRemoveTagAction(ticketId: string, tag: string) {
   const tags = (((data as { tags?: string[] } | null)?.tags ?? []) as string[]).filter(
     (t) => t !== tag,
   );
-  return adminPatchTicket(ticketId, { tags });
+  return adminPatchTicket(ticketId, { tags }, "support.tag.remove", { tag });
 }
 
 // ---------------------------------------------------------------------------
@@ -539,54 +564,80 @@ const cannedSchema = z.object({
 });
 
 export async function adminCreateCannedAction(input: z.infer<typeof cannedSchema>) {
-  await requireAdmin();
   const parsed = cannedSchema.safeParse(input);
   if (!parsed.success) {
     return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input." };
   }
-  const admin = getAdminSupabase();
-  const { error } = await admin.from("support_canned_responses").insert({
-    title: parsed.data.title,
-    shortcut: parsed.data.shortcut ?? null,
-    body: parsed.data.body,
-    category: parsed.data.category ?? null,
-  } as never);
-  if (error) return { ok: false, error: error.message };
-  revalidatePath("/admin/support");
-  return { ok: true };
+  return runAdminAction(
+    {
+      kind: "support.canned.create",
+      targetType: "support_ticket",
+      targetId: null,
+      metadata: { title: parsed.data.title, category: parsed.data.category },
+    },
+    async () => {
+      const admin = getAdminSupabase();
+      const { error } = await admin.from("support_canned_responses").insert({
+        title: parsed.data.title,
+        shortcut: parsed.data.shortcut ?? null,
+        body: parsed.data.body,
+        category: parsed.data.category ?? null,
+      } as never);
+      if (error) return { ok: false, error: error.message };
+      revalidatePath("/admin/support");
+      return { ok: true };
+    },
+  );
 }
 
 export async function adminUpdateCannedAction(
   id: string,
   input: z.infer<typeof cannedSchema>,
 ) {
-  await requireAdmin();
   const parsed = cannedSchema.safeParse(input);
   if (!parsed.success) {
     return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input." };
   }
-  const admin = getAdminSupabase();
-  const { error } = await admin
-    .from("support_canned_responses")
-    .update({
-      title: parsed.data.title,
-      shortcut: parsed.data.shortcut ?? null,
-      body: parsed.data.body,
-      category: parsed.data.category ?? null,
-    } as never)
-    .eq("id", id);
-  if (error) return { ok: false, error: error.message };
-  revalidatePath("/admin/support");
-  return { ok: true };
+  return runAdminAction(
+    {
+      kind: "support.canned.update",
+      targetType: "support_ticket",
+      targetId: id,
+      metadata: { title: parsed.data.title, category: parsed.data.category },
+    },
+    async () => {
+      const admin = getAdminSupabase();
+      const { error } = await admin
+        .from("support_canned_responses")
+        .update({
+          title: parsed.data.title,
+          shortcut: parsed.data.shortcut ?? null,
+          body: parsed.data.body,
+          category: parsed.data.category ?? null,
+        } as never)
+        .eq("id", id);
+      if (error) return { ok: false, error: error.message };
+      revalidatePath("/admin/support");
+      return { ok: true };
+    },
+  );
 }
 
 export async function adminDeleteCannedAction(id: string) {
-  await requireAdmin();
-  const admin = getAdminSupabase();
-  const { error } = await admin.from("support_canned_responses").delete().eq("id", id);
-  if (error) return { ok: false, error: error.message };
-  revalidatePath("/admin/support");
-  return { ok: true };
+  return runAdminAction(
+    {
+      kind: "support.canned.delete",
+      targetType: "support_ticket",
+      targetId: id,
+    },
+    async () => {
+      const admin = getAdminSupabase();
+      const { error } = await admin.from("support_canned_responses").delete().eq("id", id);
+      if (error) return { ok: false, error: error.message };
+      revalidatePath("/admin/support");
+      return { ok: true };
+    },
+  );
 }
 // ---------------------------------------------------------------------------
 // Widget: load the user's most recent active conversation (for the launcher)

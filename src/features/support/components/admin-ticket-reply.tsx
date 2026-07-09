@@ -99,7 +99,7 @@ export function AdminTicketReply({ ticketId, canned }: Props) {
         value={body}
         onChange={(e) => setBody(e.target.value)}
         rows={4}
-        placeholder={internal ? "Private note for your team…" : "Write a reply — the customer gets it by email and in-app…"}
+        placeholder={internal ? "Private note for your team..." : "Write a reply - the customer gets it by email and in-app..."}
         className="block w-full resize-y border-0 bg-transparent p-3 text-sm focus:outline-none"
       />
 

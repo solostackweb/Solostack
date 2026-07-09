@@ -1,8 +1,8 @@
 /**
- * /admin/support/[id] — first-party ticket conversation.
+ * /admin/support/[id] - first-party ticket conversation.
  *
- *   Left  — full thread (incl. internal notes) + reply box
- *   Right — controls (status/priority/category/tags) + customer context
+ *   Left  - full thread (incl. internal notes) + reply box
+ *   Right - controls (status/priority/category/tags) + customer context
  */
 
 import { notFound } from "next/navigation";
@@ -54,7 +54,7 @@ export default async function AdminTicketPage({ params }: Props) {
           <span className="flex flex-wrap items-center gap-2">
             <TicketStatusBadge status={ticket.status} audience="admin" />
             <span className="text-xs text-muted-foreground">
-              {ticket.email} · opened {formatIstStamp(ticket.created_at)}
+              {ticket.email} - opened {formatIstStamp(ticket.created_at)}
             </span>
           </span>
         }
@@ -72,7 +72,7 @@ export default async function AdminTicketPage({ params }: Props) {
                   return (
                     <div key={m.id} className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-3">
                       <div className="mb-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-600 dark:text-amber-400">
-                        Internal note · {formatIstStamp(m.created_at)}
+                        Internal note - {formatIstStamp(m.created_at)}
                       </div>
                       <div className="whitespace-pre-wrap break-words text-sm">{m.body}</div>
                     </div>
@@ -86,7 +86,7 @@ export default async function AdminTicketPage({ params }: Props) {
                       fromCustomer ? "bg-muted text-foreground" : "bg-primary/10 text-foreground",
                     )}>
                       <div className="mb-0.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
-                        {fromCustomer ? "Customer" : m.author_type === "agent" ? "You" : m.author_type} · {formatIstStamp(m.created_at)}
+                        {fromCustomer ? "Customer" : m.author_type === "agent" ? "You" : m.author_type} - {formatIstStamp(m.created_at)}
                       </div>
                       <div className="whitespace-pre-wrap break-words">{m.body}</div>
                     </div>

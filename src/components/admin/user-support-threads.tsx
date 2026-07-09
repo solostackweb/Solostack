@@ -41,7 +41,7 @@ export function UserSupportThreads({ userId, threads }: Props) {
                     <span className="truncate font-medium">{t.subject}</span>
                   </div>
                   <p className="mt-0.5 text-[11px] text-muted-foreground">
-                    {t.category ? `${t.category} · ` : ""}
+                    {t.category ? `${t.category} - ` : ""}
                     {formatRelative(t.last_message_at)}
                   </p>
                 </div>

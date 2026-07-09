@@ -1,5 +1,5 @@
 /**
- * /admin/query — SQL editor.
+ * /admin/query - SQL editor.
  *
  * Read-only escape hatch over the `admin_readonly` Postgres role.
  * Every run is audited to `admin_actions` with the query text (first
@@ -21,7 +21,7 @@ export default async function AdminQueryPage() {
     <AdminSection>
       <AdminPageHeader
         title="SQL"
-        subtitle="Read-only query against public schema · 30s timeout · audited"
+        subtitle="Read-only query against public schema - 30s timeout - audited"
       />
       <SqlRunner />
       <p className="text-[11px] text-muted-foreground">

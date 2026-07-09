@@ -188,7 +188,7 @@ function RefundForm({
         <div className="flex-1">
           <div className="font-medium">Record manual refund</div>
           <div className="text-[11px] text-muted-foreground">
-            This does <em>not</em> call Razorpay — issue the refund in their
+            This does <em>not</em> call Razorpay - issue the refund in their
             dashboard first, then log it here so MRR math stays correct.
           </div>
         </div>
@@ -206,7 +206,7 @@ function RefundForm({
           >
             {refundable.map((p) => (
               <option key={p.id} value={p.id}>
-                ₹{(p.amount / 100).toLocaleString("en-IN")} · {p.razorpay_payment_id} ·{" "}
+                ₹{(p.amount / 100).toLocaleString("en-IN")} - {p.razorpay_payment_id} -{" "}
                 {new Date(p.created_at).toLocaleDateString("en-IN")}
               </option>
             ))}

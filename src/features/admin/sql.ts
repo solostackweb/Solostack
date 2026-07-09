@@ -1,14 +1,14 @@
 "use server";
 
 /**
- * Founder Console — SQL editor backing action.
+ * Founder Console - SQL editor backing action.
  *
  * Calls the SECURITY DEFINER `admin_run_readonly_query` function
  * (migration 0020). The query text is audited verbatim into
  * `admin_actions.metadata.sql`.
  *
  * The function caps statement_timeout at 30s and runs as the
- * `admin_readonly` role — so by construction:
+ * `admin_readonly` role - so by construction:
  *   - No INSERT / UPDATE / DELETE / DDL.
  *   - No access to schemas outside `public`.
  *   - Runaway queries cancel automatically.

@@ -1,5 +1,5 @@
 /**
- * /admin/subscriptions — list view.
+ * /admin/subscriptions - list view.
  *
  * Status tabs (Active / Trialing / Past due / Cancelled) with counts
  * resolved in parallel. Click into a row to inspect billing_events +
@@ -10,7 +10,17 @@ import Link from "next/link";
 import { CreditCard, Zap, AlertCircle, XCircle } from "lucide-react";
 import { listSubscriptions } from "@/features/admin/queries";
 import { AdminPageHeader } from "@/components/admin/page-header";
-import { AdminSection, KpiGrid, StatCard } from "@/components/admin/kit";
+import {
+  AdminSection,
+  AdminTable,
+  AdminTableShell,
+  AdminTd,
+  AdminTh,
+  AdminThead,
+  AdminTr,
+  KpiGrid,
+  StatCard,
+} from "@/components/admin/kit";
 import {
   formatIstStamp,
   formatRelative,
@@ -45,7 +55,7 @@ export default async function AdminSubscriptionsPage({ searchParams }: Props) {
         title="Subscriptions"
         subtitle={
           <span>
-            {result.total.toLocaleString("en-IN")} in this tab · page {page} /{" "}
+            {result.total.toLocaleString("en-IN")} in this tab - page {page} /{" "}
             {totalPages}
           </span>
         }
@@ -82,7 +92,7 @@ export default async function AdminSubscriptionsPage({ searchParams }: Props) {
         />
       </KpiGrid>
 
-      <div className="flex flex-wrap gap-1.5 border-b border-border/60 pb-1">
+      <div className="flex flex-wrap gap-1.5 rounded-xl border bg-card/95 p-1.5 shadow-sm shadow-black/[0.025] dark:bg-card">
         {TABS.map((t) => {
           const label = TAB_LABELS[t];
           const count =
@@ -98,18 +108,18 @@ export default async function AdminSubscriptionsPage({ searchParams }: Props) {
               key={t}
               href={`/admin/subscriptions?status=${t}`}
               className={cn(
-                "flex items-center gap-1.5 rounded px-2.5 py-1 text-xs font-medium transition-colors",
+                "flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-xs font-medium transition-colors",
                 active
-                  ? "bg-accent text-foreground"
+                  ? "bg-foreground text-background shadow-sm"
                   : "text-muted-foreground hover:bg-accent/60 hover:text-foreground",
               )}
             >
               {label}
               <span
                 className={cn(
-                  "rounded bg-muted px-1.5 text-[10px] tabular-nums",
+                  "rounded-md bg-muted px-1.5 text-[10px] tabular-nums",
                   active
-                    ? "bg-foreground/10 text-foreground"
+                    ? "bg-background/20 text-background"
                     : "text-muted-foreground",
                 )}
               >
@@ -155,19 +165,19 @@ export default async function AdminSubscriptionsPage({ searchParams }: Props) {
       </ul>
 
       {/* Desktop table */}
-      <div className="hidden overflow-hidden rounded-xl border bg-card shadow-sm shadow-black/[0.03] md:block">
-        <table className="w-full text-sm">
-          <thead className="bg-muted/40 text-left text-[11px] uppercase tracking-wider text-muted-foreground">
+      <AdminTableShell className="hidden md:block">
+        <AdminTable>
+          <AdminThead>
             <tr>
-              <th className="px-3 py-2 font-medium">User</th>
-              <th className="px-3 py-2 font-medium">Plan</th>
-              <th className="px-3 py-2 font-medium">Status</th>
-              <th className="px-3 py-2 font-medium">Cycle</th>
-              <th className="px-3 py-2 font-medium tabular-nums">Period end</th>
-              <th className="px-3 py-2 font-medium">Source</th>
-              <th className="px-3 py-2 font-medium tabular-nums">Updated</th>
+              <AdminTh>User</AdminTh>
+              <AdminTh>Plan</AdminTh>
+              <AdminTh>Status</AdminTh>
+              <AdminTh>Cycle</AdminTh>
+              <AdminTh className="tabular-nums">Period end</AdminTh>
+              <AdminTh>Source</AdminTh>
+              <AdminTh className="tabular-nums">Updated</AdminTh>
             </tr>
-          </thead>
+          </AdminThead>
           <tbody>
             {result.rows.length === 0 ? (
               <tr>
@@ -180,11 +190,8 @@ export default async function AdminSubscriptionsPage({ searchParams }: Props) {
               </tr>
             ) : (
               result.rows.map((row) => (
-                <tr
-                  key={row.id}
-                  className="border-t border-border/40 hover:bg-accent/30"
-                >
-                  <td className="px-3 py-2">
+                <AdminTr key={row.id}>
+                  <AdminTd>
                     <Link
                       href={`/admin/subscriptions/${row.id}`}
                       className="block leading-tight"
@@ -194,36 +201,36 @@ export default async function AdminSubscriptionsPage({ searchParams }: Props) {
                         {row.email}
                       </div>
                     </Link>
-                  </td>
-                  <td className="px-3 py-2">
+                  </AdminTd>
+                  <AdminTd>
                     <PlanTag plan={row.plan} />
-                  </td>
-                  <td className="px-3 py-2">
+                  </AdminTd>
+                  <AdminTd>
                     <StatusBadge status={row.status} />
-                  </td>
-                  <td className="px-3 py-2 text-xs text-muted-foreground">
+                  </AdminTd>
+                  <AdminTd className="text-xs text-muted-foreground">
                     {row.billing_cycle}
-                  </td>
-                  <td className="px-3 py-2 font-mono text-[11px] tabular-nums text-muted-foreground">
+                  </AdminTd>
+                  <AdminTd className="font-mono text-[11px] tabular-nums text-muted-foreground">
                     {formatIstStamp(row.current_period_end)}
-                  </td>
-                  <td className="px-3 py-2 text-xs text-muted-foreground">
+                  </AdminTd>
+                  <AdminTd className="text-xs text-muted-foreground">
                     {row.razorpay_subscription_id ? "razorpay" : "manual"}
-                  </td>
-                  <td className="px-3 py-2 font-mono text-[11px] tabular-nums text-muted-foreground">
+                  </AdminTd>
+                  <AdminTd className="font-mono text-[11px] tabular-nums text-muted-foreground">
                     {formatRelative(row.updated_at)}
-                  </td>
-                </tr>
+                  </AdminTd>
+                </AdminTr>
               ))
             )}
           </tbody>
-        </table>
-      </div>
+        </AdminTable>
+      </AdminTableShell>
 
       {totalPages > 1 ? (
         <nav className="flex items-center justify-between text-xs">
           <PageLink page={Math.max(1, page - 1)} status={status} disabled={page === 1}>
-            ← Prev
+            Prev
           </PageLink>
           <span className="text-muted-foreground tabular-nums">
             Page {page} / {totalPages}
@@ -233,7 +240,7 @@ export default async function AdminSubscriptionsPage({ searchParams }: Props) {
             status={status}
             disabled={page === totalPages}
           >
-            Next →
+            Next
           </PageLink>
         </nav>
       ) : null}

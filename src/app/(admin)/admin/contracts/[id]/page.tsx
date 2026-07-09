@@ -1,5 +1,5 @@
 /**
- * /admin/contracts/[id] — read-only contract detail with signature
+ * /admin/contracts/[id] - read-only contract detail with signature
  * timeline + delivery log + admin notes.
  */
 
@@ -55,7 +55,7 @@ export default async function AdminContractDetailPage({ params }: Props) {
         subtitle={
           <span className="space-x-2">
             <span>{contract.full_name}</span>
-            <span className="text-muted-foreground/60">·</span>
+            <span className="text-muted-foreground/60">-</span>
             <span className="font-mono">{contract.email}</span>
           </span>
         }
@@ -72,7 +72,7 @@ export default async function AdminContractDetailPage({ params }: Props) {
       <KpiGrid cols={4}>
         <StatCard label="Kind" value={contract.kind} />
         <StatCard label="Status" value={contract.status} />
-        <StatCard label="Signed" value={contract.signed_at ? formatIstStamp(contract.signed_at) : "—"} />
+        <StatCard label="Signed" value={contract.signed_at ? formatIstStamp(contract.signed_at) : "-"} />
         <StatCard
           label="Public link"
           value={
@@ -86,7 +86,7 @@ export default async function AdminContractDetailPage({ params }: Props) {
                 Open <ExternalLink className="h-3 w-3" />
               </a>
             ) : (
-              "—"
+              "-"
             )
           }
         />

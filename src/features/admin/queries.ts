@@ -1,5 +1,5 @@
 /**
- * Founder Console — read queries.
+ * Founder Console - read queries.
  *
  * Every function here:
  *   - Reads through the service-role client (RLS bypass).
@@ -25,6 +25,10 @@ import type {
 
 function isoSince(ms: number): string {
   return new Date(Date.now() - ms).toISOString();
+}
+
+function sanitizeOrSearchTerm(value: string): string {
+  return value.trim().replace(/[%_(),]/g, " ").replace(/\s+/g, " ");
 }
 
 const ONE_DAY_MS = 24 * 60 * 60 * 1000;
@@ -189,7 +193,7 @@ export async function getCommsSnapshot(): Promise<CommsSnapshot> {
 }
 
 // ---------------------------------------------------------------------------
-// "What broke" — most recent alerts to triage
+// "What broke" - most recent alerts to triage
 // ---------------------------------------------------------------------------
 
 export async function getRecentAlerts(limit = 5): Promise<SecurityEventRow[]> {
@@ -210,7 +214,7 @@ export async function getRecentAlerts(limit = 5): Promise<SecurityEventRow[]> {
 }
 
 // ---------------------------------------------------------------------------
-// Recent admin activity — last N rows from admin_actions
+// Recent admin activity - last N rows from admin_actions
 // ---------------------------------------------------------------------------
 
 export async function getRecentAdminActivity(
@@ -266,7 +270,7 @@ export async function listUsers(
     .order("signed_up_at", { ascending: false });
 
   if (input.q && input.q.trim().length > 0) {
-    const term = input.q.trim().replace(/[%_]/g, "");
+    const term = sanitizeOrSearchTerm(input.q);
     q = q.or(`email.ilike.%${term}%,full_name.ilike.%${term}%`);
   }
   if (input.accountType && input.accountType !== "all") {
@@ -395,7 +399,7 @@ export async function listSubscriptions(
   const from = (page - 1) * pageSize;
   const to = from + pageSize - 1;
 
-  // Counts per status — drive the tab UI.
+  // Counts per status - drive the tab UI.
   const statusKeys = ["active", "trialing", "past_due", "canceled"] as const;
   const countResults = await Promise.all(
     statusKeys.map((s) =>
@@ -442,8 +446,8 @@ export async function listSubscriptions(
 
   const rows: SubscriptionListRow[] = subRows.map((r) => ({
     ...r,
-    email: profileMap.get(r.user_id)?.email ?? "—",
-    full_name: profileMap.get(r.user_id)?.full_name ?? "—",
+    email: profileMap.get(r.user_id)?.email ?? "-",
+    full_name: profileMap.get(r.user_id)?.full_name ?? "-",
   }));
 
   return { rows, total: result.count ?? 0, page, pageSize, counts };
@@ -507,8 +511,8 @@ export async function getSubscriptionDetail(subscriptionId: string): Promise<{
   const profileMap = await fetchProfileMap([raw.user_id]);
   const subscription: SubscriptionListRow = {
     ...raw,
-    email: profileMap.get(raw.user_id)?.email ?? "—",
-    full_name: profileMap.get(raw.user_id)?.full_name ?? "—",
+    email: profileMap.get(raw.user_id)?.email ?? "-",
+    full_name: profileMap.get(raw.user_id)?.full_name ?? "-",
   };
 
   // Latest 25 payments + 25 billing_events that reference this user.
@@ -774,8 +778,8 @@ export async function listInvoices(input: {
   return {
     rows: baseRows.map((r) => ({
       ...r,
-      email: profileMap.get(r.user_id)?.email ?? "—",
-      full_name: profileMap.get(r.user_id)?.full_name ?? "—",
+      email: profileMap.get(r.user_id)?.email ?? "-",
+      full_name: profileMap.get(r.user_id)?.full_name ?? "-",
     })),
     total: result.count ?? 0,
     page,
@@ -816,8 +820,8 @@ export async function getInvoiceDetail(invoiceId: string): Promise<{
   const profileMap = await fetchProfileMap([raw.user_id]);
   const invoice: AdminInvoiceLite = {
     ...raw,
-    email: profileMap.get(raw.user_id)?.email ?? "—",
-    full_name: profileMap.get(raw.user_id)?.full_name ?? "—",
+    email: profileMap.get(raw.user_id)?.email ?? "-",
+    full_name: profileMap.get(raw.user_id)?.full_name ?? "-",
   };
 
   const [itemsRes, delRes] = await Promise.all([
@@ -913,8 +917,8 @@ export async function listContracts(input: {
   return {
     rows: baseRows.map((r) => ({
       ...r,
-      email: profileMap.get(r.user_id)?.email ?? "—",
-      full_name: profileMap.get(r.user_id)?.full_name ?? "—",
+      email: profileMap.get(r.user_id)?.email ?? "-",
+      full_name: profileMap.get(r.user_id)?.full_name ?? "-",
     })),
     total: result.count ?? 0,
     page,
@@ -954,8 +958,8 @@ export async function getContractDetail(contractId: string): Promise<{
   const profileMap = await fetchProfileMap([raw.user_id]);
   const contract: AdminContractLite = {
     ...raw,
-    email: profileMap.get(raw.user_id)?.email ?? "—",
-    full_name: profileMap.get(raw.user_id)?.full_name ?? "—",
+    email: profileMap.get(raw.user_id)?.email ?? "-",
+    full_name: profileMap.get(raw.user_id)?.full_name ?? "-",
   };
 
   const [sigRes, delRes] = await Promise.all([
@@ -1045,15 +1049,15 @@ export async function listFiles(input: {
     Array.from(new Set(baseRows.map((r) => r.user_id))),
   );
 
-  // Total storage cost — DB-side aggregate (no row fetch); see migration 0048.
+  // Total storage cost - DB-side aggregate (no row fetch); see migration 0048.
   const totalRes = await admin.rpc("admin_files_total_bytes");
   const totalBytes = Number((totalRes.data as number | null) ?? 0);
 
   return {
     rows: baseRows.map((r) => ({
       ...r,
-      email: profileMap.get(r.user_id)?.email ?? "—",
-      full_name: profileMap.get(r.user_id)?.full_name ?? "—",
+      email: profileMap.get(r.user_id)?.email ?? "-",
+      full_name: profileMap.get(r.user_id)?.full_name ?? "-",
     })),
     total: result.count ?? 0,
     page,
@@ -1304,7 +1308,7 @@ export async function getUserTimeline(userId: string): Promise<{
   };
 }
 // ---------------------------------------------------------------------------
-// Per-user product footprint (Admin hardening A5) — counts across every
+// Per-user product footprint (Admin hardening A5) - counts across every
 // product system so the user-detail page reflects the whole product.
 // ---------------------------------------------------------------------------
 

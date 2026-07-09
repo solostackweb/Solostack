@@ -1,5 +1,5 @@
 /**
- * /admin/invoices/[id] — read-only invoice detail.
+ * /admin/invoices/[id] - read-only invoice detail.
  */
 
 import { notFound } from "next/navigation";
@@ -55,7 +55,7 @@ export default async function AdminInvoiceDetailPage({ params }: Props) {
         subtitle={
           <span className="space-x-2">
             <span>{invoice.full_name}</span>
-            <span className="text-muted-foreground/60">·</span>
+            <span className="text-muted-foreground/60">-</span>
             <span className="font-mono">{invoice.email}</span>
           </span>
         }

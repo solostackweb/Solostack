@@ -1,23 +1,23 @@
 /**
- * Founder Console — server primitives.
+ * Founder Console - server primitives.
  *
  * These are the ONLY entry points server code should use to gate or
  * audit admin operations. They are deliberately small and centralized
  * so behaviour can evolve in one place (e.g. add MFA / aal2 check
  * later, swap audit sink, etc.).
  *
- *   requireAdmin()        — gate; redirects/404s non-admins, returns user.
- *   runAdminAction()      — wraps every admin WRITE with audit + timing.
- *   recordAdminAction()   — low-level audit writer; usually called by
+ *   requireAdmin()        - gate; redirects/404s non-admins, returns user.
+ *   runAdminAction()      - wraps every admin WRITE with audit + timing.
+ *   recordAdminAction()   - low-level audit writer; usually called by
  *                            runAdminAction(). Public for special cases
  *                            (e.g. logging a read-only inspection).
- *   assertNotViewAs()     — refuse writes while in view-as session.
+ *   assertNotViewAs()     - refuse writes while in view-as session.
  *
  * Authorization signal: `ADMIN_EMAIL` environment variable.
  * Any authenticated user whose email matches this env var is treated as
  * the admin. The legacy SQL role (`auth.users.raw_app_meta_data->>'role'
  * = 'admin'`) is honoured as a fallback so existing sessions keep working,
- * but the canonical gate is the env var — no SQL required.
+ * but the canonical gate is the env var - no SQL required.
  *
  * Set in .env.local (dev) and Vercel Environment Variables (prod):
  *   ADMIN_EMAIL=founder@yourcompany.com
@@ -51,7 +51,7 @@ import type {
  * support view-as honour this; writes call `assertNotViewAs()` to
  * refuse mutation while it's set.
  *
- * Single source of truth — do not stringify this anywhere else.
+ * Single source of truth - do not stringify this anywhere else.
  */
 export const VIEW_AS_COOKIE = "stk_admin_view_as";
 
@@ -63,8 +63,8 @@ export const VIEW_AS_COOKIE = "stk_admin_view_as";
  * Returns the admin's auth user.
  *
  * Failure modes:
- *   - Not authenticated → redirect to /login.
- *   - Authenticated but not admin → 404 (don't confirm the surface exists)
+ *   - Not authenticated -> redirect to /login.
+ *   - Authenticated but not admin -> 404 (don't confirm the surface exists)
  *     AND record a `rls_guard_miss` security event for forensics.
  *
  * The 404-vs-403 choice is deliberate: a 403 confirms `/admin/*` exists
@@ -148,7 +148,7 @@ async function currentPath(): Promise<string> {
 /**
  * Returns true if the user should be treated as an admin.
  *
- * Primary check: `ADMIN_EMAIL` env var — the company email set in
+ * Primary check: `ADMIN_EMAIL` env var - the company email set in
  * Vercel environment variables. No SQL needed.
  *
  * Fallback: legacy `role = 'admin'` in app_metadata, for backward
@@ -191,7 +191,7 @@ export async function getViewAsUserId(): Promise<string | null> {
 
 /**
  * Throws if a view-as session is active. Every server action that
- * MUTATES data must call this — view-as is read-only by design.
+ * MUTATES data must call this - view-as is read-only by design.
  */
 export async function assertNotViewAs(): Promise<void> {
   const viewing = await getViewAsUserId();
@@ -259,7 +259,7 @@ async function resolveRequestId(): Promise<string | null> {
 }
 
 // ---------------------------------------------------------------------------
-// runAdminAction — the wrapper every write goes through
+// runAdminAction - the wrapper every write goes through
 // ---------------------------------------------------------------------------
 
 /**
@@ -276,8 +276,8 @@ async function resolveRequestId(): Promise<string | null> {
  *   );
  *
  * The function:
- *   1. Calls `requireAdmin()` — every write re-checks role at the call site.
- *   2. Calls `assertNotViewAs()` — view-as mode is read-only.
+ *   1. Calls `requireAdmin()` - every write re-checks role at the call site.
+ *   2. Calls `assertNotViewAs()` - view-as mode is read-only.
  *   3. Times the body.
  *   4. Audits success or failure to `admin_actions`.
  *   5. Re-throws on body failure so the caller can react.
@@ -308,14 +308,17 @@ export async function runAdminAction<T>(
   const start = performance.now();
   try {
     const result = await body(actor);
+    const failureMessage = resultFailureMessage(result);
     await recordAdminAction({
       actorId: actor.id,
       kind: descriptor.kind,
       targetType: descriptor.targetType,
       targetId: descriptor.targetId,
-      success: true,
+      success: !failureMessage,
       durationMs: performance.now() - start,
-      metadata: descriptor.metadata,
+      metadata: failureMessage
+        ? { ...(descriptor.metadata ?? {}), error: failureMessage }
+        : descriptor.metadata,
     });
     return result;
   } catch (err) {
@@ -333,6 +336,15 @@ export async function runAdminAction<T>(
     });
     throw err;
   }
+}
+
+function resultFailureMessage(result: unknown): string | null {
+  if (!result || typeof result !== "object") return null;
+  const envelope = result as { ok?: unknown; error?: unknown };
+  if (envelope.ok !== false) return null;
+  return typeof envelope.error === "string" && envelope.error.trim()
+    ? envelope.error
+    : "Action returned ok=false.";
 }
 
 // ---------------------------------------------------------------------------

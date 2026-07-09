@@ -2,7 +2,7 @@
  * Founder Console route group layout.
  *
  * Auth: middleware already rewrites non-admins to /404. We re-verify
- * here via `requireAdmin()` as defense-in-depth (belt + braces — if
+ * here via `requireAdmin()` as defense-in-depth (belt + braces - if
  * middleware were ever misconfigured we still don't render).
  *
  * Provides the AdminShell chrome and resolves view-as state once per

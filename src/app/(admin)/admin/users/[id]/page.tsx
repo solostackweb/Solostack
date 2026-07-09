@@ -1,5 +1,5 @@
 /**
- * /admin/users/[id] — read-only user detail.
+ * /admin/users/[id] - read-only user detail.
  *
  * Phase-1: NO write actions. The page shows everything operationally
  * relevant for triage:
@@ -11,7 +11,7 @@
  *   - Recent deliveries (email log)
  *   - Recent payments
  *
- * Records an audit row of kind 'user.read' on each visit — DPDP
+ * Records an audit row of kind 'user.read' on each visit - DPDP
  * data-access requests are then trivially answerable.
  */
 
@@ -62,7 +62,7 @@ export default async function AdminUserDetailPage({ params }: Props) {
   const overview = await getUserOverview(id);
   if (!overview) notFound();
 
-  // Audit the read. Fire-and-forget — we don't await failure.
+  // Audit the read. Fire-and-forget - we don't await failure.
   await recordAdminAction({
     actorId: actor.id,
     kind: "user.read",
@@ -100,7 +100,7 @@ export default async function AdminUserDetailPage({ params }: Props) {
         subtitle={
           <span className="space-x-2">
             <span className="font-mono">{overview.email}</span>
-            <span className="text-muted-foreground/60">·</span>
+            <span className="text-muted-foreground/60">-</span>
             <span className="font-mono text-[11px]">{shortenId(overview.id)}</span>
             <AccountTypeBadge accountType={overview.account_type} />
             {isBanned ? (
@@ -121,9 +121,9 @@ export default async function AdminUserDetailPage({ params }: Props) {
           value={overview.account_type === "portal_client" ? "Portal client" : "Freelancer"}
         />
         <StatCard label="Plan" value={overview.plan ?? "free"} />
-        <StatCard label="Status" value={overview.subscription_status ?? "—"} />
+        <StatCard label="Status" value={overview.subscription_status ?? "-"} />
         <StatCard label="Lifetime revenue" value={formatPaiseInr(overview.total_revenue_paise)} tone="info" />
-        <StatCard label="Invoices · Clients" value={`${overview.invoice_count} · ${overview.client_count}`} />
+        <StatCard label="Invoices - Clients" value={`${overview.invoice_count} - ${overview.client_count}`} />
       </KpiGrid>
 
       {/* Profile snapshot */}
@@ -140,8 +140,8 @@ export default async function AdminUserDetailPage({ params }: Props) {
               ? formatIstStamp(overview.email_confirmed_at) + " IST"
               : "Not yet"}
           </Field>
-          <Field label="Country">{overview.country || "—"}</Field>
-          <Field label="Company">{overview.company_name || "—"}</Field>
+          <Field label="Country">{overview.country || "-"}</Field>
+          <Field label="Company">{overview.company_name || "-"}</Field>
           <Field label="Suppressions">
             {overview.suppression_count > 0 ? (
               <span className="text-amber-600 dark:text-amber-400">
@@ -158,11 +158,11 @@ export default async function AdminUserDetailPage({ params }: Props) {
       <Section title="Subscription" icon={CreditCard}>
         <dl className="grid grid-cols-1 gap-x-6 gap-y-2 sm:grid-cols-2">
           <Field label="Plan">{overview.plan ?? "free"}</Field>
-          <Field label="Status">{overview.subscription_status ?? "—"}</Field>
+          <Field label="Status">{overview.subscription_status ?? "-"}</Field>
           <Field label="Current period end">
             {overview.current_period_end
               ? formatIstStamp(overview.current_period_end) + " IST"
-              : "—"}
+              : "-"}
           </Field>
           <Field label="Lifetime revenue (paise)">
             <span className="font-mono">

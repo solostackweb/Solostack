@@ -4,10 +4,10 @@
  * /admin/mfa client.
  *
  * Three states the page can be in:
- *   1. No factors    → show "Enroll" button → on click, start enrollment
+ *   1. No factors    -> show "Enroll" button -> on click, start enrollment
  *                       and render QR + secret + 6-digit verify form.
- *   2. Unverified    → "Pending verification" + verify form.
- *   3. Verified      → green status + list of factors.
+ *   2. Unverified    -> "Pending verification" + verify form.
+ *   3. Verified      -> green status + list of factors.
  *
  * Supabase's MFA challenge re-uses the same factor id across page
  * reloads as long as it isn't deleted, so the QR is safe to re-render.
@@ -72,7 +72,7 @@ export function MfaEnrollFlow({ status }: Props) {
           <FactorList factors={verified} onChange={() => router.refresh()} />
           <p className="text-[11px] text-muted-foreground">
             You already have a verified factor but the current session is
-            still AAL1. Sign out and back in — Supabase will prompt for the
+            still AAL1. Sign out and back in - Supabase will prompt for the
             6-digit code at login.
           </p>
         </section>
@@ -162,7 +162,7 @@ function ResumeEnrollment({
   factorId: string;
   router: ReturnType<typeof useRouter>;
 }) {
-  // We can't display the original QR for an existing pending factor —
+  // We can't display the original QR for an existing pending factor -
   // Supabase only returns the otpauth URI at enrollment time. So we
   // show a 6-digit-code-entry form directly and let the admin paste
   // the code from whatever app they were setting up.
@@ -202,7 +202,7 @@ function VerifyStep({
   router: ReturnType<typeof useRouter>;
 }) {
   // Build a Google Charts QR URL via the otpauth URI. We deliberately
-  // avoid adding a qrcode npm package — the chart URL works in every
+  // avoid adding a qrcode npm package - the chart URL works in every
   // production-quality authenticator.
   const qr = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(
     factor.uri,
@@ -257,7 +257,7 @@ function VerifyCodeForm({
         const res = await verifyTotpEnrollmentAction({ factorId, code });
         setPending(false);
         if (res.ok) {
-          toast.success("Factor verified — refreshing…");
+          toast.success("Factor verified - refreshing...");
           setCode("");
           router.refresh();
         } else {
@@ -311,7 +311,7 @@ function FactorList({
               {f.friendly_name ?? "TOTP factor"}
             </span>
             <span className="font-mono text-muted-foreground">
-              {f.id.slice(0, 8)}…
+              {f.id.slice(0, 8)}...
             </span>
             <span className="text-muted-foreground">
               added {new Date(f.created_at).toLocaleDateString()}
@@ -321,7 +321,7 @@ function FactorList({
             action={async () => {
               if (factors.length === 1) {
                 toast.error(
-                  "Can't remove the last verified factor — admins would be locked out.",
+                  "Can't remove the last verified factor - admins would be locked out.",
                 );
                 return;
               }

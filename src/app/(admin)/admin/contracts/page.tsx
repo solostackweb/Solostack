@@ -1,5 +1,5 @@
 /**
- * /admin/contracts — read-only contract list.
+ * /admin/contracts - read-only contract list.
  */
 
 import Link from "next/link";
@@ -39,7 +39,7 @@ export default async function AdminContractsPage({ searchParams }: Props) {
     <AdminSection>
       <AdminPageHeader
         title="Contracts"
-        subtitle={`${result.total.toLocaleString("en-IN")} matches · page ${page} / ${totalPages}`}
+        subtitle={`${result.total.toLocaleString("en-IN")} matches - page ${page} / ${totalPages}`}
       />
 
       <form
@@ -51,7 +51,7 @@ export default async function AdminContractsPage({ searchParams }: Props) {
           type="text"
           name="q"
           defaultValue={q ?? ""}
-          placeholder="Title contains…"
+          placeholder="Title contains..."
           className="h-8 w-56 rounded border bg-background px-2 text-xs"
         />
         <select
@@ -137,7 +137,7 @@ export default async function AdminContractsPage({ searchParams }: Props) {
                     </span>
                   </td>
                   <td className="hidden px-3 py-2 font-mono text-[11px] tabular-nums text-muted-foreground sm:table-cell">
-                    {c.signed_at ? formatIstStamp(c.signed_at) : "—"}
+                    {c.signed_at ? formatIstStamp(c.signed_at) : "-"}
                   </td>
                   <td className="px-3 py-2 font-mono text-[11px] tabular-nums text-muted-foreground">
                     {formatRelative(c.updated_at)}

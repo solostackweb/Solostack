@@ -1,13 +1,13 @@
 "use client";
 
 /**
- * SupportTicketForm — unified "contact support" form.
+ * SupportTicketForm - unified "contact support" form.
  *
  * Creates a first-party ticket via `createTicketAction`. Works for both
  * authenticated users (in-app) and logged-out visitors (marketing contact
  * form / guest). On success it links the user to the conversation:
- *   - authenticated → /help/tickets/<id>
- *   - guest         → /support/t/<token>
+ *   - authenticated -> /help/tickets/<id>
+ *   - guest         -> /support/t/<token>
  */
 
 import * as React from "react";
@@ -24,8 +24,8 @@ const CATEGORY_OPTIONS: Array<{ value: TicketCategory; label: string; hint: stri
   { value: "bug", label: "Bug / something is broken", hint: "Crashes, errors, broken behaviour" },
   { value: "billing", label: "Billing / payments", hint: "Refunds, double charges, invoices" },
   { value: "account", label: "Account / login", hint: "Can't sign in, MFA, account access" },
-  { value: "how-to", label: "How do I…?", hint: "I can't figure out how to do X" },
-  { value: "feature-request", label: "Feature request", hint: "I wish Stackivo could…" },
+  { value: "how-to", label: "How do I...?", hint: "I can't figure out how to do X" },
+  { value: "feature-request", label: "Feature request", hint: "I wish Stackivo could..." },
   { value: "onboarding", label: "Getting started", hint: "Stuck on first-day setup" },
 ];
 
@@ -91,7 +91,7 @@ export function SupportTicketForm({ initialEmail, showContactFields, channel }: 
     return (
       <div className="rounded-lg border border-emerald-500/40 bg-emerald-500/5 p-4 text-sm">
         <h3 className="font-semibold text-emerald-700 dark:text-emerald-300">
-          Got it — your ticket is in
+          Got it - your ticket is in
         </h3>
         <p className="mt-1 text-muted-foreground">
           We&rsquo;ve sent a confirmation to your email. You can track the conversation
@@ -206,11 +206,11 @@ export function SupportTicketForm({ initialEmail, showContactFields, channel }: 
           value={message}
           onChange={(e) => setMessage(e.target.value)}
           rows={6}
-          placeholder="Steps to reproduce, what went wrong, what you expected…"
+          placeholder="Steps to reproduce, what went wrong, what you expected..."
           className="block w-full rounded-md border bg-background p-3 text-sm"
         />
         <div className="flex justify-between text-[11px] text-muted-foreground">
-          <span>Plain text — you can attach screenshots by replying to the email.</span>
+          <span>Plain text - you can attach screenshots by replying to the email.</span>
           <span>{message.length} / 8000</span>
         </div>
       </div>
@@ -226,7 +226,7 @@ export function SupportTicketForm({ initialEmail, showContactFields, channel }: 
         className="inline-flex h-9 items-center gap-2 rounded-md bg-foreground px-4 text-xs font-medium text-background hover:bg-foreground/90 disabled:opacity-50"
       >
         {pending ? <Loader2 className="h-3 w-3 animate-spin" /> : null}
-        {pending ? "Sending…" : "Send to support"}
+        {pending ? "Sending..." : "Send to support"}
       </button>
     </form>
   );

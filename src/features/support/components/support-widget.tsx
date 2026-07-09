@@ -1,17 +1,17 @@
 "use client";
 
 /**
- * SupportWidget — first-party live chat launcher + panel (replaces Crisp).
+ * SupportWidget - first-party live chat launcher + panel (replaces Crisp).
  *
  * - Floating launcher bottom-right. On MOBILE it sits ABOVE the fixed bottom
  *   nav (z-40, h-16 + safe-area) so it never overlaps it; on desktop it sits
  *   in the corner. When the panel is open on mobile it is a full-screen sheet
- *   (covers the nav cleanly) — no overlap is ever possible.
+ *   (covers the nav cleanly) - no overlap is ever possible.
  * - Conversation is a first-party ticket. New agent replies arrive live via
  *   Supabase Realtime (postgres_changes on support_messages, RLS-scoped to the
  *   signed-in user, internal notes excluded).
  *
- * Tier behaviour: Pro/Business see "Online"; Free sees "Leave a message" — but
+ * Tier behaviour: Pro/Business see "Online"; Free sees "Leave a message" - but
  * delivery is real-time for everyone.
  */
 
@@ -127,7 +127,7 @@ export function SupportWidget({ plan }: Props) {
     if (!ticket) {
       // First message starts the conversation. Subject is derived from the
       // text but must be ≥2 chars, so short greetings ("hi") fall back.
-      const derived = text.length > 60 ? `${text.slice(0, 57)}…` : text;
+      const derived = text.length > 60 ? `${text.slice(0, 57)}...` : text;
       const subject = derived.length >= 2 ? derived : "Live chat";
       const res = await createTicketAction({
         category: "how-to",
@@ -176,7 +176,7 @@ export function SupportWidget({ plan }: Props) {
 
   const tree = (
     <>
-      {/* Launcher — hidden while panel open. Mobile: above the bottom nav. */}
+      {/* Launcher - hidden while panel open. Mobile: above the bottom nav. */}
       {!open ? (
         <button
           type="button"
@@ -208,7 +208,7 @@ export function SupportWidget({ plan }: Props) {
             aria-label="Support chat"
             className={cn(
               "fixed z-[71] flex flex-col overflow-hidden border bg-card shadow-2xl",
-              // Mobile: full-screen sheet (covers the bottom nav → no overlap).
+              // Mobile: full-screen sheet (covers the bottom nav -> no overlap).
               "inset-0 rounded-none",
               // Desktop: floating card anchored bottom-right.
               "md:inset-auto md:bottom-6 md:right-6 md:h-[600px] md:max-h-[78svh] md:w-96 md:rounded-2xl",
@@ -224,7 +224,7 @@ export function SupportWidget({ plan }: Props) {
                   ) : (
                     "Leave a message"
                   )}
-                  {" · "}
+                  {" - "}
                   {policy.slaLabel}
                 </p>
               </div>
@@ -246,7 +246,7 @@ export function SupportWidget({ plan }: Props) {
                 </div>
               ) : messages.length === 0 ? (
                 <div className="rounded-lg bg-muted/40 p-3 text-sm text-muted-foreground">
-                  Hi! 👋 Ask us anything — billing, a bug, or how to do something.
+                  Hi! 👋 Ask us anything - billing, a bug, or how to do something.
                   We&rsquo;ll reply here and email you too.
                 </div>
               ) : (
@@ -294,7 +294,7 @@ export function SupportWidget({ plan }: Props) {
                     }
                   }}
                   rows={1}
-                  placeholder="Type a message…"
+                  placeholder="Type a message..."
                   className="max-h-28 min-h-[38px] flex-1 resize-none rounded-lg border bg-background px-3 py-2 text-sm"
                 />
                 <button

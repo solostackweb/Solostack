@@ -1,5 +1,5 @@
 /**
- * /admin/sentry — live error feed from Sentry API.
+ * /admin/sentry - live error feed from Sentry API.
  *
  * Shows:
  *   - Metric bar: 24h event count / fatal / unresolved
@@ -84,7 +84,7 @@ export default async function AdminSentryPage({ searchParams }: Props) {
     <div className="space-y-5">
       <AdminPageHeader
         title="Sentry"
-        subtitle="Live error feed · last 50 issues"
+        subtitle="Live error feed - last 50 issues"
         actions={
           <a
             href={`https://sentry.io/organizations/${process.env.SENTRY_ORG}/issues/`}

@@ -63,6 +63,8 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(canonical, 308);
   }
 
+  const pathname = request.nextUrl.pathname;
+
   // Every request gets a correlation id. Honour an incoming value so
   // upstream load balancers / tests can force a known id.
   const requestId =
@@ -70,13 +72,15 @@ export async function middleware(request: NextRequest) {
   // Make it visible to the downstream server-rendered page + route
   // handlers via `headers()`.
   request.headers.set("x-request-id", requestId);
+  // Forward the pathname on the incoming request headers too. Server
+  // components read request headers, not response headers, so setting this
+  // before `updateSession()` is what lets requireAdmin() exempt /admin/mfa.
+  request.headers.set("x-pathname", pathname);
 
   const { response, user } = await updateSession(request);
   // And on the outgoing response so the browser / ops tooling can
   // read it back.
   response.headers.set("x-request-id", requestId);
-
-  const pathname = request.nextUrl.pathname;
 
   // Forward the pathname so server components (e.g. requireAdmin) can
   // detect the current route without relying on x-invoke-path, which

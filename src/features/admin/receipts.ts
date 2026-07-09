@@ -1,7 +1,7 @@
 import "server-only";
 
 /**
- * Founder Console — email receipts for destructive actions.
+ * Founder Console - email receipts for destructive actions.
  *
  * Fire-and-forget: receipts are a forensic convenience for the admin,
  * not a transactional guarantee. A failed send must NEVER fail the
@@ -32,7 +32,7 @@ export interface SendReceiptInput {
 
 /**
  * Send a receipt email. Renders both HTML and a plain-text fallback.
- * The HTML uses inline styles only — no external CSS.
+ * The HTML uses inline styles only - no external CSS.
  */
 export async function sendAdminReceipt(input: SendReceiptInput): Promise<void> {
   // Don't ship a receipt for non-prod sessions (testing/local).
@@ -74,7 +74,7 @@ export async function sendAdminReceipt(input: SendReceiptInput): Promise<void> {
         <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width:560px; margin:0 auto; padding:24px;">
           <h1 style="font-size:16px; margin:0 0 4px;">${escapeHtml(input.action)}</h1>
           <div style="color:#64748b; font-size:12px; margin-bottom:16px;">
-            Founder Console action receipt · ${escapeHtml(stamp)} IST
+            Founder Console action receipt - ${escapeHtml(stamp)} IST
           </div>
           <table style="width:100%; border-collapse:collapse; margin:0 0 16px;">
             ${detailsHtml}

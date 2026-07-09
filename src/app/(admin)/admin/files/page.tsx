@@ -1,5 +1,5 @@
 /**
- * /admin/files — read-only file inventory.
+ * /admin/files - read-only file inventory.
  *
  * Shows total storage footprint (capped 10k row scan) + a filterable
  * list with type + size columns. Useful for spotting users who are
@@ -43,7 +43,7 @@ export default async function AdminFilesPage({ searchParams }: Props) {
         title="Files"
         subtitle={
           <span>
-            {result.total.toLocaleString("en-IN")} files · scanned storage{" "}
+            {result.total.toLocaleString("en-IN")} files - scanned storage{" "}
             <strong>{formatBytes(result.totalBytes)}</strong>
             <span className="ml-1 text-muted-foreground/70">
               (first 10k rows; full total via /admin/query)
@@ -67,7 +67,7 @@ export default async function AdminFilesPage({ searchParams }: Props) {
           type="text"
           name="q"
           defaultValue={q ?? ""}
-          placeholder="Filename contains…"
+          placeholder="Filename contains..."
           className="h-8 w-64 rounded border bg-background px-2 text-xs"
         />
         <button
@@ -118,13 +118,13 @@ export default async function AdminFilesPage({ searchParams }: Props) {
                     </Link>
                   </td>
                   <td className="px-3 py-2 font-mono text-[11px] text-muted-foreground">
-                    {f.mime_type ?? "—"}
+                    {f.mime_type ?? "-"}
                   </td>
                   <td className="px-3 py-2 font-mono tabular-nums">
                     {formatBytes(f.file_size)}
                   </td>
                   <td className="hidden px-3 py-2 font-mono text-[11px] text-muted-foreground sm:table-cell">
-                    {f.project_id ? shortenId(f.project_id) : "—"}
+                    {f.project_id ? shortenId(f.project_id) : "-"}
                   </td>
                   <td className="px-3 py-2 font-mono text-[11px] tabular-nums text-muted-foreground">
                     {formatRelative(f.created_at)}
@@ -145,7 +145,7 @@ export default async function AdminFilesPage({ searchParams }: Props) {
               page === 1 ? "pointer-events-none opacity-40" : "hover:bg-accent",
             )}
           >
-            ← Prev
+            Prev
           </Link>
           <span className="text-muted-foreground tabular-nums">
             Page {page} / {totalPages}
@@ -159,7 +159,7 @@ export default async function AdminFilesPage({ searchParams }: Props) {
                 : "hover:bg-accent",
             )}
           >
-            Next →
+            Next
           </Link>
         </nav>
       ) : null}

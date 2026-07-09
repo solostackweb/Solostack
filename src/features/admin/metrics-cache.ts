@@ -6,11 +6,11 @@ import "server-only";
  * The Now page used to recompute ~a dozen filtered COUNTs on every visit.
  * This module snapshots them into the single-row `admin_metrics` table:
  *
- *   refreshAdminMetrics()  — recompute + persist (called by the monitor cron).
- *   getAdminNowData()      — read the cache; if stale/missing, compute live,
+ *   refreshAdminMetrics()  - recompute + persist (called by the monitor cron).
+ *   getAdminNowData()      - read the cache; if stale/missing, compute live,
  *                            persist, and return (self-healing).
  *
- * Numbers stay EXACT (cached, not estimated) — founders want real figures.
+ * Numbers stay EXACT (cached, not estimated) - founders want real figures.
  */
 
 import { getAdminSupabase } from "@/lib/supabase/admin";
@@ -109,7 +109,7 @@ export async function getAdminNowData(
     });
   }
 
-  // Stale or missing → compute live, persist for next time.
+  // Stale or missing -> compute live, persist for next time.
   const fresh = (await refreshAdminMetrics()) ?? (await computeSnapshots());
   return { ...fresh, computedAt: new Date().toISOString(), cached: false };
 }

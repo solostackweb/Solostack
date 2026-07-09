@@ -40,6 +40,10 @@ function asString(v: string | null): string | undefined {
   return v && v.trim() ? v.trim() : undefined;
 }
 
+function sanitizeOrSearchTerm(value: string): string {
+  return value.trim().replace(/[%_(),]/g, " ").replace(/\s+/g, " ");
+}
+
 export async function GET(req: Request): Promise<Response> {
   const admin = await requireAdmin();
   const url = new URL(req.url);
@@ -70,17 +74,8 @@ async function streamCsv({ filters, ids, actorId }: StreamArgs): Promise<Respons
   const BATCH = 1000;
 
   // Audit (best-effort) — record that an export happened + its scope.
-  await recordAdminAction({
-    actorId,
-    kind: "user.data_export",
-    targetType: "user",
-    targetId: null,
-    success: true,
-    durationMs: 0,
-    metadata: ids ? { scope: "selected", count: ids.length } : { scope: "filtered", ...filters },
-  }).catch(() => {});
-
   const encoder = new TextEncoder();
+  const startedAt = performance.now();
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
       controller.enqueue(encoder.encode(csvRow([...COLUMNS])));
@@ -89,10 +84,11 @@ async function streamCsv({ filters, ids, actorId }: StreamArgs): Promise<Respons
           // Selected: chunk the id list to keep each query bounded.
           for (let i = 0; i < ids.length; i += BATCH) {
             const chunk = ids.slice(i, i + BATCH);
-            const { data } = await supabase
+            const { data, error } = await supabase
               .from("admin_user_overview")
               .select(COLUMNS.join(","))
               .in("id", chunk);
+            if (error) throw error;
             for (const r of (data as Record<string, unknown>[] | null) ?? []) {
               controller.enqueue(encoder.encode(csvRow(COLUMNS.map((c) => r[c]))));
             }
@@ -106,11 +102,15 @@ async function streamCsv({ filters, ids, actorId }: StreamArgs): Promise<Respons
               .order("signed_up_at", { ascending: false })
               .range(from, from + BATCH - 1);
             const f = filters ?? {};
-            if (f.q) q = q.or(`email.ilike.%${f.q}%,full_name.ilike.%${f.q}%`);
+            if (f.q) {
+              const term = sanitizeOrSearchTerm(f.q);
+              q = q.or(`email.ilike.%${term}%,full_name.ilike.%${term}%`);
+            }
             if (f.account && f.account !== "all") q = q.eq("account_type", f.account);
             if (f.plan && f.plan !== "all") q = q.eq("plan", f.plan);
             if (f.status && f.status !== "all") q = q.eq("subscription_status", f.status);
-            const { data } = await q;
+            const { data, error } = await q;
+            if (error) throw error;
             const rows = (data as Record<string, unknown>[] | null) ?? [];
             for (const r of rows) {
               controller.enqueue(encoder.encode(csvRow(COLUMNS.map((c) => r[c]))));
@@ -118,8 +118,29 @@ async function streamCsv({ filters, ids, actorId }: StreamArgs): Promise<Respons
             if (rows.length < BATCH) break;
           }
         }
-      } catch {
-        // End the stream cleanly on error; partial CSV is still useful.
+        await recordAdminAction({
+          actorId,
+          kind: "user.data_export",
+          targetType: "user",
+          targetId: null,
+          success: true,
+          durationMs: performance.now() - startedAt,
+          metadata: ids ? { scope: "selected", count: ids.length } : { scope: "filtered", ...filters },
+        }).catch(() => {});
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        controller.enqueue(encoder.encode(csvRow(["ERROR", message])));
+        await recordAdminAction({
+          actorId,
+          kind: "user.data_export",
+          targetType: "user",
+          targetId: null,
+          success: false,
+          durationMs: performance.now() - startedAt,
+          metadata: ids
+            ? { scope: "selected", count: ids.length, error: message }
+            : { scope: "filtered", ...filters, error: message },
+        }).catch(() => {});
       }
       controller.close();
     },

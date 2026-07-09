@@ -5,10 +5,10 @@
  * Requires RAZORPAY_KEY_ID + RAZORPAY_KEY_SECRET in environment.
  *
  * Sections:
- *   1. KPI cards       — 30-day revenue, success rate, unique payers
- *   2. Subscription    — active / pending / halted / cancelled counts
- *   3. Payment method  — breakdown by method (UPI, card, netbanking…)
- *   4. Recent payments — last 25 transactions with status badges
+ *   1. KPI cards       - 30-day revenue, success rate, unique payers
+ *   2. Subscription    - active / pending / halted / cancelled counts
+ *   3. Payment method  - breakdown by method (UPI, card, netbanking...)
+ *   4. Recent payments - last 25 transactions with status badges
  */
 
 import Link from "next/link";
@@ -78,7 +78,7 @@ export default async function AdminRazorpayPage() {
         title="Payments"
         subtitle={
           <span className="flex items-center gap-2">
-            <span>Razorpay · Last 30 days</span>
+            <span>Razorpay - Last 30 days</span>
             {isTestMode && (
               <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase text-amber-800 dark:bg-amber-900/30 dark:text-amber-400">
                 Test Mode
@@ -114,7 +114,7 @@ export default async function AdminRazorpayPage() {
           />
           <KpiCard
             label="Success Rate"
-            value={metrics.successRate !== null ? `${metrics.successRate}%` : "—"}
+            value={metrics.successRate !== null ? `${metrics.successRate}%` : "-"}
             tone={
               metrics.successRate === null
                 ? "neutral"
@@ -178,7 +178,7 @@ export default async function AdminRazorpayPage() {
                   key={method}
                   className="rounded-full border bg-muted/40 px-3 py-1 text-xs font-medium"
                 >
-                  {method.toUpperCase()} · {count}
+                  {method.toUpperCase()} - {count}
                 </span>
               ))}
           </div>
@@ -231,7 +231,7 @@ function PaymentRow({ payment }: { payment: RazorpayPayment }) {
   return (
     <tr className="border-b last:border-0 hover:bg-muted/20">
       <td className="px-3 py-2 font-mono text-muted-foreground">
-        {payment.id.slice(4, 14)}…
+        {payment.id.slice(4, 14)}...
       </td>
       <td className="px-3 py-2 tabular-nums">
         {formatPaise(payment.amount)}
@@ -241,7 +241,7 @@ function PaymentRow({ payment }: { payment: RazorpayPayment }) {
       </td>
       <td className="px-3 py-2 uppercase">{payment.method}</td>
       <td className="px-3 py-2 max-w-[160px] truncate text-muted-foreground">
-        {payment.email ?? "—"}
+        {payment.email ?? "-"}
       </td>
       <td className="px-3 py-2 text-muted-foreground">
         {formatEpoch(payment.created_at)}

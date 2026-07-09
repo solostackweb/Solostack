@@ -1,5 +1,5 @@
 /**
- * /admin/invoices — read-only invoice list.
+ * /admin/invoices - read-only invoice list.
  *
  * Filter by status (draft / sent / viewed / paid / overdue / partially_paid)
  * or invoice number substring. Clicking a row opens the detail view.
@@ -42,7 +42,7 @@ export default async function AdminInvoicesPage({ searchParams }: Props) {
     <AdminSection>
       <AdminPageHeader
         title="Invoices"
-        subtitle={`${result.total.toLocaleString("en-IN")} matches · page ${page} / ${totalPages}`}
+        subtitle={`${result.total.toLocaleString("en-IN")} matches - page ${page} / ${totalPages}`}
       />
 
       <form
@@ -54,7 +54,7 @@ export default async function AdminInvoicesPage({ searchParams }: Props) {
           type="text"
           name="q"
           defaultValue={q ?? ""}
-          placeholder="Invoice number…"
+          placeholder="Invoice number..."
           className="h-8 w-48 rounded border bg-background px-2 text-xs"
         />
         <select
@@ -204,7 +204,7 @@ function Pagination({
           page === 1 ? "pointer-events-none opacity-40" : "hover:bg-accent",
         )}
       >
-        ← Prev
+        Prev
       </Link>
       <span className="text-muted-foreground tabular-nums">
         Page {page} / {totalPages}
@@ -218,7 +218,7 @@ function Pagination({
             : "hover:bg-accent",
         )}
       >
-        Next →
+        Next
       </Link>
     </nav>
   );

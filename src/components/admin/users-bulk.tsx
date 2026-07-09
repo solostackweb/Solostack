@@ -6,8 +6,8 @@
  * Wraps the server-rendered users table in a <form> so native row checkboxes
  * (name="ids") can drive bulk actions without porting the whole table to the
  * client. Provides select-all, a live count, and two actions:
- *   - Suppress selected  → server action (audited)
- *   - Export selected    → POST to the streaming CSV route (file download)
+ *   - Suppress selected  -> server action (audited)
+ *   - Export selected    -> POST to the streaming CSV route (file download)
  */
 
 import * as React from "react";
