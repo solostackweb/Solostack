@@ -20,17 +20,12 @@ import { Input } from "@/components/ui/input";
 import { formatINR } from "@/lib/format";
 import { PLANS } from "@/features/subscription/plans";
 import { cn } from "@/lib/utils";
-import { quoteCheckoutAction, startCheckoutAction } from "../actions";
+import {
+  quoteCheckoutAction,
+  redeemFreeAccessCouponAction,
+  startCheckoutAction,
+} from "../actions";
 import type { BillingCycle, CheckoutSession } from "../types";
-
-declare global {
-  interface Window {
-    Razorpay?: new (options: Record<string, unknown>) => {
-      open: () => void;
-      on: (event: string, cb: (payload: unknown) => void) => void;
-    };
-  }
-}
 
 interface CheckoutFlowProps {
   plan: "pro" | "business";
@@ -40,6 +35,7 @@ interface CheckoutFlowProps {
     discountPaise: number;
     totalPaise: number;
     couponCode: string | null;
+    freeAccessDays: number | null;
   };
   customer: {
     name: string;
@@ -85,6 +81,7 @@ export function CheckoutFlow({
           discountPaise: 0,
           totalPaise: res.data.subtotalPaise,
           couponCode: null,
+          freeAccessDays: null,
         });
         toast.error(res.data.message);
         return;
@@ -96,6 +93,7 @@ export function CheckoutFlow({
         discountPaise: res.data.discountPaise,
         totalPaise: res.data.totalPaise,
         couponCode: res.data.couponCode,
+        freeAccessDays: res.data.freeAccessDays,
       });
       toast.success("Coupon applied.");
     });
@@ -140,6 +138,22 @@ export function CheckoutFlow({
 
   const pay = React.useCallback(async () => {
     setPaying(true);
+    if (quote.freeAccessDays && appliedCoupon) {
+      const res = await redeemFreeAccessCouponAction({
+        plan,
+        cycle,
+        couponCode: appliedCoupon,
+      });
+      if (!res.ok) {
+        setPaying(false);
+        toast.error(res.error);
+        return;
+      }
+      toast.success(`${planDef.name} activated for ${quote.freeAccessDays} days.`);
+      router.push("/dashboard/settings/billing");
+      return;
+    }
+
     const res = await startCheckoutAction({
       plan,
       cycle,
@@ -151,7 +165,7 @@ export function CheckoutFlow({
       return;
     }
     launch(res.data);
-  }, [appliedCoupon, cycle, launch, plan]);
+  }, [appliedCoupon, cycle, launch, plan, planDef.name, quote.freeAccessDays, router]);
 
   return (
     <>
@@ -274,7 +288,10 @@ export function CheckoutFlow({
                 {appliedCoupon ? (
                   <p className="mt-2 flex items-center gap-1 text-xs text-emerald-600 dark:text-emerald-400">
                     <TicketPercent className="h-3.5 w-3.5" />
-                    {appliedCoupon} is applied to this checkout.
+                    {appliedCoupon} is applied
+                    {quote.freeAccessDays
+                      ? `: ${quote.freeAccessDays} days of ${planDef.name} access.`
+                      : " to this checkout."}
                   </p>
                 ) : null}
               </div>
@@ -294,12 +311,14 @@ export function CheckoutFlow({
                 {paying ? (
                   <>
                     <Loader2 className="h-4 w-4 animate-spin" />
-                    Opening secure payment
+                    {quote.freeAccessDays ? "Activating plan" : "Opening secure payment"}
                   </>
                 ) : (
                   <>
                     <Lock className="h-4 w-4" />
-                    Pay {formatINR(quote.totalPaise / 100)}
+                    {quote.freeAccessDays
+                      ? `Activate ${planDef.name}`
+                      : `Pay ${formatINR(quote.totalPaise / 100)}`}
                   </>
                 )}
               </Button>

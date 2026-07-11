@@ -16,6 +16,7 @@ export interface CouponQuote {
   totalPaise: number;
   currency: "INR";
   message: string | null;
+  freeAccessDays: number | null;
 }
 
 export interface ValidCouponQuote extends CouponQuote {
@@ -48,6 +49,7 @@ export function quoteWithoutCoupon(
     totalPaise: subtotal,
     currency: "INR",
     message: null,
+    freeAccessDays: null,
   };
 }
 
@@ -67,6 +69,7 @@ export async function quoteCoupon(input: {
       totalPaise: subtotal,
       currency: "INR",
       message: "Enter a coupon code.",
+      freeAccessDays: null,
     };
   }
 
@@ -110,9 +113,11 @@ export async function quoteCoupon(input: {
   }
 
   const discount =
-    coupon.discount_type === "percent"
-      ? Math.floor((subtotal * coupon.discount_value) / 100)
-      : coupon.discount_value;
+    coupon.grant_type === "free_access"
+      ? subtotal
+      : coupon.discount_type === "percent"
+        ? Math.floor((subtotal * coupon.discount_value) / 100)
+        : coupon.discount_value;
   const discountPaise = Math.min(subtotal, Math.max(0, discount));
 
   return {
@@ -122,6 +127,9 @@ export async function quoteCoupon(input: {
     totalPaise: subtotal - discountPaise,
     currency: "INR",
     message: null,
+    freeAccessDays: coupon.grant_type === "free_access"
+      ? coupon.grant_duration_days ?? 365
+      : null,
   };
 }
 
@@ -129,7 +137,7 @@ export function assertValidCouponQuote(quote: CouponQuote): ValidCouponQuote {
   if (!quote.coupon || quote.message) {
     throw new Error(quote.message ?? "Invalid coupon.");
   }
-  if (quote.totalPaise < 100) {
+  if (quote.coupon.grant_type !== "free_access" && quote.totalPaise < 100) {
     throw new Error("Coupon discount is too high for subscription checkout.");
   }
   return quote as ValidCouponQuote;
@@ -196,6 +204,7 @@ function invalidQuote(subtotalPaise: number, message: string): CouponQuote {
     totalPaise: subtotalPaise,
     currency: "INR",
     message,
+    freeAccessDays: null,
   };
 }
 

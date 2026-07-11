@@ -16,14 +16,14 @@ import { getMarketingAuthState } from "@/features/marketing/auth-state";
 import { siteConfig } from "@/config/site";
 
 export const metadata: Metadata = {
-  title: "Stackivo — Your client work, finally in one place",
+  title: "Stackivo - Client work, invoices, contracts, and portals",
   description:
-    "Contracts, invoices, projects, time and payments in one fast workspace — built for Indian freelancers with global clients. Invoice in any currency, get paid via Wise/PayPal/Payoneer, GST & export-ready. Free for your first 5 clients.",
+    "Stackivo is a SaaS workspace for freelancers and studios to manage clients, invoices, contracts, projects, time tracking, payments, client portals, and business insights.",
   alternates: { canonical: "/" },
   openGraph: {
-    title: "Stackivo — Your client work, finally in one place",
+    title: "Stackivo - Client work, invoices, contracts, and portals",
     description:
-      "Contracts, invoices, projects, time and payments in one fast, GST-ready workspace for freelancers and studios. Free for your first 5 clients.",
+      "Stackivo is a SaaS workspace for freelancers and studios to manage clients, invoices, contracts, projects, time tracking, payments, client portals, and business insights.",
     url: siteConfig.url,
   },
 };

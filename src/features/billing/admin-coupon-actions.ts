@@ -11,8 +11,10 @@ const couponSchema = z.object({
   code: z.string().min(3).max(40),
   name: z.string().min(2).max(120),
   description: z.string().max(500).optional(),
+  grantType: z.enum(["discount", "free_access"]).default("discount"),
+  grantDurationDays: z.coerce.number().int().positive().optional().nullable(),
   discountType: z.enum(["percent", "amount"]),
-  discountValue: z.coerce.number().int().positive(),
+  discountValue: z.coerce.number().int().positive().optional(),
   appliesToPlan: z.enum(["all", "pro", "business"]).default("all"),
   appliesToCycle: z.enum(["all", "monthly", "yearly"]).default("all"),
   maxRedemptions: z.coerce.number().int().positive().optional().nullable(),
@@ -28,6 +30,8 @@ export async function adminCreateCouponAction(
     code: formData.get("code"),
     name: formData.get("name"),
     description: formData.get("description") || undefined,
+    grantType: formData.get("grantType") || "discount",
+    grantDurationDays: formData.get("grantDurationDays") || undefined,
     discountType: formData.get("discountType"),
     discountValue: formData.get("discountValue"),
     appliesToPlan: formData.get("appliesToPlan") || "all",
@@ -40,8 +44,21 @@ export async function adminCreateCouponAction(
   if (!parsed.success) {
     return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid coupon." };
   }
-  if (parsed.data.discountType === "percent" && parsed.data.discountValue > 100) {
+  if (
+    parsed.data.grantType === "discount" &&
+    parsed.data.discountValue === undefined
+  ) {
+    return { ok: false, error: "Discount coupons need a value." };
+  }
+  if (
+    parsed.data.grantType === "discount" &&
+    parsed.data.discountType === "percent" &&
+    (parsed.data.discountValue ?? 0) > 100
+  ) {
     return { ok: false, error: "Percent coupons cannot exceed 100%." };
+  }
+  if (parsed.data.grantType === "free_access" && !parsed.data.grantDurationDays) {
+    return { ok: false, error: "Free access coupons need a duration in days." };
   }
 
   const code = normaliseCouponCode(parsed.data.code);
@@ -53,8 +70,9 @@ export async function adminCreateCouponAction(
       targetId: code,
       metadata: {
         code,
+        grant_type: parsed.data.grantType,
         discount_type: parsed.data.discountType,
-        discount_value: parsed.data.discountValue,
+        discount_value: parsed.data.discountValue ?? 100,
       },
     },
     async (actor) => {
@@ -63,11 +81,19 @@ export async function adminCreateCouponAction(
         code,
         name: parsed.data.name.trim(),
         description: parsed.data.description?.trim() || null,
-        discount_type: parsed.data.discountType,
+        grant_type: parsed.data.grantType,
+        grant_duration_days:
+          parsed.data.grantType === "free_access"
+            ? parsed.data.grantDurationDays ?? 365
+            : null,
+        discount_type:
+          parsed.data.grantType === "free_access" ? "percent" : parsed.data.discountType,
         discount_value:
-          parsed.data.discountType === "amount"
-            ? parsed.data.discountValue * 100
-            : parsed.data.discountValue,
+          parsed.data.grantType === "free_access"
+            ? 100
+            : parsed.data.discountType === "amount"
+              ? (parsed.data.discountValue ?? 0) * 100
+              : parsed.data.discountValue ?? 0,
         applies_to_plan: parsed.data.appliesToPlan,
         applies_to_cycle: parsed.data.appliesToCycle,
         max_redemptions: parsed.data.maxRedemptions ?? null,

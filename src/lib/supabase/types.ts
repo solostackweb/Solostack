@@ -699,6 +699,7 @@ export interface BillingEventRow {
 }
 
 export type BillingCouponDiscountType = "percent" | "amount";
+export type BillingCouponGrantType = "discount" | "free_access";
 export type BillingCouponPlanScope = "all" | "pro" | "business";
 export type BillingCouponCycleScope = "all" | "monthly" | "yearly";
 export type BillingCouponRedemptionStatus = "created" | "applied" | "paid" | "void";
@@ -708,6 +709,8 @@ export interface BillingCouponRow {
   code: string;
   name: string;
   description: string | null;
+  grant_type: BillingCouponGrantType;
+  grant_duration_days: number | null;
   discount_type: BillingCouponDiscountType;
   discount_value: number;
   applies_to_plan: BillingCouponPlanScope;

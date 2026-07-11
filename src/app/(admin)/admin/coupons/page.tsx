@@ -22,6 +22,11 @@ import { AdminCouponToggle } from "@/features/billing/components/admin-coupon-to
 export const dynamic = "force-dynamic";
 
 export default async function AdminCouponsPage() {
+  async function createCoupon(formData: FormData) {
+    "use server";
+    await adminCreateCouponAction(formData);
+  }
+
   const admin = getAdminSupabase();
   const { data } = await admin
     .from("billing_coupons")
@@ -41,7 +46,7 @@ export default async function AdminCouponsPage() {
         subtitle="Coupons are validated on the Stackivo checkout page and applied to the Razorpay subscription amount."
         icon={TicketPercent}
       >
-        <form action={adminCreateCouponAction} className="grid gap-4 lg:grid-cols-12">
+        <form action={createCoupon} className="grid gap-4 lg:grid-cols-12">
           <label className="space-y-1.5 lg:col-span-2">
             <span className="text-xs font-medium text-muted-foreground">Code</span>
             <Input name="code" placeholder="LAUNCH30" required />
@@ -49,6 +54,17 @@ export default async function AdminCouponsPage() {
           <label className="space-y-1.5 lg:col-span-3">
             <span className="text-xs font-medium text-muted-foreground">Name</span>
             <Input name="name" placeholder="Launch discount" required />
+          </label>
+          <label className="space-y-1.5 lg:col-span-2">
+            <span className="text-xs font-medium text-muted-foreground">Benefit</span>
+            <select
+              name="grantType"
+              className="h-9 w-full rounded-md border bg-background px-3 text-sm"
+              defaultValue="discount"
+            >
+              <option value="discount">Discounted checkout</option>
+              <option value="free_access">Free plan access</option>
+            </select>
           </label>
           <label className="space-y-1.5 lg:col-span-2">
             <span className="text-xs font-medium text-muted-foreground">Type</span>
@@ -62,8 +78,12 @@ export default async function AdminCouponsPage() {
             </select>
           </label>
           <label className="space-y-1.5 lg:col-span-2">
-            <span className="text-xs font-medium text-muted-foreground">Value</span>
-            <Input name="discountValue" type="number" min={1} placeholder="30" required />
+            <span className="text-xs font-medium text-muted-foreground">Discount value</span>
+            <Input name="discountValue" type="number" min={1} placeholder="30" />
+          </label>
+          <label className="space-y-1.5 lg:col-span-2">
+            <span className="text-xs font-medium text-muted-foreground">Access days</span>
+            <Input name="grantDurationDays" type="number" min={1} placeholder="365" />
           </label>
           <label className="space-y-1.5 lg:col-span-1">
             <span className="text-xs font-medium text-muted-foreground">Plan</span>
@@ -81,7 +101,7 @@ export default async function AdminCouponsPage() {
               <option value="yearly">Yearly</option>
             </select>
           </label>
-          <label className="space-y-1.5 lg:col-span-3">
+          <label className="space-y-1.5 lg:col-span-2">
             <span className="text-xs font-medium text-muted-foreground">Description</span>
             <Input name="description" placeholder="Optional internal note" />
           </label>
@@ -135,9 +155,11 @@ export default async function AdminCouponsPage() {
                     <div className="text-xs text-muted-foreground">{coupon.name}</div>
                   </AdminTd>
                   <AdminTd className="text-sm">
-                    {coupon.discount_type === "percent"
-                      ? `${coupon.discount_value}%`
-                      : formatINR(coupon.discount_value / 100)}
+                    {coupon.grant_type === "free_access"
+                      ? `${coupon.grant_duration_days ?? 365} days free`
+                      : coupon.discount_type === "percent"
+                        ? `${coupon.discount_value}%`
+                        : formatINR(coupon.discount_value / 100)}
                   </AdminTd>
                   <AdminTd className="text-xs text-muted-foreground">
                     {coupon.applies_to_plan} / {coupon.applies_to_cycle}

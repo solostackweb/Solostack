@@ -35,26 +35,26 @@ export function Hero({ authState }: { authState: MarketingAuthState }) {
             data-cta="hero_announce"
           >
             <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-semibold text-primary">
-              New
+              Stackivo
             </span>
-            Bill international clients in their currency
+            Client work, billing, contracts, and portals in one workspace
             <ArrowRight className="h-3 w-3 text-muted-foreground/60 transition-transform group-hover:translate-x-0.5" />
           </Link>
 
           <h1 className="mt-5 text-balance font-display text-[38px] font-semibold leading-[1.06] tracking-[-0.022em] text-foreground sm:text-5xl lg:text-[56px]">
-            Win clients worldwide. Run it all from <span className="text-gradient">one place</span>.
+            Stackivo helps freelancers run client work from <span className="text-gradient">one place</span>.
           </h1>
 
           <p className="mt-5 max-w-lg text-pretty text-[15px] leading-[1.7] text-muted-foreground sm:text-base lg:text-[17px]">
-            Contracts, invoices, projects, time and payments — built for Indian
-            freelancers working with clients in the US, UK, EU and beyond.
-            Invoice in their currency, get paid your way, and stay GST-compliant.
+            Stackivo is a SaaS workspace for managing clients, invoices,
+            contracts, projects, time tracking, payments, client portals, and
+            business insights for freelancers and studios.
           </p>
 
           <HeroCtas authState={authState} />
 
           <p className="mt-4 text-[13px] text-muted-foreground/80">
-            Free for your first 5 clients · No card required · 2-minute setup
+            Free for your first 5 clients - No card required - 2-minute setup
           </p>
         </div>
 

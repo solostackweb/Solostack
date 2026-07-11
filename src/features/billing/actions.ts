@@ -15,6 +15,7 @@ import {
   cancelCurrentSubscription,
   reactivateCurrentSubscription,
   refreshCurrentSubscription,
+  redeemFreeAccessCoupon,
   startCheckout,
 } from "./server";
 import { quoteCoupon, quoteWithoutCoupon } from "./coupons";
@@ -68,6 +69,7 @@ export async function quoteCheckoutAction(raw: unknown): Promise<
     totalPaise: number;
     currency: "INR";
     message: string | null;
+    freeAccessDays: number | null;
   }>
 > {
   const parsed = QuoteCheckoutSchema.safeParse(raw);
@@ -102,12 +104,39 @@ export async function quoteCheckoutAction(raw: unknown): Promise<
         totalPaise: quote.totalPaise,
         currency: quote.currency,
         message: quote.message,
+        freeAccessDays: quote.freeAccessDays,
       },
     };
   } catch (err) {
     return {
       ok: false,
       error: billingErrorMessage(err, "Coupon check failed."),
+    };
+  }
+}
+
+export async function redeemFreeAccessCouponAction(
+  raw: unknown,
+): Promise<ActionResult> {
+  const parsed = StartCheckoutSchema.extend({
+    couponCode: z.string().min(3).max(64),
+  }).safeParse(raw);
+  if (!parsed.success) {
+    return { ok: false, error: "Invalid coupon redemption." };
+  }
+  try {
+    await redeemFreeAccessCoupon({
+      plan: parsed.data.plan,
+      cycle: parsed.data.cycle,
+      couponCode: parsed.data.couponCode,
+    });
+    revalidatePath("/dashboard/settings/billing");
+    revalidatePath("/dashboard");
+    return { ok: true, data: undefined };
+  } catch (err) {
+    return {
+      ok: false,
+      error: billingErrorMessage(err, "Coupon redemption failed."),
     };
   }
 }

@@ -94,6 +94,7 @@ export interface CheckoutSession {
   discountPaise: number;
   currency: "INR";
   couponCode: string | null;
+  freeAccessDays: number | null;
 }
 
 /** Inputs for starting a new subscription checkout. */

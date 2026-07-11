@@ -202,6 +202,9 @@ export async function startCheckout(
         }),
       )
     : quoteWithoutCoupon(input.plan, input.cycle);
+  if (quote.coupon?.grant_type === "free_access" || quote.totalPaise === 0) {
+    throw new Error("This coupon activates without payment. Use free access redemption.");
+  }
   const razorpayPlanId = await ensureCheckoutPlan({
     basePlan: input.plan,
     cycle: input.cycle,
@@ -340,7 +343,91 @@ export async function startCheckout(
     discountPaise: quote.discountPaise,
     currency: quote.currency,
     couponCode: quote.coupon?.code ?? null,
+    freeAccessDays: null,
   };
+}
+
+export async function redeemFreeAccessCoupon(input: {
+  plan: "pro" | "business";
+  cycle: "monthly" | "yearly";
+  couponCode: string;
+}): Promise<BillingSubscription> {
+  const supabase = await getServerSupabase();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect(AUTH_LOGIN_ROUTE);
+
+  const quote = assertValidCouponQuote(
+    await quoteCoupon({
+      code: input.couponCode,
+      userId: user.id,
+      plan: input.plan,
+      cycle: input.cycle,
+    }),
+  );
+  if (quote.coupon.grant_type !== "free_access" || quote.totalPaise !== 0) {
+    throw new Error("This coupon requires secure payment checkout.");
+  }
+
+  const admin = getAdminSupabase();
+  const now = new Date();
+  const endsAt = new Date(
+    now.getTime() + (quote.freeAccessDays ?? 365) * 86_400_000,
+  ).toISOString();
+
+  const { data: subRow } = await admin
+    .from("subscriptions")
+    .select("id")
+    .eq("user_id", user.id)
+    .maybeSingle();
+  const subscriptionRowId = (subRow as { id?: string } | null)?.id ?? null;
+
+  await admin
+    .from("subscriptions")
+    .update({
+      plan: input.plan,
+      status: "active",
+      billing_cycle: input.cycle,
+      razorpay_subscription_id: null,
+      razorpay_plan_id: null,
+      coupon_id: quote.coupon.id,
+      coupon_code: quote.coupon.code,
+      coupon_discount_amount: quote.discountPaise,
+      checkout_amount: 0,
+      checkout_currency: quote.currency,
+      current_period_start: now.toISOString(),
+      current_period_end: endsAt,
+      next_charge_at: null,
+      cancel_at_period_end: false,
+      canceled_at: null,
+      ended_at: null,
+      grace_period_ends_at: null,
+    } as never)
+    .eq("user_id", user.id);
+
+  await admin.from("billing_coupon_redemptions").insert({
+    coupon_id: quote.coupon.id,
+    user_id: user.id,
+    subscription_row_id: subscriptionRowId,
+    razorpay_subscription_id: null,
+    razorpay_plan_id: null,
+    plan: input.plan,
+    billing_cycle: input.cycle,
+    subtotal_amount: quote.subtotalPaise,
+    discount_amount: quote.discountPaise,
+    final_amount: 0,
+    currency: quote.currency,
+    status: "paid",
+    paid_at: now.toISOString(),
+    metadata: { free_access_days: quote.freeAccessDays ?? 365 },
+  } as never);
+
+  await admin.rpc("increment_coupon_redemption", {
+    p_coupon_id: quote.coupon.id,
+  } as never);
+
+  return (await getBillingSubscription())!;
 }
 
 // --- Cancel / Reactivate ---------------------------------------------------

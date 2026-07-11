@@ -38,6 +38,7 @@ export default async function CheckoutPage({
         discountPaise: quote.message ? 0 : quote.discountPaise,
         totalPaise: quote.message ? quote.subtotalPaise : quote.totalPaise,
         couponCode: quote.message ? null : quote.coupon?.code ?? null,
+        freeAccessDays: quote.message ? null : quote.freeAccessDays,
       }}
       customer={{
         name: profile?.fullName ?? user.email ?? "Stackivo customer",

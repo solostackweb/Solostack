@@ -5,6 +5,9 @@ create table if not exists public.billing_coupons (
   code text not null unique,
   name text not null,
   description text,
+  grant_type text not null default 'discount'
+    check (grant_type in ('discount', 'free_access')),
+  grant_duration_days integer check (grant_duration_days is null or grant_duration_days > 0),
   discount_type text not null check (discount_type in ('percent', 'amount')),
   discount_value integer not null check (discount_value > 0),
   applies_to_plan text not null default 'all'
