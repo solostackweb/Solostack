@@ -30,6 +30,9 @@ export type AdminActionKind =
   | "subscription.refund"
   | "subscription.cancel"
   | "subscription.force_cycle"
+  // coupon
+  | "coupon.create"
+  | "coupon.update"
   // invoice
   | "invoice.read"
   | "invoice.share_link.regen"
@@ -114,6 +117,8 @@ export const ADMIN_ACTION_TIER: Record<AdminActionKind, AdminActionTier> = {
   "subscription.refund": "sensitive",
   "subscription.cancel": "sensitive",
   "subscription.force_cycle": "sensitive",
+  "coupon.create": "sensitive",
+  "coupon.update": "sensitive",
   "settings.update": "sensitive",
 
   // destructive - typed confirm + cooldown + receipt

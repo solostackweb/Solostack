@@ -33,6 +33,11 @@ export interface BillingSubscription {
   lastPaymentAt: string | null;
   nextChargeAt: string | null;
   gracePeriodEndsAt: string | null;
+  couponId: string | null;
+  couponCode: string | null;
+  couponDiscountAmount: number;
+  checkoutAmount: number | null;
+  checkoutCurrency: string;
 }
 
 /** Display-ready row in the billing-history table. */
@@ -84,12 +89,18 @@ export interface CheckoutSession {
     contact?: string;
   };
   notes: Record<string, string>;
+  amountPaise: number;
+  subtotalPaise: number;
+  discountPaise: number;
+  currency: "INR";
+  couponCode: string | null;
 }
 
 /** Inputs for starting a new subscription checkout. */
 export interface StartCheckoutInput {
   plan: Exclude<SubscriptionPlanRow, "free">;
   cycle: BillingCycle;
+  couponCode?: string | null;
 }
 
 /** Compact lifecycle summary used by middleware-aware UI bits. */

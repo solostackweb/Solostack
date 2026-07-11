@@ -441,6 +441,7 @@ export interface SecurityEventRow {
 export type AdminActionTargetType =
   | "user"
   | "subscription"
+  | "coupon"
   | "invoice"
   | "contract"
   | "file"
@@ -650,6 +651,11 @@ export interface SubscriptionRow {
   last_payment_at: string | null;
   next_charge_at: string | null;
   grace_period_ends_at: string | null;
+  coupon_id: string | null;
+  coupon_code: string | null;
+  coupon_discount_amount: number;
+  checkout_amount: number | null;
+  checkout_currency: string;
   metadata: Json;
   created_at: string;
   updated_at: string;
@@ -672,6 +678,9 @@ export interface BillingPaymentRow {
   description: string | null;
   error_code: string | null;
   error_description: string | null;
+  coupon_id: string | null;
+  coupon_code: string | null;
+  discount_amount: number;
   captured_at: string | null;
   receipt_url: string | null;
   metadata: Json;
@@ -687,6 +696,51 @@ export interface BillingEventRow {
   processed_at: string | null;
   error: string | null;
   created_at: string;
+}
+
+export type BillingCouponDiscountType = "percent" | "amount";
+export type BillingCouponPlanScope = "all" | "pro" | "business";
+export type BillingCouponCycleScope = "all" | "monthly" | "yearly";
+export type BillingCouponRedemptionStatus = "created" | "applied" | "paid" | "void";
+
+export interface BillingCouponRow {
+  id: string;
+  code: string;
+  name: string;
+  description: string | null;
+  discount_type: BillingCouponDiscountType;
+  discount_value: number;
+  applies_to_plan: BillingCouponPlanScope;
+  applies_to_cycle: BillingCouponCycleScope;
+  max_redemptions: number | null;
+  max_redemptions_per_user: number;
+  redeem_count: number;
+  starts_at: string | null;
+  expires_at: string | null;
+  active: boolean;
+  metadata: Json;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface BillingCouponRedemptionRow {
+  id: string;
+  coupon_id: string;
+  user_id: string;
+  subscription_row_id: string | null;
+  razorpay_subscription_id: string | null;
+  razorpay_plan_id: string | null;
+  plan: Exclude<SubscriptionPlanRow, "free">;
+  billing_cycle: BillingCycle;
+  subtotal_amount: number;
+  discount_amount: number;
+  final_amount: number;
+  currency: string;
+  status: BillingCouponRedemptionStatus;
+  metadata: Json;
+  created_at: string;
+  paid_at: string | null;
 }
 
 export interface UsageCounterRow {
@@ -1129,6 +1183,30 @@ export interface Database {
           >;
         Update: Partial<BillingPaymentRow>;
       };
+      billing_coupons: {
+        Row: BillingCouponRow;
+        Insert: Partial<BillingCouponRow> &
+          Pick<
+            BillingCouponRow,
+            "code" | "name" | "discount_type" | "discount_value"
+          >;
+        Update: Partial<BillingCouponRow>;
+      };
+      billing_coupon_redemptions: {
+        Row: BillingCouponRedemptionRow;
+        Insert: Partial<BillingCouponRedemptionRow> &
+          Pick<
+            BillingCouponRedemptionRow,
+            | "coupon_id"
+            | "user_id"
+            | "plan"
+            | "billing_cycle"
+            | "subtotal_amount"
+            | "discount_amount"
+            | "final_amount"
+          >;
+        Update: Partial<BillingCouponRedemptionRow>;
+      };
       invoice_receipts: {
         Row: InvoiceReceiptRow;
         Insert: Partial<InvoiceReceiptRow> &
@@ -1356,6 +1434,12 @@ export interface Database {
           p_now?: string;
         };
         Returns: number;
+      };
+      increment_coupon_redemption: {
+        Args: {
+          p_coupon_id: string;
+        };
+        Returns: void;
       };
     };
     Enums: Record<string, never>;

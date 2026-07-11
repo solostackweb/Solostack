@@ -101,6 +101,22 @@ export interface RazorpayCustomer {
   created_at: number;
 }
 
+export interface RazorpayPlan {
+  id: string;
+  entity: "plan";
+  interval: number;
+  period: "daily" | "weekly" | "monthly" | "yearly";
+  item: {
+    id: string;
+    name: string;
+    amount: number;
+    currency: string;
+    description: string | null;
+  };
+  notes?: Record<string, string> | null;
+  created_at: number;
+}
+
 // --- Internal HTTP helper --------------------------------------------------
 
 async function rzpFetch<T>(
@@ -192,6 +208,35 @@ export async function createCustomer(input: {
 
 export async function fetchCustomer(id: string): Promise<RazorpayCustomer> {
   return rzpFetch<RazorpayCustomer>(`/customers/${id}`);
+}
+
+export async function createPlan(input: {
+  name: string;
+  amountPaise: number;
+  currency?: string;
+  period: "monthly" | "yearly";
+  interval?: number;
+  description?: string;
+  notes?: Record<string, string>;
+}): Promise<RazorpayPlan> {
+  return rzpFetch<RazorpayPlan>("/plans", {
+    method: "POST",
+    body: {
+      period: input.period,
+      interval: input.interval ?? 1,
+      item: {
+        name: input.name,
+        amount: input.amountPaise,
+        currency: input.currency ?? "INR",
+        description: input.description,
+      },
+      notes: input.notes,
+    },
+  });
+}
+
+export async function fetchPlan(id: string): Promise<RazorpayPlan> {
+  return rzpFetch<RazorpayPlan>(`/plans/${id}`);
 }
 
 export async function createSubscription(input: {

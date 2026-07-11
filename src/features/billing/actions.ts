@@ -17,6 +17,7 @@ import {
   refreshCurrentSubscription,
   startCheckout,
 } from "./server";
+import { quoteCoupon, quoteWithoutCoupon } from "./coupons";
 import { RazorpayApiError } from "./razorpay/client";
 import type { CheckoutSession } from "./types";
 
@@ -27,7 +28,10 @@ type ActionResult<T = undefined> =
 const StartCheckoutSchema = z.object({
   plan: z.enum(["pro", "business"]),
   cycle: z.enum(["monthly", "yearly"]),
+  couponCode: z.string().max(64).optional().nullable(),
 });
+
+const QuoteCheckoutSchema = StartCheckoutSchema;
 
 function billingErrorMessage(err: unknown, fallback: string): string {
   if (err instanceof RazorpayApiError && err.status === 401) {
@@ -52,6 +56,58 @@ export async function startCheckoutAction(
     return {
       ok: false,
       error: billingErrorMessage(err, "Checkout failed."),
+    };
+  }
+}
+
+export async function quoteCheckoutAction(raw: unknown): Promise<
+  ActionResult<{
+    couponCode: string | null;
+    subtotalPaise: number;
+    discountPaise: number;
+    totalPaise: number;
+    currency: "INR";
+    message: string | null;
+  }>
+> {
+  const parsed = QuoteCheckoutSchema.safeParse(raw);
+  if (!parsed.success) {
+    return { ok: false, error: "Invalid checkout selection." };
+  }
+
+  try {
+    const { getServerSupabase } = await import("@/lib/supabase/server");
+    const supabase = await getServerSupabase();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) return { ok: false, error: "Sign in to apply coupons." };
+
+    const code = parsed.data.couponCode?.trim();
+    const quote = code
+      ? await quoteCoupon({
+          code,
+          userId: user.id,
+          plan: parsed.data.plan,
+          cycle: parsed.data.cycle,
+        })
+      : quoteWithoutCoupon(parsed.data.plan, parsed.data.cycle);
+
+    return {
+      ok: true,
+      data: {
+        couponCode: quote.coupon?.code ?? null,
+        subtotalPaise: quote.subtotalPaise,
+        discountPaise: quote.discountPaise,
+        totalPaise: quote.totalPaise,
+        currency: quote.currency,
+        message: quote.message,
+      },
+    };
+  } catch (err) {
+    return {
+      ok: false,
+      error: billingErrorMessage(err, "Coupon check failed."),
     };
   }
 }

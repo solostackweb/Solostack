@@ -504,6 +504,9 @@ async function persistPayment(p: RazorpayPayment): Promise<void> {
   let userId: string | null = null;
   let subscriptionRowId: string | null = null;
   let razorpaySubscriptionId: string | null = null;
+  let couponId: string | null = null;
+  let couponCode: string | null = null;
+  let discountAmount = 0;
 
   // Razorpay payments include `notes.user_id` when we set it on the parent
   // subscription. Fall back to looking up via the subscription row.
@@ -514,19 +517,36 @@ async function persistPayment(p: RazorpayPayment): Promise<void> {
   // payments tied to a subscription have `invoice_id` populated; the invoice
   // exposes the subscription_id we can use to look up the row.
   if (p.invoice_id) {
+    try {
+      const invoice = await fetchInvoice(p.invoice_id);
+      razorpaySubscriptionId = invoice.subscription_id ?? null;
+    } catch {
+      // Keep the older fallback below; webhook retries will repair this later.
+    }
+  }
+
+  if (razorpaySubscriptionId) {
     const { data } = await admin
       .from("subscriptions")
-      .select("id, user_id, razorpay_subscription_id")
-      .eq("razorpay_subscription_id", p.invoice_id) // unlikely match
+      .select("id, user_id, razorpay_subscription_id, coupon_id, coupon_code, coupon_discount_amount")
+      .eq("razorpay_subscription_id", razorpaySubscriptionId)
       .maybeSingle();
     const row = data as Pick<
       SubscriptionRow,
-      "id" | "user_id" | "razorpay_subscription_id"
+      | "id"
+      | "user_id"
+      | "razorpay_subscription_id"
+      | "coupon_id"
+      | "coupon_code"
+      | "coupon_discount_amount"
     > | null;
     if (row) {
       userId = userId ?? row.user_id;
       subscriptionRowId = row.id;
       razorpaySubscriptionId = row.razorpay_subscription_id;
+      couponId = row.coupon_id;
+      couponCode = row.coupon_code;
+      discountAmount = row.coupon_discount_amount ?? 0;
     }
   }
 
@@ -552,6 +572,9 @@ async function persistPayment(p: RazorpayPayment): Promise<void> {
     description: p.description ?? null,
     error_code: p.error_code ?? null,
     error_description: p.error_description ?? null,
+    coupon_id: couponId,
+    coupon_code: couponCode,
+    discount_amount: discountAmount,
     captured_at:
       p.status === "captured" ? new Date(p.created_at * 1000).toISOString() : null,
   };
@@ -569,5 +592,29 @@ async function persistPayment(p: RazorpayPayment): Promise<void> {
         last_payment_at: new Date(p.created_at * 1000).toISOString(),
       } as never)
       .eq("user_id", userId);
+
+    if (couponId && razorpaySubscriptionId) {
+      const { data: redemptionBefore } = await admin
+        .from("billing_coupon_redemptions")
+        .select("status")
+        .eq("razorpay_subscription_id", razorpaySubscriptionId)
+        .maybeSingle();
+      const wasPaid =
+        (redemptionBefore as { status?: string } | null)?.status === "paid";
+
+      await admin
+        .from("billing_coupon_redemptions")
+        .update({
+          status: "paid",
+          paid_at: new Date(p.created_at * 1000).toISOString(),
+        } as never)
+        .eq("razorpay_subscription_id", razorpaySubscriptionId);
+
+      if (!wasPaid) {
+        await admin.rpc("increment_coupon_redemption", {
+          p_coupon_id: couponId,
+        } as never);
+      }
+    }
   }
 }

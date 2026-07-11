@@ -30,8 +30,14 @@ import {
   fetchSubscription as rzpFetchSubscription,
   type RazorpaySubscription,
 } from "./razorpay/client";
-import { getRazorpayPlanId } from "./razorpay/plan-mapping";
 import { mapRazorpayStatus } from "./state";
+import {
+  assertValidCouponQuote,
+  ensureCheckoutPlan,
+  normaliseCouponCode,
+  quoteCoupon,
+  quoteWithoutCoupon,
+} from "./coupons";
 import {
   mapPaymentRow,
   type BillingPayment,
@@ -61,6 +67,11 @@ function mapSubscriptionRow(row: SubscriptionRow): BillingSubscription {
     lastPaymentAt: row.last_payment_at,
     nextChargeAt: row.next_charge_at,
     gracePeriodEndsAt: row.grace_period_ends_at,
+    couponId: row.coupon_id,
+    couponCode: row.coupon_code,
+    couponDiscountAmount: row.coupon_discount_amount,
+    checkoutAmount: row.checkout_amount,
+    checkoutCurrency: row.checkout_currency,
   };
 }
 
@@ -181,7 +192,22 @@ export async function startCheckout(
   if (!user) redirect(AUTH_LOGIN_ROUTE);
 
   const customerId = await ensureRazorpayCustomer(user.id);
-  const razorpayPlanId = getRazorpayPlanId(input.plan, input.cycle);
+  const quote = input.couponCode
+    ? assertValidCouponQuote(
+        await quoteCoupon({
+          code: input.couponCode,
+          userId: user.id,
+          plan: input.plan,
+          cycle: input.cycle,
+        }),
+      )
+    : quoteWithoutCoupon(input.plan, input.cycle);
+  const razorpayPlanId = await ensureCheckoutPlan({
+    basePlan: input.plan,
+    cycle: input.cycle,
+    amountPaise: quote.totalPaise,
+    coupon: quote.coupon,
+  });
 
   // Reuse an existing still-unauthorised ('created') subscription for the same
   // plan instead of minting a new one on every click. Razorpay lets you create
@@ -201,7 +227,11 @@ export async function startCheckout(
   if (existingSubId) {
     try {
       const existing = await rzpFetchSubscription(existingSubId);
-      if (existing.status === "created" && existing.plan_id === razorpayPlanId) {
+      if (
+        existing.status === "created" &&
+        existing.plan_id === razorpayPlanId &&
+        (existing.notes?.coupon_code ?? null) === (quote.coupon?.code ?? null)
+      ) {
         subscription = existing;
       }
     } catch {
@@ -216,6 +246,13 @@ export async function startCheckout(
         user_id: user.id,
         plan: input.plan,
         cycle: input.cycle,
+        stackivo_plan: input.plan,
+        billing_cycle: input.cycle,
+        coupon_id: quote.coupon?.id ?? "",
+        coupon_code: quote.coupon?.code ?? "",
+        subtotal_amount: String(quote.subtotalPaise),
+        discount_amount: String(quote.discountPaise),
+        checkout_amount: String(quote.totalPaise),
       },
     });
   }
@@ -230,6 +267,11 @@ export async function startCheckout(
       razorpay_subscription_id: subscription.id,
       razorpay_plan_id: razorpayPlanId,
       billing_cycle: input.cycle,
+      coupon_id: quote.coupon?.id ?? null,
+      coupon_code: quote.coupon?.code ?? null,
+      coupon_discount_amount: quote.discountPaise,
+      checkout_amount: quote.totalPaise,
+      checkout_currency: quote.currency,
       // Don't flip plan/status until payment is captured. Marketing copy
       // makes this clear: paid features unlock after first successful charge.
       cancel_at_period_end: false,
@@ -237,6 +279,36 @@ export async function startCheckout(
       ended_at: null,
     } as never)
     .eq("user_id", user.id);
+
+  if (quote.coupon) {
+    const couponCode = normaliseCouponCode(quote.coupon.code);
+    const { data: subRow } = await admin
+      .from("subscriptions")
+      .select("id")
+      .eq("user_id", user.id)
+      .maybeSingle();
+    const subscriptionRowId = (subRow as { id?: string } | null)?.id ?? null;
+    await admin
+      .from("billing_coupon_redemptions")
+      .upsert(
+        {
+          coupon_id: quote.coupon.id,
+          user_id: user.id,
+          subscription_row_id: subscriptionRowId,
+          razorpay_subscription_id: subscription.id,
+          razorpay_plan_id: razorpayPlanId,
+          plan: input.plan,
+          billing_cycle: input.cycle,
+          subtotal_amount: quote.subtotalPaise,
+          discount_amount: quote.discountPaise,
+          final_amount: quote.totalPaise,
+          currency: quote.currency,
+          status: "created",
+          metadata: { coupon_code: couponCode },
+        } as never,
+        { onConflict: "razorpay_subscription_id" },
+      );
+  }
 
   const { data: profileRow } = await admin
     .from("user_profiles")
@@ -258,7 +330,16 @@ export async function startCheckout(
       user_id: user.id,
       plan: input.plan,
       cycle: input.cycle,
+      stackivo_plan: input.plan,
+      billing_cycle: input.cycle,
+      coupon_id: quote.coupon?.id ?? "",
+      coupon_code: quote.coupon?.code ?? "",
     },
+    amountPaise: quote.totalPaise,
+    subtotalPaise: quote.subtotalPaise,
+    discountPaise: quote.discountPaise,
+    currency: quote.currency,
+    couponCode: quote.coupon?.code ?? null,
   };
 }
 
@@ -355,6 +436,14 @@ export async function syncSubscriptionFromRazorpay(
 
   const { findPlanByRazorpayId } = await import("./razorpay/plan-mapping");
   const planResolved = findPlanByRazorpayId(rzp.plan_id);
+  const notePlan =
+    rzp.notes?.stackivo_plan === "pro" || rzp.notes?.stackivo_plan === "business"
+      ? rzp.notes.stackivo_plan
+      : null;
+  const noteCycle =
+    rzp.notes?.billing_cycle === "monthly" || rzp.notes?.billing_cycle === "yearly"
+      ? rzp.notes.billing_cycle
+      : null;
   const status = mapRazorpayStatus(rzp.status);
   const isPaidNow = status === "active" || status === "trialing";
 
@@ -362,8 +451,8 @@ export async function syncSubscriptionFromRazorpay(
     razorpay_subscription_id: rzp.id,
     razorpay_plan_id: rzp.plan_id,
     status,
-    plan: isPaidNow && planResolved ? planResolved.plan : "free",
-    billing_cycle: planResolved?.cycle ?? "monthly",
+    plan: isPaidNow ? planResolved?.plan ?? notePlan ?? "free" : "free",
+    billing_cycle: planResolved?.cycle ?? noteCycle ?? "monthly",
     current_period_start: rzp.current_start
       ? new Date(rzp.current_start * 1000).toISOString()
       : null,
@@ -403,6 +492,19 @@ export async function syncSubscriptionFromRazorpay(
     .from("subscriptions")
     .update(updates as never)
     .eq("user_id", userIdResolved);
+
+  if (status === "active" || status === "trialing") {
+    const couponId = rzp.notes?.coupon_id;
+    if (couponId) {
+      await admin
+        .from("billing_coupon_redemptions")
+        .update({
+          status: "applied",
+          paid_at: new Date().toISOString(),
+        } as never)
+        .eq("razorpay_subscription_id", rzp.id);
+    }
+  }
 }
 
 /** Manual refresh: re-fetch from Razorpay and mirror into the DB. */

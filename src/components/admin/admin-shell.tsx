@@ -42,6 +42,7 @@ import {
   Shield,
   ShieldCheck,
   Terminal,
+  TicketPercent,
   Users,
   X,
 } from "lucide-react";
@@ -79,6 +80,7 @@ const NAV_GROUPS: NavGroup[] = [
       { href: "/admin", label: "Now", icon: Gauge },
       { href: "/admin/users", label: "Users", icon: Users },
       { href: "/admin/subscriptions", label: "Subscriptions", icon: CreditCard },
+      { href: "/admin/coupons", label: "Coupons", icon: TicketPercent },
       { href: "/admin/emails", label: "Emails", icon: Mail },
       { href: "/admin/razorpay", label: "Payments", icon: DollarSign },
       { href: "/admin/support", label: "Support", icon: LifeBuoy },
