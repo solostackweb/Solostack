@@ -27,6 +27,22 @@ create table if not exists public.billing_coupons (
   updated_at timestamptz not null default now()
 );
 
+alter table public.billing_coupons
+  add column if not exists description text,
+  add column if not exists grant_type text not null default 'discount',
+  add column if not exists grant_duration_days integer,
+  add column if not exists applies_to_plan text not null default 'all',
+  add column if not exists applies_to_cycle text not null default 'all',
+  add column if not exists max_redemptions integer,
+  add column if not exists max_redemptions_per_user integer not null default 1,
+  add column if not exists redeem_count integer not null default 0,
+  add column if not exists starts_at timestamptz,
+  add column if not exists expires_at timestamptz,
+  add column if not exists active boolean not null default true,
+  add column if not exists metadata jsonb not null default '{}'::jsonb,
+  add column if not exists created_by uuid references auth.users(id) on delete set null,
+  add column if not exists updated_at timestamptz not null default now();
+
 create index if not exists billing_coupons_active_idx
   on public.billing_coupons (active, expires_at);
 create index if not exists billing_coupons_code_idx
@@ -114,3 +130,5 @@ begin
   where id = p_coupon_id;
 end;
 $$;
+
+notify pgrst, 'reload schema';

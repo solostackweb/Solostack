@@ -86,7 +86,10 @@ export async function quoteCoupon(input: {
   const now = Date.now();
   if (!coupon.active) return invalidQuote(subtotal, "This coupon is inactive.");
   if (coupon.starts_at && new Date(coupon.starts_at).getTime() > now) {
-    return invalidQuote(subtotal, "This coupon is not active yet.");
+    return invalidQuote(
+      subtotal,
+      `This coupon starts on ${formatCouponDate(coupon.starts_at)}.`,
+    );
   }
   if (coupon.expires_at && new Date(coupon.expires_at).getTime() <= now) {
     return invalidQuote(subtotal, "This coupon has expired.");
@@ -131,6 +134,14 @@ export async function quoteCoupon(input: {
       ? coupon.grant_duration_days ?? 365
       : null,
   };
+}
+
+function formatCouponDate(value: string): string {
+  return new Intl.DateTimeFormat("en-IN", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  }).format(new Date(value));
 }
 
 export function assertValidCouponQuote(quote: CouponQuote): ValidCouponQuote {

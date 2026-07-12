@@ -98,11 +98,11 @@ export function AdminCouponCreateForm() {
         <Input name="maxRedemptionsPerUser" type="number" min={1} defaultValue={1} />
       </label>
       <label className="space-y-1.5 lg:col-span-2">
-        <span className="text-xs font-medium text-muted-foreground">Starts</span>
+        <span className="text-xs font-medium text-muted-foreground">Starts optional</span>
         <Input name="startsAt" type="datetime-local" />
       </label>
       <label className="space-y-1.5 lg:col-span-2">
-        <span className="text-xs font-medium text-muted-foreground">Expires</span>
+        <span className="text-xs font-medium text-muted-foreground">Expires optional</span>
         <Input name="expiresAt" type="datetime-local" />
       </label>
       <div className="flex items-end lg:col-span-1">

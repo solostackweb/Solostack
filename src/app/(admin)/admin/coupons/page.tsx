@@ -10,6 +10,7 @@ import {
   AdminTr,
   Badge,
   Panel,
+  type Tone,
 } from "@/components/admin/kit";
 import { getAdminSupabase } from "@/lib/supabase/admin";
 import { formatINR } from "@/lib/format";
@@ -19,6 +20,24 @@ import { AdminCouponToggle } from "@/features/billing/components/admin-coupon-to
 
 export const dynamic = "force-dynamic";
 
+function formatCouponDate(value: string | null): string {
+  return value ? new Date(value).toLocaleDateString("en-IN") : "Now";
+}
+
+function couponStatus(coupon: BillingCouponRow, nowMs: number): {
+  label: string;
+  tone: Tone;
+} {
+  if (!coupon.active) return { label: "Paused", tone: "neutral" };
+  if (coupon.starts_at && new Date(coupon.starts_at).getTime() > nowMs) {
+    return { label: "Scheduled", tone: "info" };
+  }
+  if (coupon.expires_at && new Date(coupon.expires_at).getTime() <= nowMs) {
+    return { label: "Expired", tone: "alert" };
+  }
+  return { label: "Active", tone: "ok" };
+}
+
 export default async function AdminCouponsPage() {
   const admin = getAdminSupabase();
   const { data } = await admin
@@ -26,6 +45,7 @@ export default async function AdminCouponsPage() {
     .select("*")
     .order("created_at", { ascending: false });
   const coupons = (data ?? []) as unknown as BillingCouponRow[];
+  const nowMs = Date.now();
 
   return (
     <AdminSection>
@@ -51,7 +71,7 @@ export default async function AdminCouponsPage() {
               <AdminTh>Scope</AdminTh>
               <AdminTh>Redemptions</AdminTh>
               <AdminTh>Status</AdminTh>
-              <AdminTh>Expires</AdminTh>
+              <AdminTh>Valid window</AdminTh>
               <AdminTh />
             </tr>
           </AdminThead>
@@ -63,41 +83,41 @@ export default async function AdminCouponsPage() {
                 </td>
               </tr>
             ) : (
-              coupons.map((coupon) => (
-                <AdminTr key={coupon.id}>
-                  <AdminTd>
-                    <div className="font-mono text-sm font-semibold">{coupon.code}</div>
-                    <div className="text-xs text-muted-foreground">{coupon.name}</div>
-                  </AdminTd>
-                  <AdminTd className="text-sm">
-                    {coupon.grant_type === "free_access"
-                      ? `${coupon.grant_duration_days ?? 365} days free`
-                      : coupon.discount_type === "percent"
-                        ? `${coupon.discount_value}%`
-                        : formatINR(coupon.discount_value / 100)}
-                  </AdminTd>
-                  <AdminTd className="text-xs text-muted-foreground">
-                    {coupon.applies_to_plan} / {coupon.applies_to_cycle}
-                  </AdminTd>
-                  <AdminTd className="text-xs tabular-nums">
-                    {coupon.redeem_count}
-                    {coupon.max_redemptions ? ` / ${coupon.max_redemptions}` : " / unlimited"}
-                  </AdminTd>
-                  <AdminTd>
-                    <Badge tone={coupon.active ? "ok" : "neutral"}>
-                      {coupon.active ? "Active" : "Paused"}
-                    </Badge>
-                  </AdminTd>
-                  <AdminTd className="text-xs text-muted-foreground">
-                    {coupon.expires_at
-                      ? new Date(coupon.expires_at).toLocaleDateString("en-IN")
-                      : "Never"}
-                  </AdminTd>
-                  <AdminTd className="text-right">
-                    <AdminCouponToggle id={coupon.id} active={coupon.active} />
-                  </AdminTd>
-                </AdminTr>
-              ))
+              coupons.map((coupon) => {
+                const status = couponStatus(coupon, nowMs);
+                return (
+                  <AdminTr key={coupon.id}>
+                    <AdminTd>
+                      <div className="font-mono text-sm font-semibold">{coupon.code}</div>
+                      <div className="text-xs text-muted-foreground">{coupon.name}</div>
+                    </AdminTd>
+                    <AdminTd className="text-sm">
+                      {coupon.grant_type === "free_access"
+                        ? `${coupon.grant_duration_days ?? 365} days free`
+                        : coupon.discount_type === "percent"
+                          ? `${coupon.discount_value}%`
+                          : formatINR(coupon.discount_value / 100)}
+                    </AdminTd>
+                    <AdminTd className="text-xs text-muted-foreground">
+                      {coupon.applies_to_plan} / {coupon.applies_to_cycle}
+                    </AdminTd>
+                    <AdminTd className="text-xs tabular-nums">
+                      {coupon.redeem_count}
+                      {coupon.max_redemptions ? ` / ${coupon.max_redemptions}` : " / unlimited"}
+                    </AdminTd>
+                    <AdminTd>
+                      <Badge tone={status.tone}>{status.label}</Badge>
+                    </AdminTd>
+                    <AdminTd className="text-xs text-muted-foreground">
+                      <div>From {formatCouponDate(coupon.starts_at)}</div>
+                      <div>Until {coupon.expires_at ? formatCouponDate(coupon.expires_at) : "Never"}</div>
+                    </AdminTd>
+                    <AdminTd className="text-right">
+                      <AdminCouponToggle id={coupon.id} active={coupon.active} />
+                    </AdminTd>
+                  </AdminTr>
+                );
+              })
             )}
           </tbody>
         </AdminTable>
