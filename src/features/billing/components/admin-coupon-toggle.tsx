@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { adminSetCouponActiveAction } from "../admin-coupon-actions";
@@ -12,6 +13,7 @@ export function AdminCouponToggle({
   id: string;
   active: boolean;
 }) {
+  const router = useRouter();
   const [pending, startTransition] = React.useTransition();
 
   return (
@@ -28,6 +30,7 @@ export function AdminCouponToggle({
             return;
           }
           toast.success(res.message ?? "Coupon updated.");
+          router.refresh();
         });
       }}
     >

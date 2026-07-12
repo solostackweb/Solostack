@@ -32,6 +32,8 @@ create index if not exists billing_coupons_active_idx
 create index if not exists billing_coupons_code_idx
   on public.billing_coupons (upper(code));
 
+drop trigger if exists billing_coupons_set_updated_at on public.billing_coupons;
+
 create trigger billing_coupons_set_updated_at
 before update on public.billing_coupons
 for each row execute function public.set_updated_at();
