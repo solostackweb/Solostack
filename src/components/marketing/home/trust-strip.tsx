@@ -17,7 +17,7 @@ export function TrustStrip() {
   return (
     <section className="border-b border-border/60">
       <div className="mx-auto w-full max-w-[1600px] px-5 py-8 sm:px-8 sm:py-10 lg:px-12">
-        <div className="flex justify-center">
+        <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-4">
           <a
             href="https://www.producthunt.com/products/stackivo?embed=true&utm_source=badge-featured&utm_medium=badge&utm_campaign=badge-stackivo"
             target="_blank"
@@ -34,6 +34,24 @@ export function TrustStrip() {
               width={250}
               height={54}
               className="h-[54px] w-[250px] rounded-xl"
+            />
+          </a>
+
+          <a
+            href="https://postyourstartup.co/startup/stackivo-1?ref=badge"
+            target="_blank"
+            rel="noopener noreferrer"
+            data-cta="post_your_startup_badge"
+            aria-label="View Stackivo on PostYourStartup (opens in a new tab)"
+            className="inline-flex rounded-xl transition-transform hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-4 focus-visible:ring-offset-background"
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="https://postyourstartup.co/api/badge/stackivo-1?theme=light"
+              alt="Stackivo — featured on PostYourStartup"
+              width={212}
+              height={55}
+              className="h-[55px] w-[212px] rounded-xl"
             />
           </a>
         </div>
