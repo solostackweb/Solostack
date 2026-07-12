@@ -33,6 +33,7 @@ export type AdminActionKind =
   // coupon
   | "coupon.create"
   | "coupon.update"
+  | "coupon.delete"
   // invoice
   | "invoice.read"
   | "invoice.share_link.regen"
@@ -119,6 +120,7 @@ export const ADMIN_ACTION_TIER: Record<AdminActionKind, AdminActionTier> = {
   "subscription.force_cycle": "sensitive",
   "coupon.create": "sensitive",
   "coupon.update": "sensitive",
+  "coupon.delete": "destructive",
   "settings.update": "sensitive",
 
   // destructive - typed confirm + cooldown + receipt

@@ -16,7 +16,7 @@ import { getAdminSupabase } from "@/lib/supabase/admin";
 import { formatINR } from "@/lib/format";
 import type { BillingCouponRow } from "@/lib/supabase/types";
 import { AdminCouponCreateForm } from "@/features/billing/components/admin-coupon-create-form";
-import { AdminCouponToggle } from "@/features/billing/components/admin-coupon-toggle";
+import { AdminCouponRowActions } from "@/features/billing/components/admin-coupon-row-actions";
 
 export const dynamic = "force-dynamic";
 
@@ -113,7 +113,7 @@ export default async function AdminCouponsPage() {
                       <div>Until {coupon.expires_at ? formatCouponDate(coupon.expires_at) : "Never"}</div>
                     </AdminTd>
                     <AdminTd className="text-right">
-                      <AdminCouponToggle id={coupon.id} active={coupon.active} />
+                      <AdminCouponRowActions coupon={coupon} />
                     </AdminTd>
                   </AdminTr>
                 );
