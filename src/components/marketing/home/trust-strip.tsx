@@ -17,7 +17,28 @@ export function TrustStrip() {
   return (
     <section className="border-b border-border/60">
       <div className="mx-auto w-full max-w-[1600px] px-5 py-8 sm:px-8 sm:py-10 lg:px-12">
-        <p className="text-center text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground/70">
+        <div className="flex justify-center">
+          <a
+            href="https://www.producthunt.com/products/stackivo?embed=true&utm_source=badge-featured&utm_medium=badge&utm_campaign=badge-stackivo"
+            target="_blank"
+            rel="noopener noreferrer"
+            data-cta="product_hunt_badge"
+            aria-label="View Stackivo on Product Hunt (opens in a new tab)"
+            className="inline-flex rounded-xl transition-transform hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-4 focus-visible:ring-offset-background"
+          >
+            {/* Product Hunt serves and updates the launch vote count in this badge. */}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1193504&theme=light&t=1783882271257"
+              alt="Stackivo — featured on Product Hunt"
+              width={250}
+              height={54}
+              className="h-[54px] w-[250px] rounded-xl"
+            />
+          </a>
+        </div>
+
+        <p className="mt-7 text-center text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground/70">
           Built for independent professionals across India
         </p>
         <ul className="mt-5 flex flex-wrap items-center justify-center gap-x-8 gap-y-3 sm:gap-x-12">
