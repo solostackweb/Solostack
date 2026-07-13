@@ -29,6 +29,7 @@ import {
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { EmptyState } from "@/components/shared/empty-state";
 import { formatINR, formatMoney } from "@/lib/format";
+import { IvoContextActions } from "@/features/ai-workflows/components/ivo-context-actions";
 
 import type { ProjectRecord } from "../server";
 import type { ClientRecord } from "@/features/clients/server";
@@ -214,6 +215,25 @@ export function ProjectDetailView({
           </div>
         </CardContent>
       </Card>
+
+      <IvoContextActions
+        title={`Project help for ${project.name}`}
+        description="Ask Ivo with this project's client, status, dates, and billing context."
+        actions={[
+          {
+            label: "Project summary",
+            prompt: `Summarize project ${project.name}. Status: ${project.status}. Client: ${client ? getClientDisplayName(client) : "No client"}. Start: ${startDate}. Due: ${dueDate}. Billed so far: ${formatINR(billedTotal)}. Tell me what needs attention next.`,
+          },
+          {
+            label: "Invoice next",
+            prompt: `Help me decide what to invoice next for project ${project.name}. Use linked invoices and project status context.`,
+          },
+          {
+            label: "Client update",
+            prompt: `Draft a concise client update for project ${project.name}. Include current status ${project.status} and any useful next step.`,
+          },
+        ]}
+      />
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,320px)]">
         <Card>

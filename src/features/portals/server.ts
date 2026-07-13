@@ -202,6 +202,22 @@ export interface PortalSnapshot {
     public_token: string | null;
     added_at: string;
   }>;
+  proposals: Array<{
+    id: string;
+    title: string;
+    status: string;
+    total_amount: number;
+    currency: string;
+    public_token: string | null;
+    added_at: string;
+  }>;
+  availableProposals: Array<{
+    id: string;
+    title: string;
+    status: string;
+    total_amount: number;
+    currency: string;
+  }>;
   availableContracts: Array<{
     id: string;
     title: string;
@@ -359,6 +375,7 @@ export async function getPortalSnapshot(
     filesRes,
     usageRes,
     messagesRes,
+    proposalsRes,
     contractsRes,
     invoicesRes,
     welcomeDocsRes,
@@ -399,6 +416,12 @@ export async function getPortalSnapshot(
       .is("deleted_at", null)
       .order("created_at", { ascending: false })
       .limit(100),
+    admin
+      .from("portal_proposals")
+      .select(
+        "proposal_id, added_at, proposals!inner(id, title, status, total_amount, currency, public_token)",
+      )
+      .eq("portal_id", portalId),
     admin
       .from("portal_contracts")
       .select("contract_id, added_at, contracts!inner(id, title, status, public_token)")
@@ -486,6 +509,41 @@ export async function getPortalSnapshot(
   // Flatten the joined contract/invoice rows. PostgREST returns the
   // relation as either a single object or an array depending on FK
   // cardinality — we normalise to a plain object here.
+  const proposals = ((proposalsRes.data ?? []) as Array<{
+    proposal_id: string;
+    added_at: string;
+    proposals:
+      | {
+          id: string;
+          title: string;
+          status: string;
+          total_amount: number;
+          currency: string;
+          public_token: string | null;
+        }
+      | Array<{
+          id: string;
+          title: string;
+          status: string;
+          total_amount: number;
+          currency: string;
+          public_token: string | null;
+        }>
+      | null;
+  }>).map((row) => {
+    const p = Array.isArray(row.proposals) ? row.proposals[0] : row.proposals;
+    return {
+      id: p?.id ?? row.proposal_id,
+      title: p?.title ?? "(removed)",
+      status: p?.status ?? "unknown",
+      total_amount: Number(p?.total_amount ?? 0),
+      currency: p?.currency ?? "INR",
+      public_token: p?.public_token ?? null,
+      added_at: row.added_at,
+    };
+  })
+  .filter((p) => p.status !== "draft");
+
   const contracts = ((contractsRes.data ?? []) as Array<{
     contract_id: string;
     added_at: string;
@@ -748,9 +806,11 @@ export async function getPortalSnapshot(
   }
 
   let availableContracts: PortalSnapshot["availableContracts"] = [];
+  let availableProposals: PortalSnapshot["availableProposals"] = [];
   let availableInvoices: PortalSnapshot["availableInvoices"] = [];
   let availableWelcomeDocuments: PortalSnapshot["availableWelcomeDocuments"] = [];
   if (access.role === "owner") {
+    const attachedProposalIds = new Set(proposals.map((p) => p.id));
     const attachedContractIds = new Set(contracts.map((c) => c.id));
     const attachedInvoiceIds = new Set(invoices.map((i) => i.id));
     const attachedWelcomeIds = new Set(welcomeDocuments.map((w) => w.id));
@@ -765,6 +825,13 @@ export async function getPortalSnapshot(
 
     // Only finished documents are attachable to a portal — drafts must never be
     // exposed to a client, so we exclude status === "draft" from every list.
+    const proposalsQuery = admin
+      .from("proposals")
+      .select("id, title, status, total_amount, currency, client_id")
+      .eq("user_id", access.userId)
+      .neq("status", "draft")
+      .order("updated_at", { ascending: false })
+      .limit(200);
     const contractsQuery = admin
       .from("contracts")
       .select("id, title, status, client_id")
@@ -788,16 +855,26 @@ export async function getPortalSnapshot(
       .limit(200);
 
     if (portalClientId) {
+      proposalsQuery.eq("client_id", portalClientId);
       contractsQuery.eq("client_id", portalClientId);
       invoicesQuery.eq("client_id", portalClientId);
       welcomeQuery.eq("client_id", portalClientId);
     }
 
-    const [contractsRes2, invoicesRes2, welcomeRes2] = await Promise.all([
+    const [proposalsRes2, contractsRes2, invoicesRes2, welcomeRes2] = await Promise.all([
+      proposalsQuery,
       contractsQuery,
       invoicesQuery,
       welcomeQuery,
     ]);
+
+    availableProposals = ((proposalsRes2.data ?? []) as Array<{
+      id: string;
+      title: string;
+      status: string;
+      total_amount: number;
+      currency: string;
+    }>).filter((p) => !attachedProposalIds.has(p.id));
 
     availableContracts = ((contractsRes2.data ?? []) as Array<{
       id: string;
@@ -860,6 +937,8 @@ export async function getPortalSnapshot(
       ...m,
       author: profileMap.get(m.author_id) ?? null,
     })),
+    proposals,
+    availableProposals,
     contracts,
     availableContracts,
     invoices,

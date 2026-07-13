@@ -23,6 +23,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { clientFacingInvoiceStatus } from "@/features/invoices/status";
 import { clientFacingContractStatus } from "@/features/contracts/status";
+import { PROPOSAL_STATUS_LABEL } from "@/features/proposals/status";
 import { Textarea } from "@/components/ui/textarea";
 import { usePortalMessages } from "../hooks/use-portal-messages";
 import { markPortalSeenAction } from "../actions";
@@ -37,7 +38,7 @@ import { TypingDots } from "./typing-dots";
 import { UpdatesSection } from "./updates-section";
 import { MeetingsSection } from "./meetings-section";
 import type { ViewProps } from "./portal-view";
-import type { PortalFileRow, PortalDocumentType } from "@/lib/supabase/types";
+import type { PortalFileRow, PortalDocumentType, ProposalStatusRow } from "@/lib/supabase/types";
 import { formatCurrencyAmount } from "@/lib/format";
 
 type ClientPortalProps = ViewProps;
@@ -45,6 +46,7 @@ type ClientPortalProps = ViewProps;
 const navItems = [
   { key: "home", label: "Home", icon: Home, href: (id: string) => `/portal/${id}`, mobile: true },
   { key: "updates", label: "Updates", icon: List, href: (id: string) => `/portal/${id}/updates`, mobile: false },
+  { key: "proposals", label: "Proposals", icon: BookOpen, href: (id: string) => `/portal/${id}/proposals`, mobile: false },
   { key: "invoices", label: "Invoices", icon: Receipt, href: (id: string) => `/portal/${id}/invoices`, mobile: true },
   { key: "files", label: "Files", icon: Files, href: (id: string) => `/portal/${id}/files`, mobile: true },
   { key: "meetings", label: "Meetings", icon: Video, href: (id: string) => `/portal/${id}/meetings`, mobile: true },
@@ -232,6 +234,9 @@ export function ClientPortalHome({ data }: { data: ClientPortalProps }) {
   const unsignedContracts = data.contracts.filter(
     (c) => c.status !== "signed" && c.status !== "declined",
   ).length;
+  const openProposals = data.proposals.filter(
+    (p) => p.status !== "accepted" && p.status !== "declined" && p.status !== "converted",
+  );
 
   // "What's new since your last visit" — computed from the pre-visit marker.
   const lastSeen = data.lastSeenAt ? Date.parse(data.lastSeenAt) : null;
@@ -272,6 +277,11 @@ export function ClientPortalHome({ data }: { data: ClientPortalProps }) {
       label: "Review & sign your contract",
       done: unsignedContracts === 0,
       href: `/portal/${data.portalId}/files`,
+    },
+    data.proposals.length > 0 && {
+      label: "Review your proposal",
+      done: openProposals.length === 0,
+      href: `/portal/${data.portalId}/proposals`,
     },
     data.invoices.length > 0 && {
       label: "Settle your first invoice",
@@ -453,6 +463,20 @@ export function ClientPortalHome({ data }: { data: ClientPortalProps }) {
               meta="Review and sign in Files"
               accent="rose"
               href={`/portal/${data.portalId}/files`}
+            />
+          )}
+          {data.proposals.length > 0 && (
+            <StatusCard
+              icon={BookOpen}
+              label="Proposals"
+              title={
+                openProposals.length > 0
+                  ? `${openProposals.length} awaiting review`
+                  : "All proposals reviewed"
+              }
+              meta={data.proposals[0]?.title ?? "Shared proposal documents"}
+              accent="blue"
+              href={`/portal/${data.portalId}/proposals`}
             />
           )}
         </section>
@@ -651,6 +675,75 @@ export function ClientPortalInvoices({ data }: { data: ClientPortalProps }) {
   );
 }
 
+export function ClientPortalProposals({ data }: { data: ClientPortalProps }) {
+  const openProposals = data.proposals.filter(
+    (p) => p.status !== "accepted" && p.status !== "declined" && p.status !== "converted",
+  );
+  const totalLabel = formatProposalCurrencyGroups(data.proposals);
+
+  return (
+    <ClientPortalShell
+      portalId={data.portalId}
+      portalName={data.portalName}
+      clientName={data.clientName}
+      freelancerName={freelancerName(data)}
+      brandColor={data.brandColor}
+      brandLogoUrl={data.brandLogoUrl}
+      title="Proposals"
+      subtitle="Review offers, scope, and approvals"
+    >
+      <div className="space-y-5">
+        <section className="grid gap-3 sm:grid-cols-2">
+          <StatusCard
+            icon={BookOpen}
+            label="Open proposals"
+            title={`${openProposals.length} awaiting review`}
+            meta={`${data.proposals.length} shared in this portal`}
+            accent={openProposals.length > 0 ? "blue" : "emerald"}
+          />
+          <StatusCard
+            icon={Wallet}
+            label="Proposed value"
+            title={totalLabel}
+            meta="Total shared proposal value"
+            accent="slate"
+          />
+        </section>
+
+        <section className="rounded-[1.35rem] border bg-card p-4 shadow-sm">
+          <h2 className="text-sm font-semibold">Proposal documents</h2>
+          {data.proposals.length === 0 ? (
+            <EmptyBlock
+              icon={BookOpen}
+              title="No proposals yet"
+              text="Proposals shared by your freelancer will appear here."
+            />
+          ) : (
+            <div className="mt-3 space-y-2">
+              {data.proposals.map((proposal) => (
+                <DocumentExternalCard
+                  key={proposal.id}
+                  icon={BookOpen}
+                  title={proposal.title}
+                  meta={`${formatPortalCurrency(proposal.currency, proposal.total_amount)} - ${clientFacingProposalStatus(proposal.status)}`}
+                  href={proposal.public_token ? `/p/${proposal.public_token}` : null}
+                  comments={{
+                    portalId: data.portalId,
+                    docType: "proposal",
+                    docId: proposal.id,
+                    currentUserId: data.currentUserId,
+                    isOwner: data.role === "owner",
+                  }}
+                />
+              ))}
+            </div>
+          )}
+        </section>
+      </div>
+    </ClientPortalShell>
+  );
+}
+
 export function ClientPortalFiles({ data }: { data: ClientPortalProps }) {
   const categories = [
     "deliverable",
@@ -678,17 +771,35 @@ export function ClientPortalFiles({ data }: { data: ClientPortalProps }) {
       subtitle="Documents and delivery assets"
     >
       <div className="space-y-5">
-        {(data.contracts.length > 0 ||
+        {(data.proposals.length > 0 ||
+          data.invoices.length > 0 ||
+          data.contracts.length > 0 ||
           data.welcomeDocuments.length > 0) && (
           <section className="rounded-2xl border bg-card p-4 shadow-sm">
             <h2 className="text-sm font-semibold">Project documents</h2>
             <div
               className={`mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2 ${
-                data.invoices.length + data.contracts.length + data.welcomeDocuments.length > 6
+                data.proposals.length + data.invoices.length + data.contracts.length + data.welcomeDocuments.length > 6
                   ? "max-h-[34rem] overflow-y-auto scrollbar-thin pr-1"
                   : ""
               }`}
             >
+              {data.proposals.map((proposal) => (
+                <DocumentExternalCard
+                  key={proposal.id}
+                  icon={BookOpen}
+                  title={proposal.title}
+                  meta={`${formatPortalCurrency(proposal.currency, proposal.total_amount)} - ${clientFacingProposalStatus(proposal.status)}`}
+                  href={proposal.public_token ? `/p/${proposal.public_token}` : null}
+                  comments={{
+                    portalId: data.portalId,
+                    docType: "proposal",
+                    docId: proposal.id,
+                    currentUserId: data.currentUserId,
+                    isOwner: data.role === "owner",
+                  }}
+                />
+              ))}
               {data.invoices.map((invoice) => (
                 <DocumentExternalCard
                   key={invoice.id}
@@ -1285,6 +1396,24 @@ function formatPortalCurrencyGroups(
   return Array.from(totals.entries())
     .map(([currency, amount]) => formatPortalCurrency(currency, amount))
     .join(" + ");
+}
+
+function formatProposalCurrencyGroups(
+  proposals: Array<{ total_amount: number; currency: string | null }>,
+): string {
+  if (proposals.length === 0) return formatPortalCurrency("INR", 0);
+  const totals = new Map<string, number>();
+  for (const proposal of proposals) {
+    const currency = (proposal.currency || "INR").toUpperCase();
+    totals.set(currency, (totals.get(currency) ?? 0) + Number(proposal.total_amount));
+  }
+  return Array.from(totals.entries())
+    .map(([currency, amount]) => formatPortalCurrency(currency, amount))
+    .join(" + ");
+}
+
+function clientFacingProposalStatus(status: string): string {
+  return PROPOSAL_STATUS_LABEL[status as ProposalStatusRow] ?? status.replace(/_/g, " ");
 }
 
 function formatHours(totalSeconds: number): string {

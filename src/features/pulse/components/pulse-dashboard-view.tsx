@@ -11,12 +11,14 @@ import {
   Download,
   FileText,
   FolderKanban,
+  Globe2,
   Landmark,
   LineChart,
   Timer,
   Minus,
   Percent,
   Sparkles,
+  Target,
   TrendingDown,
   TrendingUp,
   Wallet,
@@ -58,6 +60,7 @@ import type { PulseAnalytics } from "../analytics";
 import type { PulseInsights } from "../insights";
 import { secondsToHours } from "@/features/time/types";
 import { IvoEntryPoint } from "@/features/ai-workflows/components/ivo-entry-point";
+import { IvoContextActions } from "@/features/ai-workflows/components/ivo-context-actions";
 
 export type PulseRange = "3m" | "6m" | "12m";
 
@@ -185,6 +188,25 @@ export function PulseDashboardView({
         }
       />
 
+      <IvoContextActions
+        title="Ask about this Pulse period"
+        description="Send Ivo the current range, cash, collection, and concentration context."
+        actions={[
+          {
+            label: "Explain the numbers",
+            prompt: `Explain my Pulse for ${rangeLabel}. Revenue: ${formatINR(revenue.paid)}. Outstanding: ${formatINR(receivables.outstandingTotal)}. Overdue: ${formatINR(receivables.overdueTotal)}. Collection rate: ${invoices.collectionRatePct !== null ? `${Math.round(invoices.collectionRatePct)}%` : "not available"}. Tell me what needs attention.`,
+          },
+          {
+            label: "Collection plan",
+            prompt: `Create a collection plan from Pulse. Outstanding: ${formatINR(receivables.outstandingTotal)}. Overdue: ${formatINR(receivables.overdueTotal)}. Avg days to pay: ${cashFlow.avgDaysToPay ?? "not available"}.`,
+          },
+          {
+            label: "Client risk",
+            prompt: "Use Pulse client mix and revenue concentration to tell me whether my client base is risky, and what I should do next.",
+          },
+        ]}
+      />
+
       {/* Range selector */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="inline-flex rounded-lg border bg-muted/40 p-0.5 text-sm">
@@ -310,6 +332,12 @@ export function PulseDashboardView({
       </div>
 
       <OperatingDetailsCard analytics={analytics} insights={insights} />
+
+      <div className="grid gap-4 xl:grid-cols-3">
+        <ProposalPerformanceCard proposals={insights.proposals} />
+        <GlobalMixCard global={insights.global} />
+        <CashForecastCard forecast={insights.cashForecast} />
+      </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
         <AgingCard receivables={receivables} />
@@ -590,6 +618,152 @@ function MetricRow({ label, value }: { label: string; value: string }) {
   );
 }
 
+function ProposalPerformanceCard({
+  proposals,
+}: {
+  proposals: PulseInsights["proposals"];
+}) {
+  const decided = proposals.accepted + proposals.declined;
+  const rate = proposals.winRatePct === null ? null : Math.round(proposals.winRatePct);
+
+  return (
+    <Card>
+      <CardContent className="flex h-full min-h-[260px] flex-col p-5">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
+              Proposal performance
+            </p>
+            <h3 className="mt-3 truncate text-lg font-semibold tracking-tight">Win momentum</h3>
+            <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">
+              See whether proposals are turning into accepted work.
+            </p>
+          </div>
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+            <Target className="h-5 w-5" />
+          </span>
+        </div>
+        <div className="mt-5 grid grid-cols-2 gap-3">
+          <Mini label="Sent" value={String(proposals.sent)} />
+          <Mini label="Accepted" value={String(proposals.accepted)} />
+          <Mini label="Open" value={String(proposals.open)} />
+          <Mini label="Win rate" value={rate === null ? "-" : `${rate}%`} />
+        </div>
+        <div className="mt-auto pt-4">
+          <div className="h-2 overflow-hidden rounded-full bg-muted">
+            <div
+              className="h-full rounded-full bg-emerald-500"
+              style={{ width: `${decided > 0 ? Math.round((proposals.accepted / decided) * 100) : 0}%` }}
+            />
+          </div>
+          <p className="mt-2 text-xs text-muted-foreground">
+            {formatINR(proposals.acceptedValue)} accepted from {formatINR(proposals.totalValue)} proposed.
+          </p>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function GlobalMixCard({
+  global,
+}: {
+  global: PulseInsights["global"];
+}) {
+  const rows = global.byCountry.length > 0 ? global.byCountry : global.byCurrency;
+  const max = Math.max(1, ...rows.map((r) => r.paid));
+
+  return (
+    <Card>
+      <CardContent className="flex h-full min-h-[260px] flex-col overflow-hidden p-5">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
+              Global revenue
+            </p>
+            <h3 className="mt-3 truncate text-lg font-semibold tracking-tight">Domestic vs international</h3>
+            <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">
+              INR view of where paid revenue is coming from.
+            </p>
+          </div>
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-cyan-500/10 text-cyan-600 dark:text-cyan-300">
+            <Globe2 className="h-5 w-5" />
+          </span>
+        </div>
+        <div className="mt-5 grid grid-cols-2 gap-3">
+          <Mini label="Domestic" value={formatINR(global.domesticPaid)} />
+          <Mini label="International" value={formatINR(global.internationalPaid)} />
+        </div>
+        <div className="mt-4 min-h-0 flex-1 space-y-2 overflow-y-auto pr-1">
+          {rows.length === 0 ? (
+            <p className="rounded-lg border border-dashed p-4 text-center text-sm text-muted-foreground">
+              No paid revenue yet.
+            </p>
+          ) : (
+            rows.map((row) => (
+              <div key={row.key} className="space-y-1">
+                <div className="flex items-center justify-between gap-2 text-xs">
+                  <span className="truncate font-medium">{row.label}</span>
+                  <span className="shrink-0 tabular-nums text-muted-foreground">
+                    {Math.round(row.pct)}%
+                  </span>
+                </div>
+                <div className="h-1.5 overflow-hidden rounded-full bg-muted">
+                  <div
+                    className="h-full rounded-full bg-primary"
+                    style={{ width: `${Math.max(4, Math.round((row.paid / max) * 100))}%` }}
+                  />
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function CashForecastCard({
+  forecast,
+}: {
+  forecast: PulseInsights["cashForecast"];
+}) {
+  return (
+    <Card>
+      <CardContent className="flex h-full min-h-[260px] flex-col p-5">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
+              Cash forecast
+            </p>
+            <h3 className="mt-3 truncate text-lg font-semibold tracking-tight">Next 30 days</h3>
+            <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">
+              Open invoices grouped by urgency.
+            </p>
+          </div>
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-300">
+            <Wallet className="h-5 w-5" />
+          </span>
+        </div>
+        <p className="mt-5 text-3xl font-bold tabular-nums">
+          {formatINR(forecast.projected30Days)}
+        </p>
+        <p className="mt-1 text-xs text-muted-foreground">
+          Potential collections from overdue and next-30-day invoices.
+        </p>
+        <div className="mt-5 grid gap-2">
+          <MetricRow label="Overdue" value={formatINR(forecast.overdue)} />
+          <MetricRow label="Due in 7 days" value={formatINR(forecast.due7Days)} />
+          <MetricRow label="Due in 30 days" value={formatINR(forecast.due30Days)} />
+        </div>
+        <p className="mt-auto pt-4 text-xs text-muted-foreground">
+          {forecast.openInvoiceCount} open invoice{forecast.openInvoiceCount === 1 ? "" : "s"} in the forecast.
+        </p>
+      </CardContent>
+    </Card>
+  );
+}
+
 function OperatingDetailsCard({
   analytics,
   insights,
@@ -608,6 +782,9 @@ function OperatingDetailsCard({
     { label: "Paid rate", value: analytics.funnel.paidRatePct === null ? "-" : `${Math.round(analytics.funnel.paidRatePct)}%`, sub: `${analytics.funnel.paid}/${analytics.funnel.issued} paid` },
     { label: "Top 3 share", value: insights.concentration.top3Pct === null ? "-" : `${Math.round(insights.concentration.top3Pct)}%`, sub: "Client concentration" },
     { label: "New clients", value: String(insights.clients.newCount), sub: `${insights.clients.returningCount} returning` },
+    { label: "Proposal win rate", value: insights.proposals.winRatePct === null ? "-" : `${Math.round(insights.proposals.winRatePct)}%`, sub: `${insights.proposals.accepted}/${insights.proposals.accepted + insights.proposals.declined} decided` },
+    { label: "International share", value: insights.global.internationalPct === null ? "-" : `${Math.round(insights.global.internationalPct)}%`, sub: `${formatINR(insights.global.internationalPaid)} paid` },
+    { label: "30d cash forecast", value: formatINR(insights.cashForecast.projected30Days), sub: `${insights.cashForecast.openInvoiceCount} open invoices` },
     { label: "Billable time", value: billablePct === null ? "-" : `${billablePct}%`, sub: `${secondsToHours(insights.profitability.billableSeconds)}h billable` },
     { label: "Unbilled time value", value: formatINR(insights.profitability.unbilledAmount), sub: `${secondsToHours(insights.profitability.unbilledSeconds)}h not invoiced` },
   ];

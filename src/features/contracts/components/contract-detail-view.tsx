@@ -36,6 +36,7 @@ import { cn } from "@/lib/utils";
 import { formatMoney } from "@/lib/format";
 import { getClientInitials } from "@/features/clients/utils";
 import { shareOnWhatsApp } from "@/lib/whatsapp";
+import { IvoContextActions } from "@/features/ai-workflows/components/ivo-context-actions";
 
 import type { ContractRecord } from "../server";
 import type { ClientRecord } from "@/features/clients/server";
@@ -438,6 +439,25 @@ export function ContractDetailView({
           )}
         </div>
       </div>
+
+      <IvoContextActions
+        title={`Contract help for ${contract.title}`}
+        description="Use this contract's status, client, value, and signing state."
+        actions={[
+          {
+            label: "Review risks",
+            prompt: `Review contract ${contract.title} for client ${clientName ?? "No client"}. Status: ${contract.status}. Value: ${contract.valueAmount ? formatMoney(contract.valueAmount, contract.currency) : "not set"}. Point out missing placeholders, unclear payment terms, and signing risks.`,
+          },
+          {
+            label: "Summarize terms",
+            prompt: `Summarize the key obligations, payment terms, and client responsibilities in contract ${contract.title}. Keep it concise and practical.`,
+          },
+          {
+            label: "Share message",
+            prompt: `Draft a short WhatsApp message to send contract ${contract.title} to ${clientName ?? "the client"} for review and signature.`,
+          },
+        ]}
+      />
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,320px)]">
         {/* LEFT — content */}

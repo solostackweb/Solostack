@@ -38,6 +38,8 @@ export const PUBLIC_EXACT_ROUTES = [
 export const PUBLIC_TOKENISED_PREFIXES = [
   "/i/",
   "/c/",
+  "/p/",
+  "/lead/",
 ] as const;
 
 /** Routes that authenticated users should NOT see (login/signup). */

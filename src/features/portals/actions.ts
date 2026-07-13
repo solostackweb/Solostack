@@ -347,8 +347,76 @@ export async function revokePortalMemberAction(input: {
 }
 
 // =============================================================================
-// ATTACH / DETACH CONTRACTS + INVOICES
+// ATTACH / DETACH PROPOSALS + CONTRACTS + INVOICES
 // =============================================================================
+
+export async function attachProposalToPortalAction(input: {
+  portalId: string;
+  proposalId: string;
+}): Promise<ActionResult> {
+  await requireFeature("clients.portal");
+  const access = await requirePortalAccess(input.portalId, {
+    requireRole: "owner",
+  }).catch((e) => e as PortalAccessError);
+  if (access instanceof PortalAccessError) {
+    return { ok: false, error: accessErrorMessage(access) };
+  }
+  const supabase = await getServerSupabase();
+
+  const { data: proposal } = await supabase
+    .from("proposals")
+    .select("id, user_id, title, status")
+    .eq("id", input.proposalId)
+    .maybeSingle();
+  const p = proposal as
+    | { id: string; user_id: string; title: string; status: string }
+    | null;
+  if (!p || p.user_id !== access.userId || p.status === "draft") {
+    return { ok: false, error: "Proposal not found." };
+  }
+
+  await supabase
+    .from("portal_proposals")
+    .upsert(
+      {
+        portal_id: input.portalId,
+        proposal_id: input.proposalId,
+        added_by: access.userId,
+      } as never,
+      { onConflict: "portal_id,proposal_id" },
+    );
+  await recordPortalActivity({
+    portalId: input.portalId,
+    actorId: access.userId,
+    type: "proposal.attached",
+    payload: { proposalId: input.proposalId, title: p.title },
+  });
+  revalidatePath(portalDashboardDetail(input.portalId));
+  revalidatePath(portalClientHome(input.portalId));
+  return { ok: true, message: "Proposal attached." };
+}
+
+export async function detachProposalFromPortalAction(input: {
+  portalId: string;
+  proposalId: string;
+}): Promise<ActionResult> {
+  await requireFeature("clients.portal");
+  const access = await requirePortalAccess(input.portalId, {
+    requireRole: "owner",
+  }).catch((e) => e as PortalAccessError);
+  if (access instanceof PortalAccessError) {
+    return { ok: false, error: accessErrorMessage(access) };
+  }
+  const supabase = await getServerSupabase();
+  await supabase
+    .from("portal_proposals")
+    .delete()
+    .eq("portal_id", input.portalId)
+    .eq("proposal_id", input.proposalId);
+  revalidatePath(portalDashboardDetail(input.portalId));
+  revalidatePath(portalClientHome(input.portalId));
+  return { ok: true };
+}
 
 export async function attachContractToPortalAction(input: {
   portalId: string;

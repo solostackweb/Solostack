@@ -11,6 +11,7 @@ import "server-only";
 import { getServerSupabase } from "@/lib/supabase/server";
 import type {
   InvoiceItemRow,
+  InvoicePaymentRow,
   InvoiceRow,
   InvoiceStatusRow,
   InvoiceTaxMode,
@@ -67,6 +68,25 @@ export interface InvoiceRecord {
   paidAt: string | null;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface InvoicePaymentRecord {
+  id: string;
+  invoiceId: string;
+  source: InvoicePaymentRow["source"];
+  method: InvoicePaymentRow["method"];
+  amount: number;
+  currency: string;
+  receivedAmount: number;
+  receivedCurrency: string;
+  fxRateToInvoice: number;
+  inrEquivalent: number | null;
+  paidAt: string;
+  reference: string | null;
+  proofUrl: string | null;
+  notes: string | null;
+  receiptId: string | null;
+  createdAt: string;
 }
 
 /**
@@ -140,6 +160,27 @@ function mapItemRow(row: InvoiceItemRow): InvoiceItemRecord {
   };
 }
 
+function mapPaymentRow(row: InvoicePaymentRow): InvoicePaymentRecord {
+  return {
+    id: row.id,
+    invoiceId: row.invoice_id,
+    source: row.source,
+    method: row.method,
+    amount: Number(row.amount),
+    currency: row.currency,
+    receivedAmount: Number(row.received_amount),
+    receivedCurrency: row.received_currency,
+    fxRateToInvoice: Number(row.fx_rate_to_invoice ?? 1),
+    inrEquivalent: row.inr_equivalent === null ? null : Number(row.inr_equivalent),
+    paidAt: row.paid_at,
+    reference: row.reference,
+    proofUrl: row.proof_url,
+    notes: row.notes,
+    receiptId: row.receipt_id,
+    createdAt: row.created_at,
+  };
+}
+
 export interface ListInvoicesOptions {
   status?: InvoiceStatusRow | "all";
   clientId?: string;
@@ -187,6 +228,19 @@ export async function getInvoice(id: string): Promise<{
     invoice: mapInvoiceRow(inv as unknown as InvoiceRow),
     items: ((items as unknown as InvoiceItemRow[]) ?? []).map(mapItemRow),
   };
+}
+
+export async function listInvoicePayments(
+  invoiceId: string,
+): Promise<InvoicePaymentRecord[]> {
+  const supabase = await getServerSupabase();
+  const { data, error } = await supabase
+    .from("invoice_payments")
+    .select("*")
+    .eq("invoice_id", invoiceId)
+    .order("paid_at", { ascending: false });
+  if (error || !data) return [];
+  return (data as unknown as InvoicePaymentRow[]).map(mapPaymentRow);
 }
 
 /**

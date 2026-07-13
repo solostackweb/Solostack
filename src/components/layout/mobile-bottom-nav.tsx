@@ -7,7 +7,10 @@ import {
   LayoutDashboard,
   FileText,
   FileSignature,
+  FilePlus2,
   Users,
+  GitBranch,
+  ClipboardList,
   FolderKanban,
   MoreHorizontal,
   Plus,
@@ -16,6 +19,7 @@ import {
   Activity,
   Workflow,
   BookOpen,
+  BookTemplate,
   Settings,
   LifeBuoy,
   type LucideIcon,
@@ -58,6 +62,13 @@ const CREATE_ACTIONS: CreateAction[] = [
     iconColor: "text-blue-500",
   },
   {
+    title:     "New Proposal",
+    href:      "/dashboard/proposals?create=1",
+    icon:      FilePlus2,
+    iconBg:    "bg-indigo-500/10",
+    iconColor: "text-indigo-500",
+  },
+  {
     title:     "New Contract",
     href:      "/dashboard/contracts/new",
     icon:      FileSignature,
@@ -88,7 +99,11 @@ interface MoreItem {
 }
 
 const MORE_ITEMS: MoreItem[] = [
+  { title: "Pipeline",     href: "/dashboard/pipeline", icon: GitBranch },
+  { title: "Lead Forms",   href: "/dashboard/lead-forms", icon: ClipboardList },
   { title: "Projects",     href: "/dashboard/projects",   icon: FolderKanban },
+  { title: "Proposals",    href: "/dashboard/proposals",  icon: FilePlus2 },
+  { title: "Templates",    href: "/dashboard/templates",  icon: BookTemplate },
   { title: "Contracts",    href: "/dashboard/contracts",  icon: FileSignature },
   { title: "Time",         href: "/dashboard/time",       icon: Clock },
   { title: "Pulse",        href: "/dashboard/pulse",      icon: Activity },

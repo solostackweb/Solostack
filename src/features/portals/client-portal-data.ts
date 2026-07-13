@@ -63,6 +63,8 @@ export async function getClientPortalProps(portalId: string): Promise<ViewProps>
     pendingInvitations: access.role === "owner" ? snapshot.pendingInvitations : [],
     files: snapshot.files,
     messages: snapshot.messages,
+    proposals: snapshot.proposals,
+    availableProposals: access.role === "owner" ? snapshot.availableProposals : [],
     contracts: snapshot.contracts,
     availableContracts: access.role === "owner" ? snapshot.availableContracts : [],
     invoices: snapshot.invoices,

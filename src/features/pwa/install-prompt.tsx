@@ -41,6 +41,7 @@ const HIDE_ON_PREFIXES = [
   "/tools",
   "/i/", // public tokenised invoice
   "/c/", // public tokenised contract
+  "/p/", // public tokenised proposal
 ];
 
 function shouldHide(pathname: string | null): boolean {

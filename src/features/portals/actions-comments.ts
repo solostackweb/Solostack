@@ -13,7 +13,7 @@ import type {
   PortalDocumentType,
 } from "@/lib/supabase/types";
 
-const DOC_TYPES = ["contract", "invoice", "welcome"] as const;
+const DOC_TYPES = ["contract", "invoice", "welcome", "proposal"] as const;
 
 function mapAccessError(err: PortalAccessError): string {
   switch (err.code) {

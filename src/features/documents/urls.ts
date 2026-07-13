@@ -24,6 +24,10 @@ export function getContractShareUrl(token: string): string {
   return `${getPublicAppUrl()}/c/${token}`;
 }
 
+export function getProposalShareUrl(token: string): string {
+  return `${getPublicAppUrl()}/p/${token}`;
+}
+
 export function getContractPdfShareUrl(token: string): string {
   return `${getPublicAppUrl()}/api/share/contract/${token}/pdf`;
 }

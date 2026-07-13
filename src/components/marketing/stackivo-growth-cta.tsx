@@ -9,10 +9,12 @@ import Link from "next/link";
 export function StackivoGrowthCta({
   kind = "invoice",
 }: {
-  kind?: "invoice" | "contract";
+  kind?: "invoice" | "contract" | "proposal";
 }) {
   const label =
-    kind === "contract"
+    kind === "proposal"
+      ? "Want to send proposals like this?"
+      : kind === "contract"
       ? "Want to send contracts like this?"
       : "Want to send invoices like this?";
   return (

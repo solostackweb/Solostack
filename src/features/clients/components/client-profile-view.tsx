@@ -36,6 +36,7 @@ import {
 import { EmptyState } from "@/components/shared/empty-state";
 import { formatINR, formatMoney } from "@/lib/format";
 import { getStateName } from "@/features/gst/state-codes";
+import { IvoContextActions } from "@/features/ai-workflows/components/ivo-context-actions";
 
 import type { ClientRecord } from "../server";
 import type { InvoiceRecord } from "@/features/invoices/server";
@@ -166,6 +167,25 @@ export function ClientProfileView({ client, metrics, recentInvoices = [] }: Clie
           </div>
         </CardContent>
       </Card>
+
+      <IvoContextActions
+        title={`Work with ${display}`}
+        description="Use this client's billing, tax, and recent invoice context."
+        actions={[
+          {
+            label: "Summarize client",
+            prompt: `Summarize client ${display}. Paid to date: ${formatINR(metrics.paidTotal)} across ${metrics.invoiceCount} paid invoice(s). Client currency: ${client.currency}. GST registered: ${client.gstRegistered ? "yes" : "no"}. International client: ${client.isForeign ? "yes" : "no"}. Tell me the next best action.`,
+          },
+          {
+            label: "Follow-up draft",
+            prompt: `Draft a short, polite follow-up message for ${display}. Use their recent invoice context if available and keep it professional.`,
+          },
+          {
+            label: "Invoice this client",
+            prompt: `Help me create an invoice for client ${display}. Use their configured currency ${client.currency} and GST/export details from their profile.`,
+          },
+        ]}
+      />
 
       <div className="grid gap-4 sm:grid-cols-3">
         <StatTile

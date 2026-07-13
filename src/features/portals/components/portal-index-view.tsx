@@ -20,6 +20,7 @@ import {
   AiWorkflowTriggerButton,
   OperationalAiAgentWorkflow,
 } from "@/features/ai-workflows/components/operational-ai-agent-workflow";
+import { IvoContextActions } from "@/features/ai-workflows/components/ivo-context-actions";
 import type { AiPortalDraft } from "@/features/ai-workflows/types";
 import { portalDashboardDetail } from "../routes";
 import { CreatePortalButton } from "./create-portal-button";
@@ -86,6 +87,25 @@ export function PortalIndexView({
             />
           </div>
         }
+      />
+
+      <IvoContextActions
+        title="Portal planning"
+        description="Let Ivo choose the right client handoff and shared assets."
+        actions={[
+          {
+            label: "Who needs a portal?",
+            prompt: `Review my clients and portals. I have ${ownedPortals.length} portal(s), ${activePortals} active, and ${clients.length} client(s). Tell me which clients should get a portal next and why.`,
+          },
+          {
+            label: "Portal checklist",
+            prompt: "Give me a professional checklist for setting up a client portal: invoices, contracts, welcome docs, files, meetings, and client access.",
+          },
+          {
+            label: "Create portal",
+            prompt: "Help me create a client portal and decide what should be shared inside it.",
+          },
+        ]}
       />
 
       <div

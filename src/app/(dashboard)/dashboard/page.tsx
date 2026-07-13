@@ -8,6 +8,7 @@ import { QuickActions } from "@/components/dashboard/quick-actions";
 import { RecentClients } from "@/components/dashboard/recent-clients";
 import { RecentInvoices } from "@/components/dashboard/recent-invoices";
 import { UpcomingReminders } from "@/components/dashboard/upcoming-reminders";
+import { AutomationSuggestions } from "@/components/dashboard/automation-suggestions";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/shared/page-header";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -22,6 +23,7 @@ import {
 import { getBusinessProfile } from "@/features/onboarding/server";
 import { getCurrentSubscription } from "@/features/subscription/server";
 import { FreePlanBanner } from "@/components/dashboard/free-plan-banner";
+import { getAutomationLiteSnapshot } from "@/features/automation/server";
 
 export const metadata = { title: "Dashboard" };
 export const dynamic = "force-dynamic";
@@ -70,6 +72,11 @@ async function FeedSection() {
       <ActivityTimeline items={activity} />
     </div>
   );
+}
+
+async function AutomationSection() {
+  const { suggestions } = await getAutomationLiteSnapshot();
+  return <AutomationSuggestions suggestions={suggestions} />;
 }
 
 async function BottomGridSection() {
@@ -163,6 +170,19 @@ function FeedSkeleton() {
   );
 }
 
+function AutomationSkeleton() {
+  return (
+    <div className="rounded-xl border bg-card p-5">
+      <Skeleton className="mb-2 h-4 w-44" />
+      <Skeleton className="mb-5 h-3 w-72 max-w-full" />
+      <div className="grid gap-3 lg:grid-cols-2">
+        <Skeleton className="h-20 rounded-lg" />
+        <Skeleton className="h-20 rounded-lg" />
+      </div>
+    </div>
+  );
+}
+
 function BottomGridSkeleton() {
   return (
     <div className="grid items-start gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -248,6 +268,10 @@ export default async function DashboardPage() {
       {/* Recent invoices + activity — hydration waterfall */}
       <Suspense fallback={<FeedSkeleton />}>
         <FeedSection />
+      </Suspense>
+
+      <Suspense fallback={<AutomationSkeleton />}>
+        <AutomationSection />
       </Suspense>
 
       {/* Recent clients + quick actions + reminders */}

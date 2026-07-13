@@ -23,10 +23,14 @@ export type Json =
 export type ProjectStatusRow =
   | "lead"
   | "planning"
+  | "proposal_sent"
+  | "contract_sent"
   | "active"
   | "waiting_on_client"
   | "revision"
   | "review"
+  | "invoiced"
+  | "paid"
   | "on_hold"
   | "completed"
   | "cancelled"
@@ -62,6 +66,15 @@ export type ContractStatusRow =
 
 export type ContractKindRow = "proposal" | "contract";
 
+export type ProposalStatusRow =
+  | "draft"
+  | "sent"
+  | "viewed"
+  | "accepted"
+  | "declined"
+  | "expired"
+  | "converted";
+
 export type InvoiceTaxMode = "non_gst" | "cgst_sgst" | "igst";
 
 export type InvoiceClassificationRow = "standard" | "b2c" | "b2b";
@@ -69,6 +82,7 @@ export type InvoiceClassificationRow = "standard" | "b2c" | "b2b";
 export type ActivityEntityType =
   | "project"
   | "client"
+  | "proposal"
   | "invoice"
   | "contract"
   | "welcome_document"
@@ -242,6 +256,65 @@ export interface InvoiceManualConfirmationRow {
   created_at: string;
 }
 
+export interface InvoicePaymentRow {
+  id: string;
+  invoice_id: string;
+  user_id: string;
+  source: "manual" | "razorpay" | "webhook" | "import";
+  method:
+    | "upi"
+    | "bank"
+    | "wire"
+    | "wise"
+    | "paypal"
+    | "stripe"
+    | "razorpay"
+    | "cash"
+    | "other";
+  amount: number;
+  currency: string;
+  received_amount: number;
+  received_currency: string;
+  fx_rate_to_invoice: number;
+  inr_equivalent: number | null;
+  paid_at: string;
+  reference: string | null;
+  proof_url: string | null;
+  notes: string | null;
+  receipt_id: string | null;
+  metadata: Json;
+  created_at: string;
+}
+
+export interface AutomationRecipeRow {
+  id: string;
+  user_id: string;
+  trigger_key: string;
+  name: string;
+  description: string;
+  enabled: boolean;
+  config: Json;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AutomationSuggestionRow {
+  id: string;
+  user_id: string;
+  recipe_id: string | null;
+  trigger_key: string;
+  entity_type: string | null;
+  entity_id: string | null;
+  title: string;
+  description: string | null;
+  prompt: string;
+  status: "pending" | "approved" | "dismissed" | "expired";
+  metadata: Json;
+  created_at: string;
+  acted_at: string | null;
+  expires_at: string | null;
+}
+
 export interface ClientRow {
   id: string;
   user_id: string;
@@ -268,6 +341,7 @@ export interface ProjectRow {
   id: string;
   user_id: string;
   client_id: string | null;
+  proposal_id: string | null;
   name: string;
   description: string | null;
   status: ProjectStatusRow;
@@ -279,11 +353,61 @@ export interface ProjectRow {
   updated_at: string;
 }
 
+export interface LeadFormRow {
+  id: string;
+  user_id: string;
+  name: string;
+  slug: string;
+  title: string;
+  description: string | null;
+  brand_color: string;
+  active: boolean;
+  fields: Json;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface LeadSubmissionRow {
+  id: string;
+  form_id: string;
+  user_id: string;
+  client_id: string | null;
+  project_id: string | null;
+  name: string;
+  email: string;
+  company: string | null;
+  phone: string | null;
+  project_summary: string;
+  budget: string | null;
+  timeline: string | null;
+  answers: Json;
+  ivo_prompt: string;
+  status: "new" | "reviewed" | "converted" | "archived";
+  source_url: string | null;
+  created_at: string;
+}
+
+export type DocumentTemplateTypeRow = "proposal" | "contract" | "invoice_note" | "email";
+
+export interface DocumentTemplateRow {
+  id: string;
+  user_id: string;
+  template_type: DocumentTemplateTypeRow;
+  title: string;
+  description: string | null;
+  category: string;
+  content: Json;
+  active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface InvoiceRow {
   id: string;
   user_id: string;
   client_id: string | null;
   project_id: string | null;
+  proposal_id: string | null;
   invoice_number: string;
   issue_date: string;
   due_date: string;
@@ -535,6 +659,7 @@ export interface ContractRow {
   user_id: string;
   client_id: string | null;
   project_id: string | null;
+  proposal_id: string | null;
   kind: ContractKindRow;
   title: string;
   content: string | null;
@@ -577,6 +702,44 @@ export interface ContractSignatureRow {
   pdf_snapshot_hash: string | null;
   metadata: Json | null;
   created_at: string;
+}
+
+export interface ProposalRow {
+  id: string;
+  user_id: string;
+  client_id: string | null;
+  project_id: string | null;
+  title: string;
+  status: ProposalStatusRow;
+  currency: string;
+  subtotal: number;
+  tax_amount: number;
+  total_amount: number;
+  valid_until: string | null;
+  scope: string | null;
+  deliverables: string | null;
+  timeline: string | null;
+  terms: string | null;
+  public_token: string;
+  sent_at: string | null;
+  viewed_at: string | null;
+  accepted_at: string | null;
+  declined_at: string | null;
+  converted_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ProposalItemRow {
+  id: string;
+  proposal_id: string;
+  description: string;
+  quantity: number;
+  unit_price: number;
+  amount: number;
+  sort_order: number;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface TimeEntryRow {
@@ -834,7 +997,7 @@ export interface PushSubscriptionRow {
   created_at: string;
 }
 
-export type PortalDocumentType = "contract" | "invoice" | "welcome";
+export type PortalDocumentType = "contract" | "invoice" | "welcome" | "proposal";
 
 export interface PortalDocumentCommentRow {
   id: string;
@@ -980,6 +1143,13 @@ export interface PortalInvoiceRow {
   added_by: string;
 }
 
+export interface PortalProposalRow {
+  portal_id: string;
+  proposal_id: string;
+  added_at: string;
+  added_by: string;
+}
+
 // --- welcome documents -----------------------------------------------------
 
 export type WelcomeDocumentStatus = "draft" | "published" | "archived";
@@ -1087,6 +1257,27 @@ export interface Database {
           Pick<ProjectRow, "user_id" | "name">;
         Update: Partial<ProjectRow>;
       };
+      lead_forms: {
+        Row: LeadFormRow;
+        Insert: Partial<LeadFormRow> &
+          Pick<LeadFormRow, "user_id" | "name" | "slug" | "title">;
+        Update: Partial<LeadFormRow>;
+      };
+      lead_submissions: {
+        Row: LeadSubmissionRow;
+        Insert: Partial<LeadSubmissionRow> &
+          Pick<
+            LeadSubmissionRow,
+            "form_id" | "user_id" | "name" | "email" | "project_summary" | "ivo_prompt"
+          >;
+        Update: Partial<LeadSubmissionRow>;
+      };
+      document_templates: {
+        Row: DocumentTemplateRow;
+        Insert: Partial<DocumentTemplateRow> &
+          Pick<DocumentTemplateRow, "user_id" | "template_type" | "title">;
+        Update: Partial<DocumentTemplateRow>;
+      };
       invoices: {
         Row: InvoiceRow;
         Insert: Partial<InvoiceRow> &
@@ -1111,6 +1302,27 @@ export interface Database {
           >;
         Update: Partial<InvoiceItemRow>;
       };
+      invoice_payments: {
+        Row: InvoicePaymentRow;
+        Insert: Partial<InvoicePaymentRow> &
+          Pick<InvoicePaymentRow, "invoice_id" | "user_id" | "amount" | "received_amount">;
+        Update: Partial<InvoicePaymentRow>;
+        Relationships: [];
+      };
+      automation_recipes: {
+        Row: AutomationRecipeRow;
+        Insert: Partial<AutomationRecipeRow> &
+          Pick<AutomationRecipeRow, "user_id" | "trigger_key" | "name" | "description">;
+        Update: Partial<AutomationRecipeRow>;
+        Relationships: [];
+      };
+      automation_suggestions: {
+        Row: AutomationSuggestionRow;
+        Insert: Partial<AutomationSuggestionRow> &
+          Pick<AutomationSuggestionRow, "user_id" | "trigger_key" | "title" | "prompt">;
+        Update: Partial<AutomationSuggestionRow>;
+        Relationships: [];
+      };
       contracts: {
         Row: ContractRow;
         Insert: Partial<ContractRow> &
@@ -1125,6 +1337,20 @@ export interface Database {
             "contract_id" | "user_id" | "signature_type" | "legal_name"
           >;
         Update: Partial<ContractSignatureRow>;
+      };
+      proposals: {
+        Row: ProposalRow;
+        Insert: Partial<ProposalRow> &
+          Pick<ProposalRow, "user_id" | "title">;
+        Update: Partial<ProposalRow>;
+        Relationships: [];
+      };
+      proposal_items: {
+        Row: ProposalItemRow;
+        Insert: Partial<ProposalItemRow> &
+          Pick<ProposalItemRow, "proposal_id" | "description">;
+        Update: Partial<ProposalItemRow>;
+        Relationships: [];
       };
       files: {
         Row: FileRow;
@@ -1385,6 +1611,12 @@ export interface Database {
         Insert: Partial<PortalInvoiceRow> &
           Pick<PortalInvoiceRow, "portal_id" | "invoice_id" | "added_by">;
         Update: Partial<PortalInvoiceRow>;
+      };
+      portal_proposals: {
+        Row: PortalProposalRow;
+        Insert: Partial<PortalProposalRow> &
+          Pick<PortalProposalRow, "portal_id" | "proposal_id" | "added_by">;
+        Update: Partial<PortalProposalRow>;
       };
       welcome_documents: {
         Row: WelcomeDocumentRow;

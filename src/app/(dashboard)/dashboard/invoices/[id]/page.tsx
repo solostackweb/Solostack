@@ -1,12 +1,12 @@
 import * as React from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, Download, Pencil, FileText, Send, Eye, CheckCircle2, Clock, Plus } from "lucide-react";
+import { ArrowLeft, Download, Pencil, FileText, Send, Eye, CheckCircle2, Clock, Plus, CreditCard } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { formatMoney } from "@/lib/format";
-import { getInvoice } from "@/features/invoices/server";
+import { getInvoice, listInvoicePayments, type InvoicePaymentRecord } from "@/features/invoices/server";
 import { getClient } from "@/features/clients/server";
 import { getClientDisplayName } from "@/features/clients/utils";
 import { InvoiceStatusBadge } from "@/features/invoices/components/invoice-status-badge";
@@ -16,6 +16,7 @@ import { SendInvoiceButton } from "@/features/invoices/components/send-invoice-b
 import { DuplicateInvoiceButton } from "@/features/invoices/components/duplicate-invoice-button";
 import { CancelInvoiceButton } from "@/features/invoices/components/cancel-invoice-button";
 import { listActivity, type ActivityRecord } from "@/features/activity/server";
+import { IvoContextActions } from "@/features/ai-workflows/components/ivo-context-actions";
 
 export const dynamic = "force-dynamic";
 
@@ -45,10 +46,17 @@ export default async function InvoiceDetailPage({
     (invoice as { isExport?: boolean; is_export?: boolean }).isExport ??
     (invoice as { is_export?: boolean }).is_export ??
     false;
-  const [client, activities] = await Promise.all([
+  const [client, activities, payments] = await Promise.all([
     invoice.clientId ? getClient(invoice.clientId) : Promise.resolve(null),
     listActivity({ entityType: "invoice", entityId: id, limit: 20 }),
+    listInvoicePayments(id),
   ]);
+  const ledgerPaid = payments.reduce((sum, payment) => sum + payment.amount, 0);
+  const paidAmount = Math.max(ledgerPaid, invoice.paymentAmount ?? 0);
+  const balanceDue = Math.max(
+    0,
+    Math.round((invoice.totalAmount - paidAmount) * 100) / 100,
+  );
 
   const fmtDate = (iso: string | null) =>
     iso
@@ -164,12 +172,33 @@ export default async function InvoiceDetailPage({
             <MarkPaidManuallyDialog
               invoiceId={invoice.id}
               invoiceNumber={invoice.invoiceNumber}
-              amountLabel={formatMoney(invoice.totalAmount, cur)}
+              amountLabel={formatMoney(balanceDue || invoice.totalAmount, cur)}
+              defaultAmount={balanceDue || invoice.totalAmount}
+              currency={cur}
               alreadyPaid={invoice.status === "paid"}
             />
           )}
         </div>
       </div>
+
+      <IvoContextActions
+        title={`Invoice help for ${invoice.invoiceNumber}`}
+        description="Use this invoice's client, GST/export, payment, and balance context."
+        actions={[
+          {
+            label: "Explain invoice",
+            prompt: `Explain invoice ${invoice.invoiceNumber}. Client: ${client ? getClientDisplayName(client) : "No client"}. Status: ${invoice.status}. Total: ${formatMoney(invoice.totalAmount, cur)}. Received: ${formatMoney(paidAmount, cur)}. Balance due: ${formatMoney(balanceDue, cur)}. Tax mode: ${invoice.taxMode}. Export invoice: ${isExport ? "yes" : "no"}. Tell me what needs attention.`,
+          },
+          {
+            label: "Follow-up draft",
+            prompt: `Draft a polite payment follow-up for invoice ${invoice.invoiceNumber}. Status: ${invoice.status}. Due date: ${fmtDate(invoice.dueDate)}. Balance due: ${formatMoney(balanceDue, cur)}.`,
+          },
+          {
+            label: "Record payment help",
+            prompt: `Help me record a payment for invoice ${invoice.invoiceNumber}. Total: ${formatMoney(invoice.totalAmount, cur)}. Already received: ${formatMoney(paidAmount, cur)}. Remaining balance: ${formatMoney(balanceDue, cur)}. Explain what amount/currency/reference I should enter.`,
+          },
+        ]}
+      />
 
       <Card>
         <CardContent className="space-y-6 p-4 sm:p-6">
@@ -205,6 +234,11 @@ export default async function InvoiceDetailPage({
               {invoice.status === "paid" && (
                 <p className="mt-2 text-xs text-success">
                   Paid {fmtDate(invoice.paidAt)}
+                </p>
+              )}
+              {paidAmount > 0 && invoice.status !== "paid" && (
+                <p className="mt-2 text-xs text-amber-600 dark:text-amber-400">
+                  {formatMoney(paidAmount, cur)} received · {formatMoney(balanceDue, cur)} due
                 </p>
               )}
             </div>
@@ -337,9 +371,17 @@ export default async function InvoiceDetailPage({
               <Row label="IGST" value={formatMoney(invoice.igstAmount, cur)} />
             )}
             <Row label="Total" value={formatMoney(invoice.totalAmount, cur)} bold />
+            {paidAmount > 0 && (
+              <Row label="Received" value={`-${formatMoney(paidAmount, cur)}`} />
+            )}
+            {paidAmount > 0 && invoice.status !== "paid" && (
+              <Row label="Balance due" value={formatMoney(balanceDue, cur)} bold />
+            )}
           </dl>
         </CardContent>
       </Card>
+
+      <PaymentLedgerCard payments={payments} invoiceCurrency={cur} />
 
       {/* Activity timeline */}
       {activities.length > 0 && (
@@ -386,11 +428,103 @@ function Row({
   );
 }
 
+function PaymentLedgerCard({
+  payments,
+  invoiceCurrency,
+}: {
+  payments: InvoicePaymentRecord[];
+  invoiceCurrency: string;
+}) {
+  return (
+    <Card>
+      <CardContent className="p-4 sm:p-6">
+        <div className="mb-4 flex items-center justify-between gap-3">
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+              Payments
+            </p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Offline and gateway payments recorded against this invoice.
+            </p>
+          </div>
+          <CreditCard className="h-5 w-5 text-muted-foreground" />
+        </div>
+        {payments.length === 0 ? (
+          <div className="rounded-lg border border-dashed bg-muted/20 px-4 py-6 text-center text-sm text-muted-foreground">
+            No payments recorded yet.
+          </div>
+        ) : (
+          <div className="divide-y rounded-lg border">
+            {payments.map((payment) => (
+              <div
+                key={payment.id}
+                className="grid gap-3 p-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start"
+              >
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="font-medium capitalize">{payment.method}</p>
+                    <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] uppercase tracking-wide text-muted-foreground">
+                      {payment.source}
+                    </span>
+                  </div>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Received {fmtPaymentDate(payment.paidAt)}
+                    {payment.reference ? ` · Ref ${payment.reference}` : ""}
+                  </p>
+                  {payment.receivedCurrency !== invoiceCurrency && (
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Actual receipt:{" "}
+                      {formatMoney(payment.receivedAmount, payment.receivedCurrency)} · FX{" "}
+                      {payment.fxRateToInvoice.toFixed(4)}
+                    </p>
+                  )}
+                  {payment.proofUrl ? (
+                    <a
+                      href={payment.proofUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="mt-1 inline-flex text-xs font-medium text-primary hover:underline"
+                    >
+                      View proof
+                    </a>
+                  ) : null}
+                  {payment.notes ? (
+                    <p className="mt-1 text-xs text-muted-foreground">{payment.notes}</p>
+                  ) : null}
+                </div>
+                <div className="text-left sm:text-right">
+                  <p className="font-semibold tabular-nums">
+                    {formatMoney(payment.amount, payment.currency)}
+                  </p>
+                  {payment.inrEquivalent !== null && payment.currency !== "INR" ? (
+                    <p className="text-xs text-muted-foreground">
+                      {formatMoney(payment.inrEquivalent, "INR")}
+                    </p>
+                  ) : null}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function fmtPaymentDate(iso: string) {
+  return new Date(iso).toLocaleDateString("en-IN", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+}
+
 const ACTIVITY_ICON: Record<string, React.ComponentType<{ className?: string }>> = {
   invoice_created: Plus,
   invoice_sent: Send,
   invoice_viewed: Eye,
   invoice_paid: CheckCircle2,
+  invoice_partially_paid: CreditCard,
   invoice_overdue: Clock,
   invoice_draft: FileText,
 };

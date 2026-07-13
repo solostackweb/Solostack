@@ -23,6 +23,8 @@ const PRIVATE_PATHS = [
   "/auth/",
   "/i/",
   "/c/",
+  "/p/",
+  "/lead/",
   "/w/",
   "/forgot-password",
   "/reset-password",

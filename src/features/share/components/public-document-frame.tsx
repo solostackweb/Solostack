@@ -17,9 +17,9 @@ interface Props {
   accent?: string | null;
   /** Status pill content, rendered next to the eyebrow. */
   statusBadge?: React.ReactNode;
-  /** PDF download URL. */
-  pdfUrl: string;
-  pdfFileName: string;
+  /** PDF download URL. Optional for document types that do not export yet. */
+  pdfUrl?: string;
+  pdfFileName?: string;
   children: React.ReactNode;
   /** Optional extra CTA in the toolbar (e.g. "Sign now"). */
   primaryAction?: React.ReactNode;
@@ -90,11 +90,13 @@ export function PublicDocumentFrame({
               )}
             </div>
             <div className="flex items-center gap-2">
-              <Button asChild variant="outline" size="sm">
-                <a href={pdfUrl} download={pdfFileName} rel="noopener">
-                  <Download className="h-4 w-4" /> Download PDF
-                </a>
-              </Button>
+              {pdfUrl ? (
+                <Button asChild variant="outline" size="sm">
+                  <a href={pdfUrl} download={pdfFileName} rel="noopener">
+                    <Download className="h-4 w-4" /> Download PDF
+                  </a>
+                </Button>
+              ) : null}
               {primaryAction}
             </div>
           </div>

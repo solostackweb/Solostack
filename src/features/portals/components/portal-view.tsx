@@ -73,6 +73,7 @@ import {
   invitePortalMemberAction,
   deletePortalFileAction,
   revokePortalMemberAction,
+  attachProposalToPortalAction,
   attachContractToPortalAction,
   attachInvoiceToPortalAction,
   archivePortalAction,
@@ -124,6 +125,21 @@ export interface ViewProps {
     title: string;
     status: string;
     public_token: string | null;
+  }>;
+  proposals: Array<{
+    id: string;
+    title: string;
+    status: string;
+    total_amount: number;
+    currency: string;
+    public_token: string | null;
+  }>;
+  availableProposals: Array<{
+    id: string;
+    title: string;
+    status: string;
+    total_amount: number;
+    currency: string;
   }>;
   availableContracts: Array<{
     id: string;
@@ -226,6 +242,13 @@ export function PortalView(props: ViewProps) {
         isOwner={isOwner}
         currentUserId={props.currentUserId}
       />
+      <ProposalsSection
+        proposals={props.proposals}
+        available={props.availableProposals}
+        isOwner={isOwner}
+        portalId={props.portalId}
+        currentUserId={props.currentUserId}
+      />
       <ContractsSection
         contracts={props.contracts}
         available={props.availableContracts}
@@ -275,6 +298,13 @@ export function PortalView(props: ViewProps) {
         portalName={props.portalName}
         meetings={props.meetings}
         isOwner={isOwner}
+        currentUserId={props.currentUserId}
+      />
+      <ProposalsSection
+        proposals={props.proposals}
+        available={props.availableProposals}
+        isOwner={isOwner}
+        portalId={props.portalId}
         currentUserId={props.currentUserId}
       />
       <InvoicesSection
@@ -1308,6 +1338,109 @@ function WelcomeDocumentsSection({
                 </li>
               );
             })}
+          </ul>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+// ============================================================================
+// Section: Proposals
+// ============================================================================
+
+function ProposalsSection({
+  proposals,
+  available,
+  isOwner,
+  portalId,
+  currentUserId,
+}: {
+  proposals: ViewProps["proposals"];
+  available: ViewProps["availableProposals"];
+  isOwner: boolean;
+  portalId: string;
+  currentUserId: string;
+}) {
+  const openCount = proposals.filter(
+    (p) => p.status !== "accepted" && p.status !== "declined" && p.status !== "converted",
+  ).length;
+
+  return (
+    <Card id="portal-proposals" className="scroll-mt-24">
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
+        <CardTitle className="flex items-center gap-2 text-sm font-semibold">
+          <BookOpen className="h-4 w-4 text-muted-foreground" />
+          Proposals
+          {openCount > 0 && (
+            <span className="rounded-full bg-primary/15 px-1.5 py-0.5 text-[10px] font-semibold text-primary">
+              {openCount} open
+            </span>
+          )}
+        </CardTitle>
+        {isOwner && (
+          <AttachExistingDialog
+            triggerLabel="Attach"
+            title="Attach a proposal"
+            description="Pick a proposal to share in this portal."
+            emptyMessage="No proposals available to attach."
+            items={available.map((p) => ({
+              id: p.id,
+              label: p.title,
+              meta: `${formatPortalCurrency(p.currency, p.total_amount)} · ${p.status}`,
+            }))}
+            onAttach={async (id) => attachProposalToPortalAction({ portalId, proposalId: id })}
+          />
+        )}
+      </CardHeader>
+      <CardContent>
+        {proposals.length === 0 ? (
+          <EmptyState
+            icon={<BookOpen className="h-7 w-7 text-muted-foreground/30" />}
+            message="No proposals attached yet."
+          />
+        ) : (
+          <ul className={`divide-y rounded-lg border ${proposals.length > 5 ? "max-h-[28rem] overflow-y-auto scrollbar-thin" : ""}`}>
+            {proposals.map((p) => (
+              <li key={p.id} className="px-3 py-3">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-medium">{p.title}</p>
+                    <p className="mt-0.5 text-[11px] text-muted-foreground">
+                      <span className="font-medium tabular-nums text-foreground">
+                        {formatPortalCurrency(p.currency, p.total_amount)}
+                      </span>
+                      {" · "}
+                      <span className="capitalize">{p.status.replace(/_/g, " ")}</span>
+                    </p>
+                  </div>
+                  {isOwner ? (
+                    <Button asChild size="sm" variant="outline" className="h-8 shrink-0">
+                      <Link href={`/dashboard/proposals/${p.id}`}>
+                        View
+                        <ExternalLink className="h-3.5 w-3.5" />
+                      </Link>
+                    </Button>
+                  ) : (
+                    p.public_token && (
+                      <Button asChild size="sm" variant="default" className="h-8 shrink-0">
+                        <Link href={`/p/${p.public_token}`} target="_blank">
+                          Review
+                          <ExternalLink className="h-3.5 w-3.5" />
+                        </Link>
+                      </Button>
+                    )
+                  )}
+                </div>
+                <DocumentCommentsThread
+                  portalId={portalId}
+                  docType="proposal"
+                  docId={p.id}
+                  currentUserId={currentUserId}
+                  isOwner={isOwner}
+                />
+              </li>
+            ))}
           </ul>
         )}
       </CardContent>

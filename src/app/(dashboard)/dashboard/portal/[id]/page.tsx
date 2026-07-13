@@ -225,6 +225,8 @@ export default async function PortalDetailPage({
         }))}
         files={snapshot.files}
         messages={snapshot.messages}
+        proposals={snapshot.proposals}
+        availableProposals={snapshot.availableProposals}
         contracts={snapshot.contracts}
         availableContracts={snapshot.availableContracts}
         invoices={snapshot.invoices}
