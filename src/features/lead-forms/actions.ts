@@ -7,6 +7,7 @@ import { getAdminSupabase } from "@/lib/supabase/admin";
 import { getPublicAppUrl } from "@/features/documents/urls";
 import { getServerSupabase } from "@/lib/supabase/server";
 import { AUTH_LOGIN_ROUTE } from "@/features/auth/routes";
+import { countryForLeadForm, normalizeLeadPhone } from "./countries";
 
 export type LeadFormActionResult<T = undefined> =
   | { ok: true; data?: T; message?: string }
@@ -29,7 +30,7 @@ const publicLeadSchema = z.object({
   email: z.string().trim().email("Enter a valid email").max(180),
   company: z.string().trim().max(160).optional().or(z.literal("")),
   phone: z.string().trim().max(80).optional().or(z.literal("")),
-  country: z.string().trim().max(2).optional().or(z.literal("")),
+  country: z.string().trim().min(2, "Choose a country").max(2),
   currency: z.string().trim().max(3).optional().or(z.literal("")),
   project: z.string().trim().min(10, "Tell us a little more about the project").max(3000),
   budget: z.string().trim().max(120).optional().or(z.literal("")),
@@ -154,9 +155,11 @@ export async function submitPublicLeadAction(
   }
 
   const ownerId = (form as { user_id: string }).user_id;
-  const country = (parsed.data.country || "IN").toUpperCase();
-  const currency = (parsed.data.currency || (country === "IN" ? "INR" : "USD")).toUpperCase();
+  const countryMeta = countryForLeadForm(parsed.data.country);
+  const country = countryMeta.code;
+  const currency = (parsed.data.currency || countryMeta.currency).toUpperCase();
   const isForeign = country !== "IN";
+  const phone = normalizeLeadPhone(parsed.data.phone || "", country) || null;
 
   const { data: client, error: clientError } = await admin
     .from("clients")
@@ -165,14 +168,17 @@ export async function submitPublicLeadAction(
       full_name: parsed.data.name,
       business_name: parsed.data.company || null,
       email: parsed.data.email,
-      phone: parsed.data.phone || null,
+      phone,
       country,
       currency,
       is_foreign: isForeign,
       gst_registered: false,
       state_code: null,
       billing_address: null,
-      notes: `Created from lead form: ${(form as { title: string }).title}`,
+      notes: [
+        `Created from lead form: ${(form as { title: string }).title}`,
+        "Review billing address, GST status, state, and document details before sending proposals, contracts, or invoices.",
+      ].join("\n"),
     } as never)
     .select("id")
     .single();
@@ -242,7 +248,7 @@ export async function submitPublicLeadAction(
     name: parsed.data.name,
     email: parsed.data.email,
     company: parsed.data.company || null,
-    phone: parsed.data.phone || null,
+    phone,
     project_summary: parsed.data.project,
     budget: parsed.data.budget || null,
     timeline: parsed.data.timeline || null,
@@ -257,12 +263,12 @@ export async function submitPublicLeadAction(
 
   await admin.from("notifications").insert({
     user_id: ownerId,
-    title: "New lead received",
-    body: `${parsed.data.name} submitted ${(form as { title: string }).title}.`,
+    title: "New lead received - review client details",
+    body: `${parsed.data.name} submitted ${(form as { title: string }).title}. Stackivo created a client and lead project; review billing address, GST/state details, and project dates before sending documents.`,
     type: "lead",
-    entity_type: "project",
-    entity_id: projectId,
-    href: `/dashboard/projects`,
+    entity_type: "client",
+    entity_id: clientId,
+    href: `/dashboard/clients/${clientId}`,
   } as never);
 
   revalidatePath("/dashboard/lead-forms");
