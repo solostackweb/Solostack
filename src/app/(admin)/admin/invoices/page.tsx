@@ -83,7 +83,8 @@ export default async function AdminInvoicesPage({ searchParams }: Props) {
       </form>
 
       <div className="overflow-hidden rounded-xl border bg-card shadow-sm shadow-black/[0.03]">
-        <table className="w-full text-sm">
+        <div className="overflow-x-auto">
+        <table className="min-w-full text-sm">
           <thead className="bg-muted/40 text-left text-[11px] uppercase tracking-wider text-muted-foreground">
             <tr>
               <th className="px-3 py-2 font-medium">Number</th>
@@ -147,6 +148,7 @@ export default async function AdminInvoicesPage({ searchParams }: Props) {
             )}
           </tbody>
         </table>
+        </div>
       </div>
 
       {totalPages > 1 ? (

@@ -1,15 +1,40 @@
 /**
- * Compact loading state for the admin route group.
+ * Command Center (/admin) loading skeleton.
  *
- * Single line, no spinner - the founder will hit this dozens of times
- * a day. A flashing skeleton is noisier than necessary; a tiny
- * "Loading..." string at the same vertical position keeps the layout
- * stable while data fans out.
+ * Mirrors the Now dashboard: header + status hero + integration panel,
+ * a reliability KPI row, then the work-queue / metrics / sidebar grid.
+ * Keeps the layout stable while the data fans out server-side.
  */
-export default function AdminLoading() {
+import {
+  AdminSkeletonSection,
+  PageHeaderSkeleton,
+  KpiGridSkeleton,
+  PanelSkeleton,
+} from "@/components/admin/skeletons";
+
+export default function AdminNowLoading() {
   return (
-    <div className="text-xs text-muted-foreground" role="status">
-      Loading...
-    </div>
+    <AdminSkeletonSection>
+      <PageHeaderSkeleton withActions actionCount={4} />
+
+      <section className="grid gap-4 lg:grid-cols-[1.4fr_1fr]">
+        <PanelSkeleton withHeader={false} className="min-h-[220px]" lines={6} />
+        <PanelSkeleton lines={4} />
+      </section>
+
+      <KpiGridSkeleton cols={5} />
+
+      <section className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
+        <div className="space-y-4">
+          <PanelSkeleton lines={4} />
+          <PanelSkeleton lines={4} />
+          <PanelSkeleton lines={3} />
+        </div>
+        <aside className="space-y-4">
+          <PanelSkeleton lines={5} />
+          <PanelSkeleton lines={4} />
+        </aside>
+      </section>
+    </AdminSkeletonSection>
   );
 }
