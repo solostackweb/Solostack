@@ -5,15 +5,12 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
-  BookTemplate,
   Copy,
   ExternalLink,
   FileSignature,
-  FileText,
-  FolderKanban,
+  MessageCircle,
   Plus,
   Save,
-  Send,
   Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -32,13 +29,10 @@ import {
 } from "../intelligence";
 import {
   convertProposalToContractAction,
-  convertProposalToInvoiceAction,
-  convertProposalToProjectAction,
   saveProposalBuilderAction,
   shareProposalAction,
 } from "../actions";
 import type { ProposalItemRecord, ProposalRecord } from "../server";
-import type { ProposalTemplateContent, TemplateRecord } from "@/features/templates/builtin";
 import {
   PROPOSAL_STATUSES,
   PROPOSAL_STATUS_LABEL,
@@ -74,19 +68,17 @@ export function ProposalBuilderView({
   seller,
   clients,
   projects,
-  proposalTemplates,
 }: {
   proposal: ProposalRecord;
   items: ProposalItemRecord[];
   seller: ProposalSellerContext;
   clients: ClientOption[];
   projects: ProjectOption[];
-  proposalTemplates: TemplateRecord[];
 }) {
   const router = useRouter();
   const [isSaving, startSaving] = React.useTransition();
   const [isSharing, startSharing] = React.useTransition();
-  const [isConverting, startConverting] = React.useTransition();
+  const [isSendingForSignature, startSendingForSignature] = React.useTransition();
   const [clientId, setClientId] = React.useState(proposal.clientId ?? "");
   const [currency, setCurrency] = React.useState(proposal.currency);
   const [taxAmount, setTaxAmount] = React.useState(proposal.taxAmount);
@@ -124,25 +116,6 @@ export function ProposalBuilderView({
     setDraftItems((current) =>
       current.length <= 1 ? current : current.filter((item) => item.key !== key),
     );
-  };
-
-  const applyTemplate = (template: TemplateRecord) => {
-    const content = template.content as ProposalTemplateContent;
-    if (typeof content.scope === "string") setScope(content.scope);
-    if (typeof content.deliverables === "string") setDeliverables(content.deliverables);
-    if (typeof content.timeline === "string") setTimeline(content.timeline);
-    if (typeof content.terms === "string") setTerms(content.terms);
-    if (Array.isArray(content.items) && content.items.length > 0) {
-      setDraftItems(
-        content.items.map((item) => ({
-          key: crypto.randomUUID(),
-          description: item.description,
-          quantity: Number(item.quantity || 1),
-          unitPrice: Number(item.unitPrice || 0),
-        })),
-      );
-    }
-    toast.success(`Applied ${template.title}`);
   };
 
   const submit = (event: React.FormEvent<HTMLFormElement>) => {
@@ -196,23 +169,32 @@ export function ProposalBuilderView({
     });
   };
 
-  const convert = (kind: "project" | "contract" | "invoice") => {
-    startConverting(async () => {
-      const action =
-        kind === "project"
-          ? convertProposalToProjectAction
-          : kind === "contract"
-            ? convertProposalToContractAction
-            : convertProposalToInvoiceAction;
-      const res = await action({ id: proposal.id });
-      if (!res.ok || !res.data) {
-        toast.error(res.ok ? "Conversion did not return a record." : res.error);
+  const shareOnWhatsApp = () => {
+    startSharing(async () => {
+      const res = await shareProposalAction({ id: proposal.id });
+      if (!res.ok) {
+        toast.error(res.error);
         return;
       }
-      toast.success(res.message ?? "Converted");
-      if (kind === "project") router.push(`/dashboard/projects/${res.data.id}`);
-      if (kind === "contract") router.push(`/dashboard/contracts/${res.data.id}`);
-      if (kind === "invoice") router.push(`/dashboard/invoices/${res.data.id}`);
+      if (!res.data) {
+        toast.error("Could not create proposal share link.");
+        return;
+      }
+      const text = `Hi, sharing the proposal "${proposal.title}" for your review: ${res.data.url}`;
+      window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank", "noopener,noreferrer");
+      router.refresh();
+    });
+  };
+
+  const sendForSignature = () => {
+    startSendingForSignature(async () => {
+      const res = await convertProposalToContractAction({ id: proposal.id });
+      if (!res.ok || !res.data) {
+        toast.error(res.ok ? "Contract was not returned." : res.error);
+        return;
+      }
+      toast.success("Contract draft created. Review it before sending for signature.");
+      router.push(`/dashboard/contracts/${res.data.id}`);
     });
   };
 
@@ -255,47 +237,30 @@ export function ProposalBuilderView({
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <Button type="button" variant="outline" onClick={share} disabled={isSharing}>
-            {isSharing ? (
-              "Preparing..."
-            ) : (
-              <>
-                <Send className="h-4 w-4" /> Share link
-              </>
-            )}
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => convert("project")}
-            disabled={isConverting}
-          >
-            <FolderKanban className="h-4 w-4" /> Project
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => convert("contract")}
-            disabled={isConverting}
-          >
-            <FileSignature className="h-4 w-4" /> Contract
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => convert("invoice")}
-            disabled={isConverting}
-          >
-            <FileText className="h-4 w-4" /> Invoice
-          </Button>
           <Button type="submit" disabled={isSaving}>
             {isSaving ? (
               "Saving..."
             ) : (
               <>
-                <Save className="h-4 w-4" /> Save proposal
+                <Save className="h-4 w-4" /> Save draft
               </>
             )}
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={sendForSignature}
+            disabled={isSendingForSignature}
+          >
+            <FileSignature className="h-4 w-4" /> Send for signature
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={shareOnWhatsApp}
+            disabled={isSharing}
+          >
+            <MessageCircle className="h-4 w-4" /> Share on WhatsApp
           </Button>
         </div>
       </div>
@@ -409,28 +374,6 @@ export function ProposalBuilderView({
                   onChange={(event) => setTaxAmount(Number(event.target.value || 0))}
                 />
               </Field>
-              <div className="sm:col-span-2 rounded-lg border bg-primary/5 p-4 text-sm">
-                <div className="mb-1 flex flex-wrap items-center gap-2">
-                  <span className="rounded-full border bg-background px-2 py-0.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-                    {guidance.badge}
-                  </span>
-                  <span className="font-semibold">{guidance.modeLabel}</span>
-                </div>
-                <p className="text-muted-foreground">{guidance.summary}</p>
-                <p className="mt-1 text-xs leading-5 text-muted-foreground">{guidance.detail}</p>
-                {guidance.recommendedTaxRate > 0 ? (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="mt-3"
-                    onClick={() => setTaxAmount(suggestedTaxAmount)}
-                  >
-                    Apply {guidance.recommendedTaxRate}% GST estimate (
-                    {formatMoney(suggestedTaxAmount, currency)})
-                  </Button>
-                ) : null}
-              </div>
             </CardContent>
           </Card>
 
@@ -499,51 +442,39 @@ export function ProposalBuilderView({
                 ))}
               </div>
 
-              <div className="ml-auto grid w-full max-w-sm gap-2 rounded-lg border bg-muted/30 p-4 text-sm">
-                <SummaryRow label="Subtotal" value={formatMoney(subtotal, currency)} />
-                <SummaryRow label="Tax / charges" value={formatMoney(Number(taxAmount || 0), currency)} />
-                <SummaryRow label="Total" value={formatMoney(total, currency)} strong />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="space-y-3 p-5">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <h2 className="flex items-center gap-2 text-lg font-semibold">
-                    <BookTemplate className="h-4 w-4 text-primary" />
-                    Proposal templates
-                  </h2>
-                  <p className="text-sm text-muted-foreground">
-                    Switch structure if the offer changed. New proposals start from a template.
-                  </p>
-                </div>
-                <Button asChild variant="outline" size="sm">
-                  <Link href="/dashboard/templates">Manage</Link>
-                </Button>
-              </div>
-              {proposalTemplates.length === 0 ? (
-                <p className="rounded-lg border border-dashed p-4 text-sm text-muted-foreground">
-                  No templates available yet.
-                </p>
-              ) : (
-                <div className="grid gap-2 sm:grid-cols-2">
-                  {proposalTemplates.slice(0, 6).map((template) => (
-                    <button
-                      key={template.id}
+              <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(280px,380px)] lg:items-stretch">
+                <div className="rounded-lg border bg-primary/5 p-4 text-sm">
+                  <div className="mb-1 flex flex-wrap items-center gap-2">
+                    <span className="rounded-full border bg-background px-2 py-0.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                      {guidance.badge}
+                    </span>
+                    <span className="font-semibold">{guidance.modeLabel}</span>
+                  </div>
+                  <p className="text-muted-foreground">{guidance.summary}</p>
+                  <p className="mt-1 text-xs leading-5 text-muted-foreground">{guidance.detail}</p>
+                  {guidance.recommendedTaxRate > 0 ? (
+                    <Button
                       type="button"
-                      onClick={() => applyTemplate(template)}
-                      className="rounded-lg border bg-background p-3 text-left transition hover:border-primary/40"
+                      variant="outline"
+                      size="sm"
+                      className="mt-3"
+                      onClick={() => setTaxAmount(suggestedTaxAmount)}
                     >
-                      <span className="block truncate text-sm font-semibold">{template.title}</span>
-                      <span className="mt-1 line-clamp-2 text-xs text-muted-foreground">
-                        {template.description ?? template.category}
-                      </span>
-                    </button>
-                  ))}
+                      Apply {guidance.recommendedTaxRate}% GST estimate (
+                      {formatMoney(suggestedTaxAmount, currency)})
+                    </Button>
+                  ) : null}
                 </div>
-              )}
+
+                <div className="grid w-full gap-2 rounded-lg border bg-muted/30 p-4 text-sm">
+                  <SummaryRow label="Subtotal" value={formatMoney(subtotal, currency)} />
+                  <SummaryRow
+                    label="Tax / charges"
+                    value={formatMoney(Number(taxAmount || 0), currency)}
+                  />
+                  <SummaryRow label="Total" value={formatMoney(total, currency)} strong />
+                </div>
+              </div>
             </CardContent>
           </Card>
 

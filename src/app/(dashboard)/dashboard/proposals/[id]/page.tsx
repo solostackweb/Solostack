@@ -4,7 +4,6 @@ import { listClients } from "@/features/clients/server";
 import { listProjects } from "@/features/projects/server";
 import { ProposalBuilderView } from "@/features/proposals/components/proposal-builder-view";
 import { getProposalWithItems } from "@/features/proposals/server";
-import { listTemplates } from "@/features/templates/server";
 import { getServerSupabase } from "@/lib/supabase/server";
 import type { UserProfileRow } from "@/lib/supabase/types";
 
@@ -22,11 +21,10 @@ export default async function ProposalBuilderPage({ params }: Props) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  const [record, clients, projects, proposalTemplates] = await Promise.all([
+  const [record, clients, projects] = await Promise.all([
     getProposalWithItems(id),
     listClients({ limit: 300 }),
     listProjects({ limit: 300 }),
-    listTemplates("proposal"),
   ]);
   if (!record) notFound();
   const { data: profile } = user
@@ -66,7 +64,6 @@ export default async function ProposalBuilderPage({ params }: Props) {
         name: project.name,
         clientId: project.clientId,
       }))}
-      proposalTemplates={proposalTemplates}
     />
   );
 }
