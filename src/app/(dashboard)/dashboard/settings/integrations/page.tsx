@@ -1,14 +1,7 @@
 import Link from "next/link";
-import {
-  CalendarDays,
-  CheckCircle2,
-  ExternalLink,
-  FileText,
-  Mail,
-  Plug,
-  Wallet,
-} from "lucide-react";
+import { CheckCircle2, ExternalLink, Plug } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { IntegrationLogoTile } from "@/components/integrations/integration-logo";
 import {
   SettingsPageHeader,
   SettingsSection,
@@ -22,10 +15,11 @@ export const metadata = {
 const integrations = [
   {
     title: "Google Calendar",
-    status: "Ready",
+    logoId: "google_calendar",
+    status: "Workflow-ready",
     description:
       "Portal meetings already support Google Calendar add-links, Outlook add-links, .ics downloads, and subscribable calendar feeds.",
-    icon: CalendarDays,
+    workflow: "Portal meetings, client calls, calendar feeds",
     actions: [
       { label: "Open portals", href: "/dashboard/portal" },
       { label: "Google Calendar", href: "https://calendar.google.com/calendar/u/0/r", external: true },
@@ -34,10 +28,11 @@ const integrations = [
   },
   {
     title: "Google Drive",
-    status: "Planned",
+    logoId: "google_drive",
+    status: "Planned OAuth",
     description:
       "Use portal files today. A deeper Drive picker/sync can be added when OAuth client verification is complete.",
-    icon: FileText,
+    workflow: "Portal files, proof links, proposal attachments",
     actions: [
       { label: "Open portal files", href: "/dashboard/portal" },
       { label: "OAuth setup", href: "https://console.cloud.google.com/apis/credentials", external: true },
@@ -46,10 +41,11 @@ const integrations = [
   },
   {
     title: "Gmail / Email sending",
+    logoId: "gmail",
     status: "Platform email active",
     description:
       "Stackivo sends transactional document and portal emails from the platform email system. Gmail account-level sending is a future OAuth integration.",
-    icon: Mail,
+    workflow: "Invoice sends, reminders, proposal follow-ups",
     actions: [
       { label: "Notification settings", href: "/dashboard/settings/notifications" },
     ],
@@ -57,10 +53,11 @@ const integrations = [
   },
   {
     title: "Wise, PayPal, Payoneer, bank",
+    logoId: "wise",
     status: "Manual connections ready",
     description:
       "Add international payment instructions and links in Payments. They appear on export invoices and public payment pages.",
-    icon: Wallet,
+    workflow: "Export invoices, public payment pages, payment ledger",
     actions: [
       { label: "Payment settings", href: "/dashboard/settings/payments" },
     ],
@@ -82,56 +79,55 @@ export default function IntegrationsSettingsPage() {
           description="A practical view of what is connected today and what needs external account setup next."
         >
           <div className="grid gap-4 xl:grid-cols-2">
-            {integrations.map((integration) => {
-              const Icon = integration.icon;
-              return (
-                <article
-                  key={integration.title}
-                  className="flex min-w-0 flex-col rounded-xl border bg-background p-4"
-                >
-                  <div className="flex items-start gap-3">
-                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                      <Icon className="h-5 w-5" />
-                    </span>
-                    <div className="min-w-0">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <h2 className="truncate text-sm font-semibold">{integration.title}</h2>
-                        <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] font-semibold text-muted-foreground">
-                          {integration.status}
-                        </span>
-                      </div>
-                      <p className="mt-1 text-sm leading-6 text-muted-foreground">
-                        {integration.description}
-                      </p>
+            {integrations.map((integration) => (
+              <article
+                key={integration.title}
+                className="flex min-w-0 flex-col rounded-xl border bg-background p-4"
+              >
+                <div className="flex items-start gap-3">
+                  <IntegrationLogoTile id={integration.logoId} />
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h2 className="truncate text-sm font-semibold">{integration.title}</h2>
+                      <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] font-semibold text-muted-foreground">
+                        {integration.status}
+                      </span>
                     </div>
+                    <p className="mt-1 text-sm leading-6 text-muted-foreground">
+                      {integration.description}
+                    </p>
+                    <p className="mt-2 text-xs font-medium text-foreground">
+                      Used in:{" "}
+                      <span className="text-muted-foreground">{integration.workflow}</span>
+                    </p>
                   </div>
+                </div>
 
-                  <ul className="mt-4 space-y-2">
-                    {integration.checks.map((check) => (
-                      <li key={check} className="flex items-center gap-2 text-xs text-muted-foreground">
-                        <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-emerald-500" />
-                        {check}
-                      </li>
-                    ))}
-                  </ul>
+                <ul className="mt-4 space-y-2">
+                  {integration.checks.map((check) => (
+                    <li key={check} className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-emerald-500" />
+                      {check}
+                    </li>
+                  ))}
+                </ul>
 
-                  <div className="mt-auto flex flex-wrap gap-2 pt-4">
-                    {integration.actions.map((action) => (
-                      <Button key={action.label} asChild size="sm" variant="outline">
-                        <Link
-                          href={action.href}
-                          target={action.external ? "_blank" : undefined}
-                          rel={action.external ? "noreferrer" : undefined}
-                        >
-                          {action.label}
-                          {action.external ? <ExternalLink className="h-3.5 w-3.5" /> : null}
-                        </Link>
-                      </Button>
-                    ))}
-                  </div>
-                </article>
-              );
-            })}
+                <div className="mt-auto flex flex-wrap gap-2 pt-4">
+                  {integration.actions.map((action) => (
+                    <Button key={action.label} asChild size="sm" variant="outline">
+                      <Link
+                        href={action.href}
+                        target={action.external ? "_blank" : undefined}
+                        rel={action.external ? "noreferrer" : undefined}
+                      >
+                        {action.label}
+                        {action.external ? <ExternalLink className="h-3.5 w-3.5" /> : null}
+                      </Link>
+                    </Button>
+                  ))}
+                </div>
+              </article>
+            ))}
           </div>
         </SettingsSection>
 

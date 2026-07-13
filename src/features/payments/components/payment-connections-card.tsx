@@ -4,7 +4,6 @@ import * as React from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import {
-  Banknote,
   CheckCircle2,
   Copy,
   ExternalLink,
@@ -16,6 +15,7 @@ import {
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { IntegrationLogo, IntegrationLogoTile } from "@/components/integrations/integration-logo";
 import { SettingsSection } from "@/features/settings/components/settings-section";
 import {
   PAYMENT_PROVIDERS,
@@ -234,9 +234,7 @@ function ConnectedMethods({
           <div key={connection.id} className="rounded-xl border bg-card p-4">
             <div className="flex items-start justify-between gap-3">
               <div className="flex min-w-0 gap-3">
-                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                  <ProviderIcon providerId={connection.provider} />
-                </span>
+                <IntegrationLogoTile id={connection.provider} />
                 <div className="min-w-0">
                   <p className="flex flex-wrap items-center gap-2 text-sm font-semibold">
                     {connection.label || provider?.name || connection.provider}
@@ -327,7 +325,7 @@ function ProviderCard({
       ].join(" ")}
     >
       <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
-        <ProviderIcon providerId={provider.id} />
+        <IntegrationLogo id={provider.id} className="h-5 w-5" />
       </span>
       <span className="min-w-0">
         <span className="block text-sm font-semibold">{provider.name}</span>
@@ -347,42 +345,6 @@ function featuredProviders() {
     (p) => !FEATURED_PROVIDERS.includes(p.id),
   );
   return [...featured, ...rest];
-}
-
-function ProviderIcon({ providerId }: { providerId: string }) {
-  const brand = providerBrandIcon(providerId);
-  if (brand) {
-    return (
-      <span
-        role="img"
-        aria-label={brand.alt}
-        className="block h-5 w-5 bg-contain bg-center bg-no-repeat"
-        style={{ backgroundImage: `url(${brand.src})` }}
-      />
-    );
-  }
-  if (providerId === "bank_wire") return <Banknote className="h-4 w-4" />;
-  return <Globe2 className="h-4 w-4" />;
-}
-
-function providerBrandIcon(
-  providerId: string,
-): { src: string; alt: string } | null {
-  const slugByProvider: Record<string, string> = {
-    paypal: "paypal",
-    wise: "wise",
-    payoneer: "payoneer",
-    stripe_link: "stripe",
-    revolut: "revolut",
-    remitly: "remitly",
-  };
-  const slug = slugByProvider[providerId];
-  if (!slug) return null;
-  const providerName = getProvider(providerId)?.name ?? providerId;
-  return {
-    src: `https://cdn.simpleicons.org/${slug}`,
-    alt: `${providerName} logo`,
-  };
 }
 
 function providerCardCopy(providerId: string): string {

@@ -12,6 +12,7 @@
 
 import * as React from "react";
 import { Button } from "@/components/ui/button";
+import { IntegrationLogo } from "@/components/integrations/integration-logo";
 import { Check, Copy, QrCode, Smartphone } from "lucide-react";
 
 interface Props {
@@ -50,9 +51,14 @@ export function PublicUpiPanel({
   return (
     <div className="rounded-lg border bg-card p-5">
       <div className="mb-4 space-y-1">
-        <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-          Pay invoice {invoiceNumber}
-        </p>
+        <div className="flex items-center gap-2">
+          <span className="flex h-7 w-7 items-center justify-center rounded-md border bg-background">
+            <IntegrationLogo id="upi" className="h-4 w-4" />
+          </span>
+          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            Pay invoice {invoiceNumber}
+          </p>
+        </div>
         <p className="text-2xl font-semibold tracking-tight">
           {amountFormatted}
         </p>

@@ -11,10 +11,10 @@ import {
   createTemplateAction,
   deleteTemplateAction,
   setTemplateActiveAction,
-  templateTypeLabel,
   type TemplateActionResult,
 } from "../actions";
 import type { TemplateRecord, TemplateType } from "../builtin";
+import { templateTypeLabel } from "../labels";
 
 const TYPE_OPTIONS: Array<{ value: TemplateType; label: string }> = [
   { value: "proposal", label: "Proposal" },

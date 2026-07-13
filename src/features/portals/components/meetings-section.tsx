@@ -12,6 +12,7 @@ import { portalClientHome } from "../routes";
 import { buildCalendarLinks } from "../calendar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { IntegrationLogo } from "@/components/integrations/integration-logo";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -446,7 +447,7 @@ function MeetingCard({
                 rel="noreferrer"
                 className="inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground"
               >
-                <ExternalLink className="h-3 w-3" />
+                <IntegrationLogo id="google_meet" className="h-3 w-3" />
                 Create a new Google Meet
               </a>
             </div>
@@ -517,13 +518,22 @@ function AddToCalendarMenu({
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-44">
         <DropdownMenuItem asChild>
-          <a href={links.google} target="_blank" rel="noreferrer">Google Calendar</a>
+          <a href={links.google} target="_blank" rel="noreferrer">
+            <IntegrationLogo id="google_calendar" className="mr-2 h-3.5 w-3.5" />
+            Google Calendar
+          </a>
         </DropdownMenuItem>
         <DropdownMenuItem asChild>
-          <a href={links.outlook} target="_blank" rel="noreferrer">Outlook</a>
+          <a href={links.outlook} target="_blank" rel="noreferrer">
+            <IntegrationLogo id="outlook" className="mr-2 h-3.5 w-3.5" />
+            Outlook
+          </a>
         </DropdownMenuItem>
         <DropdownMenuItem asChild>
-          <a href={links.ics} download>Apple / .ics file</a>
+          <a href={links.ics} download>
+            <IntegrationLogo id="apple_calendar" className="mr-2 h-3.5 w-3.5" />
+            Apple / .ics file
+          </a>
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
@@ -711,7 +721,7 @@ function RequestMeetingDialog({
                 rel="noreferrer"
                 className="inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground"
               >
-                <ExternalLink className="h-3 w-3" />
+                <IntegrationLogo id="google_meet" className="h-3 w-3" />
                 Create a new Google Meet
               </a>
             </div>

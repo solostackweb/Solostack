@@ -3,10 +3,11 @@
 import * as React from "react";
 import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
-import { CheckCircle2, CircleAlert, Smartphone } from "lucide-react";
+import { CheckCircle2, CircleAlert } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { IntegrationLogo } from "@/components/integrations/integration-logo";
 import { Label } from "@/components/ui/label";
 import { useConfirm } from "@/components/ui/confirm-dialog";
 import { SettingsSection } from "@/features/settings/components/settings-section";
@@ -36,8 +37,8 @@ export function PaymentMethodPicker({ summary, initialUpiVpa }: Props) {
         ) : (
           <div className="rounded-xl border bg-card">
             <div className="flex items-start gap-3 border-b px-5 py-4">
-              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                <Smartphone className="h-5 w-5" />
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border bg-background">
+                <IntegrationLogo id="upi" className="h-5 w-5" />
               </span>
               <div>
                 <p className="text-sm font-semibold">UPI Direct</p>

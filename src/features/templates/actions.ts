@@ -5,7 +5,6 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { AUTH_LOGIN_ROUTE } from "@/features/auth/routes";
 import { getServerSupabase } from "@/lib/supabase/server";
-import type { TemplateType } from "./builtin";
 
 export type TemplateActionResult<T = undefined> =
   | { ok: true; data?: T; message?: string }
@@ -125,10 +124,4 @@ export async function deleteTemplateAction(formData: FormData): Promise<void> {
     .eq("id", id)
     .eq("user_id", userId);
   revalidatePath("/dashboard/templates");
-}
-
-export function templateTypeLabel(type: TemplateType): string {
-  return type === "invoice_note"
-    ? "Invoice note"
-    : type.charAt(0).toUpperCase() + type.slice(1);
 }
