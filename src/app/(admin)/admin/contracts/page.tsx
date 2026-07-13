@@ -5,7 +5,15 @@
 import Link from "next/link";
 import { listContracts } from "@/features/admin/queries";
 import { AdminPageHeader } from "@/components/admin/page-header";
-import { AdminSection } from "@/components/admin/kit";
+import {
+  AdminSection,
+  AdminTable,
+  AdminTableShell,
+  AdminTd,
+  AdminTh,
+  AdminThead,
+  AdminTr,
+} from "@/components/admin/kit";
 import { formatIstStamp, formatRelative } from "@/features/admin/format";
 import { cn } from "@/lib/utils";
 
@@ -45,19 +53,19 @@ export default async function AdminContractsPage({ searchParams }: Props) {
       <form
         method="get"
         action="/admin/contracts"
-        className="flex flex-wrap items-center gap-2"
+        className="flex flex-wrap items-center gap-2 rounded-xl border bg-card/95 p-2 shadow-sm shadow-black/[0.025] dark:bg-card"
       >
         <input
           type="text"
           name="q"
           defaultValue={q ?? ""}
           placeholder="Title contains..."
-          className="h-8 w-56 rounded border bg-background px-2 text-xs"
+          className="h-9 min-w-0 flex-1 rounded-lg border bg-background px-3 text-xs outline-none transition-colors placeholder:text-muted-foreground/70 focus:border-primary/50 focus:ring-2 focus:ring-primary/15 sm:w-56 sm:flex-none"
         />
         <select
           name="status"
           defaultValue={status}
-          className="h-8 rounded border bg-background px-2 text-xs"
+          className="h-9 rounded-lg border bg-background px-2.5 text-xs outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/15"
         >
           {STATUSES.map((s) => (
             <option key={s} value={s}>
@@ -67,63 +75,57 @@ export default async function AdminContractsPage({ searchParams }: Props) {
         </select>
         <button
           type="submit"
-          className="h-8 rounded border bg-background px-3 text-xs hover:bg-accent"
+          className="h-9 rounded-lg bg-foreground px-3 text-xs font-medium text-background transition-colors hover:bg-foreground/90"
         >
           Apply
         </button>
       </form>
 
-      <div className="overflow-hidden rounded-xl border bg-card shadow-sm shadow-black/[0.03]">
-        <div className="overflow-x-auto">
-        <table className="min-w-full text-sm">
-          <thead className="bg-muted/40 text-left text-[11px] uppercase tracking-wider text-muted-foreground">
+      <AdminTableShell>
+        <AdminTable>
+          <AdminThead>
             <tr>
-              <th className="px-3 py-2 font-medium">Title</th>
-              <th className="px-3 py-2 font-medium">User</th>
-              <th className="px-3 py-2 font-medium">Kind</th>
-              <th className="px-3 py-2 font-medium">Status</th>
-              <th className="hidden px-3 py-2 font-medium tabular-nums sm:table-cell">
-                Signed
-              </th>
-              <th className="px-3 py-2 font-medium tabular-nums">Updated</th>
+              <AdminTh>Title</AdminTh>
+              <AdminTh>User</AdminTh>
+              <AdminTh>Kind</AdminTh>
+              <AdminTh>Status</AdminTh>
+              <AdminTh className="hidden tabular-nums sm:table-cell">Signed</AdminTh>
+              <AdminTh className="tabular-nums">Updated</AdminTh>
             </tr>
-          </thead>
+          </AdminThead>
           <tbody>
             {result.rows.length === 0 ? (
               <tr>
                 <td
                   colSpan={6}
-                  className="px-3 py-8 text-center text-xs text-muted-foreground"
+                  className="px-3 py-10 text-center text-xs text-muted-foreground"
                 >
-                  No contracts match.
+                  No contracts match these filters.
                 </td>
               </tr>
             ) : (
               result.rows.map((c) => (
-                <tr
-                  key={c.id}
-                  className="border-t border-border/40 hover:bg-accent/30"
-                >
-                  <td className="px-3 py-2">
+                <AdminTr key={c.id}>
+                  <AdminTd>
                     <Link
                       href={`/admin/contracts/${c.id}`}
-                      className="hover:underline"
+                      className="font-medium hover:underline"
                     >
                       {c.title}
                     </Link>
-                  </td>
-                  <td className="px-3 py-2">
+                  </AdminTd>
+                  <AdminTd>
                     <div className="leading-tight">
                       <div className="font-medium">{c.full_name}</div>
                       <div className="truncate text-[11px] text-muted-foreground">
                         {c.email}
                       </div>
                     </div>
-                  </td>
-                  <td className="px-3 py-2 text-xs text-muted-foreground">
+                  </AdminTd>
+                  <AdminTd className="text-xs text-muted-foreground">
                     {c.kind}
-                  </td>
-                  <td className="px-3 py-2">
+                  </AdminTd>
+                  <AdminTd>
                     <span
                       className={cn(
                         "inline-block rounded px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wider",
@@ -136,20 +138,19 @@ export default async function AdminContractsPage({ searchParams }: Props) {
                     >
                       {c.status}
                     </span>
-                  </td>
-                  <td className="hidden px-3 py-2 font-mono text-[11px] tabular-nums text-muted-foreground sm:table-cell">
+                  </AdminTd>
+                  <AdminTd className="hidden font-mono text-[11px] tabular-nums text-muted-foreground sm:table-cell">
                     {c.signed_at ? formatIstStamp(c.signed_at) : "-"}
-                  </td>
-                  <td className="px-3 py-2 font-mono text-[11px] tabular-nums text-muted-foreground">
+                  </AdminTd>
+                  <AdminTd className="font-mono text-[11px] tabular-nums text-muted-foreground">
                     {formatRelative(c.updated_at)}
-                  </td>
-                </tr>
+                  </AdminTd>
+                </AdminTr>
               ))
             )}
           </tbody>
-        </table>
-        </div>
-      </div>
+        </AdminTable>
+      </AdminTableShell>
     </AdminSection>
   );
 }

@@ -8,7 +8,15 @@
 import Link from "next/link";
 import { listInvoices } from "@/features/admin/queries";
 import { AdminPageHeader } from "@/components/admin/page-header";
-import { AdminSection } from "@/components/admin/kit";
+import {
+  AdminSection,
+  AdminTable,
+  AdminTableShell,
+  AdminTd,
+  AdminTh,
+  AdminThead,
+  AdminTr,
+} from "@/components/admin/kit";
 import { formatCurrencyAmount, formatIstStamp } from "@/features/admin/format";
 import { cn } from "@/lib/utils";
 
@@ -48,19 +56,19 @@ export default async function AdminInvoicesPage({ searchParams }: Props) {
       <form
         method="get"
         action="/admin/invoices"
-        className="flex flex-wrap items-center gap-2"
+        className="flex flex-wrap items-center gap-2 rounded-xl border bg-card/95 p-2 shadow-sm shadow-black/[0.025] dark:bg-card"
       >
         <input
           type="text"
           name="q"
           defaultValue={q ?? ""}
           placeholder="Invoice number..."
-          className="h-8 w-48 rounded border bg-background px-2 text-xs"
+          className="h-9 min-w-0 flex-1 rounded-lg border bg-background px-3 text-xs outline-none transition-colors placeholder:text-muted-foreground/70 focus:border-primary/50 focus:ring-2 focus:ring-primary/15 sm:w-48 sm:flex-none"
         />
         <select
           name="status"
           defaultValue={status}
-          className="h-8 rounded border bg-background px-2 text-xs"
+          className="h-9 rounded-lg border bg-background px-2.5 text-xs outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/15"
         >
           {STATUSES.map((s) => (
             <option key={s} value={s}>
@@ -70,86 +78,77 @@ export default async function AdminInvoicesPage({ searchParams }: Props) {
         </select>
         <button
           type="submit"
-          className="h-8 rounded border bg-background px-3 text-xs hover:bg-accent"
+          className="h-9 rounded-lg bg-foreground px-3 text-xs font-medium text-background transition-colors hover:bg-foreground/90"
         >
           Apply
         </button>
         <Link
           href="/admin/invoices"
-          className="text-xs text-muted-foreground hover:text-foreground"
+          className="inline-flex h-9 items-center rounded-lg px-2 text-xs text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
         >
           Reset
         </Link>
       </form>
 
-      <div className="overflow-hidden rounded-xl border bg-card shadow-sm shadow-black/[0.03]">
-        <div className="overflow-x-auto">
-        <table className="min-w-full text-sm">
-          <thead className="bg-muted/40 text-left text-[11px] uppercase tracking-wider text-muted-foreground">
+      <AdminTableShell>
+        <AdminTable>
+          <AdminThead>
             <tr>
-              <th className="px-3 py-2 font-medium">Number</th>
-              <th className="px-3 py-2 font-medium">User</th>
-              <th className="px-3 py-2 font-medium">Status</th>
-              <th className="px-3 py-2 font-medium tabular-nums">Total</th>
-              <th className="hidden px-3 py-2 font-medium tabular-nums sm:table-cell">
-                Issued
-              </th>
-              <th className="hidden px-3 py-2 font-medium tabular-nums md:table-cell">
-                Due
-              </th>
+              <AdminTh>Number</AdminTh>
+              <AdminTh>User</AdminTh>
+              <AdminTh>Status</AdminTh>
+              <AdminTh className="tabular-nums">Total</AdminTh>
+              <AdminTh className="hidden tabular-nums sm:table-cell">Issued</AdminTh>
+              <AdminTh className="hidden tabular-nums md:table-cell">Due</AdminTh>
             </tr>
-          </thead>
+          </AdminThead>
           <tbody>
             {result.rows.length === 0 ? (
               <tr>
                 <td
                   colSpan={6}
-                  className="px-3 py-8 text-center text-xs text-muted-foreground"
+                  className="px-3 py-10 text-center text-xs text-muted-foreground"
                 >
-                  No invoices match.
+                  No invoices match these filters.
                 </td>
               </tr>
             ) : (
               result.rows.map((r) => (
-                <tr
-                  key={r.id}
-                  className="border-t border-border/40 hover:bg-accent/30"
-                >
-                  <td className="px-3 py-2 font-mono">
+                <AdminTr key={r.id}>
+                  <AdminTd className="font-mono">
                     <Link
                       href={`/admin/invoices/${r.id}`}
                       className="hover:underline"
                     >
                       {r.invoice_number}
                     </Link>
-                  </td>
-                  <td className="px-3 py-2">
+                  </AdminTd>
+                  <AdminTd>
                     <div className="leading-tight">
                       <div className="font-medium">{r.full_name}</div>
                       <div className="truncate text-[11px] text-muted-foreground">
                         {r.email}
                       </div>
                     </div>
-                  </td>
-                  <td className="px-3 py-2">
+                  </AdminTd>
+                  <AdminTd>
                     <StatusBadge status={r.status} />
-                  </td>
-                  <td className="px-3 py-2 tabular-nums">
+                  </AdminTd>
+                  <AdminTd className="tabular-nums">
                     {formatCurrencyAmount(r.total_amount, r.currency)}
-                  </td>
-                  <td className="hidden px-3 py-2 font-mono text-[11px] tabular-nums text-muted-foreground sm:table-cell">
+                  </AdminTd>
+                  <AdminTd className="hidden font-mono text-[11px] tabular-nums text-muted-foreground sm:table-cell">
                     {formatIstStamp(r.issue_date)}
-                  </td>
-                  <td className="hidden px-3 py-2 font-mono text-[11px] tabular-nums text-muted-foreground md:table-cell">
+                  </AdminTd>
+                  <AdminTd className="hidden font-mono text-[11px] tabular-nums text-muted-foreground md:table-cell">
                     {formatIstStamp(r.due_date)}
-                  </td>
-                </tr>
+                  </AdminTd>
+                </AdminTr>
               ))
             )}
           </tbody>
-        </table>
-        </div>
-      </div>
+        </AdminTable>
+      </AdminTableShell>
 
       {totalPages > 1 ? (
         <Pagination page={page} totalPages={totalPages} q={q} status={status} />

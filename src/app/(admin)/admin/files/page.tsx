@@ -10,7 +10,17 @@ import Link from "next/link";
 import { Files as FilesIcon, HardDrive, FileText } from "lucide-react";
 import { listFiles } from "@/features/admin/queries";
 import { AdminPageHeader } from "@/components/admin/page-header";
-import { AdminSection, KpiGrid, StatCard } from "@/components/admin/kit";
+import {
+  AdminSection,
+  AdminTable,
+  AdminTableShell,
+  AdminTd,
+  AdminTh,
+  AdminThead,
+  AdminTr,
+  KpiGrid,
+  StatCard,
+} from "@/components/admin/kit";
 import { formatRelative, shortenId } from "@/features/admin/format";
 import { cn } from "@/lib/utils";
 
@@ -61,53 +71,50 @@ export default async function AdminFilesPage({ searchParams }: Props) {
       <form
         method="get"
         action="/admin/files"
-        className="flex flex-wrap items-center gap-2"
+        className="flex flex-wrap items-center gap-2 rounded-xl border bg-card/95 p-2 shadow-sm shadow-black/[0.025] dark:bg-card"
       >
         <input
           type="text"
           name="q"
           defaultValue={q ?? ""}
           placeholder="Filename contains..."
-          className="h-8 w-64 rounded border bg-background px-2 text-xs"
+          className="h-9 min-w-0 flex-1 rounded-lg border bg-background px-3 text-xs outline-none transition-colors placeholder:text-muted-foreground/70 focus:border-primary/50 focus:ring-2 focus:ring-primary/15 sm:w-64 sm:flex-none"
         />
         <button
           type="submit"
-          className="h-8 rounded border bg-background px-3 text-xs hover:bg-accent"
+          className="h-9 rounded-lg bg-foreground px-3 text-xs font-medium text-background transition-colors hover:bg-foreground/90"
         >
           Apply
         </button>
       </form>
 
-      <div className="overflow-hidden rounded-xl border bg-card shadow-sm shadow-black/[0.03]">
-        <div className="overflow-x-auto">
-        <table className="min-w-full text-sm">
-          <thead className="bg-muted/40 text-left text-[11px] uppercase tracking-wider text-muted-foreground">
+      <AdminTableShell>
+        <AdminTable>
+          <AdminThead>
             <tr>
-              <th className="px-3 py-2 font-medium">Name</th>
-              <th className="px-3 py-2 font-medium">User</th>
-              <th className="px-3 py-2 font-medium">Type</th>
-              <th className="px-3 py-2 font-medium tabular-nums">Size</th>
-              <th className="hidden px-3 py-2 font-medium tabular-nums sm:table-cell">
-                Project
-              </th>
-              <th className="px-3 py-2 font-medium tabular-nums">Uploaded</th>
+              <AdminTh>Name</AdminTh>
+              <AdminTh>User</AdminTh>
+              <AdminTh>Type</AdminTh>
+              <AdminTh className="tabular-nums">Size</AdminTh>
+              <AdminTh className="hidden tabular-nums sm:table-cell">Project</AdminTh>
+              <AdminTh className="tabular-nums">Uploaded</AdminTh>
             </tr>
-          </thead>
+          </AdminThead>
           <tbody>
             {result.rows.length === 0 ? (
               <tr>
                 <td
                   colSpan={6}
-                  className="px-3 py-8 text-center text-xs text-muted-foreground"
+                  className="px-3 py-10 text-center text-xs text-muted-foreground"
                 >
-                  No files match.
+                  No files match these filters.
                 </td>
               </tr>
             ) : (
               result.rows.map((f) => (
-                <tr key={f.id} className="border-t border-border/40">
-                  <td className="px-3 py-2 font-mono">{f.file_name}</td>
-                  <td className="px-3 py-2">
+                <AdminTr key={f.id}>
+                  <AdminTd className="font-mono">{f.file_name}</AdminTd>
+                  <AdminTd>
                     <Link
                       href={`/admin/users/${f.user_id}`}
                       className="block leading-tight hover:underline"
@@ -117,26 +124,25 @@ export default async function AdminFilesPage({ searchParams }: Props) {
                         {f.email}
                       </div>
                     </Link>
-                  </td>
-                  <td className="px-3 py-2 font-mono text-[11px] text-muted-foreground">
+                  </AdminTd>
+                  <AdminTd className="font-mono text-[11px] text-muted-foreground">
                     {f.mime_type ?? "-"}
-                  </td>
-                  <td className="px-3 py-2 font-mono tabular-nums">
+                  </AdminTd>
+                  <AdminTd className="font-mono tabular-nums">
                     {formatBytes(f.file_size)}
-                  </td>
-                  <td className="hidden px-3 py-2 font-mono text-[11px] text-muted-foreground sm:table-cell">
+                  </AdminTd>
+                  <AdminTd className="hidden font-mono text-[11px] text-muted-foreground sm:table-cell">
                     {f.project_id ? shortenId(f.project_id) : "-"}
-                  </td>
-                  <td className="px-3 py-2 font-mono text-[11px] tabular-nums text-muted-foreground">
+                  </AdminTd>
+                  <AdminTd className="font-mono text-[11px] tabular-nums text-muted-foreground">
                     {formatRelative(f.created_at)}
-                  </td>
-                </tr>
+                  </AdminTd>
+                </AdminTr>
               ))
             )}
           </tbody>
-        </table>
-        </div>
-      </div>
+        </AdminTable>
+      </AdminTableShell>
 
       {totalPages > 1 ? (
         <nav className="flex items-center justify-between text-xs">

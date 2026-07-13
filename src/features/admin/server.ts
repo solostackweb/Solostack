@@ -24,6 +24,7 @@
  */
 
 import "server-only";
+import { cache } from "react";
 import { cookies, headers } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 import type { User } from "@supabase/supabase-js";
@@ -71,11 +72,27 @@ export const VIEW_AS_COOKIE = "stk_admin_view_as";
  * to an attacker who guesses the URL. A 404 makes the surface
  * indistinguishable from a missing page.
  */
-export async function requireAdmin(): Promise<User> {
+/**
+ * Request-scoped auth lookup.
+ *
+ * `supabase.auth.getUser()` is a network round-trip to Supabase Auth. It
+ * gets called from the admin layout AND from the page on every navigation
+ * (plus any nested server components). React's `cache()` memoizes the call
+ * for the lifetime of a single request render, so the whole tree shares one
+ * round-trip instead of paying it two or three times. This is the single
+ * biggest latency win for the console.
+ */
+const getAuthedUser = cache(async (): Promise<User | null> => {
   const supabase = await getServerSupabase();
   const {
     data: { user },
   } = await supabase.auth.getUser();
+  return user ?? null;
+});
+
+export const requireAdmin = cache(async function requireAdmin(): Promise<User> {
+  const supabase = await getServerSupabase();
+  const user = await getAuthedUser();
 
   if (!user) {
     // Send through the normal login flow; user can come back via the
@@ -110,7 +127,7 @@ export async function requireAdmin(): Promise<User> {
   }
 
   return user;
-}
+});
 
 /**
  * Resolve the session's current Authenticator Assurance Level.
@@ -166,14 +183,11 @@ function isAdminUser(user: User): boolean {
  * redirecting. Useful for layouts that render shared chrome
  * (e.g. middleware-level redirects already handled).
  */
-export async function getAdminOrNull(): Promise<User | null> {
-  const supabase = await getServerSupabase();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+export const getAdminOrNull = cache(async (): Promise<User | null> => {
+  const user = await getAuthedUser();
   if (!user) return null;
   return isAdminUser(user) ? user : null;
-}
+});
 
 // ---------------------------------------------------------------------------
 // View-as
@@ -183,11 +197,11 @@ export async function getAdminOrNull(): Promise<User | null> {
  * Returns the UUID of the user the admin is currently "viewing as," or
  * null if no view-as session is active.
  */
-export async function getViewAsUserId(): Promise<string | null> {
+export const getViewAsUserId = cache(async (): Promise<string | null> => {
   const jar = await cookies();
   const val = jar.get(VIEW_AS_COOKIE)?.value;
   return val && /^[0-9a-f-]{36}$/.test(val) ? val : null;
-}
+});
 
 /**
  * Throws if a view-as session is active. Every server action that

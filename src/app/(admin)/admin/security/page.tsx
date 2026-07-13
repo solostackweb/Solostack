@@ -14,7 +14,7 @@ import { Filter, X, ShieldAlert, AlertTriangle, Info } from "lucide-react";
 
 import { listSecurityEvents } from "@/features/admin/queries";
 import { AdminPageHeader } from "@/components/admin/page-header";
-import { AdminSection, KpiGrid, StatCard } from "@/components/admin/kit";
+import { AdminSection, EmptyState, KpiGrid, StatCard } from "@/components/admin/kit";
 import { JsonViewer } from "@/components/admin/json-viewer";
 import {
   formatIstStamp,
@@ -178,9 +178,9 @@ export default async function AdminSecurityPage({ searchParams }: Props) {
       </p>
 
       {result.rows.length === 0 ? (
-        <div className="rounded border border-dashed bg-muted/20 px-3 py-6 text-center text-xs text-muted-foreground">
-          No events match.
-        </div>
+        <EmptyState icon={ShieldAlert} title="No events match">
+          Try widening the filters or clearing the search.
+        </EmptyState>
       ) : (
         <ul className="space-y-1.5">
           {result.rows.map((row) => {

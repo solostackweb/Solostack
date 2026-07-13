@@ -38,7 +38,14 @@ import {
   requireAdmin,
 } from "@/features/admin/server";
 import { AdminPageHeader } from "@/components/admin/page-header";
-import { AdminSection, KpiGrid, StatCard } from "@/components/admin/kit";
+import {
+  AdminSection,
+  Badge,
+  EmptyState,
+  KpiGrid,
+  Panel,
+  StatCard,
+} from "@/components/admin/kit";
 import { JsonViewer } from "@/components/admin/json-viewer";
 import { UserActions } from "@/components/admin/user-actions";
 import {
@@ -59,11 +66,9 @@ export default async function AdminUserDetailPage({ params }: Props) {
   const { id } = await params;
   const actor = await requireAdmin();
 
-  const overview = await getUserOverview(id);
-  if (!overview) notFound();
-
-  // Audit the read. Fire-and-forget - we don't await failure.
-  await recordAdminAction({
+  // Audit the read concurrently with the data fetches instead of blocking
+  // the page on an extra serial round-trip.
+  const auditRead = recordAdminAction({
     actorId: actor.id,
     kind: "user.read",
     targetType: "user",
@@ -72,15 +77,27 @@ export default async function AdminUserDetailPage({ params }: Props) {
     durationMs: 0,
   });
 
-  const [timeline, hasRazorpaySubscription, notes, supportThreads, churn, footprint] =
-    await Promise.all([
-      getUserTimeline(id),
-      userHasRazorpaySubscription(id),
-      listAdminNotes("user", id),
-      listSupportThreadsForUser(id, 8),
-      getUserChurnSignals(id),
-      getUserEntityCounts(id),
-    ]);
+  // One parallel batch: overview + every panel's data fan out together.
+  const [
+    overview,
+    timeline,
+    hasRazorpaySubscription,
+    notes,
+    supportThreads,
+    churn,
+    footprint,
+  ] = await Promise.all([
+    getUserOverview(id),
+    getUserTimeline(id),
+    userHasRazorpaySubscription(id),
+    listAdminNotes("user", id),
+    listSupportThreadsForUser(id, 8),
+    getUserChurnSignals(id),
+    getUserEntityCounts(id),
+  ]);
+
+  await auditRead;
+  if (!overview) notFound();
 
   const isBanned =
     overview.banned_until !== null &&
@@ -126,55 +143,54 @@ export default async function AdminUserDetailPage({ params }: Props) {
         <StatCard label="Invoices - Clients" value={`${overview.invoice_count} - ${overview.client_count}`} />
       </KpiGrid>
 
-      {/* Profile snapshot */}
-      <Section title="Profile" icon={Shield}>
-        <dl className="grid grid-cols-1 gap-x-6 gap-y-2 sm:grid-cols-2">
-          <Field label="Signed up">
-            {formatIstStamp(overview.signed_up_at)} IST
-          </Field>
-          <Field label="Last sign-in">
-            {formatRelative(overview.last_sign_in_at)}
-          </Field>
-          <Field label="Email confirmed">
-            {overview.email_confirmed_at
-              ? formatIstStamp(overview.email_confirmed_at) + " IST"
-              : "Not yet"}
-          </Field>
-          <Field label="Country">{overview.country || "-"}</Field>
-          <Field label="Company">{overview.company_name || "-"}</Field>
-          <Field label="Suppressions">
-            {overview.suppression_count > 0 ? (
-              <span className="text-amber-600 dark:text-amber-400">
-                {overview.suppression_count}
-              </span>
-            ) : (
-              0
-            )}
-          </Field>
-        </dl>
-      </Section>
+      {/* Profile + Subscription - short, so pair them on wide screens */}
+      <div className="grid gap-4 lg:grid-cols-2">
+        <Panel title="Profile" icon={Shield}>
+          <FieldGrid>
+            <Field label="Signed up">
+              {formatIstStamp(overview.signed_up_at)} IST
+            </Field>
+            <Field label="Last sign-in">
+              {formatRelative(overview.last_sign_in_at)}
+            </Field>
+            <Field label="Email confirmed">
+              {overview.email_confirmed_at
+                ? formatIstStamp(overview.email_confirmed_at) + " IST"
+                : "Not yet"}
+            </Field>
+            <Field label="Country">{overview.country || "-"}</Field>
+            <Field label="Company">{overview.company_name || "-"}</Field>
+            <Field label="Suppressions">
+              {overview.suppression_count > 0 ? (
+                <span className="text-amber-600 dark:text-amber-400">
+                  {overview.suppression_count}
+                </span>
+              ) : (
+                0
+              )}
+            </Field>
+          </FieldGrid>
+        </Panel>
 
-      {/* Subscription */}
-      <Section title="Subscription" icon={CreditCard}>
-        <dl className="grid grid-cols-1 gap-x-6 gap-y-2 sm:grid-cols-2">
-          <Field label="Plan">{overview.plan ?? "free"}</Field>
-          <Field label="Status">{overview.subscription_status ?? "-"}</Field>
-          <Field label="Current period end">
-            {overview.current_period_end
-              ? formatIstStamp(overview.current_period_end) + " IST"
-              : "-"}
-          </Field>
-          <Field label="Lifetime revenue (paise)">
-            <span className="font-mono">
-              {overview.total_revenue_paise.toLocaleString("en-IN")}
-            </span>
-          </Field>
-        </dl>
-      </Section>
+        <Panel title="Subscription" icon={CreditCard}>
+          <FieldGrid>
+            <Field label="Plan">{overview.plan ?? "free"}</Field>
+            <Field label="Status">{overview.subscription_status ?? "-"}</Field>
+            <Field label="Current period end">
+              {overview.current_period_end
+                ? formatIstStamp(overview.current_period_end) + " IST"
+                : "-"}
+            </Field>
+            <Field label="Lifetime revenue">
+              {formatPaiseInr(overview.total_revenue_paise)}
+            </Field>
+          </FieldGrid>
+        </Panel>
+      </div>
 
       {/* Product footprint (Admin A5) */}
-      <Section title="Footprint" icon={Boxes}>
-        <dl className="grid grid-cols-3 gap-x-6 gap-y-3 sm:grid-cols-3 lg:grid-cols-5">
+      <Panel title="Footprint" icon={Boxes}>
+        <FieldGrid className="sm:grid-cols-3 lg:grid-cols-5">
           <Field label="Clients">{footprint.clients}</Field>
           <Field label="Projects">{footprint.projects}</Field>
           <Field label="Invoices">{footprint.invoices}</Field>
@@ -184,122 +200,130 @@ export default async function AdminUserDetailPage({ params }: Props) {
           <Field label="Time entries">{footprint.timeEntries}</Field>
           <Field label="Files">{footprint.files}</Field>
           <Field label="Support tickets">{footprint.tickets}</Field>
-        </dl>
-      </Section>
+        </FieldGrid>
+      </Panel>
 
-      {/* Timelines */}
-      <Section title="Activity" icon={FileText} count={timeline.activity.length}>
-        <Timeline
-          items={timeline.activity.map((a) => ({
-            id: a.id,
-            primary: a.title ?? a.kind,
-            secondary: a.kind,
-            at: a.created_at,
-          }))}
-          emptyText="No activity yet."
-        />
-      </Section>
+      {/* Timelines - two columns on wide screens to cut the vertical scroll */}
+      <div className="grid gap-4 xl:grid-cols-2">
+        <Panel
+          title="Activity"
+          icon={FileText}
+          action={<Badge>{timeline.activity.length}</Badge>}
+          bodyClassName="max-h-80 overflow-y-auto scrollbar-thin"
+        >
+          <Timeline
+            items={timeline.activity.map((a) => ({
+              id: a.id,
+              primary: a.title ?? a.kind,
+              secondary: a.kind,
+              at: a.created_at,
+            }))}
+            emptyText="No activity yet."
+          />
+        </Panel>
 
-      <Section
-        title="Security events"
-        icon={Shield}
-        count={timeline.security.length}
-      >
-        {timeline.security.length === 0 ? (
-          <Empty text="No security events recorded for this user." />
-        ) : (
-          <ul className="overflow-hidden rounded-xl border bg-card shadow-sm shadow-black/[0.03]">
-            {timeline.security.map((s) => (
-              <li
-                key={s.id}
-                className="border-b border-border/40 p-3 text-xs last:border-b-0"
-              >
-                <div className="flex items-center justify-between gap-3">
+        <Panel
+          title="Security events"
+          icon={Shield}
+          action={<Badge>{timeline.security.length}</Badge>}
+          bodyClassName="max-h-80 overflow-y-auto scrollbar-thin"
+        >
+          {timeline.security.length === 0 ? (
+            <EmptyState icon={Shield}>
+              No security events recorded for this user.
+            </EmptyState>
+          ) : (
+            <ul className="divide-y divide-border/50 overflow-hidden rounded-lg border bg-background/40">
+              {timeline.security.map((s) => (
+                <li key={s.id} className="p-3 text-xs">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2">
+                      <span
+                        className={cn(
+                          "inline-block h-1.5 w-1.5 rounded-full",
+                          s.severity === "alert"
+                            ? "bg-red-500"
+                            : s.severity === "warn"
+                              ? "bg-amber-500"
+                              : "bg-muted-foreground/50",
+                        )}
+                      />
+                      <span className="font-medium">{s.kind}</span>
+                      <span className="text-muted-foreground">{s.severity}</span>
+                    </div>
+                    <span className="font-mono tabular-nums text-muted-foreground">
+                      {formatIstStamp(s.created_at)}
+                    </span>
+                  </div>
+                  {s.metadata &&
+                  Object.keys(s.metadata as object).length > 0 ? (
+                    <div className="mt-2">
+                      <JsonViewer value={s.metadata} defaultExpandDepth={1} />
+                    </div>
+                  ) : null}
+                </li>
+              ))}
+            </ul>
+          )}
+        </Panel>
+
+        <Panel
+          title="Recent emails"
+          icon={Mail}
+          action={<Badge>{timeline.emails.length}</Badge>}
+          bodyClassName="max-h-80 overflow-y-auto scrollbar-thin"
+        >
+          <Timeline
+            items={timeline.emails.map((e) => ({
+              id: e.id,
+              primary: e.kind,
+              secondary: e.status,
+              at: e.created_at,
+            }))}
+            emptyText="No emails sent for this user yet."
+          />
+        </Panel>
+
+        <Panel
+          title="Recent payments"
+          icon={CreditCard}
+          action={<Badge>{timeline.payments.length}</Badge>}
+          bodyClassName="max-h-80 overflow-y-auto scrollbar-thin"
+        >
+          {timeline.payments.length === 0 ? (
+            <EmptyState icon={CreditCard}>No payments recorded.</EmptyState>
+          ) : (
+            <ul className="divide-y divide-border/50 overflow-hidden rounded-lg border bg-background/40 text-xs">
+              {timeline.payments.map((p) => (
+                <li
+                  key={p.id}
+                  className="flex items-center justify-between gap-3 p-2.5"
+                >
                   <div className="flex items-center gap-2">
                     <span
                       className={cn(
-                        "inline-block h-1.5 w-1.5 rounded-full",
-                        s.severity === "alert"
-                          ? "bg-red-500"
-                          : s.severity === "warn"
-                            ? "bg-amber-500"
+                        "h-1.5 w-1.5 rounded-full",
+                        p.status === "captured"
+                          ? "bg-emerald-500"
+                          : p.status === "failed"
+                            ? "bg-red-500"
                             : "bg-muted-foreground/50",
                       )}
                     />
-                    <span className="font-medium">{s.kind}</span>
-                    <span className="text-muted-foreground">
-                      {s.severity}
+                    <span className="font-medium tabular-nums">
+                      {formatPaiseInr(p.amount)}
                     </span>
+                    <span className="text-muted-foreground">{p.status}</span>
                   </div>
                   <span className="font-mono tabular-nums text-muted-foreground">
-                    {formatIstStamp(s.created_at)}
+                    {formatIstStamp(p.created_at)}
                   </span>
-                </div>
-                {s.metadata && Object.keys(s.metadata as object).length > 0 ? (
-                  <div className="mt-2">
-                    <JsonViewer value={s.metadata} defaultExpandDepth={1} />
-                  </div>
-                ) : null}
-              </li>
-            ))}
-          </ul>
-        )}
-      </Section>
-
-      <Section
-        title="Recent emails"
-        icon={Mail}
-        count={timeline.emails.length}
-      >
-        <Timeline
-          items={timeline.emails.map((e) => ({
-            id: e.id,
-            primary: e.kind,
-            secondary: e.status,
-            at: e.created_at,
-          }))}
-          emptyText="No emails sent for this user yet."
-        />
-      </Section>
-
-      <Section
-        title="Recent payments"
-        icon={CreditCard}
-        count={timeline.payments.length}
-      >
-        {timeline.payments.length === 0 ? (
-          <Empty text="No payments recorded." />
-        ) : (
-          <ul className="overflow-hidden rounded-xl border bg-card shadow-sm shadow-black/[0.03] text-xs">
-            {timeline.payments.map((p) => (
-              <li
-                key={p.id}
-                className="flex items-center justify-between gap-3 border-b border-border/40 p-2.5 last:border-b-0"
-              >
-                <div className="flex items-center gap-2">
-                  <span
-                    className={cn(
-                      "h-1.5 w-1.5 rounded-full",
-                      p.status === "captured"
-                        ? "bg-emerald-500"
-                        : p.status === "failed"
-                          ? "bg-red-500"
-                          : "bg-muted-foreground/50",
-                    )}
-                  />
-                  <span className="font-medium tabular-nums">
-                    {formatPaiseInr(p.amount)}
-                  </span>
-                  <span className="text-muted-foreground">{p.status}</span>
-                </div>
-                <span className="font-mono tabular-nums text-muted-foreground">
-                  {formatIstStamp(p.created_at)}
-                </span>
-              </li>
-            ))}
-          </ul>
-        )}
-      </Section>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Panel>
+      </div>
 
       <UserSupportThreads userId={overview.id} threads={supportThreads} />
 
@@ -340,30 +364,23 @@ function AccountTypeBadge({
   );
 }
 
-function Section({
-  title,
-  icon: Icon,
-  count,
+/** Dense, scannable definition grid - labels sit directly above values. */
+function FieldGrid({
   children,
+  className,
 }: {
-  title: string;
-  icon: React.ComponentType<{ className?: string }>;
-  count?: number;
   children: React.ReactNode;
+  className?: string;
 }) {
   return (
-    <section className="space-y-2">
-      <h2 className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-        <Icon className="h-3.5 w-3.5" />
-        {title}
-        {typeof count === "number" ? (
-          <span className="rounded bg-muted px-1.5 text-[10px] text-muted-foreground tabular-nums">
-            {count}
-          </span>
-        ) : null}
-      </h2>
+    <dl
+      className={cn(
+        "grid grid-cols-2 gap-x-6 gap-y-4 sm:grid-cols-3",
+        className,
+      )}
+    >
       {children}
-    </section>
+    </dl>
   );
 }
 
@@ -375,19 +392,13 @@ function Field({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex items-baseline justify-between gap-3 border-b border-border/30 py-1.5 text-xs sm:border-b-0">
-      <dt className="text-[11px] uppercase tracking-wider text-muted-foreground">
+    <div className="min-w-0 space-y-0.5">
+      <dt className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
         {label}
       </dt>
-      <dd className="text-right text-foreground">{children}</dd>
-    </div>
-  );
-}
-
-function Empty({ text }: { text: string }) {
-  return (
-    <div className="rounded border border-dashed bg-muted/20 px-3 py-3 text-xs text-muted-foreground">
-      {text}
+      <dd className="truncate text-sm text-foreground tabular-nums">
+        {children}
+      </dd>
     </div>
   );
 }
@@ -399,13 +410,14 @@ function Timeline({
   items: Array<{ id: string; primary: string; secondary: string; at: string }>;
   emptyText: string;
 }) {
-  if (items.length === 0) return <Empty text={emptyText} />;
+  if (items.length === 0)
+    return <EmptyState icon={FileText}>{emptyText}</EmptyState>;
   return (
-    <ul className="overflow-hidden rounded-xl border bg-card shadow-sm shadow-black/[0.03] text-xs">
+    <ul className="divide-y divide-border/50 overflow-hidden rounded-lg border bg-background/40 text-xs">
       {items.map((it) => (
         <li
           key={it.id}
-          className="flex items-center justify-between gap-3 border-b border-border/40 p-2.5 last:border-b-0"
+          className="flex items-center justify-between gap-3 p-2.5"
         >
           <div className="flex min-w-0 flex-col leading-tight">
             <span className="truncate font-medium">{it.primary}</span>

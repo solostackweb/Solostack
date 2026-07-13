@@ -14,7 +14,8 @@
 import Link from "next/link";
 import { getAdminSupabase } from "@/lib/supabase/admin";
 import { AdminPageHeader } from "@/components/admin/page-header";
-import { AdminSection } from "@/components/admin/kit";
+import { AdminSection, EmptyState } from "@/components/admin/kit";
+import { ClipboardList } from "lucide-react";
 import { JsonViewer } from "@/components/admin/json-viewer";
 import {
   formatIstStamp,
@@ -67,10 +68,10 @@ export default async function AdminAuditPage({ searchParams }: Props) {
       />
 
       {rows.length === 0 ? (
-        <div className="rounded border border-dashed bg-muted/20 px-3 py-6 text-center text-xs text-muted-foreground">
-          No admin actions yet. The audit log populates the first time you
-          perform a write through the console.
-        </div>
+        <EmptyState icon={ClipboardList} title="No admin actions yet">
+          The audit log populates the first time you perform a write through the
+          console.
+        </EmptyState>
       ) : (
         <ul className="space-y-1.5">
           {rows.map((row) => (

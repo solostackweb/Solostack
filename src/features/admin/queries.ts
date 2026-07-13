@@ -508,30 +508,32 @@ export async function getSubscriptionDetail(subscriptionId: string): Promise<{
   const raw = detailResult.data as RawSub | null;
   if (!raw) return { subscription: null, payments: [], events: [] };
 
-  const profileMap = await fetchProfileMap([raw.user_id]);
-  const subscription: SubscriptionListRow = {
-    ...raw,
-    email: profileMap.get(raw.user_id)?.email ?? "-",
-    full_name: profileMap.get(raw.user_id)?.full_name ?? "-",
-  };
-
-  // Latest 25 payments + 25 billing_events that reference this user.
-  const [payRes, evtRes] = await Promise.all([
+  // Profile lookup, payments, and billing events all key off user_id, so fan
+  // them out together instead of blocking the payment/event reads on the
+  // profile round-trip first.
+  const [profileMap, payRes, evtRes] = await Promise.all([
+    fetchProfileMap([raw.user_id]),
     admin
       .from("billing_payments")
       .select(
         "id, amount, currency, status, method, razorpay_payment_id, created_at",
       )
-      .eq("user_id", subscription.user_id)
+      .eq("user_id", raw.user_id)
       .order("created_at", { ascending: false })
       .limit(25),
     admin
       .from("billing_events")
       .select("id, event_id, event_type, processed_at, error, created_at")
-      .eq("user_id", subscription.user_id)
+      .eq("user_id", raw.user_id)
       .order("created_at", { ascending: false })
       .limit(25),
   ]);
+
+  const subscription: SubscriptionListRow = {
+    ...raw,
+    email: profileMap.get(raw.user_id)?.email ?? "-",
+    full_name: profileMap.get(raw.user_id)?.full_name ?? "-",
+  };
 
   return {
     subscription,

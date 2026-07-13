@@ -12,11 +12,11 @@
  */
 
 import Link from "next/link";
-import { ExternalLink } from "lucide-react";
+import { ExternalLink, CreditCard } from "lucide-react";
 
 import { requireAdmin } from "@/features/admin/server";
 import { AdminPageHeader } from "@/components/admin/page-header";
-import { AdminSection, StatCard } from "@/components/admin/kit";
+import { AdminSection, EmptyState, StatCard } from "@/components/admin/kit";
 import { cn } from "@/lib/utils";
 import {
   isRazorpayConfigured,
@@ -41,22 +41,24 @@ export default async function AdminRazorpayPage() {
           title="Payments"
           subtitle="Razorpay integration"
         />
-        <div className="rounded-lg border border-dashed p-8 text-center">
-          <p className="text-sm font-medium">Razorpay not configured</p>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Set <code className="text-xs">RAZORPAY_KEY_ID</code> and{" "}
-            <code className="text-xs">RAZORPAY_KEY_SECRET</code> in your
-            environment variables to enable payment metrics.
-          </p>
-          <Link
-            href="https://dashboard.razorpay.com/app/keys"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="mt-4 inline-flex items-center gap-1 text-xs text-primary hover:underline"
-          >
-            Razorpay API Keys <ExternalLink className="h-3 w-3" />
-          </Link>
-        </div>
+        <EmptyState
+          icon={CreditCard}
+          title="Razorpay not configured"
+          action={
+            <Link
+              href="https://dashboard.razorpay.com/app/keys"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
+            >
+              Razorpay API Keys <ExternalLink className="h-3 w-3" />
+            </Link>
+          }
+        >
+          Set <code className="text-[11px]">RAZORPAY_KEY_ID</code> and{" "}
+          <code className="text-[11px]">RAZORPAY_KEY_SECRET</code> in your
+          environment variables to enable payment metrics.
+        </EmptyState>
       </div>
     );
   }
