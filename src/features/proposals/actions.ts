@@ -9,8 +9,16 @@ import { createInvoiceAction } from "@/features/invoices/actions";
 import { nextInvoiceNumber } from "@/features/invoices/server";
 import { recordActivity } from "@/features/activity/server";
 import { getFxRateToInr } from "@/features/payments/fx";
+import { isValidPublicShareToken } from "@/features/share/server";
+import { getAdminSupabase } from "@/lib/supabase/admin";
 import { getServerSupabase } from "@/lib/supabase/server";
-import type { ProposalItemRow, ProposalRow, UserProfileRow } from "@/lib/supabase/types";
+import type {
+  DocumentTemplateRow,
+  ProposalItemRow,
+  ProposalRow,
+  UserProfileRow,
+} from "@/lib/supabase/types";
+import { BUILTIN_TEMPLATES, type ProposalTemplateContent } from "@/features/templates/builtin";
 import {
   proposalCrudSchema,
   proposalIdSchema,
@@ -28,6 +36,55 @@ async function requireUserId(): Promise<string> {
   } = await supabase.auth.getUser();
   if (!user) redirect(AUTH_LOGIN_ROUTE);
   return user.id;
+}
+
+function cleanOptionalId(value: FormDataEntryValue | null) {
+  return typeof value === "string" && value.trim() ? value.trim() : null;
+}
+
+function cleanCurrency(value: FormDataEntryValue | null) {
+  const currency = typeof value === "string" ? value.trim().toUpperCase() : "";
+  return /^[A-Z]{3}$/.test(currency) ? currency : "INR";
+}
+
+function dateAfterDays(days: number) {
+  const date = new Date();
+  date.setDate(date.getDate() + days);
+  return date.toISOString().slice(0, 10);
+}
+
+async function loadProposalTemplate(userId: string, templateId: string | null) {
+  if (!templateId || templateId === "blank") return null;
+
+  const builtin = BUILTIN_TEMPLATES.find(
+    (template) => template.id === templateId && template.templateType === "proposal",
+  );
+  if (builtin) return builtin;
+
+  const supabase = await getServerSupabase();
+  const { data } = await supabase
+    .from("document_templates")
+    .select("*")
+    .eq("id", templateId)
+    .eq("user_id", userId)
+    .eq("template_type", "proposal")
+    .eq("active", true)
+    .maybeSingle();
+
+  const row = data as DocumentTemplateRow | null;
+  if (!row) return null;
+  return {
+    id: row.id,
+    userId: row.user_id,
+    templateType: row.template_type,
+    title: row.title,
+    description: row.description,
+    category: row.category,
+    content: row.content,
+    active: row.active,
+    isSystem: false,
+    updatedAt: row.updated_at,
+  };
 }
 
 function parseProposalForm(formData: FormData) {
@@ -115,6 +172,79 @@ export async function createProposalAction(
     data: { id: String((data as Pick<ProposalRow, "id">).id) },
     message: "Proposal created.",
   };
+}
+
+export async function createProposalFromTemplateRedirectAction(
+  formData: FormData,
+): Promise<void> {
+  const userId = await requireUserId();
+  const supabase = await getServerSupabase();
+  const template = await loadProposalTemplate(userId, cleanOptionalId(formData.get("templateId")));
+  const content = (template?.content ?? {}) as ProposalTemplateContent;
+  const title =
+    typeof formData.get("title") === "string" && String(formData.get("title")).trim()
+      ? String(formData.get("title")).trim().slice(0, 180)
+      : (template?.title ?? "Untitled proposal");
+  const clientId = cleanOptionalId(formData.get("clientId"));
+  const projectId = cleanOptionalId(formData.get("projectId"));
+  const currency = cleanCurrency(formData.get("currency"));
+  const items =
+    Array.isArray(content.items) && content.items.length > 0
+      ? content.items
+      : [{ description: "Service package", quantity: 1, unitPrice: 0 }];
+  const subtotal =
+    Math.round(
+      items.reduce(
+        (sum, item) => sum + Number(item.quantity || 1) * Number(item.unitPrice || 0),
+        0,
+      ) * 100,
+    ) / 100;
+
+  const { data, error } = await supabase
+    .from("proposals")
+    .insert({
+      user_id: userId,
+      title,
+      client_id: clientId,
+      project_id: projectId,
+      status: "draft",
+      currency,
+      subtotal,
+      tax_amount: 0,
+      total_amount: subtotal,
+      valid_until: dateAfterDays(14),
+      scope: content.scope ?? null,
+      deliverables: content.deliverables ?? null,
+      timeline: content.timeline ?? null,
+      terms: content.terms ?? null,
+    } as never)
+    .select("id")
+    .single();
+
+  if (error || !data) redirect("/dashboard/proposals?createError=1");
+  const proposalId = String((data as Pick<ProposalRow, "id">).id);
+
+  const rows = items
+    .filter((item) => String(item.description ?? "").trim())
+    .map((item, index) => {
+      const quantity = Number(item.quantity || 1);
+      const unitPrice = Number(item.unitPrice || 0);
+      return {
+        proposal_id: proposalId,
+        description: String(item.description).trim(),
+        quantity,
+        unit_price: unitPrice,
+        amount: Math.round(quantity * unitPrice * 100) / 100,
+        sort_order: index,
+      };
+    });
+
+  if (rows.length > 0) {
+    await supabase.from("proposal_items").insert(rows as never);
+  }
+
+  revalidatePath("/dashboard/proposals");
+  redirect(`/dashboard/proposals/${proposalId}`);
 }
 
 export async function updateProposalAction(
@@ -278,6 +408,44 @@ export async function shareProposalAction(input: {
       url: getProposalShareUrl(token),
     },
   };
+}
+
+export async function acceptPublicProposalAction(formData: FormData): Promise<void> {
+  const token = String(formData.get("token") ?? "").trim();
+  if (!isValidPublicShareToken(token)) return;
+
+  const admin = getAdminSupabase();
+  const acceptedAt = new Date().toISOString();
+  const { data } = await admin
+    .from("proposals")
+    .update({
+      status: "accepted",
+      accepted_at: acceptedAt,
+    } as never)
+    .eq("public_token", token)
+    .select("id,user_id,title")
+    .maybeSingle();
+
+  const proposal = data as Pick<ProposalRow, "id" | "user_id" | "title"> | null;
+  if (proposal) {
+    await admin.from("activity_events").insert({
+      user_id: proposal.user_id,
+      kind: "proposal_accepted",
+      entity_type: "proposal",
+      entity_id: proposal.id,
+      title: `"${proposal.title}" accepted`,
+      metadata: { via: "public_link" },
+    } as never);
+
+    await admin.from("notifications").insert({
+      user_id: proposal.user_id,
+      type: "proposal_accepted",
+      title: "Proposal accepted",
+      message: `${proposal.title} was acknowledged by the client. You can now convert it to a contract, project, or invoice.`,
+    } as never);
+  }
+
+  revalidatePath(`/p/${token}`);
 }
 
 async function loadOwnedProposal(input: { id: string; userId: string }) {

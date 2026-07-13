@@ -251,7 +251,7 @@ export function ProposalBuilderView({
           </Button>
           <h1 className="truncate text-3xl font-bold tracking-tight">Proposal builder</h1>
           <p className="mt-1 text-muted-foreground">
-            Shape the offer, package the price, and share a clean client link.
+            Shape a lightweight offer. Clients can acknowledge it, then you can convert it to a contract, project, or invoice.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -302,7 +302,7 @@ export function ProposalBuilderView({
 
       <IvoContextActions
         title="Proposal co-pilot"
-        description="Review the offer, pricing, tax treatment, and conversion path before sharing."
+        description="Review the offer, pricing, tax treatment, and next step before sharing."
         actions={[
           {
             label: "Review offer",
@@ -440,7 +440,7 @@ export function ProposalBuilderView({
                 <div>
                   <h2 className="text-lg font-semibold">Packages and line items</h2>
                   <p className="text-sm text-muted-foreground">
-                    Add fixed packages, milestones, retainers, or optional service lines.
+                    Add offer packages, milestones, retainers, or optional service lines.
                   </p>
                 </div>
                 <Button
@@ -516,7 +516,7 @@ export function ProposalBuilderView({
                     Proposal templates
                   </h2>
                   <p className="text-sm text-muted-foreground">
-                    Apply a reusable structure, then adjust it for this client.
+                    Switch structure if the offer changed. New proposals start from a template.
                   </p>
                 </div>
                 <Button asChild variant="outline" size="sm">

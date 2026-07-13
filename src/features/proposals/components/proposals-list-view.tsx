@@ -35,7 +35,6 @@ import { formatMoney } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 import {
-  createProposalAction,
   deleteProposalAction,
   updateProposalAction,
 } from "../actions";
@@ -76,14 +75,7 @@ export function ProposalsListView({
   const [search, setSearch] = React.useState("");
   const [statusFilter, setStatusFilter] = React.useState<ProposalStatusRow | "all">("all");
   const [editing, setEditing] = React.useState<ProposalRecord | null>(null);
-  const [createOpen, setCreateOpen] = React.useState(false);
   const [, startTransition] = React.useTransition();
-
-  React.useEffect(() => {
-    if (new URLSearchParams(window.location.search).get("create") === "1") {
-      setCreateOpen(true);
-    }
-  }, []);
 
   const clientById = React.useMemo(
     () => new Map(clients.map((client) => [client.id, client])),
@@ -149,8 +141,10 @@ export function ProposalsListView({
               label="Ask Ivo"
               variant="outline"
             />
-            <Button size="sm" onClick={() => setCreateOpen(true)}>
+            <Button asChild size="sm">
+              <Link href="/dashboard/proposals/new">
               <Plus /> New proposal
+              </Link>
             </Button>
           </div>
         }
@@ -196,7 +190,7 @@ export function ProposalsListView({
               ? "Create your first proposal to turn a client conversation into a packaged offer."
               : "Try a different search term or status filter."
           }
-          action={{ label: "New proposal", onClick: () => setCreateOpen(true) }}
+          action={{ label: "New proposal", href: "/dashboard/proposals/new" }}
         />
       ) : (
         <div className="grid gap-3">
@@ -271,16 +265,6 @@ export function ProposalsListView({
       )}
 
       <ProposalFormDialog
-        open={createOpen}
-        onOpenChange={setCreateOpen}
-        clients={clients}
-        projects={projects}
-        onSaved={(id) => {
-          if (id) router.push(`/dashboard/proposals/${id}`);
-          else router.refresh();
-        }}
-      />
-      <ProposalFormDialog
         open={Boolean(editing)}
         onOpenChange={(open) => {
           if (!open) setEditing(null);
@@ -317,27 +301,24 @@ function ProposalFormDialog({
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  proposal?: ProposalRecord | null;
+  proposal: ProposalRecord | null;
   clients: ClientOption[];
   projects: ProjectOption[];
   onSaved: (id?: string) => void;
 }) {
   const [isPending, startTransition] = React.useTransition();
-  const isEditing = Boolean(proposal);
-
   const submit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const formData = new FormData(event.currentTarget);
-    if (proposal) formData.set("id", proposal.id);
+    if (!proposal) return;
+    formData.set("id", proposal.id);
     startTransition(async () => {
-      const res = proposal
-        ? await updateProposalAction(undefined, formData)
-        : await createProposalAction(undefined, formData);
+      const res = await updateProposalAction(undefined, formData);
       if (!res.ok) {
         toast.error(res.error);
         return;
       }
-      toast.success(isEditing ? "Proposal updated" : "Proposal created");
+      toast.success("Proposal updated");
       onOpenChange(false);
       onSaved(res.data?.id);
     });
@@ -347,8 +328,8 @@ function ProposalFormDialog({
     <ResponsiveModal
       open={open}
       onOpenChange={onOpenChange}
-      title={isEditing ? "Edit proposal" : "New proposal"}
-      description="Capture the offer now. Packages, acceptance, and sharing arrive in the next phase."
+      title="Edit proposal"
+      description="Update the proposal summary. For detailed package editing, open the builder."
       className="sm:max-w-3xl"
     >
       <form onSubmit={submit} className="space-y-4 pb-2">
@@ -430,7 +411,7 @@ function ProposalFormDialog({
             Cancel
           </Button>
           <Button type="submit" disabled={isPending}>
-            {isPending ? "Saving..." : isEditing ? "Save changes" : "Create proposal"}
+            {isPending ? "Saving..." : "Save changes"}
           </Button>
         </div>
       </form>
