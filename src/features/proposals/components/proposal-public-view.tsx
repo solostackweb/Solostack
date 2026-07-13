@@ -1,11 +1,20 @@
 import * as React from "react";
 import {
+  ArrowRight,
+  BadgeCheck,
+  BriefcaseBusiness,
+  CalendarDays,
   CheckCircle2,
   CircleDollarSign,
+  FileCheck2,
   FileText,
   Landmark,
+  ListChecks,
+  Mail,
+  MapPin,
   UserRound,
 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { formatMoney } from "@/lib/format";
@@ -18,8 +27,12 @@ export function ProposalPublicView({ data }: { data: PublicProposalData }) {
   const sellerName =
     seller?.business_name || seller?.company_name || seller?.full_name || "Freelancer";
   const clientName = client?.business_name || client?.full_name || "Client";
+  const sellerEmail = seller?.business_email || seller?.email || null;
+  const clientEmail = client?.email ?? null;
   const statusLabel = proposal.status.replace(/_/g, " ");
-  const hasTax = Number(proposal.tax_amount) > 0;
+  const total = Number(proposal.total_amount);
+  const subtotal = Number(proposal.subtotal);
+  const taxAmount = Number(proposal.tax_amount);
   const guidance = getProposalBillingGuidance({
     seller: {
       gstRegistered: seller?.gst_registered ?? false,
@@ -42,231 +55,174 @@ export function ProposalPublicView({ data }: { data: PublicProposalData }) {
 
   return (
     <article className="bg-card text-card-foreground">
-      <header className="relative overflow-hidden border-b bg-background px-5 py-8 sm:px-8 lg:px-10">
-        <div className="pointer-events-none absolute inset-x-0 top-0 h-28 bg-gradient-to-b from-primary/8 to-transparent" />
-        <div className="relative grid gap-7 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start">
+      <header className="border-b bg-background px-5 py-8 sm:px-8 lg:px-10 lg:py-10">
+        <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_340px] lg:items-stretch">
           <div className="min-w-0">
-            <span className="inline-flex items-center gap-1.5 rounded-full border bg-card px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground shadow-sm">
-              <FileText className="h-3.5 w-3.5 text-primary" />
-              Proposal
-            </span>
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="inline-flex items-center gap-1.5 rounded-full border bg-card px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground shadow-sm">
+                <FileText className="h-3.5 w-3.5 text-primary" />
+                Proposal
+              </span>
+              <span className="inline-flex rounded-full border border-primary/25 bg-primary/10 px-3 py-1 text-[11px] font-semibold capitalize text-primary">
+                {statusLabel}
+              </span>
+            </div>
+
             <h2 className="mt-5 max-w-3xl text-balance text-3xl font-semibold tracking-tight sm:text-4xl">
               {proposal.title}
             </h2>
-            <p className="mt-3 max-w-2xl text-sm leading-6 text-muted-foreground sm:text-base">
-              Prepared by <span className="font-medium text-foreground">{sellerName}</span> for{" "}
-              <span className="font-medium text-foreground">{clientName}</span>
-              {project?.name ? ` for ${project.name}` : ""}.
+            <p className="mt-4 max-w-2xl text-sm leading-7 text-muted-foreground sm:text-base">
+              Hi {clientName}, here is a clear offer from{" "}
+              <span className="font-medium text-foreground">{sellerName}</span>
+              {project?.name ? ` for ${project.name}` : ""}. It outlines the work, commercial
+              terms, and the next step before contract or kickoff.
             </p>
-            <div className="mt-6 flex flex-wrap gap-2">
-              <Meta label="Status" value={statusLabel} />
-              <Meta label="Currency" value={proposal.currency} />
-              {proposal.valid_until ? (
-                <Meta label="Valid until" value={formatDate(proposal.valid_until)} />
-              ) : null}
+
+            <div className="mt-7 grid gap-3 sm:grid-cols-3">
+              <GlanceItem
+                icon={CircleDollarSign}
+                label="Investment"
+                value={formatMoney(total, proposal.currency)}
+              />
+              <GlanceItem
+                icon={CalendarDays}
+                label="Valid until"
+                value={proposal.valid_until ? formatDate(proposal.valid_until) : "To be confirmed"}
+              />
+              <GlanceItem
+                icon={BriefcaseBusiness}
+                label="Project"
+                value={project?.name ?? "Not linked yet"}
+              />
             </div>
           </div>
 
-          <aside className="rounded-xl border bg-card p-5 shadow-sm">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-                  Total investment
-                </p>
-                <p className="mt-2 text-3xl font-bold tracking-tight">
-                  {formatMoney(Number(proposal.total_amount), proposal.currency)}
-                </p>
-              </div>
-              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                <CircleDollarSign className="h-5 w-5" />
-              </div>
-            </div>
-            <div className="mt-5 grid gap-2 border-t pt-4 text-sm">
-              <SummaryRow
-                label="Subtotal"
-                value={formatMoney(Number(proposal.subtotal), proposal.currency)}
-              />
-              {hasTax ? (
-                <SummaryRow
-                  label="Tax / charges"
-                  value={formatMoney(Number(proposal.tax_amount), proposal.currency)}
-                />
-              ) : null}
-              <p className="mt-2 rounded-lg bg-muted/50 p-3 text-xs leading-5 text-muted-foreground">
+          <aside className="flex flex-col justify-between rounded-2xl border bg-muted/20 p-5 shadow-sm">
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                Total proposal value
+              </p>
+              <p className="mt-3 text-4xl font-bold tracking-tight">
+                {formatMoney(total, proposal.currency)}
+              </p>
+              <p className="mt-3 text-sm leading-6 text-muted-foreground">
                 {guidance.publicNote}
               </p>
+            </div>
+            <div className="mt-6 grid gap-2 border-t pt-4 text-sm">
+              <SummaryRow label="Subtotal" value={formatMoney(subtotal, proposal.currency)} />
+              <SummaryRow
+                label="Tax / charges"
+                value={formatMoney(taxAmount, proposal.currency)}
+              />
+              <SummaryRow
+                label="Total"
+                value={formatMoney(total, proposal.currency)}
+                strong
+              />
             </div>
           </aside>
         </div>
       </header>
 
       <section className="grid gap-4 border-b bg-muted/20 px-5 py-5 sm:grid-cols-2 sm:px-8 lg:px-10">
-        <Party icon={Landmark} heading="From" name={sellerName}>
-          {seller?.business_email || seller?.email ? (
-            <p>{seller.business_email || seller.email}</p>
-          ) : null}
+        <PartyBlock icon={Landmark} heading="From" name={sellerName} email={sellerEmail}>
           {seller?.business_phone || seller?.phone ? (
             <p>{seller.business_phone || seller.phone}</p>
           ) : null}
           {formatSellerAddress(seller).map((line) => (
             <p key={line}>{line}</p>
           ))}
-        </Party>
-        <Party icon={UserRound} heading="Prepared for" name={clientName}>
-          {client?.email ? <p>{client.email}</p> : null}
+        </PartyBlock>
+        <PartyBlock icon={UserRound} heading="Prepared for" name={clientName} email={clientEmail}>
           {client?.phone ? <p>{client.phone}</p> : null}
           {client?.billing_address || client?.address ? (
             <p>{client.billing_address || client.address}</p>
           ) : null}
-        </Party>
+        </PartyBlock>
       </section>
 
-      <section className="space-y-8 px-5 py-7 sm:px-8 sm:py-9 lg:px-10">
-        <Section eyebrow="Commercials" title="Packages and pricing">
-          <div className="overflow-hidden rounded-xl border bg-background">
-            <div className="hidden grid-cols-[minmax(0,1fr)_80px_120px_130px] gap-3 border-b bg-muted/50 px-5 py-3 text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground md:grid">
-              <span>Description</span>
-              <span className="text-right">Qty</span>
-              <span className="text-right">Rate</span>
-              <span className="text-right">Amount</span>
-            </div>
-            <div className="divide-y">
-              {items.length > 0 ? (
-                items.map((item) => (
-                  <div
-                    key={item.id}
-                    className="grid gap-2 px-5 py-4 text-sm md:grid-cols-[minmax(0,1fr)_80px_120px_130px] md:gap-3"
-                  >
-                    <p className="font-medium leading-6">{item.description}</p>
-                    <p className="text-muted-foreground md:text-right">
-                      <span className="md:hidden">Qty </span>
-                      {Number(item.quantity)}
-                    </p>
-                    <p className="text-muted-foreground md:text-right">
-                      <span className="md:hidden">Rate </span>
-                      {formatMoney(Number(item.unit_price), proposal.currency)}
-                    </p>
-                    <p className="font-semibold md:text-right">
-                      <span className="md:hidden text-muted-foreground">Amount </span>
-                      {formatMoney(Number(item.amount), proposal.currency)}
-                    </p>
-                  </div>
-                ))
-              ) : (
-                <div className="px-5 py-5 text-sm text-muted-foreground">
-                  Pricing will be confirmed in writing.
-                </div>
-              )}
-            </div>
-            <div className="border-t bg-muted/20 px-5 py-4">
-              <div className="ml-auto grid max-w-sm gap-2 text-sm">
-                <SummaryRow
-                  label="Subtotal"
-                  value={formatMoney(Number(proposal.subtotal), proposal.currency)}
-                />
-                <SummaryRow
-                  label="Tax / charges"
-                  value={formatMoney(Number(proposal.tax_amount), proposal.currency)}
-                />
-                <SummaryRow
-                  label="Total"
-                  value={formatMoney(Number(proposal.total_amount), proposal.currency)}
-                  strong
-                />
-              </div>
-            </div>
+      <section className="space-y-8 px-5 py-8 sm:px-8 lg:px-10">
+        <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_300px]">
+          <SectionPanel eyebrow="Offer" title="What this covers" icon={FileCheck2}>
+            <TextBlock value={proposal.scope} empty="Scope will be confirmed before kickoff." />
+          </SectionPanel>
+
+          <div className="space-y-4">
+            <MiniPanel icon={BadgeCheck} title={guidance.modeLabel}>
+              {guidance.publicNote}
+            </MiniPanel>
+            <MiniPanel icon={ListChecks} title="After acceptance">
+              The freelancer can turn this into a contract, project, or invoice without repeating
+              the details.
+            </MiniPanel>
           </div>
-          <InfoStrip title={guidance.modeLabel}>{guidance.publicNote}</InfoStrip>
-        </Section>
-
-        <div className="grid gap-5 lg:grid-cols-2">
-          <Section eyebrow="01" title="Scope">
-            <RichText value={proposal.scope} empty="Scope will be confirmed before kickoff." />
-          </Section>
-          <Section eyebrow="02" title="Deliverables">
-            <RichText value={proposal.deliverables} empty="Deliverables will be confirmed before kickoff." />
-          </Section>
-          <Section eyebrow="03" title="Timeline">
-            <RichText value={proposal.timeline} empty="Timeline will be mutually confirmed." />
-          </Section>
-          <Section eyebrow="04" title="Terms">
-            <RichText value={proposal.terms} empty="Commercial terms will be confirmed in writing." />
-          </Section>
         </div>
 
-        <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-5 text-sm text-muted-foreground">
-          {proposal.status === "accepted" ? (
-            <div className="flex gap-3">
-              <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-emerald-500" />
-              <div>
-                <p className="font-semibold text-foreground">Proposal accepted</p>
-                <p className="mt-1 leading-6">
-                  This proposal has been acknowledged. The freelancer can now move it into a
-                  contract, project, or invoice.
-                </p>
-              </div>
-            </div>
-          ) : (
-            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-              <div className="flex gap-3">
-                <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-emerald-500" />
-                <div>
-                  <p className="font-semibold text-foreground">Ready to move ahead?</p>
-                  <p className="mt-1 max-w-2xl leading-6">
-                    Accepting this proposal acknowledges the scope and pricing so the freelancer
-                    can prepare the next step. This is not an e-signature contract.
-                  </p>
-                </div>
-              </div>
-              <form action={acceptPublicProposalAction}>
-                <input type="hidden" name="token" value={proposal.public_token} />
-                <Button type="submit" className="w-full sm:w-auto">
-                  <CheckCircle2 className="h-4 w-4" /> Accept proposal
-                </Button>
-              </form>
-            </div>
-          )}
+        <SectionPanel eyebrow="Pricing" title="Packages and investment" icon={CircleDollarSign}>
+          <PricingTable items={items} proposal={proposal} />
+        </SectionPanel>
+
+        <div className="grid gap-5 lg:grid-cols-3">
+          <SectionPanel eyebrow="Deliverables" title="What you receive" icon={ListChecks}>
+            <TextBlock
+              value={proposal.deliverables}
+              empty="Deliverables will be confirmed before kickoff."
+            />
+          </SectionPanel>
+          <SectionPanel eyebrow="Timeline" title="How the work moves" icon={CalendarDays}>
+            <TextBlock value={proposal.timeline} empty="Timeline will be mutually confirmed." />
+          </SectionPanel>
+          <SectionPanel eyebrow="Terms" title="Commercial terms" icon={FileText}>
+            <TextBlock
+              value={proposal.terms}
+              empty="Commercial terms will be confirmed in writing."
+            />
+          </SectionPanel>
         </div>
+
+        <NextSteps />
+        <AcceptancePanel proposal={proposal} />
       </section>
     </article>
   );
 }
 
-function Section({
-  eyebrow,
-  title,
-  children,
+function GlanceItem({
+  icon: Icon,
+  label,
+  value,
 }: {
-  eyebrow: string;
-  title: string;
-  children: React.ReactNode;
+  icon: LucideIcon;
+  label: string;
+  value: string;
 }) {
   return (
-    <section className="space-y-3">
-      <div>
-        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-primary">
-          {eyebrow}
-        </p>
-        <h3 className="mt-1 text-lg font-semibold tracking-tight">{title}</h3>
+    <div className="rounded-xl border bg-card p-4 shadow-sm">
+      <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+        <Icon className="h-3.5 w-3.5 text-primary" />
+        {label}
       </div>
-      {children}
-    </section>
+      <p className="mt-2 line-clamp-2 text-sm font-semibold leading-5">{value}</p>
+    </div>
   );
 }
 
-function Party({
+function PartyBlock({
   icon: Icon,
   heading,
   name,
+  email,
   children,
 }: {
-  icon: typeof Landmark;
+  icon: LucideIcon;
   heading: string;
   name: string;
+  email: string | null;
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex gap-3 rounded-xl border bg-card p-4">
+    <div className="flex gap-3 rounded-xl border bg-card p-4 shadow-sm">
       <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
         <Icon className="h-4 w-4" />
       </div>
@@ -276,6 +232,12 @@ function Party({
         </p>
         <p className="mt-1 truncate text-sm font-semibold">{name}</p>
         <div className="mt-1 space-y-0.5 text-xs leading-5 text-muted-foreground">
+          {email ? (
+            <p className="inline-flex max-w-full items-center gap-1">
+              <Mail className="h-3 w-3 shrink-0" />
+              <span className="truncate">{email}</span>
+            </p>
+          ) : null}
           {children}
         </div>
       </div>
@@ -283,36 +245,232 @@ function Party({
   );
 }
 
-function Meta({ label, value }: { label: string; value: string }) {
+function SectionPanel({
+  eyebrow,
+  title,
+  icon: Icon,
+  children,
+}: {
+  eyebrow: string;
+  title: string;
+  icon: LucideIcon;
+  children: React.ReactNode;
+}) {
   return (
-    <div className="rounded-full border bg-card px-3 py-1.5 shadow-sm">
-      <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-        {label}
-      </p>
-      <p className="text-xs font-semibold capitalize tabular-nums text-foreground">{value}</p>
-    </div>
+    <section className="rounded-2xl border bg-background p-5 shadow-sm">
+      <div className="mb-4 flex items-start gap-3">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+          <Icon className="h-4 w-4" />
+        </div>
+        <div>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-primary">
+            {eyebrow}
+          </p>
+          <h3 className="mt-1 text-lg font-semibold tracking-tight">{title}</h3>
+        </div>
+      </div>
+      {children}
+    </section>
   );
 }
 
-function RichText({ value, empty }: { value: string | null; empty: string }) {
-  return (
-    <p className="min-h-32 whitespace-pre-wrap rounded-xl border bg-background p-5 text-sm leading-7 text-muted-foreground">
-      {value?.trim() || empty}
-    </p>
-  );
-}
-
-function InfoStrip({
+function MiniPanel({
+  icon: Icon,
   title,
   children,
 }: {
+  icon: LucideIcon;
   title: string;
   children: React.ReactNode;
 }) {
   return (
-    <div className="rounded-xl border bg-muted/25 p-4 text-sm text-muted-foreground">
-      <p className="font-semibold text-foreground">{title}</p>
-      <p className="mt-1 leading-6">{children}</p>
+    <div className="rounded-2xl border bg-background p-5 shadow-sm">
+      <div className="flex items-center gap-2 font-semibold">
+        <Icon className="h-4 w-4 text-primary" />
+        {title}
+      </div>
+      <p className="mt-2 text-sm leading-6 text-muted-foreground">{children}</p>
+    </div>
+  );
+}
+
+function PricingTable({
+  items,
+  proposal,
+}: {
+  items: PublicProposalData["items"];
+  proposal: PublicProposalData["proposal"];
+}) {
+  return (
+    <div className="overflow-hidden rounded-xl border">
+      <div className="hidden grid-cols-[minmax(0,1fr)_80px_120px_130px] gap-3 border-b bg-muted/50 px-5 py-3 text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground md:grid">
+        <span>Description</span>
+        <span className="text-right">Qty</span>
+        <span className="text-right">Rate</span>
+        <span className="text-right">Amount</span>
+      </div>
+      <div className="divide-y">
+        {items.length > 0 ? (
+          items.map((item) => (
+            <div
+              key={item.id}
+              className="grid gap-2 px-5 py-4 text-sm md:grid-cols-[minmax(0,1fr)_80px_120px_130px] md:gap-3"
+            >
+              <p className="font-medium leading-6">{item.description}</p>
+              <p className="text-muted-foreground md:text-right">
+                <span className="md:hidden">Qty </span>
+                {Number(item.quantity)}
+              </p>
+              <p className="text-muted-foreground md:text-right">
+                <span className="md:hidden">Rate </span>
+                {formatMoney(Number(item.unit_price), proposal.currency)}
+              </p>
+              <p className="font-semibold md:text-right">
+                <span className="text-muted-foreground md:hidden">Amount </span>
+                {formatMoney(Number(item.amount), proposal.currency)}
+              </p>
+            </div>
+          ))
+        ) : (
+          <div className="px-5 py-5 text-sm text-muted-foreground">
+            Pricing will be confirmed in writing.
+          </div>
+        )}
+      </div>
+      <div className="border-t bg-muted/20 px-5 py-4">
+        <div className="ml-auto grid max-w-sm gap-2 text-sm">
+          <SummaryRow
+            label="Subtotal"
+            value={formatMoney(Number(proposal.subtotal), proposal.currency)}
+          />
+          <SummaryRow
+            label="Tax / charges"
+            value={formatMoney(Number(proposal.tax_amount), proposal.currency)}
+          />
+          <SummaryRow
+            label="Total"
+            value={formatMoney(Number(proposal.total_amount), proposal.currency)}
+            strong
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function TextBlock({ value, empty }: { value: string | null; empty: string }) {
+  const lines = (value?.trim() || empty)
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+  const bulletLines = lines.filter((line) => /^[-*]\s+/.test(line));
+  const hasOnlyBullets = bulletLines.length > 0 && bulletLines.length === lines.length;
+
+  if (hasOnlyBullets) {
+    return (
+      <ul className="space-y-2 text-sm leading-6 text-muted-foreground">
+        {lines.map((line) => (
+          <li key={line} className="flex gap-2">
+            <CheckCircle2 className="mt-1 h-3.5 w-3.5 shrink-0 text-primary" />
+            <span>{line.replace(/^[-*]\s+/, "")}</span>
+          </li>
+        ))}
+      </ul>
+    );
+  }
+
+  return (
+    <div className="space-y-3 text-sm leading-7 text-muted-foreground">
+      {lines.map((line) =>
+        /^[-*]\s+/.test(line) ? (
+          <p key={line} className="flex gap-2">
+            <CheckCircle2 className="mt-1.5 h-3.5 w-3.5 shrink-0 text-primary" />
+            <span>{line.replace(/^[-*]\s+/, "")}</span>
+          </p>
+        ) : (
+          <p key={line}>{line}</p>
+        ),
+      )}
+    </div>
+  );
+}
+
+function NextSteps() {
+  const steps = [
+    {
+      title: "Accept proposal",
+      body: "Confirm that the offer direction, pricing, and scope look good.",
+    },
+    {
+      title: "Prepare next document",
+      body: "The freelancer can convert this into a contract, project, or invoice.",
+    },
+    {
+      title: "Kickoff",
+      body: "Work begins once the required agreement, payment, or project setup is complete.",
+    },
+  ];
+
+  return (
+    <section className="rounded-2xl border bg-muted/20 p-5">
+      <div className="mb-5 flex items-center gap-2">
+        <MapPin className="h-4 w-4 text-primary" />
+        <h3 className="font-semibold">Recommended next steps</h3>
+      </div>
+      <div className="grid gap-3 md:grid-cols-3">
+        {steps.map((step, index) => (
+          <div key={step.title} className="rounded-xl border bg-background p-4">
+            <div className="flex items-center justify-between gap-3">
+              <span className="flex h-7 w-7 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
+                {index + 1}
+              </span>
+              {index < steps.length - 1 ? (
+                <ArrowRight className="hidden h-4 w-4 text-muted-foreground md:block" />
+              ) : null}
+            </div>
+            <p className="mt-3 text-sm font-semibold">{step.title}</p>
+            <p className="mt-1 text-xs leading-5 text-muted-foreground">{step.body}</p>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function AcceptancePanel({ proposal }: { proposal: PublicProposalData["proposal"] }) {
+  return (
+    <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-5 text-sm text-muted-foreground">
+      {proposal.status === "accepted" ? (
+        <div className="flex gap-3">
+          <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-emerald-500" />
+          <div>
+            <p className="font-semibold text-foreground">Proposal accepted</p>
+            <p className="mt-1 leading-6">
+              This proposal has been acknowledged. The freelancer can now move it into a
+              contract, project, or invoice.
+            </p>
+          </div>
+        </div>
+      ) : (
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex gap-3">
+            <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-emerald-500" />
+            <div>
+              <p className="font-semibold text-foreground">Ready to move ahead?</p>
+              <p className="mt-1 max-w-2xl leading-6">
+                Accepting this proposal acknowledges the offer so the freelancer can prepare the
+                next step. This is not an e-signature contract.
+              </p>
+            </div>
+          </div>
+          <form action={acceptPublicProposalAction}>
+            <input type="hidden" name="token" value={proposal.public_token} />
+            <Button type="submit" className="w-full sm:w-auto">
+              <CheckCircle2 className="h-4 w-4" /> Accept proposal
+            </Button>
+          </form>
+        </div>
+      )}
     </div>
   );
 }
@@ -327,7 +485,13 @@ function SummaryRow({
   strong?: boolean;
 }) {
   return (
-    <div className={strong ? "flex justify-between border-t pt-2 font-bold" : "flex justify-between"}>
+    <div
+      className={
+        strong
+          ? "flex justify-between border-t pt-2 text-base font-bold"
+          : "flex justify-between"
+      }
+    >
       <span className={strong ? "text-foreground" : "text-muted-foreground"}>{label}</span>
       <span>{value}</span>
     </div>
