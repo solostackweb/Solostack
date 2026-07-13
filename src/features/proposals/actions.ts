@@ -109,7 +109,7 @@ export async function createProposalAction(
   if (error || !data) return { ok: false, error: error?.message ?? "Could not create proposal." };
 
   revalidatePath("/dashboard/proposals");
-  revalidatePath("/dashboard/pipeline");
+  revalidatePath("/dashboard/projects");
   return {
     ok: true,
     data: { id: String((data as Pick<ProposalRow, "id">).id) },
@@ -142,7 +142,7 @@ export async function updateProposalAction(
   if (error) return { ok: false, error: error.message };
 
   revalidatePath("/dashboard/proposals");
-  revalidatePath("/dashboard/pipeline");
+  revalidatePath("/dashboard/projects");
   return { ok: true, data: { id: id.data }, message: "Proposal updated." };
 }
 
@@ -164,7 +164,7 @@ export async function deleteProposalAction(
   if (error) return { ok: false, error: error.message };
 
   revalidatePath("/dashboard/proposals");
-  revalidatePath("/dashboard/pipeline");
+  revalidatePath("/dashboard/projects");
   return { ok: true, message: "Proposal deleted." };
 }
 
@@ -243,7 +243,7 @@ export async function saveProposalBuilderAction(
 
   revalidatePath("/dashboard/proposals");
   revalidatePath(`/dashboard/proposals/${id.data}`);
-  revalidatePath("/dashboard/pipeline");
+  revalidatePath("/dashboard/projects");
   return { ok: true, data: { id: id.data }, message: "Proposal saved." };
 }
 
@@ -394,7 +394,6 @@ export async function convertProposalToProjectAction(input: {
   });
 
   revalidatePath("/dashboard/projects");
-  revalidatePath("/dashboard/pipeline");
   revalidatePath(`/dashboard/proposals/${loaded.proposal.id}`);
   return { ok: true, data: { id: projectId }, message: "Project created." };
 }

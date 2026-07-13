@@ -7,20 +7,36 @@ import { StackivoMark } from "@/components/brand/stackivo-logo";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { primaryNav, secondaryNav } from "@/constants/navigation";
+import { primaryNav, secondaryNav, type NavItem } from "@/constants/navigation";
 import { SidebarNav } from "./sidebar-nav";
 import { useProfile } from "@/features/profile/context";
-import { getDisplayName, getInitials } from "@/features/profile/utils";
+
+const SIDEBAR_GROUPS: Array<{ label: string; items: NavItem[] }> = [
+  {
+    label: "Workspace",
+    items: primaryNav.filter((item) =>
+      ["Dashboard", "Clients", "Lead Forms", "Projects", "Proposals"].includes(item.title),
+    ),
+  },
+  {
+    label: "Documents",
+    items: primaryNav.filter((item) =>
+      ["Invoices", "Contracts", "Welcome Docs", "Templates"].includes(item.title),
+    ),
+  },
+  {
+    label: "Growth",
+    items: primaryNav.filter((item) => ["Portal", "Time", "Pulse"].includes(item.title)),
+  },
+];
 
 export function AppSidebar() {
-  // Collapsed state self-managed; survives navigations because the sidebar
-  // is rendered by the persistent dashboard layout, not by any page.
-  // Seed from the workspace preference stored in localStorage.
   const [collapsed, setCollapsed] = React.useState(() => {
     if (typeof window === "undefined") return false;
     const pref = localStorage.getItem("stackivo:sidebar-behaviour");
     return pref === "collapsed";
   });
+
   const onToggle = React.useCallback(() => {
     setCollapsed((value) => {
       const next = !value;
@@ -28,27 +44,20 @@ export function AppSidebar() {
       return next;
     });
   }, []);
-  // When the AI panel is open we auto-collapse the sidebar to its icon rail so
-  // the screen isn't split three ways. We remember the user's own collapsed
-  // choice and restore it when the panel closes — and never override a manual
-  // toggle the user makes while the panel is open.
+
   const userCollapsedRef = React.useRef(collapsed);
   const aiForcedRef = React.useRef(false);
 
-  // Live-react to preference changes made from the Appearance settings page.
   React.useEffect(() => {
     function onStorage(e: StorageEvent) {
       if (e.key !== "stackivo:sidebar-behaviour") return;
       if (e.newValue === "collapsed") setCollapsed(true);
       else if (e.newValue === "expanded") setCollapsed(false);
-      // "auto" → leave user's current toggle state untouched
     }
     window.addEventListener("storage", onStorage);
     return () => window.removeEventListener("storage", onStorage);
   }, []);
 
-  // Auto-collapse while the AI panel is open (tracks the `stackivo-ai-open`
-  // class the panel sets on <html>). Restores the previous state on close.
   React.useEffect(() => {
     if (typeof window === "undefined") return;
     const root = document.documentElement;
@@ -58,8 +67,6 @@ export function AppSidebar() {
         userCollapsedRef.current = collapsed;
         aiForcedRef.current = true;
         setCollapsed(true);
-        // The collapsed rail still shows nav icons + the expand button, so the
-        // menu stays discoverable without an intrusive popup.
       } else if (!aiOpen && aiForcedRef.current) {
         aiForcedRef.current = false;
         setCollapsed(userCollapsedRef.current);
@@ -71,13 +78,7 @@ export function AppSidebar() {
     return () => observer.disconnect();
   }, [collapsed]);
 
-  const { profile, subscription } = useProfile();
-  const workspaceName =
-    profile?.businessName?.trim() ||
-    profile?.legalName?.trim() ||
-    getDisplayName(profile) ||
-    "Your workspace";
-  const workspaceInitials = getInitials(workspaceName);
+  const { subscription } = useProfile();
   const plan = subscription?.plan ?? "free";
 
   return (
@@ -87,11 +88,10 @@ export function AppSidebar() {
         collapsed ? "w-[68px]" : "w-[288px]",
       )}
     >
-      {/* Brand */}
       <div
         className={cn(
-          "flex h-14 items-center px-4",
-          collapsed && "justify-center px-0",
+          "relative flex h-14 items-center border-b border-sidebar-border/50 px-4",
+          collapsed ? "justify-center px-0" : "justify-between",
         )}
       >
         <Link
@@ -99,6 +99,7 @@ export function AppSidebar() {
           className={cn(
             "flex items-center gap-2.5 rounded-lg font-semibold transition-colors",
             !collapsed && "px-1 py-1 hover:bg-sidebar-accent/70",
+            collapsed && "pr-6",
           )}
           aria-label="Stackivo home"
         >
@@ -109,69 +110,14 @@ export function AppSidebar() {
             </span>
           )}
         </Link>
-      </div>
-
-      {/* Primary nav */}
-      <div className="flex-1 overflow-y-auto scrollbar-thin px-2 pb-3 pt-1">
-        {!collapsed && (
-          <p className="mb-1 px-3 text-[10px] font-semibold uppercase tracking-widest text-sidebar-foreground/30">
-            Workspace
-          </p>
-        )}
-        <SidebarNav items={primaryNav} collapsed={collapsed} isFreePlan={plan === "free"} />
-      </div>
-
-      {/* Secondary nav */}
-      <div className="px-2 pb-2">
-        <Separator className="mb-2 bg-sidebar-border/60" />
-        {!collapsed && (
-          <p className="mb-1 px-3 text-[10px] font-semibold uppercase tracking-widest text-sidebar-foreground/30">
-            Account
-          </p>
-        )}
-        <SidebarNav items={secondaryNav} collapsed={collapsed} />
-      </div>
-
-      {/* Workspace identity */}
-      <div className="border-t border-sidebar-border/60 p-2">
-        {!collapsed ? (
-          <Link
-            href="/dashboard/settings/company"
-            className="group flex items-center gap-2.5 rounded-lg border border-sidebar-border/60 bg-sidebar-accent/25 p-2 transition-colors hover:bg-sidebar-accent"
-          >
-            <div
-              aria-hidden
-              className="avatar-gradient flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-[11px] font-bold"
-            >
-              {workspaceInitials}
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-[13px] font-semibold leading-tight">
-                {workspaceName}
-              </p>
-              <p className="truncate text-[11px] capitalize leading-tight text-muted-foreground">
-                {plan} plan
-              </p>
-            </div>
-          </Link>
-        ) : (
-          <Link
-            href="/dashboard/settings/company"
-            aria-label={`${workspaceName} · ${plan} plan`}
-            className="avatar-gradient mx-auto flex h-8 w-8 items-center justify-center rounded-lg text-[11px] font-bold transition-opacity hover:opacity-80"
-          >
-            {workspaceInitials}
-          </Link>
-        )}
-      </div>
-
-      {/* Collapse toggle */}
-      <div className="border-t border-sidebar-border/60 p-2">
         <Button
           variant="ghost"
           size="icon"
           onClick={onToggle}
-          className="h-8 w-full text-sidebar-foreground/45 hover:bg-sidebar-accent hover:text-sidebar-foreground"
+          className={cn(
+            "h-8 w-8 text-sidebar-foreground/50 hover:bg-sidebar-accent hover:text-sidebar-foreground",
+            collapsed && "absolute right-1 top-3 h-7 w-7",
+          )}
           aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
         >
           {collapsed ? (
@@ -180,6 +126,35 @@ export function AppSidebar() {
             <PanelLeftClose className="h-4 w-4" />
           )}
         </Button>
+      </div>
+
+      <div className="flex-1 overflow-y-auto scrollbar-thin px-2 py-3">
+        <div className="space-y-4">
+          {SIDEBAR_GROUPS.map((group) => (
+            <div key={group.label}>
+              {!collapsed && (
+                <p className="mb-1 px-3 text-[10px] font-semibold uppercase tracking-widest text-sidebar-foreground/30">
+                  {group.label}
+                </p>
+              )}
+              <SidebarNav
+                items={group.items}
+                collapsed={collapsed}
+                isFreePlan={plan === "free"}
+              />
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="px-2 pb-3">
+        <Separator className="mb-2 bg-sidebar-border/60" />
+        {!collapsed && (
+          <p className="mb-1 px-3 text-[10px] font-semibold uppercase tracking-widest text-sidebar-foreground/30">
+            Account
+          </p>
+        )}
+        <SidebarNav items={secondaryNav} collapsed={collapsed} />
       </div>
     </aside>
   );

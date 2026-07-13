@@ -1,7 +1,6 @@
 import {
   LayoutDashboard,
   Users,
-  GitBranch,
   ClipboardList,
   FolderKanban,
   FilePlus2,
@@ -33,7 +32,6 @@ export interface NavItem {
 export const primaryNav: NavItem[] = [
   { title: "Dashboard",    href: "/dashboard",          icon: LayoutDashboard },
   { title: "Clients",      href: "/dashboard/clients",  icon: Users },
-  { title: "Pipeline",     href: "/dashboard/pipeline", icon: GitBranch },
   { title: "Lead Forms",   href: "/dashboard/lead-forms", icon: ClipboardList },
   { title: "Projects",     href: "/dashboard/projects", icon: FolderKanban },
   { title: "Proposals",    href: "/dashboard/proposals",icon: FilePlus2 },

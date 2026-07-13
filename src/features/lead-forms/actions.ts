@@ -262,11 +262,11 @@ export async function submitPublicLeadAction(
     type: "lead",
     entity_type: "project",
     entity_id: projectId,
-    href: `/dashboard/pipeline`,
+    href: `/dashboard/projects`,
   } as never);
 
   revalidatePath("/dashboard/lead-forms");
-  revalidatePath("/dashboard/pipeline");
+  revalidatePath("/dashboard/projects");
   revalidatePath("/dashboard/clients");
   return {
     ok: true,

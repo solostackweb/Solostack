@@ -9,7 +9,6 @@ import {
   FileSignature,
   FilePlus2,
   Users,
-  GitBranch,
   ClipboardList,
   FolderKanban,
   MoreHorizontal,
@@ -99,7 +98,6 @@ interface MoreItem {
 }
 
 const MORE_ITEMS: MoreItem[] = [
-  { title: "Pipeline",     href: "/dashboard/pipeline", icon: GitBranch },
   { title: "Lead Forms",   href: "/dashboard/lead-forms", icon: ClipboardList },
   { title: "Projects",     href: "/dashboard/projects",   icon: FolderKanban },
   { title: "Proposals",    href: "/dashboard/proposals",  icon: FilePlus2 },

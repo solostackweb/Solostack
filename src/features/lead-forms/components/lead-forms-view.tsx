@@ -4,7 +4,7 @@ import * as React from "react";
 import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
 import Link from "next/link";
-import { Copy, ExternalLink, GitBranch, Inbox, Plus } from "lucide-react";
+import { Copy, ExternalLink, FolderKanban, Inbox, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -43,13 +43,13 @@ export function LeadFormsView({
           <h1 className="mt-2 text-3xl font-bold tracking-tight">Lead forms</h1>
           <p className="mt-1 max-w-2xl text-muted-foreground">
             Capture new inquiries, create a client automatically, and drop the work
-            straight into Pipeline as a lead.
+            straight into Projects as a lead.
           </p>
         </div>
         <Button asChild>
-          <Link href="/dashboard/pipeline">
-            <GitBranch className="h-4 w-4" />
-            View pipeline
+          <Link href="/dashboard/projects">
+            <FolderKanban className="h-4 w-4" />
+            View projects
           </Link>
         </Button>
       </header>
@@ -173,7 +173,7 @@ export function LeadFormsView({
           <div>
             <h2 className="text-sm font-semibold">Recent submissions</h2>
             <p className="text-xs text-muted-foreground">
-              Each submission creates a client and a lead-stage pipeline project.
+              Each submission creates a client and a lead-stage project.
             </p>
           </div>
           <span className="rounded-full bg-muted px-2.5 py-1 text-xs text-muted-foreground">
@@ -206,7 +206,7 @@ export function LeadFormsView({
                   <div className="flex shrink-0 flex-wrap gap-2">
                     {submission.project_id ? (
                       <Button asChild size="sm" variant="outline">
-                        <Link href="/dashboard/pipeline">Pipeline</Link>
+                        <Link href="/dashboard/projects">Projects</Link>
                       </Button>
                     ) : null}
                     <IvoContextActions

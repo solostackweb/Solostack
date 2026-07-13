@@ -50,7 +50,7 @@ interface ProjectsListViewProps {
  * Filtering happens locally on the snapshot passed from the server page.
  */
 export function ProjectsListView({ projects, clients, autoCreate }: ProjectsListViewProps) {
-  const [view, setView] = React.useState<ViewMode>("grid");
+  const [view, setView] = React.useState<ViewMode>("kanban");
   const [search, setSearch] = React.useState("");
   const [statusFilter, setStatusFilter] = React.useState<
     ProjectStatusRow | "all"
