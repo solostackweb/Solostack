@@ -40,6 +40,64 @@ const THRESHOLDS = {
   rateLimitTripsLastHour: 50,
 };
 
+/**
+ * How long a still-open condition stays quiet before we re-page about it.
+ * Keeps a lingering issue (e.g. an unanswered SLA-breaching ticket) from
+ * emitting a new alert on every 15-minute run, while still nudging every few
+ * hours so it isn't forgotten. Tune freely — it only affects alert cadence,
+ * never detection.
+ */
+const REALERT_COOLDOWN_MS = 6 * 60 * 60_000; // 6 hours
+
+/**
+ * Decide whether to emit a fresh alert for the current set of findings.
+ *
+ * Emits when:
+ *   - there is no prior monitor alert on record, or
+ *   - the set of finding *kinds* changed since the last alert (a genuinely
+ *     new or resolved condition), or
+ *   - the same condition has persisted past the re-alert cooldown.
+ *
+ * Fails OPEN: if the lookup errors we emit, so the de-dup logic can never
+ * silently swallow a real issue.
+ */
+async function shouldEmitAlert(
+  admin: ReturnType<typeof getAdminSupabase>,
+  signature: string,
+): Promise<boolean> {
+  try {
+    const { data } = await admin
+      .from("security_events")
+      .select("created_at, metadata")
+      .eq("kind", "cron_monitor_alert")
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (!data) return true; // never alerted before
+
+    const meta = (data.metadata ?? {}) as {
+      signature?: string;
+      findings?: Array<{ kind?: string }>;
+    };
+    // Prefer the stored signature; fall back to reconstructing it from the
+    // findings for alerts written before signatures existed.
+    const lastSignature =
+      typeof meta.signature === "string"
+        ? meta.signature
+        : (meta.findings ?? [])
+            .map((f) => f.kind ?? "")
+            .sort()
+            .join(",");
+
+    if (lastSignature !== signature) return true; // condition changed
+
+    const ageMs = Date.now() - new Date(data.created_at).getTime();
+    return ageMs >= REALERT_COOLDOWN_MS; // same condition — only after cooldown
+  } catch {
+    return true; // fail open
+  }
+}
+
 export async function GET(req: Request): Promise<Response> {
   const env = requireServerEnv();
 
@@ -109,6 +167,9 @@ export async function GET(req: Request): Promise<Response> {
       .from("security_events")
       .select("id", { count: "exact", head: true })
       .eq("severity", "alert")
+      // Exclude the monitor's OWN synthetic alerts — otherwise it counts
+      // itself and can page about its own noise (a self-feedback loop).
+      .neq("kind", "cron_monitor_alert")
       .gte("created_at", since);
     if ((count ?? 0) >= THRESHOLDS.securityAlertsLastHour) {
       findings.push({
@@ -191,14 +252,30 @@ export async function GET(req: Request): Promise<Response> {
   await refreshAdminMetrics().catch(() => null);
 
   // ---- Dispatch alert -----------------------------------------------------
+  //
+  // A persistent condition (e.g. a support ticket stuck past SLA without a
+  // first reply) would otherwise emit a fresh `alert` security event on EVERY
+  // 15-minute run, flooding the security feed and Slack with duplicates. We
+  // de-duplicate: page immediately when the set of findings is new or changes,
+  // then stay quiet while the SAME condition stays open, re-paging only once a
+  // cooldown lapses so a lingering issue is never forgotten.
   if (findings.length > 0) {
-    await notifySlack(env.opsSlackWebhookUrl, findings);
-    await recordSecurityEvent({
-      kind: "cron_monitor_alert",
-      severity: "alert",
-      metadata: { findings },
-    });
+    // Always log every run with findings — cheap observability, no alert spam.
     log.warn("cron.monitor.findings", { findings });
+
+    const signature = findings
+      .map((f) => f.kind)
+      .sort()
+      .join(",");
+
+    if (await shouldEmitAlert(admin, signature)) {
+      await notifySlack(env.opsSlackWebhookUrl, findings);
+      await recordSecurityEvent({
+        kind: "cron_monitor_alert",
+        severity: "alert",
+        metadata: { findings, signature },
+      });
+    }
   }
 
   await recordCronRun({ job: "monitor", status: "ok", startedAtMs });
