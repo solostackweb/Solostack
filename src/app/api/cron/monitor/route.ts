@@ -66,16 +66,20 @@ async function shouldEmitAlert(
   signature: string,
 ): Promise<boolean> {
   try {
-    const { data } = await admin
+    const res = await admin
       .from("security_events")
       .select("created_at, metadata")
       .eq("kind", "cron_monitor_alert")
       .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle();
-    if (!data) return true; // never alerted before
+    const row = res.data as {
+      created_at: string;
+      metadata: Record<string, unknown> | null;
+    } | null;
+    if (!row) return true; // never alerted before
 
-    const meta = (data.metadata ?? {}) as {
+    const meta = (row.metadata ?? {}) as {
       signature?: string;
       findings?: Array<{ kind?: string }>;
     };
@@ -91,7 +95,7 @@ async function shouldEmitAlert(
 
     if (lastSignature !== signature) return true; // condition changed
 
-    const ageMs = Date.now() - new Date(data.created_at).getTime();
+    const ageMs = Date.now() - new Date(row.created_at).getTime();
     return ageMs >= REALERT_COOLDOWN_MS; // same condition — only after cooldown
   } catch {
     return true; // fail open
