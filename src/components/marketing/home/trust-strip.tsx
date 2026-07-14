@@ -72,6 +72,41 @@ export function TrustStrip() {
               className="h-[54px] w-[171px] rounded-xl"
             />
           </a>
+
+          <a
+            href="https://open-launch.com/projects/stackivo"
+            target="_blank"
+            rel="noopener noreferrer"
+            data-cta="open_launch_badge"
+            aria-label="View Stackivo on Open-Launch (opens in a new tab)"
+            className="inline-flex rounded-xl transition-transform hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-4 focus-visible:ring-offset-background"
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="https://open-launch.com/api/badge/e9d7d57b-cc26-43a0-af1a-0ff1aefa468e/featured-light.svg"
+              alt="Stackivo — featured on Open-Launch"
+              width={200}
+              height={50}
+              className="h-[50px] w-[200px] rounded-xl"
+            />
+          </a>
+
+          <a
+            href="https://tinylaunch.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            data-cta="tinylaunch_badge"
+            aria-label="View TinyLaunch (opens in a new tab)"
+            className="inline-flex rounded-xl transition-transform hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-4 focus-visible:ring-offset-background"
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="https://tinylaunch.com/tinylaunch_badge_launching_soon.svg"
+              alt="Stackivo — launching soon on TinyLaunch"
+              width={202}
+              className="h-auto w-[202px] rounded-xl"
+            />
+          </a>
         </div>
 
         <p className="mt-7 text-center text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground/70">
