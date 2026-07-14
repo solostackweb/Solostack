@@ -10,7 +10,7 @@ export type TemplateActionResult<T = undefined> =
   | { ok: true; data?: T; message?: string }
   | { ok: false; error: string; fieldErrors?: Record<string, string[]> };
 
-const templateTypeSchema = z.enum(["proposal", "contract", "invoice_note", "email"]);
+const templateTypeSchema = z.enum(["proposal", "contract", "welcome_doc", "invoice_note", "email"]);
 
 const templateSchema = z.object({
   templateType: templateTypeSchema,
@@ -23,6 +23,7 @@ const templateSchema = z.object({
   terms: z.string().trim().max(2500).optional().or(z.literal("")),
   subject: z.string().trim().max(180).optional().or(z.literal("")),
   body: z.string().trim().max(6000).optional().or(z.literal("")),
+  acknowledgementRequired: z.boolean().optional().default(false),
 });
 
 async function requireUserId(): Promise<string> {
@@ -49,6 +50,7 @@ export async function createTemplateAction(
     terms: formData.get("terms"),
     subject: formData.get("subject"),
     body: formData.get("body"),
+    acknowledgementRequired: formData.get("acknowledgementRequired") === "true",
   });
 
   if (!parsed.success) {
@@ -60,19 +62,18 @@ export async function createTemplateAction(
   }
 
   const userId = await requireUserId();
-  const content =
-    parsed.data.templateType === "proposal"
-      ? {
-          scope: parsed.data.scope || "",
-          deliverables: parsed.data.deliverables || "",
-          timeline: parsed.data.timeline || "",
-          terms: parsed.data.terms || "",
-          items: [{ description: "Service package", quantity: 1, unitPrice: 0 }],
-        }
-      : {
-          subject: parsed.data.subject || "",
-          body: parsed.data.body || "",
-        };
+  const sections = parseSections(formData);
+  const content = buildTemplateContent({
+    templateType: parsed.data.templateType,
+    scope: parsed.data.scope || "",
+    deliverables: parsed.data.deliverables || "",
+    timeline: parsed.data.timeline || "",
+    terms: parsed.data.terms || "",
+    subject: parsed.data.subject || "",
+    body: parsed.data.body || "",
+    acknowledgementRequired: parsed.data.acknowledgementRequired,
+    sections,
+  });
 
   const supabase = await getServerSupabase();
   const { data, error } = await supabase
@@ -98,6 +99,67 @@ export async function createTemplateAction(
     ok: true,
     data: { id: (data as { id: string }).id },
     message: "Template saved.",
+  };
+}
+
+function parseSections(formData: FormData) {
+  const headings = formData.getAll("sectionHeading");
+  const bodies = formData.getAll("sectionBody");
+  return headings
+    .map((heading, index) => ({
+      heading: typeof heading === "string" ? heading.trim() : "",
+      body: typeof bodies[index] === "string" ? String(bodies[index]).trim() : "",
+    }))
+    .filter((section) => section.heading || section.body)
+    .slice(0, 20);
+}
+
+function buildTemplateContent(input: {
+  templateType: z.infer<typeof templateTypeSchema>;
+  scope: string;
+  deliverables: string;
+  timeline: string;
+  terms: string;
+  subject: string;
+  body: string;
+  acknowledgementRequired: boolean;
+  sections: Array<{ heading: string; body: string }>;
+}) {
+  if (input.templateType === "proposal") {
+    return {
+      scope: input.scope,
+      deliverables: input.deliverables,
+      timeline: input.timeline,
+      terms: input.terms,
+      items: [{ description: "Service package", quantity: 1, unitPrice: 0 }],
+    };
+  }
+
+  if (input.templateType === "contract") {
+    return {
+      kind: "contract",
+      highlights: input.sections.slice(0, 4).map((section) => section.heading),
+      sections:
+        input.sections.length > 0
+          ? input.sections
+          : [{ heading: "Scope of work", body: input.body }],
+    };
+  }
+
+  if (input.templateType === "welcome_doc") {
+    return {
+      intro: input.body,
+      acknowledgementRequired: input.acknowledgementRequired,
+      sections:
+        input.sections.length > 0
+          ? input.sections
+          : [{ heading: "Welcome", body: "Add your onboarding details here." }],
+    };
+  }
+
+  return {
+    subject: input.subject,
+    body: input.body,
   };
 }
 

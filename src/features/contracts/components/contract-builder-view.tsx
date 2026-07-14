@@ -34,6 +34,7 @@ import type { ProjectRecord } from "@/features/projects/server";
 import type { ContractKindRow } from "@/lib/supabase/types";
 import { useProfile } from "@/features/profile/context";
 import { getDisplayName } from "@/features/profile/utils";
+import type { TemplateRecord, ContractTemplateContent } from "@/features/templates/builtin";
 import { CONTRACT_KIND_LABEL, CONTRACT_KINDS } from "../status";
 import type {
   ContractSection,
@@ -108,11 +109,13 @@ function buildContractPlaceholderReplacements(args: {
 interface ContractBuilderViewProps {
   clients: ClientRecord[];
   projects: ProjectRecord[];
+  templates: TemplateRecord[];
 }
 
 export function ContractBuilderView({
   clients,
   projects,
+  templates,
 }: ContractBuilderViewProps) {
   const router = useRouter();
   const { profile } = useProfile();
@@ -128,6 +131,13 @@ export function ContractBuilderView({
   const [sections, setSections] = React.useState<ContractSection[]>([]);
   const [submitting, setSubmitting] = React.useState(false);
   const [mobileTab, setMobileTab] = React.useState<"edit" | "preview">("edit");
+  const pickerTemplates = React.useMemo(
+    () => [
+      ...templates.map(mapTemplateRecordToContractTemplate),
+      ...contractTemplates,
+    ],
+    [templates],
+  );
 
   const projectOptions = React.useMemo(
     () =>
@@ -393,7 +403,7 @@ export function ContractBuilderView({
         </div>
 
         <TemplatePicker
-          templates={contractTemplates}
+          templates={pickerTemplates}
           onSelect={handlePickTemplate}
         />
       </div>
@@ -726,4 +736,36 @@ function hasUnresolvedPlaceholders(
 ): boolean {
   return [title, ...sections.flatMap((section) => [section.heading, section.body])]
     .some((value) => PLACEHOLDER_PATTERN.test(value));
+}
+
+function mapTemplateRecordToContractTemplate(template: TemplateRecord): ContractTemplate {
+  const content = (template.content ?? {}) as ContractTemplateContent;
+  const sections =
+    Array.isArray(content.sections) && content.sections.length > 0
+      ? content.sections.map((section, index) => ({
+          id: `tpl_${template.id}_${index}`,
+          heading: section.heading || `Section ${index + 1}`,
+          body: section.body || "",
+        }))
+      : [
+          {
+            id: `tpl_${template.id}_1`,
+            heading: "Scope of work",
+            body: "",
+          },
+        ];
+
+  return {
+    id: template.id,
+    name: template.title,
+    description: template.description ?? template.category,
+    kind: content.kind === "proposal" ? "proposal" : "contract",
+    highlights:
+      Array.isArray(content.highlights) && content.highlights.length > 0
+        ? content.highlights
+        : sections.slice(0, 4).map((section) => section.heading),
+    sections,
+    readingTime: Math.max(2, Math.ceil(sections.length * 0.75)),
+    popular: template.isSystem,
+  };
 }

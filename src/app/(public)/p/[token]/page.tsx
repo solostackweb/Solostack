@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { StackivoGrowthCta } from "@/components/marketing/stackivo-growth-cta";
 import { ownerHasCustomBranding } from "@/features/billing/branding-check";
+import { getProposalPdfShareUrl } from "@/features/documents/urls";
 import { ProposalPublicView } from "@/features/proposals/components/proposal-public-view";
 import { getPublicProposal, recordProposalView } from "@/features/proposals/public";
 import { PublicDocumentFrame } from "@/features/share/components/public-document-frame";
@@ -52,7 +53,7 @@ export default async function PublicProposalPage({ params }: Props) {
       }
     >
       <div className="space-y-6">
-        <ProposalPublicView data={data} />
+        <ProposalPublicView data={data} pdfUrl={getProposalPdfShareUrl(token)} />
         {!isBranded ? <StackivoGrowthCta kind="proposal" /> : null}
       </div>
     </PublicDocumentFrame>

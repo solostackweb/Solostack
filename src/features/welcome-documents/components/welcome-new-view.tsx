@@ -16,7 +16,6 @@ import type {
 } from "../types";
 import { WelcomeEditor } from "./welcome-editor";
 import { WELCOME_DOCUMENT_NEW, WELCOME_DOCUMENTS_INDEX } from "../routes";
-import { BUILTIN_WELCOME_TEMPLATES } from "../templates";
 
 interface ClientOption {
   id: string;
@@ -44,8 +43,6 @@ const BLANK_SECTIONS: WelcomeDocumentSection[] = [
  * assistant can seed a draft from the same content. Shown whenever the DB
  * returns no system templates.
  */
-const BUILTIN_TEMPLATES: WelcomeDocumentTemplate[] = BUILTIN_WELCOME_TEMPLATES;
-
 /**
  * Two-step "new document" flow:
  *   1. Pick a template (or "Start blank")
@@ -192,7 +189,7 @@ export function WelcomeNewView({
   // System templates are code-owned now. DB rows are kept only for users'
   // saved personal templates, so stale seeded templates cannot override or
   // duplicate the curated set.
-  const system = BUILTIN_TEMPLATES;
+  const system = templates.filter((t) => t.isSystem);
   const personal = templates.filter((t) => !t.isSystem);
 
   return (

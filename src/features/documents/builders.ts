@@ -23,6 +23,8 @@ import type {
   ContractSignatureRow,
   InvoiceItemRow,
   InvoiceRow,
+  ProposalItemRow,
+  ProposalRow,
   SubscriptionRow,
   UserProfileRow,
 } from "@/lib/supabase/types";
@@ -184,6 +186,84 @@ export async function buildContractPdfDataByToken(
     client,
     logoUrl,
     signature,
+    supabase: admin,
+    customBranding,
+  });
+}
+
+// --- Authenticated proposal ----------------------------------------------
+
+export async function buildProposalPdfData(
+  proposalId: string,
+): Promise<ContractPdfData | null> {
+  const supabase = await getServerSupabase();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return null;
+
+  const [{ data: proposalRow }, { data: itemsRows }] = await Promise.all([
+    supabase
+      .from("proposals")
+      .select("*")
+      .eq("id", proposalId)
+      .eq("user_id", user.id)
+      .maybeSingle(),
+    supabase
+      .from("proposal_items")
+      .select("*")
+      .eq("proposal_id", proposalId)
+      .order("sort_order", { ascending: true }),
+  ]);
+  if (!proposalRow) return null;
+  const proposal = proposalRow as unknown as ProposalRow;
+
+  const [seller, client] = await Promise.all([
+    fetchSellerProfile(user.id),
+    proposal.client_id ? fetchClient(proposal.client_id) : null,
+  ]);
+  const customBranding = await userCanCustomizeBranding(user.id, supabase);
+  const logoUrl = customBranding ? await fetchBrandMarkDataUrl(seller, supabase) : null;
+
+  return assembleProposalPdfData({
+    proposal,
+    items: (itemsRows as unknown as ProposalItemRow[]) ?? [],
+    seller,
+    client,
+    logoUrl,
+    supabase,
+    customBranding,
+  });
+}
+
+export async function buildProposalPdfDataByToken(
+  token: string,
+): Promise<ContractPdfData | null> {
+  if (!isValidPublicShareToken(token)) return null;
+  const admin = getAdminSupabase();
+  const { data: proposalRow } = await admin
+    .from("proposals")
+    .select("*")
+    .eq("public_token", token)
+    .maybeSingle();
+  if (!proposalRow) return null;
+  const proposal = proposalRow as unknown as ProposalRow;
+  const { data: itemsRows } = await admin
+    .from("proposal_items")
+    .select("*")
+    .eq("proposal_id", proposal.id)
+    .order("sort_order", { ascending: true });
+  const [seller, client] = await Promise.all([
+    fetchSellerProfile(proposal.user_id, admin),
+    proposal.client_id ? fetchClient(proposal.client_id, admin) : null,
+  ]);
+  const customBranding = await userCanCustomizeBranding(proposal.user_id, admin);
+  const logoUrl = customBranding ? await fetchBrandMarkDataUrl(seller, admin) : null;
+
+  return assembleProposalPdfData({
+    proposal,
+    items: (itemsRows as unknown as ProposalItemRow[]) ?? [],
+    seller,
+    client,
+    logoUrl,
     supabase: admin,
     customBranding,
   });
@@ -532,6 +612,140 @@ async function assembleContractPdfData(args: {
       ),
     },
   };
+}
+
+async function assembleProposalPdfData(args: {
+  proposal: ProposalRow;
+  items: ProposalItemRow[];
+  seller: UserProfileRow | null;
+  client: ClientRow | null;
+  logoUrl: string | null;
+  supabase: AnySupabase;
+  customBranding?: boolean;
+}): Promise<ContractPdfData> {
+  const { proposal, items, seller, client, logoUrl, supabase, customBranding } = args;
+  const sellerSignatureImage = seller?.signature_image_url
+    ? await normalizeImageForPdf(
+        seller.signature_image_url,
+        "profile-images",
+        supabase,
+      )
+    : null;
+  const publicUrl = proposal.public_token
+    ? `${getPublicAppUrl()}/p/${proposal.public_token}`
+    : null;
+
+  return {
+    kind: "proposal",
+    title: proposal.title,
+    content: buildProposalPdfContent(proposal, items),
+    status: proposal.status,
+    currency: proposal.currency,
+    valueAmount: Number(proposal.total_amount) || null,
+    issuedAt: proposal.created_at,
+    expiresAt: proposal.valid_until,
+    signedAt: proposal.accepted_at,
+    signerName: client?.full_name ?? null,
+    signerEmail: client?.email ?? null,
+    clientSignature: null,
+    publicUrl,
+    brandColor: customBranding ? (seller?.brand_color ?? null) : null,
+    seller: {
+      businessName:
+        seller?.business_name ??
+        seller?.company_name ??
+        seller?.legal_name ??
+        seller?.full_name ??
+        "Your Business",
+      legalName: seller?.legal_name ?? null,
+      email: seller?.business_email ?? seller?.email ?? null,
+      phone: seller?.business_phone ?? seller?.phone ?? null,
+      addressLines: composeAddress(
+        seller?.address_line1,
+        seller?.address_line2,
+        seller?.city,
+        seller?.postal_code,
+        seller?.country,
+      ),
+      logoDataUrl: logoUrl,
+      signature: seller?.signature_type
+        ? {
+            type: seller.signature_type,
+            imageUrl: sellerSignatureImage,
+            textValue: seller.signature_text_value,
+            fontFamily: seller.signature_font_family,
+            legalName:
+              seller.legal_name ??
+              seller.business_name ??
+              seller.full_name ??
+              null,
+            signedAt: seller.signature_updated_at ?? proposal.created_at,
+          }
+        : null,
+    },
+    client: {
+      name: client?.business_name ?? client?.full_name ?? "Client",
+      detailLines: composeAddress(
+        client?.email,
+        client?.billing_address ?? client?.address,
+        client?.phone,
+        client?.business_name ?? client?.company_name,
+      ),
+    },
+  };
+}
+
+function buildProposalPdfContent(
+  proposal: ProposalRow,
+  items: ProposalItemRow[],
+): string {
+  const pricingLines =
+    items.length > 0
+      ? items
+          .map((item) => {
+            const qty = Number(item.quantity) || 0;
+            const unit = formatPdfAmount(Number(item.unit_price) || 0, proposal.currency);
+            const amount = formatPdfAmount(Number(item.amount) || 0, proposal.currency);
+            return `${item.description} - Qty ${qty} x ${unit} = ${amount}`;
+          })
+          .join("\n")
+      : "Pricing will be confirmed in writing.";
+
+  const sections = [
+    { heading: "Scope", body: proposal.scope?.trim() || "Scope will be confirmed in writing." },
+    {
+      heading: "Deliverables",
+      body: proposal.deliverables?.trim() || "Deliverables will be confirmed in writing.",
+    },
+    {
+      heading: "Timeline",
+      body: proposal.timeline?.trim() || "Timeline will be mutually confirmed.",
+    },
+    {
+      heading: "Packages and pricing",
+      body: [
+        pricingLines,
+        "",
+        `Subtotal: ${formatPdfAmount(Number(proposal.subtotal) || 0, proposal.currency)}`,
+        `Tax / charges: ${formatPdfAmount(Number(proposal.tax_amount) || 0, proposal.currency)}`,
+        `Total: ${formatPdfAmount(Number(proposal.total_amount) || 0, proposal.currency)}`,
+      ].join("\n"),
+    },
+    {
+      heading: "Terms",
+      body: proposal.terms?.trim() || "Commercial terms will be confirmed in writing.",
+    },
+  ];
+
+  return JSON.stringify(sections);
+}
+
+function formatPdfAmount(amount: number, currency: string): string {
+  return new Intl.NumberFormat("en-IN", {
+    style: "currency",
+    currency,
+    maximumFractionDigits: amount % 1 === 0 ? 0 : 2,
+  }).format(amount);
 }
 
 function composeAddress(...parts: Array<string | null | undefined>): string[] {

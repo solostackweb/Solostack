@@ -28,6 +28,10 @@ export function getProposalShareUrl(token: string): string {
   return `${getPublicAppUrl()}/p/${token}`;
 }
 
+export function getProposalPdfShareUrl(token: string): string {
+  return `${getPublicAppUrl()}/api/share/proposal/${token}/pdf`;
+}
+
 export function getContractPdfShareUrl(token: string): string {
   return `${getPublicAppUrl()}/api/share/contract/${token}/pdf`;
 }

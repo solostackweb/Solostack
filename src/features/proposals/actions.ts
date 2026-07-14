@@ -4,7 +4,11 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 
 import { AUTH_LOGIN_ROUTE } from "@/features/auth/routes";
+import { buildProposalPdfData } from "@/features/documents/builders";
+import { ContractPdf } from "@/features/documents/pdf/contract-pdf";
+import { renderPdfToBuffer } from "@/features/documents/pdf/render";
 import { getProposalShareUrl } from "@/features/documents/urls";
+import { pdfAttachment } from "@/features/email/send";
 import { sendEmail } from "@/features/email/service";
 import { createInvoiceAction } from "@/features/invoices/actions";
 import { nextInvoiceNumber } from "@/features/invoices/server";
@@ -422,7 +426,7 @@ export async function sendProposalEmailAction(input: {
   const [{ data: proposalData }, { data: profileData }] = await Promise.all([
     supabase
       .from("proposals")
-      .select("id,title,user_id,client_id,total_amount,currency,public_token")
+      .select("id,title,user_id,client_id,project_id,total_amount,currency,public_token,valid_until,scope,deliverables,timeline,terms")
       .eq("id", id.data)
       .eq("user_id", userId)
       .maybeSingle(),
@@ -435,15 +439,64 @@ export async function sendProposalEmailAction(input: {
 
   const proposal = proposalData as Pick<
     ProposalRow,
-    "id" | "title" | "user_id" | "client_id" | "total_amount" | "currency" | "public_token"
+    | "id"
+    | "title"
+    | "user_id"
+    | "client_id"
+    | "project_id"
+    | "total_amount"
+    | "currency"
+    | "public_token"
+    | "valid_until"
+    | "scope"
+    | "deliverables"
+    | "timeline"
+    | "terms"
   > | null;
   if (!proposal) return { ok: false, error: "Proposal not found." };
-  if (!proposal.client_id) return { ok: false, error: "Choose a client before sending." };
+
+  const { data: itemData } = await supabase
+    .from("proposal_items")
+    .select("description,quantity,unit_price")
+    .eq("proposal_id", proposal.id)
+    .order("sort_order", { ascending: true });
+  const items = (itemData as Pick<ProposalItemRow, "description" | "quantity" | "unit_price">[] | null) ?? [];
+  const missing: string[] = [];
+  if (!proposal.title.trim() || proposal.title === "Untitled proposal") missing.push("title");
+  if (!proposal.client_id) missing.push("client");
+  if (!proposal.project_id) missing.push("project");
+  if (!proposal.valid_until) missing.push("valid until");
+  if (!proposal.scope?.trim()) missing.push("scope");
+  if (!proposal.deliverables?.trim()) missing.push("deliverables");
+  if (!proposal.timeline?.trim()) missing.push("timeline");
+  if (!proposal.terms?.trim()) missing.push("terms");
+  if (
+    items.filter(
+      (item) =>
+        item.description.trim() &&
+        Number(item.quantity) > 0 &&
+        Number(item.unit_price) >= 0,
+    ).length === 0
+  ) {
+    missing.push("at least one package");
+  }
+  if (Number(proposal.total_amount ?? 0) <= 0) missing.push("proposal total");
+
+  if (missing.length > 0) {
+    return {
+      ok: false,
+      error: `Complete ${missing.join(", ")} before sending.`,
+      fieldErrors: Object.fromEntries(missing.map((field) => [field, ["Required before sending."]])),
+    };
+  }
+
+  const clientId = proposal.client_id;
+  if (!clientId) return { ok: false, error: "Choose a client before sending." };
 
   const { data: clientData } = await supabase
     .from("clients")
     .select("full_name,business_name,email")
-    .eq("id", proposal.client_id)
+    .eq("id", clientId)
     .eq("user_id", userId)
     .maybeSingle();
 
@@ -468,15 +521,12 @@ export async function sendProposalEmailAction(input: {
   const senderEmail = profile?.business_email || profile?.email || undefined;
   const clientName = client.business_name || client.full_name || "there";
   const url = getProposalShareUrl(proposal.public_token);
-
-  await supabase
-    .from("proposals")
-    .update({
-      status: "sent",
-      sent_at: new Date().toISOString(),
-    } as never)
-    .eq("id", proposal.id)
-    .eq("user_id", userId);
+  const pdfData = await buildProposalPdfData(proposal.id);
+  if (!pdfData) {
+    return { ok: false, error: "Could not prepare the proposal PDF." };
+  }
+  const pdfBuffer = await renderPdfToBuffer(ContractPdf({ data: pdfData }));
+  const pdfFileName = `proposal-${slugifyFileName(proposal.title) || proposal.id}.pdf`;
 
   try {
     await sendEmail({
@@ -491,7 +541,8 @@ export async function sendProposalEmailAction(input: {
         amount: `${proposal.currency} ${Number(proposal.total_amount ?? 0).toLocaleString("en-IN")}`,
         url,
       }),
-      text: `Hi ${clientName},\n\n${senderName} shared a proposal for your review: ${proposal.title}\n\nView it here: ${url}\n\nThis is a proposal acknowledgement flow, not an e-signature contract.`,
+      text: `Hi ${clientName},\n\n${senderName} shared a proposal for your review: ${proposal.title}\n\nView it here: ${url}\n\nA PDF copy is attached for your records. This is a proposal acknowledgement flow, not an e-signature contract.`,
+      attachments: [pdfAttachment(pdfFileName, pdfBuffer)],
       metadata: { proposalId: proposal.id, publicUrl: url },
       tags: ["proposal_sent", "share"],
     });
@@ -501,6 +552,15 @@ export async function sendProposalEmailAction(input: {
       error: error instanceof Error ? error.message : "Could not send proposal email.",
     };
   }
+
+  await supabase
+    .from("proposals")
+    .update({
+      status: "sent",
+      sent_at: new Date().toISOString(),
+    } as never)
+    .eq("id", proposal.id)
+    .eq("user_id", userId);
 
   await recordActivity({
     kind: "proposal_sent",
@@ -578,11 +638,20 @@ function renderProposalEmailHtml(input: {
           View proposal
         </a>
         <p style="margin:20px 0 0;font-size:12px;line-height:1.6;color:#6b7280;">
-          This is a proposal acknowledgement flow, not an e-signature contract.
+          A PDF copy is attached for your records. This is a proposal acknowledgement flow,
+          not an e-signature contract.
         </p>
       </div>
     </div>
   </div>`;
+}
+
+function slugifyFileName(value: string) {
+  return value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 60);
 }
 
 function escapeHtml(value: string) {

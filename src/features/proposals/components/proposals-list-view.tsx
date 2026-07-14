@@ -5,9 +5,9 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   CalendarDays,
-  Edit3,
   ExternalLink,
   FilePlus2,
+  Mail,
   MoreHorizontal,
   Plus,
   Search,
@@ -28,15 +28,13 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
-import { ResponsiveModal } from "@/components/ui/responsive-modal";
-import { Textarea } from "@/components/ui/textarea";
 import { IvoEntryPoint } from "@/features/ai-workflows/components/ivo-entry-point";
 import { formatMoney } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 import {
   deleteProposalAction,
-  updateProposalAction,
+  sendProposalEmailAction,
 } from "../actions";
 import type { ProposalRecord } from "../server";
 import {
@@ -74,7 +72,6 @@ export function ProposalsListView({
   const confirm = useConfirm();
   const [search, setSearch] = React.useState("");
   const [statusFilter, setStatusFilter] = React.useState<ProposalStatusRow | "all">("all");
-  const [editing, setEditing] = React.useState<ProposalRecord | null>(null);
   const [, startTransition] = React.useTransition();
 
   const clientById = React.useMemo(
@@ -125,6 +122,19 @@ export function ProposalsListView({
         return;
       }
       toast.success("Proposal deleted");
+      router.refresh();
+    });
+  };
+
+  const handleSend = async (proposal: ProposalRecord) => {
+    startTransition(async () => {
+      const res = await sendProposalEmailAction({ id: proposal.id });
+      if (!res.ok) {
+        toast.error(`${res.error} Opening builder to fix it.`);
+        router.push(`/dashboard/proposals/${proposal.id}`);
+        return;
+      }
+      toast.success("Proposal sent to client");
       router.refresh();
     });
   };
@@ -244,8 +254,8 @@ export function ProposalsListView({
                             <ExternalLink className="h-4 w-4" /> Open builder
                           </Link>
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => setEditing(proposal)}>
-                          <Edit3 className="h-4 w-4" /> Edit
+                        <DropdownMenuItem onClick={() => void handleSend(proposal)}>
+                          <Mail className="h-4 w-4" /> Send to client
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem
@@ -263,17 +273,6 @@ export function ProposalsListView({
           })}
         </div>
       )}
-
-      <ProposalFormDialog
-        open={Boolean(editing)}
-        onOpenChange={(open) => {
-          if (!open) setEditing(null);
-        }}
-        proposal={editing}
-        clients={clients}
-        projects={projects}
-        onSaved={() => router.refresh()}
-      />
     </div>
   );
 }
@@ -288,153 +287,6 @@ function ProposalStatusBadge({ status }: { status: ProposalStatusRow }) {
     >
       {PROPOSAL_STATUS_LABEL[status]}
     </span>
-  );
-}
-
-function ProposalFormDialog({
-  open,
-  onOpenChange,
-  proposal,
-  clients,
-  projects,
-  onSaved,
-}: {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  proposal: ProposalRecord | null;
-  clients: ClientOption[];
-  projects: ProjectOption[];
-  onSaved: (id?: string) => void;
-}) {
-  const [isPending, startTransition] = React.useTransition();
-  const submit = (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    const formData = new FormData(event.currentTarget);
-    if (!proposal) return;
-    formData.set("id", proposal.id);
-    startTransition(async () => {
-      const res = await updateProposalAction(undefined, formData);
-      if (!res.ok) {
-        toast.error(res.error);
-        return;
-      }
-      toast.success("Proposal updated");
-      onOpenChange(false);
-      onSaved(res.data?.id);
-    });
-  };
-
-  return (
-    <ResponsiveModal
-      open={open}
-      onOpenChange={onOpenChange}
-      title="Edit proposal"
-      description="Update the proposal summary. For detailed package editing, open the builder."
-      className="sm:max-w-3xl"
-    >
-      <form onSubmit={submit} className="space-y-4 pb-2">
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Field label="Title" className="sm:col-span-2">
-            <Input name="title" defaultValue={proposal?.title ?? ""} placeholder="Website redesign proposal" required />
-          </Field>
-          <Field label="Client">
-            <select
-              name="clientId"
-              defaultValue={proposal?.clientId ?? ""}
-              className="h-11 w-full rounded-md border bg-background px-3 text-sm"
-            >
-              <option value="">No client</option>
-              {clients.map((client) => (
-                <option key={client.id} value={client.id}>
-                  {client.name}
-                </option>
-              ))}
-            </select>
-          </Field>
-          <Field label="Project">
-            <select
-              name="projectId"
-              defaultValue={proposal?.projectId ?? ""}
-              className="h-11 w-full rounded-md border bg-background px-3 text-sm"
-            >
-              <option value="">No project</option>
-              {projects.map((project) => (
-                <option key={project.id} value={project.id}>
-                  {project.name}
-                </option>
-              ))}
-            </select>
-          </Field>
-          <Field label="Status">
-            <select
-              name="status"
-              defaultValue={proposal?.status ?? "draft"}
-              className="h-11 w-full rounded-md border bg-background px-3 text-sm"
-            >
-              {PROPOSAL_STATUSES.map((status) => (
-                <option key={status} value={status}>
-                  {PROPOSAL_STATUS_LABEL[status]}
-                </option>
-              ))}
-            </select>
-          </Field>
-          <Field label="Currency">
-            <Input name="currency" defaultValue={proposal?.currency ?? "INR"} maxLength={3} />
-          </Field>
-          <Field label="Subtotal">
-            <Input name="subtotal" type="number" min="0" step="0.01" defaultValue={proposal?.subtotal ?? 0} />
-          </Field>
-          <Field label="Tax">
-            <Input name="taxAmount" type="number" min="0" step="0.01" defaultValue={proposal?.taxAmount ?? 0} />
-          </Field>
-          <Field label="Total">
-            <Input name="totalAmount" type="number" min="0" step="0.01" defaultValue={proposal?.totalAmount ?? 0} />
-          </Field>
-          <Field label="Valid until">
-            <Input name="validUntil" type="date" defaultValue={proposal?.validUntil ?? ""} />
-          </Field>
-          <Field label="Scope" className="sm:col-span-2">
-            <Textarea name="scope" defaultValue={proposal?.scope ?? ""} placeholder="What this proposal covers..." />
-          </Field>
-          <Field label="Deliverables" className="sm:col-span-2">
-            <Textarea name="deliverables" defaultValue={proposal?.deliverables ?? ""} placeholder="Pages, assets, milestones, handoff..." />
-          </Field>
-          <Field label="Timeline">
-            <Textarea name="timeline" defaultValue={proposal?.timeline ?? ""} placeholder="Estimated schedule..." />
-          </Field>
-          <Field label="Terms">
-            <Textarea name="terms" defaultValue={proposal?.terms ?? ""} placeholder="Payment, revision, and validity terms..." />
-          </Field>
-        </div>
-        <div className="flex justify-end gap-2 border-t pt-4">
-          <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>
-            Cancel
-          </Button>
-          <Button type="submit" disabled={isPending}>
-            {isPending ? "Saving..." : "Save changes"}
-          </Button>
-        </div>
-      </form>
-    </ResponsiveModal>
-  );
-}
-
-function Field({
-  label,
-  className,
-  children,
-}: {
-  label: string;
-  className?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <label className={cn("space-y-1.5", className)}>
-      <span className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-        {label}
-      </span>
-      {children}
-    </label>
   );
 }
 

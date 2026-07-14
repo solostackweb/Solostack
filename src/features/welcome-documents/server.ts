@@ -29,6 +29,8 @@ import type {
   WelcomeDocumentTemplate,
 } from "./types";
 import { BUILTIN_WELCOME_TEMPLATES } from "./templates";
+import { listTemplates } from "@/features/templates/server";
+import type { TemplateRecord, WelcomeDocTemplateContent } from "@/features/templates/builtin";
 
 /** Hex token shape — same generator as invoices/contracts. */
 const TOKEN_RE = /^[a-f0-9]{32}$/i;
@@ -188,7 +190,7 @@ export async function listWelcomeTemplates(): Promise<
     .order("created_at", { ascending: false });
 
   const rows = (data ?? []) as WelcomeDocumentTemplateRow[];
-  return rows.map((row) => ({
+  const legacyTemplates = rows.map((row) => ({
     id: row.id,
     title: row.title,
     description: row.description,
@@ -197,11 +199,16 @@ export async function listWelcomeTemplates(): Promise<
     category: row.category,
     isSystem: row.is_system,
   }));
+  const sharedTemplates = (await listTemplates("welcome_doc")).map(mapSharedWelcomeTemplate);
+  return [...sharedTemplates, ...legacyTemplates];
 }
 
 export async function getWelcomeTemplate(
   id: string,
 ): Promise<WelcomeDocumentTemplate | null> {
+  const shared = (await listTemplates("welcome_doc")).find((template) => template.id === id);
+  if (shared) return mapSharedWelcomeTemplate(shared);
+
   const builtin = BUILTIN_WELCOME_TEMPLATES.find((template) => template.id === id);
   if (builtin) return builtin;
 
@@ -221,6 +228,33 @@ export async function getWelcomeTemplate(
     sections: parseWelcomeContent(row.content),
     category: row.category,
     isSystem: row.is_system,
+  };
+}
+
+function mapSharedWelcomeTemplate(template: TemplateRecord): WelcomeDocumentTemplate {
+  const content = (template.content ?? {}) as WelcomeDocTemplateContent;
+  const sections =
+    Array.isArray(content.sections) && content.sections.length > 0
+      ? content.sections.map((section, index) => ({
+          id: `s_${index + 1}`,
+          heading: section.heading || `Section ${index + 1}`,
+          body: section.body || "",
+        }))
+      : [
+          {
+            id: "s_1",
+            heading: "Welcome",
+            body: "Add your onboarding details here.",
+          },
+        ];
+  return {
+    id: template.id,
+    title: template.title,
+    description: template.description,
+    intro: content.intro ?? null,
+    sections,
+    category: template.category,
+    isSystem: template.isSystem,
   };
 }
 

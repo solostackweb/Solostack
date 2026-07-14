@@ -387,7 +387,12 @@ export interface LeadSubmissionRow {
   created_at: string;
 }
 
-export type DocumentTemplateTypeRow = "proposal" | "contract" | "invoice_note" | "email";
+export type DocumentTemplateTypeRow =
+  | "proposal"
+  | "contract"
+  | "welcome_doc"
+  | "invoice_note"
+  | "email";
 
 export interface DocumentTemplateRow {
   id: string;

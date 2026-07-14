@@ -6,6 +6,7 @@ import {
   CalendarDays,
   CheckCircle2,
   CircleDollarSign,
+  Download,
   FileCheck2,
   FileText,
   Landmark,
@@ -22,7 +23,13 @@ import { getProposalBillingGuidance } from "../intelligence";
 import type { PublicProposalData } from "../public";
 import { acceptPublicProposalAction } from "../actions";
 
-export function ProposalPublicView({ data }: { data: PublicProposalData }) {
+export function ProposalPublicView({
+  data,
+  pdfUrl,
+}: {
+  data: PublicProposalData;
+  pdfUrl?: string;
+}) {
   const { proposal, items, seller, client, project } = data;
   const sellerName =
     seller?.business_name || seller?.company_name || seller?.full_name || "Freelancer";
@@ -120,6 +127,13 @@ export function ProposalPublicView({ data }: { data: PublicProposalData }) {
                 strong
               />
             </div>
+            {pdfUrl ? (
+              <Button asChild variant="outline" className="mt-5 w-full">
+                <a href={pdfUrl} target="_blank" rel="noreferrer">
+                  <Download className="h-4 w-4" /> Download PDF
+                </a>
+              </Button>
+            ) : null}
           </aside>
         </div>
       </header>
