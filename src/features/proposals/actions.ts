@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 
 import { AUTH_LOGIN_ROUTE } from "@/features/auth/routes";
 import { getProposalShareUrl } from "@/features/documents/urls";
+import { sendEmail } from "@/features/email/service";
 import { createInvoiceAction } from "@/features/invoices/actions";
 import { nextInvoiceNumber } from "@/features/invoices/server";
 import { recordActivity } from "@/features/activity/server";
@@ -410,6 +411,110 @@ export async function shareProposalAction(input: {
   };
 }
 
+export async function sendProposalEmailAction(input: {
+  id: string;
+}): Promise<ProposalActionResult<{ url: string }>> {
+  const id = proposalIdSchema.safeParse(input.id);
+  if (!id.success) return { ok: false, error: "Invalid proposal." };
+
+  const userId = await requireUserId();
+  const supabase = await getServerSupabase();
+  const [{ data: proposalData }, { data: profileData }] = await Promise.all([
+    supabase
+      .from("proposals")
+      .select("id,title,user_id,client_id,total_amount,currency,public_token")
+      .eq("id", id.data)
+      .eq("user_id", userId)
+      .maybeSingle(),
+    supabase
+      .from("user_profiles")
+      .select("full_name,business_name,company_name,email,business_email")
+      .eq("id", userId)
+      .maybeSingle(),
+  ]);
+
+  const proposal = proposalData as Pick<
+    ProposalRow,
+    "id" | "title" | "user_id" | "client_id" | "total_amount" | "currency" | "public_token"
+  > | null;
+  if (!proposal) return { ok: false, error: "Proposal not found." };
+  if (!proposal.client_id) return { ok: false, error: "Choose a client before sending." };
+
+  const { data: clientData } = await supabase
+    .from("clients")
+    .select("full_name,business_name,email")
+    .eq("id", proposal.client_id)
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  const client = clientData as {
+    full_name: string;
+    business_name: string | null;
+    email: string | null;
+  } | null;
+  if (!client?.email) {
+    return { ok: false, error: "This client does not have an email address." };
+  }
+
+  const profile = profileData as {
+    full_name: string | null;
+    business_name: string | null;
+    company_name: string | null;
+    email: string | null;
+    business_email: string | null;
+  } | null;
+  const senderName =
+    profile?.business_name || profile?.company_name || profile?.full_name || "Your freelancer";
+  const senderEmail = profile?.business_email || profile?.email || undefined;
+  const clientName = client.business_name || client.full_name || "there";
+  const url = getProposalShareUrl(proposal.public_token);
+
+  await supabase
+    .from("proposals")
+    .update({
+      status: "sent",
+      sent_at: new Date().toISOString(),
+    } as never)
+    .eq("id", proposal.id)
+    .eq("user_id", userId);
+
+  try {
+    await sendEmail({
+      type: "share",
+      to: { email: client.email, name: clientName },
+      replyTo: senderEmail ? { email: senderEmail, name: senderName } : undefined,
+      subject: `${senderName} shared a proposal: ${proposal.title}`,
+      html: renderProposalEmailHtml({
+        clientName,
+        senderName,
+        title: proposal.title,
+        amount: `${proposal.currency} ${Number(proposal.total_amount ?? 0).toLocaleString("en-IN")}`,
+        url,
+      }),
+      text: `Hi ${clientName},\n\n${senderName} shared a proposal for your review: ${proposal.title}\n\nView it here: ${url}\n\nThis is a proposal acknowledgement flow, not an e-signature contract.`,
+      metadata: { proposalId: proposal.id, publicUrl: url },
+      tags: ["proposal_sent", "share"],
+    });
+  } catch (error) {
+    return {
+      ok: false,
+      error: error instanceof Error ? error.message : "Could not send proposal email.",
+    };
+  }
+
+  await recordActivity({
+    kind: "proposal_sent",
+    entityType: "proposal",
+    entityId: proposal.id,
+    title: `Proposal sent to ${client.email}: ${proposal.title}`,
+    metadata: { via: "email", publicUrl: url },
+  });
+
+  revalidatePath("/dashboard/proposals");
+  revalidatePath(`/dashboard/proposals/${proposal.id}`);
+  return { ok: true, data: { url }, message: "Proposal emailed." };
+}
+
 export async function acceptPublicProposalAction(formData: FormData): Promise<void> {
   const token = String(formData.get("token") ?? "").trim();
   if (!isValidPublicShareToken(token)) return;
@@ -446,6 +551,47 @@ export async function acceptPublicProposalAction(formData: FormData): Promise<vo
   }
 
   revalidatePath(`/p/${token}`);
+}
+
+function renderProposalEmailHtml(input: {
+  clientName: string;
+  senderName: string;
+  title: string;
+  amount: string;
+  url: string;
+}) {
+  return `
+  <div style="margin:0;padding:24px;background:#f6f8fb;font-family:Inter,Arial,sans-serif;color:#111827;">
+    <div style="max-width:560px;margin:0 auto;background:#ffffff;border:1px solid #e5e7eb;border-radius:16px;overflow:hidden;">
+      <div style="height:5px;background:#2563eb;"></div>
+      <div style="padding:28px;">
+        <p style="margin:0 0 12px;color:#6b7280;font-size:13px;">Proposal shared via Stackivo</p>
+        <h1 style="margin:0 0 14px;font-size:24px;line-height:1.25;color:#111827;">${escapeHtml(input.title)}</h1>
+        <p style="margin:0 0 18px;font-size:15px;line-height:1.7;color:#374151;">
+          Hi ${escapeHtml(input.clientName)}, ${escapeHtml(input.senderName)} has shared a proposal for your review.
+        </p>
+        <div style="margin:0 0 22px;padding:14px 16px;border:1px solid #e5e7eb;border-radius:12px;background:#f9fafb;">
+          <p style="margin:0;color:#6b7280;font-size:12px;text-transform:uppercase;letter-spacing:.08em;">Proposal value</p>
+          <p style="margin:6px 0 0;font-size:22px;font-weight:700;color:#111827;">${escapeHtml(input.amount)}</p>
+        </div>
+        <a href="${escapeHtml(input.url)}" style="display:inline-block;padding:12px 16px;border-radius:10px;background:#2563eb;color:#ffffff;text-decoration:none;font-weight:700;">
+          View proposal
+        </a>
+        <p style="margin:20px 0 0;font-size:12px;line-height:1.6;color:#6b7280;">
+          This is a proposal acknowledgement flow, not an e-signature contract.
+        </p>
+      </div>
+    </div>
+  </div>`;
+}
+
+function escapeHtml(value: string) {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
 }
 
 async function loadOwnedProposal(input: { id: string; userId: string }) {

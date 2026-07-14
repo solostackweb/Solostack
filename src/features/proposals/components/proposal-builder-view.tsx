@@ -7,7 +7,7 @@ import {
   ArrowLeft,
   Copy,
   ExternalLink,
-  FileSignature,
+  Mail,
   MessageCircle,
   Plus,
   Save,
@@ -28,15 +28,11 @@ import {
   type ProposalSellerContext,
 } from "../intelligence";
 import {
-  convertProposalToContractAction,
   saveProposalBuilderAction,
+  sendProposalEmailAction,
   shareProposalAction,
 } from "../actions";
 import type { ProposalItemRecord, ProposalRecord } from "../server";
-import {
-  PROPOSAL_STATUSES,
-  PROPOSAL_STATUS_LABEL,
-} from "../status";
 
 interface ClientOption {
   id: string;
@@ -76,10 +72,12 @@ export function ProposalBuilderView({
   projects: ProjectOption[];
 }) {
   const router = useRouter();
+  const formRef = React.useRef<HTMLFormElement | null>(null);
   const [isSaving, startSaving] = React.useTransition();
+  const [isSendingEmail, startSendingEmail] = React.useTransition();
   const [isSharing, startSharing] = React.useTransition();
-  const [isSendingForSignature, startSendingForSignature] = React.useTransition();
   const [clientId, setClientId] = React.useState(proposal.clientId ?? "");
+  const [projectId, setProjectId] = React.useState(proposal.projectId ?? "");
   const [currency, setCurrency] = React.useState(proposal.currency);
   const [taxAmount, setTaxAmount] = React.useState(proposal.taxAmount);
   const [scope, setScope] = React.useState(proposal.scope ?? "");
@@ -118,12 +116,17 @@ export function ProposalBuilderView({
     );
   };
 
-  const submit = (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    const formData = new FormData(event.currentTarget);
+  const buildFormData = (status: "draft" | "sent") => {
+    if (!formRef.current) return null;
+    const formData = new FormData(formRef.current);
     formData.set("id", proposal.id);
+    formData.set("status", status);
+    formData.set("currency", currency);
     formData.set("subtotal", String(subtotal));
     formData.set("totalAmount", String(total));
+    if (!String(formData.get("title") ?? "").trim()) {
+      formData.set("title", "Untitled proposal");
+    }
     formData.set(
       "items",
       JSON.stringify(
@@ -136,6 +139,12 @@ export function ProposalBuilderView({
           })),
       ),
     );
+    return formData;
+  };
+
+  const saveDraft = () => {
+    const formData = buildFormData("draft");
+    if (!formData) return;
     startSaving(async () => {
       const res = await saveProposalBuilderAction(undefined, formData);
       if (!res.ok) {
@@ -145,6 +154,46 @@ export function ProposalBuilderView({
       toast.success("Proposal saved");
       router.refresh();
     });
+  };
+
+  const getInputValue = (name: string) => {
+    const field = formRef.current?.elements.namedItem(name);
+    return field instanceof HTMLInputElement ? field.value.trim() : "";
+  };
+
+  const validateForPublishing = (channel: "email" | "whatsapp") => {
+    const missing: string[] = [];
+    if (!getInputValue("title")) missing.push("title");
+    if (!clientId) missing.push("client");
+    if (!projectId) missing.push("project");
+    if (!getInputValue("validUntil")) missing.push("valid until");
+    if (!scope.trim()) missing.push("scope");
+    if (!deliverables.trim()) missing.push("deliverables");
+    if (!timeline.trim()) missing.push("timeline");
+    if (!terms.trim()) missing.push("terms");
+    const validItems = draftItems.filter(
+      (item) => item.description.trim() && Number(item.quantity) > 0 && Number(item.unitPrice) >= 0,
+    );
+    if (validItems.length === 0) missing.push("at least one package");
+    if (total <= 0) missing.push("proposal total");
+    if (channel === "email" && !selectedClient?.email) missing.push("client email");
+
+    if (missing.length > 0) {
+      toast.error(`Please complete ${missing.join(", ")} before sending.`);
+      return false;
+    }
+    return true;
+  };
+
+  const saveForPublishing = async () => {
+    const formData = buildFormData("sent");
+    if (!formData) return false;
+    const res = await saveProposalBuilderAction(undefined, formData);
+    if (!res.ok) {
+      toast.error(res.error);
+      return false;
+    }
+    return true;
   };
 
   const share = () => {
@@ -170,7 +219,10 @@ export function ProposalBuilderView({
   };
 
   const shareOnWhatsApp = () => {
+    if (!validateForPublishing("whatsapp")) return;
     startSharing(async () => {
+      const saved = await saveForPublishing();
+      if (!saved) return;
       const res = await shareProposalAction({ id: proposal.id });
       if (!res.ok) {
         toast.error(res.error);
@@ -186,19 +238,32 @@ export function ProposalBuilderView({
     });
   };
 
-  const sendForSignature = () => {
-    startSendingForSignature(async () => {
-      const res = await convertProposalToContractAction({ id: proposal.id });
+  const sendViaEmail = () => {
+    if (!validateForPublishing("email")) return;
+    startSendingEmail(async () => {
+      const saved = await saveForPublishing();
+      if (!saved) return;
+      const res = await sendProposalEmailAction({ id: proposal.id });
       if (!res.ok || !res.data) {
-        toast.error(res.ok ? "Contract was not returned." : res.error);
+        toast.error(res.ok ? "Email did not return a proposal link." : res.error);
         return;
       }
-      toast.success("Contract draft created. Review it before sending for signature.");
-      router.push(`/dashboard/contracts/${res.data.id}`);
+      toast.success("Proposal sent by email");
+      router.refresh();
     });
   };
 
   const selectedClient = clients.find((client) => client.id === clientId) ?? null;
+  const availableProjects = React.useMemo(
+    () => (clientId ? projects.filter((project) => project.clientId === clientId) : []),
+    [clientId, projects],
+  );
+  React.useEffect(() => {
+    if (!projectId) return;
+    if (!availableProjects.some((project) => project.id === projectId)) {
+      setProjectId("");
+    }
+  }, [availableProjects, projectId]);
   const guidance = React.useMemo(
     () =>
       getProposalBillingGuidance({
@@ -223,7 +288,7 @@ export function ProposalBuilderView({
       : 0;
 
   return (
-    <form onSubmit={submit} className="space-y-5">
+    <form ref={formRef} onSubmit={(event) => event.preventDefault()} noValidate className="space-y-5">
       <div className="flex flex-col gap-4 border-b pb-5 lg:flex-row lg:items-center lg:justify-between">
         <div className="min-w-0">
           <Button asChild variant="ghost" size="sm" className="-ml-2 mb-2">
@@ -233,11 +298,11 @@ export function ProposalBuilderView({
           </Button>
           <h1 className="truncate text-3xl font-bold tracking-tight">Proposal builder</h1>
           <p className="mt-1 text-muted-foreground">
-            Shape a lightweight offer. Clients can acknowledge it, then you can convert it to a contract, project, or invoice.
+            Shape a lightweight offer, save drafts freely, then send the proposal by email or WhatsApp when it is ready.
           </p>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <Button type="submit" disabled={isSaving}>
+        <div className="flex shrink-0 flex-nowrap items-center gap-2 overflow-x-auto whitespace-nowrap">
+          <Button type="button" onClick={saveDraft} disabled={isSaving} className="shrink-0">
             {isSaving ? (
               "Saving..."
             ) : (
@@ -249,18 +314,20 @@ export function ProposalBuilderView({
           <Button
             type="button"
             variant="outline"
-            onClick={sendForSignature}
-            disabled={isSendingForSignature}
+            onClick={sendViaEmail}
+            disabled={isSendingEmail}
+            className="shrink-0"
           >
-            <FileSignature className="h-4 w-4" /> Send for signature
+            <Mail className="h-4 w-4" /> Send via email
           </Button>
           <Button
             type="button"
             variant="outline"
             onClick={shareOnWhatsApp}
             disabled={isSharing}
+            className="shrink-0"
           >
-            <MessageCircle className="h-4 w-4" /> Share on WhatsApp
+            <MessageCircle className="h-4 w-4" /> Send via WhatsApp
           </Button>
         </div>
       </div>
@@ -291,6 +358,8 @@ export function ProposalBuilderView({
               <Field label="Title" className="sm:col-span-2">
                 <Input name="title" defaultValue={proposal.title} required />
               </Field>
+              <input type="hidden" name="status" value={proposal.status} />
+              <input type="hidden" name="currency" value={currency} />
               <Field label="Client">
                 <select
                   name="clientId"
@@ -298,6 +367,7 @@ export function ProposalBuilderView({
                   onChange={(event) => {
                     const nextClientId = event.target.value;
                     setClientId(nextClientId);
+                    setProjectId("");
                     const nextClient = clients.find((client) => client.id === nextClientId) ?? null;
                     const nextGuidance = getProposalBillingGuidance({
                       seller,
@@ -316,9 +386,12 @@ export function ProposalBuilderView({
                     setCurrency(nextGuidance.currency);
                     if (nextGuidance.recommendedTaxRate === 0) setTaxAmount(0);
                   }}
+                  required
                   className="h-11 w-full rounded-md border bg-background px-3 text-sm"
                 >
-                  <option value="">No client</option>
+                  <option value="" disabled>
+                    Choose client
+                  </option>
                   {clients.map((client) => (
                     <option key={client.id} value={client.id}>
                       {client.name}
@@ -329,40 +402,23 @@ export function ProposalBuilderView({
               <Field label="Project">
                 <select
                   name="projectId"
-                  defaultValue={proposal.projectId ?? ""}
+                  value={projectId}
+                  onChange={(event) => setProjectId(event.target.value)}
+                  disabled={!clientId}
                   className="h-11 w-full rounded-md border bg-background px-3 text-sm"
                 >
-                  <option value="">No project</option>
-                  {projects.map((project) => (
+                  <option value="">
+                    {clientId ? "No project" : "Choose a client first"}
+                  </option>
+                  {availableProjects.map((project) => (
                     <option key={project.id} value={project.id}>
                       {project.name}
                     </option>
                   ))}
                 </select>
               </Field>
-              <Field label="Status">
-                <select
-                  name="status"
-                  defaultValue={proposal.status}
-                  className="h-11 w-full rounded-md border bg-background px-3 text-sm"
-                >
-                  {PROPOSAL_STATUSES.map((status) => (
-                    <option key={status} value={status}>
-                      {PROPOSAL_STATUS_LABEL[status]}
-                    </option>
-                  ))}
-                </select>
-              </Field>
               <Field label="Valid until">
                 <Input name="validUntil" type="date" defaultValue={proposal.validUntil ?? ""} />
-              </Field>
-              <Field label="Currency">
-                <Input
-                  name="currency"
-                  value={currency}
-                  onChange={(event) => setCurrency(event.target.value.toUpperCase())}
-                  maxLength={3}
-                />
               </Field>
               <Field label="Tax / additional charges">
                 <Input

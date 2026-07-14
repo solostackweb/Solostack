@@ -54,6 +54,24 @@ export function TrustStrip() {
               className="h-[55px] w-[212px] rounded-xl"
             />
           </a>
+
+          <a
+            href="https://startupfa.me/s/stackivo?utm_source=stackivo.me"
+            target="_blank"
+            rel="noopener noreferrer"
+            data-cta="startup_fame_badge"
+            aria-label="View Stackivo on Startup Fame (opens in a new tab)"
+            className="inline-flex rounded-xl transition-transform hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-4 focus-visible:ring-offset-background"
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="https://startupfa.me/badges/featured-badge.webp"
+              alt="Stackivo — featured on Startup Fame"
+              width={171}
+              height={54}
+              className="h-[54px] w-[171px] rounded-xl"
+            />
+          </a>
         </div>
 
         <p className="mt-7 text-center text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground/70">
