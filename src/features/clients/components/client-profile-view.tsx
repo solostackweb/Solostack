@@ -14,7 +14,11 @@ import {
   MoreHorizontal,
   Receipt,
   FileText,
+  FileSignature,
+  BookOpen,
+  ShieldAlert,
 } from "lucide-react";
+import { toast } from "sonner";
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -43,6 +47,7 @@ import type { InvoiceRecord } from "@/features/invoices/server";
 import { ClientFormDialog } from "./client-form-dialog";
 import { DeleteClientDialog } from "./delete-client-dialog";
 import { getClientDisplayName, getClientInitials } from "../utils";
+import { markClientReviewedAction } from "../actions";
 
 interface ClientProfileViewProps {
   client: ClientRecord;
@@ -53,16 +58,50 @@ interface ClientProfileViewProps {
   };
   /** Recent invoices for this client — drives the activity feed. */
   recentInvoices?: InvoiceRecord[];
+  /** All non-invoice documents for this client (proposals, contracts, welcome). */
+  documents?: ClientDocument[];
+}
+
+export interface ClientDocument {
+  id: string;
+  kind: "proposal" | "contract" | "welcome";
+  title: string;
+  status: string;
+  href: string;
+}
+
+function DocIcon({ kind }: { kind: ClientDocument["kind"] }) {
+  const Icon =
+    kind === "contract" ? FileSignature : kind === "welcome" ? BookOpen : FileText;
+  return <Icon className="h-4 w-4" />;
 }
 
 /**
  * Read-only profile view for a single client. Edit + delete dialogs are
  * mounted here and route off to server actions.
  */
-export function ClientProfileView({ client, metrics, recentInvoices = [] }: ClientProfileViewProps) {
+export function ClientProfileView({
+  client,
+  metrics,
+  recentInvoices = [],
+  documents = [],
+}: ClientProfileViewProps) {
   const router = useRouter();
   const [editOpen, setEditOpen] = React.useState(false);
   const [deleteOpen, setDeleteOpen] = React.useState(false);
+  const [reviewing, startReview] = React.useTransition();
+
+  const handleMarkReviewed = () => {
+    startReview(async () => {
+      const res = await markClientReviewedAction({ id: client.id });
+      if (!res.ok) {
+        toast.error(res.error);
+        return;
+      }
+      toast.success("Client marked as verified");
+      router.refresh();
+    });
+  };
 
   const display = getClientDisplayName(client);
   const initials = getClientInitials(display);
@@ -79,6 +118,32 @@ export function ClientProfileView({ client, metrics, recentInvoices = [] }: Clie
           <ArrowLeft className="h-3.5 w-3.5" /> All clients
         </Link>
       </Button>
+
+      {client.needsReview ? (
+        <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-start gap-3">
+              <ShieldAlert className="mt-0.5 h-5 w-5 shrink-0 text-amber-600 dark:text-amber-400" />
+              <div>
+                <p className="text-sm font-semibold">Verify this client&apos;s details</p>
+                <p className="text-xs text-muted-foreground">
+                  Added automatically from a lead form. Confirm GST status, state,
+                  and billing address before sending proposals, contracts, or
+                  invoices.
+                </p>
+              </div>
+            </div>
+            <div className="flex shrink-0 gap-2">
+              <Button size="sm" variant="outline" onClick={() => setEditOpen(true)}>
+                <Pencil className="h-3.5 w-3.5" /> Edit details
+              </Button>
+              <Button size="sm" onClick={handleMarkReviewed} disabled={reviewing}>
+                {reviewing ? "Saving..." : "Mark verified"}
+              </Button>
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       <Card>
         <CardContent className="flex flex-col gap-4 p-6 sm:flex-row sm:items-center sm:justify-between">
@@ -207,6 +272,42 @@ export function ClientProfileView({ client, metrics, recentInvoices = [] }: Clie
 
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="space-y-6 lg:col-span-2">
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">Documents</CardTitle>
+            </CardHeader>
+            <CardContent className="pt-0">
+              {documents.length === 0 ? (
+                <EmptyState
+                  icon={FileText}
+                  title="No documents yet"
+                  description="Proposals, contracts, and welcome docs for this client will appear here."
+                  className="min-h-[120px]"
+                />
+              ) : (
+                <div className="-mx-1 divide-y">
+                  {documents.map((d) => (
+                    <Link
+                      key={`${d.kind}-${d.id}`}
+                      href={d.href}
+                      className="flex items-center gap-3 rounded-md px-1 py-3 text-sm transition-colors hover:bg-muted/50"
+                    >
+                      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
+                        <DocIcon kind={d.kind} />
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate font-medium">{d.title}</p>
+                        <p className="text-xs capitalize text-muted-foreground">
+                          {d.kind} · {d.status.replace(/_/g, " ")}
+                        </p>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
               <CardTitle className="text-base">Recent invoices</CardTitle>

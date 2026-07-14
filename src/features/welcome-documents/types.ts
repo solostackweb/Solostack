@@ -45,7 +45,6 @@ export interface WelcomeDocumentRecord {
   publicToken: string | null;
   version: number;
   parentId: string | null;
-  acknowledgementRequired: boolean;
   viewedAt: string | null;
   publishedAt: string | null;
   sentAt: string | null;
@@ -54,7 +53,4 @@ export interface WelcomeDocumentRecord {
   /** Aggregate view count (rows × view_count). */
   totalViews: number;
   uniqueViewers: number;
-  acknowledgementCount: number;
-  acknowledgedAt: string | null;
-  acknowledgements: Array<{ name: string; email: string | null; at: string }>;
 }

@@ -40,7 +40,6 @@ import type {
   ContractSection,
   ContractTemplate,
 } from "../types";
-import { contractTemplates } from "../templates";
 import { createContractAction } from "../actions";
 import { sendContractAction } from "../delivery";
 import { TemplatePicker } from "./template-picker";
@@ -132,10 +131,7 @@ export function ContractBuilderView({
   const [submitting, setSubmitting] = React.useState(false);
   const [mobileTab, setMobileTab] = React.useState<"edit" | "preview">("edit");
   const pickerTemplates = React.useMemo(
-    () => [
-      ...templates.map(mapTemplateRecordToContractTemplate),
-      ...contractTemplates,
-    ],
+    () => templates.map(mapTemplateRecordToContractTemplate),
     [templates],
   );
 

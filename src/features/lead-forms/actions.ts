@@ -6,8 +6,10 @@ import { z } from "zod";
 import { getAdminSupabase } from "@/lib/supabase/admin";
 import { getPublicAppUrl } from "@/features/documents/urls";
 import { getServerSupabase } from "@/lib/supabase/server";
+import { getClientIp, leadSubmitLimit } from "@/lib/rate-limit";
 import { AUTH_LOGIN_ROUTE } from "@/features/auth/routes";
 import { countryForLeadForm, normalizeLeadPhone } from "./countries";
+import { CUSTOM_FIELD_PREFIX, normalizeLeadFields } from "./fields";
 
 export type LeadFormActionResult<T = undefined> =
   | { ok: true; data?: T; message?: string }
@@ -22,6 +24,27 @@ const createLeadFormSchema = z.object({
     .trim()
     .regex(/^#[0-9a-fA-F]{6}$/, "Use a valid hex color")
     .default("#2563EB"),
+});
+
+const leadFieldSchema = z.object({
+  name: z.string().trim().min(1).max(60),
+  label: z.string().trim().min(1).max(120),
+  type: z.enum(["text", "email", "tel", "textarea"]),
+  required: z.boolean(),
+  custom: z.boolean().optional(),
+});
+
+const updateLeadFormSchema = z.object({
+  id: z.string().uuid(),
+  name: z.string().trim().min(1, "Name is required").max(80),
+  title: z.string().trim().min(1, "Title is required").max(120),
+  description: z.string().trim().max(500).optional().or(z.literal("")),
+  brandColor: z
+    .string()
+    .trim()
+    .regex(/^#[0-9a-fA-F]{6}$/, "Use a valid hex color")
+    .default("#2563EB"),
+  fields: z.array(leadFieldSchema).min(1).max(30),
 });
 
 const publicLeadSchema = z.object({
@@ -105,6 +128,58 @@ export async function createLeadFormAction(
   };
 }
 
+export async function updateLeadFormAction(
+  _prev: LeadFormActionResult | undefined,
+  formData: FormData,
+): Promise<LeadFormActionResult> {
+  let rawFields: unknown = [];
+  try {
+    rawFields = JSON.parse(String(formData.get("fields") ?? "[]"));
+  } catch {
+    return { ok: false, error: "The form fields could not be read." };
+  }
+
+  const parsed = updateLeadFormSchema.safeParse({
+    id: formData.get("id"),
+    name: formData.get("name"),
+    title: formData.get("title"),
+    description: formData.get("description"),
+    brandColor: formData.get("brandColor") || "#2563EB",
+    fields: rawFields,
+  });
+
+  if (!parsed.success) {
+    return {
+      ok: false,
+      error: "Please fix the highlighted fields.",
+      fieldErrors: parsed.error.flatten().fieldErrors,
+    };
+  }
+
+  const userId = await requireUserId();
+  const supabase = await getServerSupabase();
+  // Re-normalize so core fields + shape are always valid regardless of input.
+  const fields = normalizeLeadFields(parsed.data.fields);
+
+  const { error } = await supabase
+    .from("lead_forms")
+    .update({
+      name: parsed.data.name,
+      title: parsed.data.title,
+      description: parsed.data.description || null,
+      brand_color: parsed.data.brandColor,
+      fields: fields as never,
+    } as never)
+    .eq("id", parsed.data.id)
+    .eq("user_id", userId);
+
+  if (error) return { ok: false, error: error.message };
+
+  revalidatePath("/dashboard/lead-forms");
+  revalidatePath(`/dashboard/lead-forms/${parsed.data.id}`);
+  return { ok: true, message: "Form saved." };
+}
+
 export async function toggleLeadFormAction(formData: FormData): Promise<void> {
   const userId = await requireUserId();
   const id = z.string().uuid().parse(formData.get("id"));
@@ -122,6 +197,19 @@ export async function submitPublicLeadAction(
   _prev: LeadFormActionResult<{ projectId: string }> | undefined,
   formData: FormData,
 ): Promise<LeadFormActionResult<{ projectId: string }>> {
+  // Honeypot: a hidden field real users never see. Bots fill every input, so
+  // any value here means it's automated. Pretend success so they don't retry.
+  if (String(formData.get("website") ?? "").trim()) {
+    return { ok: true, message: "Thanks. Your inquiry has been sent." };
+  }
+
+  // Per-IP rate limit — one public endpoint that writes client + project rows,
+  // so cap how fast a single source can create them. Fails open without Upstash.
+  const rl = await leadSubmitLimit(await getClientIp());
+  if (!rl.ok) {
+    return { ok: false, error: rl.message };
+  }
+
   const parsed = publicLeadSchema.safeParse({
     formId: formData.get("formId"),
     name: formData.get("name"),
@@ -146,7 +234,7 @@ export async function submitPublicLeadAction(
   const admin = getAdminSupabase();
   const { data: form, error: formError } = await admin
     .from("lead_forms")
-    .select("id, user_id, active, title, slug")
+    .select("id, user_id, active, title, slug, fields")
     .eq("id", parsed.data.formId)
     .maybeSingle();
 
@@ -161,33 +249,63 @@ export async function submitPublicLeadAction(
   const isForeign = country !== "IN";
   const phone = normalizeLeadPhone(parsed.data.phone || "", country) || null;
 
-  const { data: client, error: clientError } = await admin
-    .from("clients")
-    .insert({
-      user_id: ownerId,
-      full_name: parsed.data.name,
-      business_name: parsed.data.company || null,
-      email: parsed.data.email,
-      phone,
-      country,
-      currency,
-      is_foreign: isForeign,
-      gst_registered: false,
-      state_code: null,
-      billing_address: null,
-      notes: [
-        `Created from lead form: ${(form as { title: string }).title}`,
-        "Review billing address, GST status, state, and document details before sending proposals, contracts, or invoices.",
-      ].join("\n"),
-    } as never)
-    .select("id")
-    .single();
-
-  if (clientError || !client) {
-    return { ok: false, error: clientError?.message ?? "Could not create the lead." };
+  // Collect answers to any custom questions this form defines, keyed by label.
+  const customAnswers: Record<string, string> = {};
+  for (const field of normalizeLeadFields((form as { fields?: unknown }).fields)) {
+    if (!field.custom) continue;
+    const value = String(
+      formData.get(`${CUSTOM_FIELD_PREFIX}${field.name}`) ?? "",
+    ).trim();
+    if (value) customAnswers[field.label] = value.slice(0, 2000);
   }
 
-  const clientId = (client as { id: string }).id;
+  // Dedup by email: if this person is already a client, reuse that record and
+  // only add a new lead project under them — don't create a duplicate client.
+  // Otherwise create a new client, flagged for manual verification (GST,
+  // state, billing) since a prospect can't be trusted to fill those in.
+  const { data: existingClient } = await admin
+    .from("clients")
+    .select("id")
+    .eq("user_id", ownerId)
+    .ilike("email", parsed.data.email)
+    .limit(1)
+    .maybeSingle();
+
+  let clientId: string;
+  let clientIsNew = false;
+
+  if (existingClient) {
+    clientId = (existingClient as { id: string }).id;
+  } else {
+    const { data: client, error: clientError } = await admin
+      .from("clients")
+      .insert({
+        user_id: ownerId,
+        full_name: parsed.data.name,
+        business_name: parsed.data.company || null,
+        email: parsed.data.email,
+        phone,
+        country,
+        currency,
+        is_foreign: isForeign,
+        gst_registered: false,
+        state_code: null,
+        billing_address: null,
+        needs_review: true,
+        notes: [
+          `Created from lead form: ${(form as { title: string }).title}`,
+          "Verify billing address, GST status, state, and document details before sending proposals, contracts, or invoices.",
+        ].join("\n"),
+      } as never)
+      .select("id")
+      .single();
+
+    if (clientError || !client) {
+      return { ok: false, error: clientError?.message ?? "Could not create the lead." };
+    }
+    clientId = (client as { id: string }).id;
+    clientIsNew = true;
+  }
   const projectName = parsed.data.company
     ? `${parsed.data.company} inquiry`
     : `${parsed.data.name} inquiry`;
@@ -256,15 +374,21 @@ export async function submitPublicLeadAction(
       country,
       currency,
       formSlug: (form as { slug: string }).slug,
+      custom: customAnswers,
     },
     ivo_prompt: ivoPrompt,
     source_url: `${getPublicAppUrl()}/lead/${(form as { slug: string }).slug}`,
   } as never);
 
+  const formTitle = (form as { title: string }).title;
   await admin.from("notifications").insert({
     user_id: ownerId,
-    title: "New lead received - review client details",
-    body: `${parsed.data.name} submitted ${(form as { title: string }).title}. Stackivo created a client and lead project; review billing address, GST/state details, and project dates before sending documents.`,
+    title: clientIsNew
+      ? "New lead - verify client details"
+      : "New inquiry from an existing client",
+    body: clientIsNew
+      ? `${parsed.data.name} submitted ${formTitle}. Stackivo created a client and a lead project. Please verify GST status, state, and billing address before sending any documents.`
+      : `${parsed.data.name} (${parsed.data.email}) submitted ${formTitle}. A new lead project was added under their existing client record.`,
     type: "lead",
     entity_type: "client",
     entity_id: clientId,

@@ -8,7 +8,11 @@ import { getProfile } from "@/features/profile/server";
 import { WelcomeNewView } from "@/features/welcome-documents/components/welcome-new-view";
 
 interface PageProps {
-  searchParams?: Promise<{ template?: string }>;
+  searchParams?: Promise<{
+    template?: string;
+    clientId?: string;
+    projectId?: string;
+  }>;
 }
 
 export const metadata = { title: "New welcome document" };
@@ -35,6 +39,8 @@ export default async function NewWelcomeDocumentPage({
       templates={templates}
       preset={preset}
       defaultBrandColor={profile?.brandColor ?? null}
+      prefillClientId={sp.clientId ?? null}
+      prefillProjectId={sp.projectId ?? null}
       clients={clients.map((c) => ({
         id: c.id,
         name: getClientDisplayName(c),

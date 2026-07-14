@@ -46,6 +46,8 @@ export function ProposalTemplateStartView({
   const [title, setTitle] = React.useState(templates[0]?.title ?? "Untitled proposal");
 
   const selectedTemplate = templates.find((template) => template.id === selectedTemplateId) ?? null;
+  const personalTemplates = templates.filter((template) => !template.isSystem);
+  const builtinTemplates = templates.filter((template) => template.isSystem);
   const selectedClient = clients.find((client) => client.id === clientId) ?? null;
   const availableProjects = React.useMemo(() => {
     if (!clientId) return projects;
@@ -72,27 +74,64 @@ export function ProposalTemplateStartView({
       />
 
       <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_380px]">
-        <section className="space-y-4">
-          <div className="grid gap-3 md:grid-cols-2">
-            {templates.map((template) => (
+        <section className="space-y-6">
+          <div>
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Start fresh
+            </p>
+            <div className="grid gap-3 md:grid-cols-2">
               <TemplateCard
-                key={template.id}
-                title={template.title}
-                description={template.description ?? template.category}
-                selected={selectedTemplateId === template.id}
-                badge={template.isSystem ? "Built-in" : "Saved"}
-                onClick={() => chooseTemplate(template.id, template.title)}
+                title="Blank proposal"
+                description="Start with clean sections and add your own package, scope, and terms."
+                selected={selectedTemplateId === BLANK_TEMPLATE_ID}
+                badge="Flexible"
+                icon={FileText}
+                onClick={() =>
+                  chooseTemplate(BLANK_TEMPLATE_ID, "Untitled proposal")
+                }
               />
-            ))}
-            <TemplateCard
-              title="Blank proposal"
-              description="Start with clean sections and add your own package, scope, and terms."
-              selected={selectedTemplateId === BLANK_TEMPLATE_ID}
-              badge="Flexible"
-              icon={FileText}
-              onClick={() => chooseTemplate(BLANK_TEMPLATE_ID, "Untitled proposal")}
-            />
+            </div>
           </div>
+
+          {personalTemplates.length > 0 ? (
+            <div>
+              <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Your templates
+              </p>
+              <div className="grid gap-3 md:grid-cols-2">
+                {personalTemplates.map((template) => (
+                  <TemplateCard
+                    key={template.id}
+                    title={template.title}
+                    description={template.description ?? template.category}
+                    selected={selectedTemplateId === template.id}
+                    badge="Saved"
+                    onClick={() => chooseTemplate(template.id, template.title)}
+                  />
+                ))}
+              </div>
+            </div>
+          ) : null}
+
+          {builtinTemplates.length > 0 ? (
+            <div>
+              <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Starter templates
+              </p>
+              <div className="grid gap-3 md:grid-cols-2">
+                {builtinTemplates.map((template) => (
+                  <TemplateCard
+                    key={template.id}
+                    title={template.title}
+                    description={template.description ?? template.category}
+                    selected={selectedTemplateId === template.id}
+                    badge="Built-in"
+                    onClick={() => chooseTemplate(template.id, template.title)}
+                  />
+                ))}
+              </div>
+            </div>
+          ) : null}
         </section>
 
         <Card className="xl:sticky xl:top-24 xl:self-start">

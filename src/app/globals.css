@@ -116,6 +116,44 @@
   }
 }
 
+/*
+ * Force the light document palette for public share pages (proposals,
+ * contracts, invoices, lead forms). A client on a dark-mode device should
+ * still see a clean, printed-document-style page — not a dark one. These
+ * custom properties re-declare the light values, which override the `.dark`
+ * values set on <html> for this subtree.
+ */
+@layer base {
+  .doc-light-theme {
+    color-scheme: light;
+    --background: 0 0% 100%;
+    --foreground: 222 47% 11%;
+    --card: 0 0% 100%;
+    --card-foreground: 222 47% 11%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 11%;
+    --primary: 221 83% 53%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 221 30% 96%;
+    --secondary-foreground: 222 47% 11%;
+    --muted: 240 20% 96%;
+    --muted-foreground: 240 10% 46%;
+    --accent: 221 30% 95%;
+    --accent-foreground: 222 47% 11%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 98%;
+    --success: 142 72% 36%;
+    --success-foreground: 0 0% 100%;
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 100%;
+    --info: 199 89% 48%;
+    --info-foreground: 0 0% 100%;
+    --border: 240 18% 90%;
+    --input: 240 18% 90%;
+    --ring: 221 83% 53%;
+  }
+}
+
 @media (min-width: 768px) {
   .stackivo-ai-rail {
     width: 0;

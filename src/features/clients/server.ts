@@ -30,6 +30,8 @@ export interface ClientRecord {
   stateCode: string | null;
   billingAddress: string | null;
   notes: string | null;
+  /** Auto-created from a lead form and awaiting manual detail verification. */
+  needsReview: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -56,6 +58,8 @@ export function mapClientRow(row: ClientRow): ClientRecord {
     stateCode: row.state_code,
     billingAddress: row.billing_address ?? row.address,
     notes: row.notes,
+    needsReview:
+      (row as unknown as { needs_review?: boolean }).needs_review ?? false,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };

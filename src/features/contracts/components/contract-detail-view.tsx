@@ -9,7 +9,9 @@ import {
   MoreHorizontal,
   Trash2,
   Copy,
+  BookOpen,
   CheckCircle2,
+  ReceiptText,
   XCircle,
   Link2,
   Loader2,
@@ -43,6 +45,7 @@ import type { ClientRecord } from "@/features/clients/server";
 import { CONTRACT_KIND_LABEL } from "../status";
 import { ContractStatusBadge } from "./contract-status-badge";
 import {
+  convertContractToInvoiceAction,
   deleteContractAction,
   duplicateContractAction,
   setContractStatusAction,
@@ -288,6 +291,17 @@ export function ContractDetailView({
     });
   };
 
+  const handleConvertToInvoice = () => {
+    runStatusAction(async () => {
+      const res = await convertContractToInvoiceAction({ id: contract.id });
+      if (!res.ok || !res.data) {
+        throw new Error(res.ok ? "No invoice id was returned." : res.error);
+      }
+      toast.success("Invoice created");
+      router.push(`/dashboard/invoices/${res.data.id}`);
+    });
+  };
+
   const handleDelete = () => {
     const fd = new FormData();
     fd.set("id", contract.id);
@@ -402,6 +416,24 @@ export function ContractDetailView({
                   <CheckCircle2 /> Mark signed
                 </Button>
               )}
+              {contract.status === "signed" && (
+                <>
+                  <Button size="sm" onClick={handleConvertToInvoice}>
+                    <ReceiptText /> Create invoice
+                  </Button>
+                  <Button asChild size="sm" variant="outline">
+                    <Link
+                      href={`/dashboard/welcome/new?${
+                        contract.projectId
+                          ? `projectId=${contract.projectId}&`
+                          : ""
+                      }${contract.clientId ? `clientId=${contract.clientId}` : ""}`}
+                    >
+                      <BookOpen /> Welcome doc
+                    </Link>
+                  </Button>
+                </>
+              )}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button
@@ -421,6 +453,9 @@ export function ContractDetailView({
                   )}
                   <DropdownMenuItem onSelect={() => handleDuplicate()}>
                     <Copy className="h-3.5 w-3.5" /> Duplicate as draft
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onSelect={handleConvertToInvoice}>
+                    <ReceiptText className="h-3.5 w-3.5" /> Create invoice
                   </DropdownMenuItem>
                   {contract.status !== "signed" && (
                     <>

@@ -209,6 +209,30 @@ export async function deleteClientAction(
   return { ok: true, message: "Client deleted." };
 }
 
+/**
+ * Clear the `needs_review` flag once the freelancer has verified the details
+ * of a client that was auto-created from a lead form.
+ */
+export async function markClientReviewedAction(input: {
+  id: string;
+}): Promise<ActionResult> {
+  const idParse = clientIdSchema.safeParse(input.id);
+  if (!idParse.success) return { ok: false, error: "Invalid client id." };
+
+  const userId = await requireUserId();
+  const supabase = await getServerSupabase();
+  const { error } = await supabase
+    .from("clients")
+    .update({ needs_review: false } as never)
+    .eq("id", idParse.data)
+    .eq("user_id", userId);
+  if (error) return { ok: false, error: error.message };
+
+  revalidatePath(`/dashboard/clients/${idParse.data}`);
+  revalidatePath("/dashboard/clients");
+  return { ok: true, message: "Client marked as verified." };
+}
+
 // --- CSV bulk import -------------------------------------------------------
 
 export interface CsvClientRow {

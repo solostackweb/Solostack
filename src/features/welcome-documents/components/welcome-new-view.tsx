@@ -28,6 +28,8 @@ interface Props {
   preset: WelcomeDocumentTemplate | null;
   clients: ClientOption[];
   defaultBrandColor: string | null;
+  prefillClientId?: string | null;
+  prefillProjectId?: string | null;
 }
 
 const BLANK_SECTIONS: WelcomeDocumentSection[] = [
@@ -56,6 +58,8 @@ export function WelcomeNewView({
   preset,
   clients,
   defaultBrandColor,
+  prefillClientId = null,
+  prefillProjectId = null,
 }: Props) {
   // Hook must come before any conditional return.
   const [showBlankEditor, setShowBlankEditor] = React.useState(false);
@@ -64,8 +68,8 @@ export function WelcomeNewView({
     intro: string;
     sections: WelcomeDocumentSection[];
     clientId: string | null;
+    projectId: string | null;
     brandColor: string | null;
-    acknowledgementRequired: boolean;
   } | null>(null);
 
   const applyAiDraft = React.useCallback(
@@ -79,8 +83,8 @@ export function WelcomeNewView({
           body: section.body,
         })),
         clientId: draft.clientId || null,
+        projectId: null,
         brandColor: defaultBrandColor ?? "#2563EB",
-        acknowledgementRequired: draft.acknowledgementRequired,
       });
       setShowBlankEditor(false);
     },
@@ -144,9 +148,9 @@ export function WelcomeNewView({
             title: preset.title,
             intro: preset.intro ?? "",
             sections: preset.sections,
-            clientId: null,
+            clientId: prefillClientId,
+            projectId: prefillProjectId,
             brandColor: defaultBrandColor ?? "#2563EB",
-            acknowledgementRequired: false,
           }}
         />
       </div>
@@ -177,9 +181,9 @@ export function WelcomeNewView({
             title: "",
             intro: "",
             sections: BLANK_SECTIONS,
-            clientId: null,
+            clientId: prefillClientId,
+            projectId: prefillProjectId,
             brandColor: defaultBrandColor ?? "#2563EB",
-            acknowledgementRequired: false,
           }}
         />
       </div>

@@ -120,7 +120,7 @@ export const BUILTIN_WELCOME_TEMPLATES: WelcomeDocumentTemplate[] = [
       {
         id: "s_8",
         heading: "First 30 Days & Next Steps",
-        body: "Here's how we'll start strong:\n\n1. **Kickoff call** — [date] — align on goals, success metrics, and priorities.\n2. **Access & assets** — you share [brand guidelines, logins, prior materials].\n3. **First sprint** — we deliver [the first milestone] by [date].\n4. **Review** — we present, gather feedback, and plan the next cycle.\n\nTo begin, please acknowledge this guide and confirm the kickoff date. Welcome again — let's build something great together.",
+        body: "Here's how we'll start strong:\n\n1. **Kickoff call** — [date] — align on goals, success metrics, and priorities.\n2. **Access & assets** — you share [brand guidelines, logins, prior materials].\n3. **First sprint** — we deliver [the first milestone] by [date].\n4. **Review** — we present, gather feedback, and plan the next cycle.\n\nTo begin, please review this guide and confirm the kickoff date. Welcome again — let's build something great together.",
       },
     ],
   },
@@ -167,7 +167,7 @@ export const BUILTIN_WELCOME_TEMPLATES: WelcomeDocumentTemplate[] = [
       {
         id: "s_7",
         heading: "Next Steps",
-        body: "To get underway:\n\n1. Acknowledge this welcome pack and flag any edits.\n2. Book our kickoff call: [link / date].\n3. Share the background documents and access listed in the brief.\n\nI'll send a short agenda 24 hours before we meet so the first session is productive. Looking forward to getting started.\n\n— [Your name]",
+        body: "To get underway:\n\n1. Review this welcome pack and flag any edits.\n2. Book our kickoff call: [link / date].\n3. Share the background documents and access listed in the brief.\n\nI'll send a short agenda 24 hours before we meet so the first session is productive. Looking forward to getting started.\n\n— [Your name]",
       },
     ],
   },
@@ -353,7 +353,7 @@ export const BUILTIN_WELCOME_TEMPLATES: WelcomeDocumentTemplate[] = [
       {
         id: "s_10",
         heading: "Let's begin",
-        body: "Acknowledge this guide in your portal and I'll send across the first brief within 24 hours.",
+        body: "Review this guide in your portal and I'll send across the first brief within 24 hours.",
       },
     ],
   },
@@ -410,7 +410,7 @@ export const BUILTIN_WELCOME_TEMPLATES: WelcomeDocumentTemplate[] = [
       {
         id: "s_9",
         heading: "Ready when you are",
-        body: "That's everything. Acknowledge this in the portal and we'll get started.",
+        body: "That's everything. Review this in the portal and we'll get started.",
       },
     ],
   },

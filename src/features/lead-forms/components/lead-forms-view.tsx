@@ -4,7 +4,7 @@ import * as React from "react";
 import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
 import Link from "next/link";
-import { Copy, ExternalLink, FolderKanban, Inbox, Plus } from "lucide-react";
+import { Copy, ExternalLink, FolderKanban, Inbox, Pencil, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -32,13 +32,14 @@ export function LeadFormsView({
     createLeadFormAction,
     undefined,
   );
+  const [brandColor, setBrandColor] = React.useState("#2563EB");
 
   return (
     <div className="space-y-6">
       <header className="flex flex-col gap-4 border-b pb-6 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">
-            Clientflow intake
+            Lead capture
           </p>
           <h1 className="mt-2 text-3xl font-bold tracking-tight">Lead forms</h1>
           <p className="mt-1 max-w-2xl text-muted-foreground">
@@ -87,8 +88,18 @@ export function LeadFormsView({
             <label className="space-y-1.5">
               <span className="text-xs font-medium text-muted-foreground">Brand colour</span>
               <div className="flex gap-2">
-                <Input name="brandColor" type="color" defaultValue="#2563EB" className="w-16 p-1" />
-                <Input defaultValue="#2563EB" aria-label="Brand colour preview" readOnly />
+                <Input
+                  name="brandColor"
+                  type="color"
+                  value={brandColor}
+                  onChange={(event) => setBrandColor(event.target.value)}
+                  className="w-16 p-1"
+                />
+                <Input
+                  value={brandColor}
+                  onChange={(event) => setBrandColor(event.target.value)}
+                  aria-label="Brand colour hex"
+                />
               </div>
             </label>
           </div>
@@ -136,6 +147,12 @@ export function LeadFormsView({
                         </p>
                       </div>
                       <div className="flex shrink-0 flex-wrap gap-2">
+                        <Button asChild variant="outline" size="sm">
+                          <Link href={`/dashboard/lead-forms/${form.id}`}>
+                            <Pencil className="h-3.5 w-3.5" />
+                            Customize
+                          </Link>
+                        </Button>
                         <Button
                           type="button"
                           variant="outline"
@@ -206,7 +223,9 @@ export function LeadFormsView({
                   <div className="flex shrink-0 flex-wrap gap-2">
                     {submission.project_id ? (
                       <Button asChild size="sm" variant="outline">
-                        <Link href="/dashboard/projects">Projects</Link>
+                        <Link href={`/dashboard/projects/${submission.project_id}`}>
+                          Open lead
+                        </Link>
                       </Button>
                     ) : null}
                     <IvoContextActions

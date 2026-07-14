@@ -8,6 +8,9 @@ import {
 import { getClient, listClients } from "@/features/clients/server";
 import { getClientDisplayName } from "@/features/clients/utils";
 import { listInvoices } from "@/features/invoices/server";
+import { listProposals } from "@/features/proposals/server";
+import { listContracts } from "@/features/contracts/server";
+import { listWelcomeDocuments } from "@/features/welcome-documents/server";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -26,9 +29,20 @@ export default async function ProjectDetailPage({ params }: PageProps) {
   const project = await getProject(id);
   if (!project) notFound();
 
-  const [client, invoices, clients, statusHistory] = await Promise.all([
+  const [
+    client,
+    invoices,
+    proposals,
+    contracts,
+    welcomeDocs,
+    clients,
+    statusHistory,
+  ] = await Promise.all([
     project.clientId ? getClient(project.clientId) : Promise.resolve(null),
     listInvoices({ projectId: project.id, limit: 50 }),
+    listProposals({ projectId: project.id, limit: 50 }),
+    listContracts({ projectId: project.id, limit: 50 }),
+    listWelcomeDocuments({ projectId: project.id }),
     listClients({ limit: 200 }),
     listProjectStatusHistory(project.id, 50),
   ]);
@@ -45,6 +59,25 @@ export default async function ProjectDetailPage({ params }: PageProps) {
         currency: i.currency,
         inrEquivalent: i.inrEquivalent,
         issueDate: i.issueDate,
+      }))}
+      proposals={proposals.map((p) => ({
+        id: p.id,
+        title: p.title,
+        status: p.status,
+        totalAmount: p.totalAmount,
+        currency: p.currency,
+      }))}
+      contracts={contracts.map((c) => ({
+        id: c.id,
+        title: c.title,
+        status: c.status,
+        valueAmount: c.valueAmount,
+        currency: c.currency,
+      }))}
+      welcomeDocs={welcomeDocs.map((w) => ({
+        id: w.id,
+        title: w.title,
+        status: w.status,
       }))}
       clients={clients.map((c) => ({
         id: c.id,

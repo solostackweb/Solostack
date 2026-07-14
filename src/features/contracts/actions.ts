@@ -13,6 +13,10 @@ import { revalidatePath } from "next/cache";
 import { randomUUID } from "node:crypto";
 import { getServerSupabase } from "@/lib/supabase/server";
 import { AUTH_LOGIN_ROUTE } from "@/features/auth/routes";
+import { applyMergeFields } from "@/features/templates/merge-fields";
+import { resolveMergeContextForUser } from "@/features/templates/merge-context";
+import { createInvoiceAction } from "@/features/invoices/actions";
+import { nextInvoiceNumber } from "@/features/invoices/server";
 import {
   contractCrudSchema,
   contractIdSchema,
@@ -128,11 +132,21 @@ export async function createContractAction(
     }
     throw err;
   }
+  // Fill {{merge fields}} from the chosen client / project / profile.
+  const mergeCtx = await resolveMergeContextForUser({
+    userId,
+    clientId: parsed.data.clientId,
+    projectId: parsed.data.projectId,
+    currency: parsed.data.currency,
+  });
+
   const insertRow = {
     user_id: userId,
     kind: parsed.data.kind,
-    title: parsed.data.title,
-    content: parsed.data.content ?? null,
+    title: applyMergeFields(parsed.data.title, mergeCtx),
+    content: parsed.data.content
+      ? applyMergeFields(parsed.data.content, mergeCtx)
+      : null,
     client_id: parsed.data.clientId ?? null,
     project_id: parsed.data.projectId ?? null,
     status: parsed.data.status,
@@ -160,6 +174,112 @@ export async function createContractAction(
   });
   revalidatePath("/dashboard/contracts");
   return { ok: true, data: { id: newId }, message: "Saved." };
+}
+
+/**
+ * Create a draft invoice for a contract's value — the "signed, now bill them"
+ * step. The invoice is linked to the contract's client + project (both already
+ * surface on the project hub), completing proposal → contract → invoice.
+ */
+export async function convertContractToInvoiceAction(input: {
+  id: string;
+}): Promise<ActionResult<{ id: string }>> {
+  const idParse = contractIdSchema.safeParse(input.id);
+  if (!idParse.success) return { ok: false, error: "Invalid contract." };
+  const userId = await requireUserId();
+  const supabase = await getServerSupabase();
+
+  const { data: contractRow } = await supabase
+    .from("contracts")
+    .select("id, title, client_id, project_id, currency, value_amount")
+    .eq("id", idParse.data)
+    .eq("user_id", userId)
+    .maybeSingle();
+  const contract = contractRow as {
+    id: string;
+    title: string;
+    client_id: string | null;
+    project_id: string | null;
+    currency: string;
+    value_amount: number | null;
+  } | null;
+  if (!contract) return { ok: false, error: "Contract not found." };
+  if (!contract.client_id) {
+    return {
+      ok: false,
+      error: "Add a client to the contract before creating an invoice.",
+    };
+  }
+
+  const [{ data: profile }, nextNumber] = await Promise.all([
+    supabase
+      .from("user_profiles")
+      .select(
+        "invoice_default_due_days, invoice_default_hsn_sac, invoice_default_terms, invoice_default_gst_rate",
+      )
+      .eq("id", userId)
+      .maybeSingle(),
+    nextInvoiceNumber(userId),
+  ]);
+  const profileRow = profile as {
+    invoice_default_due_days: number | null;
+    invoice_default_hsn_sac: string | null;
+    invoice_default_terms: string | null;
+    invoice_default_gst_rate: number | null;
+  } | null;
+
+  const issueDate = new Date();
+  const dueDate = new Date(issueDate);
+  dueDate.setDate(
+    issueDate.getDate() + (profileRow?.invoice_default_due_days ?? 7),
+  );
+  const isoDate = (d: Date) => d.toISOString().slice(0, 10);
+
+  const fd = new FormData();
+  fd.set(
+    "payload",
+    JSON.stringify({
+      clientId: contract.client_id,
+      projectId: contract.project_id ?? undefined,
+      invoiceNumber: nextNumber.formatted,
+      issueDate: isoDate(issueDate),
+      dueDate: isoDate(dueDate),
+      currency: contract.currency,
+      status: "draft",
+      discount: 0,
+      notes: `From contract: ${contract.title}`,
+      terms: profileRow?.invoice_default_terms ?? undefined,
+      hsnSac: profileRow?.invoice_default_hsn_sac ?? undefined,
+      lines: [
+        {
+          description: contract.title,
+          quantity: 1,
+          unitPrice: Number(contract.value_amount ?? 0),
+          gstRate: profileRow?.invoice_default_gst_rate ?? 18,
+          position: 0,
+        },
+      ],
+    }),
+  );
+
+  const created = await createInvoiceAction(undefined, fd);
+  if (!created.ok) return { ok: false, error: created.error };
+  if (!created.data) {
+    return { ok: false, error: "Invoice was created but no id was returned." };
+  }
+
+  await recordActivity({
+    kind: "contract_converted_to_invoice",
+    entityType: "contract",
+    entityId: contract.id,
+    title: `Created invoice from contract: ${contract.title}`,
+    metadata: { invoiceId: created.data.id },
+  });
+
+  revalidatePath("/dashboard/invoices");
+  revalidatePath(`/dashboard/invoices/${created.data.id}`);
+  revalidatePath(`/dashboard/contracts/${contract.id}`);
+  return { ok: true, data: { id: created.data.id }, message: "Invoice created." };
 }
 
 export async function updateContractAction(

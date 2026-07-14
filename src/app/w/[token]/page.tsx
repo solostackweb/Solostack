@@ -9,7 +9,6 @@ import {
 } from "@/features/welcome-documents/server";
 import { parseWelcomeContent } from "@/features/welcome-documents/content";
 import { WelcomeMarkdown } from "@/features/welcome-documents/markdown";
-import { WelcomePublicAck } from "@/features/welcome-documents/components/welcome-public-ack";
 import type { WelcomeDocumentRow } from "@/lib/supabase/types";
 import { getServerSupabase } from "@/lib/supabase/server";
 
@@ -167,15 +166,6 @@ function WelcomeViewer({
           </a>
         </div>
 
-        {doc.acknowledgement_required && doc.public_token && (
-          <div className="mt-8">
-            <WelcomePublicAck
-              token={doc.public_token}
-              brandColor={brand}
-              defaultEmail={viewerEmail}
-            />
-          </div>
-        )}
       </main>
     </div>
   );

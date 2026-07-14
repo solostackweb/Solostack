@@ -53,6 +53,7 @@ export function ProjectCard({
     <Link
       href={`/dashboard/projects/${project.id}`}
       className="group block focus:outline-none"
+      draggable={false}
     >
       <Card
         className={cn(

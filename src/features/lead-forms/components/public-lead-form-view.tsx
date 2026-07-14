@@ -3,7 +3,7 @@
 import * as React from "react";
 import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
-import { CheckCircle2, Globe2, Mail, Send, Sparkles } from "lucide-react";
+import { CheckCircle2, Mail, Send, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -13,19 +13,25 @@ import {
   countryForLeadForm,
   normalizeLeadPhone,
 } from "../countries";
+import {
+  CUSTOM_FIELD_PREFIX,
+  normalizeLeadFields,
+  type LeadFormField,
+} from "../fields";
 import type { LeadFormRecord } from "../server";
 
 export function PublicLeadFormView({ form }: { form: LeadFormRecord }) {
   const [state, action] = useActionState<
     LeadFormActionResult<{ projectId: string }> | undefined,
     FormData
-  >(
-    submitPublicLeadAction,
-    undefined,
-  );
+  >(submitPublicLeadAction, undefined);
   const [country, setCountry] = React.useState("IN");
   const [phone, setPhone] = React.useState("");
 
+  const fields = React.useMemo(
+    () => normalizeLeadFields((form as { fields?: unknown }).fields),
+    [form],
+  );
   const selectedCountry = countryForLeadForm(country);
   const fullPhone = normalizeLeadPhone(phone, country);
 
@@ -91,6 +97,15 @@ export function PublicLeadFormView({ form }: { form: LeadFormRecord }) {
               <input type="hidden" name="formId" value={form.id} />
               <input type="hidden" name="phone" value={fullPhone} />
               <input type="hidden" name="currency" value={selectedCountry.currency} />
+              {/* Honeypot — hidden from humans, catches bots that fill every field. */}
+              <input
+                type="text"
+                name="website"
+                tabIndex={-1}
+                autoComplete="off"
+                aria-hidden="true"
+                className="absolute left-[-9999px] h-0 w-0 opacity-0"
+              />
 
               <div>
                 <p className="text-sm font-semibold">Your details</p>
@@ -100,76 +115,19 @@ export function PublicLeadFormView({ form }: { form: LeadFormRecord }) {
               </div>
 
               <div className="grid gap-4 sm:grid-cols-2">
-                <Field label="Name" required error={fieldError(state, "name")}>
-                  <Input name="name" placeholder="Your name" autoComplete="name" required />
-                </Field>
-                <Field label="Email" required error={fieldError(state, "email")}>
-                  <Input name="email" type="email" placeholder="you@example.com" autoComplete="email" required />
-                </Field>
-                <Field label="Company / brand">
-                  <Input name="company" placeholder="Company or brand" autoComplete="organization" />
-                </Field>
-                <Field label="Country" required>
-                  <select
-                    name="country"
-                    value={country}
-                    onChange={(event) => setCountry(event.target.value)}
-                    className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                    required
-                  >
-                    {LEAD_FORM_COUNTRIES.map((item) => (
-                      <option key={item.code} value={item.code}>
-                        {item.name}
-                      </option>
-                    ))}
-                  </select>
-                </Field>
-                <Field label="Phone">
-                  <div className="flex h-10 rounded-md border border-input bg-background shadow-sm transition-all focus-within:ring-2 focus-within:ring-ring">
-                    {selectedCountry.phoneCode ? (
-                      <span className="inline-flex min-w-14 items-center justify-center border-r px-3 text-sm font-medium text-muted-foreground">
-                        {selectedCountry.phoneCode}
-                      </span>
-                    ) : null}
-                    <Input
-                      value={phone}
-                      onChange={(event) => setPhone(event.target.value)}
-                      type="tel"
-                      placeholder={selectedCountry.phoneCode ? "Phone number" : "+ country code and number"}
-                      autoComplete="tel"
-                      className="h-full flex-1 border-0 bg-transparent shadow-none focus-visible:ring-0"
-                    />
-                  </div>
-                </Field>
-                <Field label="Preferred currency">
-                  <div className="flex h-10 items-center gap-2 rounded-md border bg-muted/30 px-3 text-sm">
-                    <Globe2 className="h-4 w-4 text-muted-foreground" />
-                    <span className="font-semibold">{selectedCountry.currency}</span>
-                    <span className="text-muted-foreground">selected from country</span>
-                  </div>
-                </Field>
-              </div>
-
-              <Field
-                label="Tell us what you want"
-                required
-                error={fieldError(state, "project")}
-              >
-                <Textarea
-                  name="project"
-                  rows={7}
-                  placeholder="Example: I need a website redesign, landing page, dashboard UI, content system, or monthly marketing support..."
-                  required
-                />
-              </Field>
-
-              <div className="grid gap-4 sm:grid-cols-2">
-                <Field label="Budget">
-                  <Input name="budget" placeholder={`Example: ${selectedCountry.currency} 2,000`} />
-                </Field>
-                <Field label="Timeline">
-                  <Input name="timeline" placeholder="Example: 4 weeks, urgent, flexible" />
-                </Field>
+                {fields.map((field) => (
+                  <FieldControl
+                    key={field.name}
+                    field={field}
+                    state={state}
+                    country={country}
+                    setCountry={setCountry}
+                    phone={phone}
+                    setPhone={setPhone}
+                    currency={selectedCountry.currency}
+                    phoneCode={selectedCountry.phoneCode}
+                  />
+                ))}
               </div>
 
               {state && !state.ok ? (
@@ -191,19 +149,123 @@ export function PublicLeadFormView({ form }: { form: LeadFormRecord }) {
   );
 }
 
+function FieldControl({
+  field,
+  state,
+  country,
+  setCountry,
+  phone,
+  setPhone,
+  currency,
+  phoneCode,
+}: {
+  field: LeadFormField;
+  state: LeadFormActionResult<{ projectId: string }> | undefined;
+  country: string;
+  setCountry: (v: string) => void;
+  phone: string;
+  setPhone: (v: string) => void;
+  currency: string;
+  phoneCode: string;
+}) {
+  const error = fieldError(state, field.name);
+  const inputName = field.custom ? `${CUSTOM_FIELD_PREFIX}${field.name}` : field.name;
+  const spanFull = field.type === "textarea";
+
+  // Country — special select that also drives currency + phone prefix.
+  if (field.name === "country") {
+    return (
+      <Field label={field.label} required={field.required}>
+        <select
+          name="country"
+          value={country}
+          onChange={(event) => setCountry(event.target.value)}
+          className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          required={field.required}
+        >
+          {LEAD_FORM_COUNTRIES.map((item) => (
+            <option key={item.code} value={item.code}>
+              {item.name}
+            </option>
+          ))}
+        </select>
+        <span className="text-[11px] text-muted-foreground">
+          Currency: <span className="font-medium">{currency}</span>
+        </span>
+      </Field>
+    );
+  }
+
+  // Phone — special input with the selected country's dial code.
+  if (field.name === "phone") {
+    return (
+      <Field label={field.label} required={field.required}>
+        <div className="flex h-10 rounded-md border border-input bg-background shadow-sm transition-all focus-within:ring-2 focus-within:ring-ring">
+          {phoneCode ? (
+            <span className="inline-flex min-w-14 items-center justify-center border-r px-3 text-sm font-medium text-muted-foreground">
+              {phoneCode}
+            </span>
+          ) : null}
+          <Input
+            value={phone}
+            onChange={(event) => setPhone(event.target.value)}
+            type="tel"
+            placeholder={phoneCode ? "Phone number" : "+ country code and number"}
+            autoComplete="tel"
+            required={field.required}
+            className="h-full flex-1 border-0 bg-transparent shadow-none focus-visible:ring-0"
+          />
+        </div>
+      </Field>
+    );
+  }
+
+  // Textarea (project + custom textarea questions) — full width.
+  if (field.type === "textarea") {
+    return (
+      <Field label={field.label} required={field.required} error={error} className={spanFull ? "sm:col-span-2" : undefined}>
+        <Textarea
+          name={inputName}
+          rows={field.name === "project" ? 7 : 4}
+          placeholder={
+            field.name === "project"
+              ? "Example: a website redesign, landing page, dashboard UI, or monthly support..."
+              : undefined
+          }
+          required={field.required}
+        />
+      </Field>
+    );
+  }
+
+  // Everything else — a plain input of the right type.
+  return (
+    <Field label={field.label} required={field.required} error={error}>
+      <Input
+        name={inputName}
+        type={field.type === "email" ? "email" : "text"}
+        autoComplete={autoCompleteFor(field.name)}
+        required={field.required}
+      />
+    </Field>
+  );
+}
+
 function Field({
   label,
   required,
   error,
+  className,
   children,
 }: {
   label: string;
   required?: boolean;
   error?: string;
+  className?: string;
   children: React.ReactNode;
 }) {
   return (
-    <label className="space-y-1.5">
+    <label className={["space-y-1.5", className].filter(Boolean).join(" ")}>
       <span className="text-xs font-semibold text-muted-foreground">
         {label}
         {required ? <span className="ml-1 text-destructive">*</span> : null}
@@ -233,6 +295,13 @@ function fieldError(
   key: string,
 ): string | undefined {
   return state?.ok === false ? state.fieldErrors?.[key]?.[0] : undefined;
+}
+
+function autoCompleteFor(name: string): string | undefined {
+  if (name === "name") return "name";
+  if (name === "email") return "email";
+  if (name === "company") return "organization";
+  return undefined;
 }
 
 function initials(name: string): string {

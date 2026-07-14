@@ -19,7 +19,6 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Switch } from "@/components/ui/switch";
 import {
   Select,
   SelectContent,
@@ -49,8 +48,8 @@ interface BaseProps {
     intro: string;
     sections: WelcomeDocumentSection[];
     clientId: string | null;
+    projectId: string | null;
     brandColor: string | null;
-    acknowledgementRequired: boolean;
   };
 }
 
@@ -83,9 +82,6 @@ export function WelcomeEditor(props: Props) {
   );
   const [brandColor, setBrandColor] = React.useState<string>(
     props.initial.brandColor ?? "#2563EB",
-  );
-  const [ackRequired, setAckRequired] = React.useState<boolean>(
-    props.initial.acknowledgementRequired,
   );
   const [showPreview, setShowPreview] = React.useState(true);
   const [pending, startTransition] = React.useTransition();
@@ -136,8 +132,8 @@ export function WelcomeEditor(props: Props) {
       intro: intro.trim() || null,
       sections: cleanedSections,
       clientId: clientId === UNASSIGNED ? null : clientId,
+      projectId: props.initial.projectId ?? null,
       brandColor: brandColor || null,
-      acknowledgementRequired: ackRequired,
     };
 
     startTransition(async () => {
@@ -255,20 +251,6 @@ export function WelcomeEditor(props: Props) {
                   maxLength={7}
                 />
               </div>
-            </div>
-            <div className="flex items-end pb-1">
-              <label className="flex cursor-pointer items-start gap-3 text-sm">
-                <Switch
-                  checked={ackRequired}
-                  onCheckedChange={setAckRequired}
-                />
-                <span className="mt-[-2px]">
-                  <span className="block font-medium">Ask for acknowledgement</span>
-                  <span className="block text-xs text-muted-foreground">
-                    Client taps &ldquo;I&rsquo;ve read and understood&rdquo; at the end.
-                  </span>
-                </span>
-              </label>
             </div>
           </div>
         </CardContent>

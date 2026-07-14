@@ -36,6 +36,19 @@ export async function listTemplates(type?: TemplateType): Promise<TemplateRecord
   return [...builtin, ...personal];
 }
 
+export async function getPersonalTemplate(
+  id: string,
+): Promise<TemplateRecord | null> {
+  const supabase = await getServerSupabase();
+  const { data } = await supabase
+    .from("document_templates")
+    .select("*")
+    .eq("id", id)
+    .maybeSingle();
+  if (!data) return null;
+  return mapRow(data as DocumentTemplateRow);
+}
+
 export async function listPersonalTemplates(): Promise<TemplateRecord[]> {
   const supabase = await getServerSupabase();
   const { data } = await supabase

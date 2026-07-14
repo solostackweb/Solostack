@@ -1,6 +1,8 @@
 "use client";
 
 import * as React from "react";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import {
   Plus,
   Search,
@@ -33,6 +35,7 @@ import {
 import { ProjectCard } from "./project-card";
 import { ProjectFormDialog } from "./project-form-dialog";
 import { ProjectsBulkBar } from "./projects-bulk-bar";
+import { changeProjectStatusAction } from "../actions";
 
 type ViewMode = "grid" | "kanban";
 
@@ -253,9 +256,11 @@ function ViewToggleButton({
 }
 
 /**
- * Kanban board. Read-only — no drag/drop yet; status transitions happen
- * via the edit dialog. The architecture groups projects by status column
- * so a future dnd-kit integration only needs to wire the drop handler.
+ * Kanban board with drag-and-drop status changes (native HTML5 DnD — no
+ * library). Drag a card into another column to move the project through the
+ * lifecycle; the drop calls `changeProjectStatusAction` (which records history
+ * + activity). An optimistic override moves the card immediately, then the
+ * route refreshes. On touch devices, the card's status chip is the fallback.
  */
 function KanbanBoard({
   projects,
@@ -268,20 +273,62 @@ function KanbanBoard({
   selectedIds: Set<string>;
   onToggleSelected: (id: string, next: boolean) => void;
 }) {
+  const router = useRouter();
+  const [, startTransition] = React.useTransition();
+  const [dragId, setDragId] = React.useState<string | null>(null);
+  const [overStatus, setOverStatus] = React.useState<ProjectStatusRow | null>(
+    null,
+  );
+  // Optimistic status overrides so a dropped card jumps columns instantly.
+  const [override, setOverride] = React.useState<
+    Record<string, ProjectStatusRow>
+  >({});
+
+  const statusOf = React.useCallback(
+    (p: ProjectRecord): ProjectStatusRow => override[p.id] ?? p.status,
+    [override],
+  );
+
   // Group with a Map so we don't need to hard-code every status — the
   // registry is the source of truth for column membership.
   const byStatus = React.useMemo(() => {
     const map = new Map<ProjectStatusRow, ProjectRecord[]>();
     for (const s of PROJECT_STATUSES) map.set(s, []);
-    for (const p of projects) map.get(p.status)?.push(p);
+    for (const p of projects) map.get(statusOf(p))?.push(p);
     return map;
-  }, [projects]);
+  }, [projects, statusOf]);
+
+  const handleDrop = (status: ProjectStatusRow) => {
+    setOverStatus(null);
+    const id = dragId;
+    setDragId(null);
+    if (!id) return;
+    const current = projects.find((p) => p.id === id);
+    if (!current || statusOf(current) === status) return;
+
+    setOverride((prev) => ({ ...prev, [id]: status }));
+    startTransition(async () => {
+      const res = await changeProjectStatusAction({ id, status });
+      if (!res.ok) {
+        toast.error(res.error);
+        setOverride((prev) => {
+          const next = { ...prev };
+          delete next[id];
+          return next;
+        });
+        return;
+      }
+      toast.success(`Moved to ${PROJECT_STATUS_LABEL[status]}`);
+      router.refresh();
+    });
+  };
 
   return (
     <div className="-mx-4 overflow-x-auto pb-2 sm:-mx-6 lg:-mx-8">
       <div className="flex min-w-max gap-4 px-4 sm:px-6 lg:px-8">
         {KANBAN_COLUMNS.map((status) => {
           const items = byStatus.get(status) ?? [];
+          const isOver = overStatus === status;
           return (
             <div key={status} className="flex w-72 shrink-0 flex-col gap-3">
               <div className="flex items-center justify-between">
@@ -294,25 +341,62 @@ function KanbanBoard({
                   </span>
                 </div>
               </div>
-              <div className="flex flex-col gap-2 rounded-lg bg-muted/30 p-2">
+              <div
+                onDragOver={(e) => {
+                  if (!dragId) return;
+                  e.preventDefault();
+                  e.dataTransfer.dropEffect = "move";
+                  if (overStatus !== status) setOverStatus(status);
+                }}
+                onDragLeave={(e) => {
+                  if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+                    setOverStatus((s) => (s === status ? null : s));
+                  }
+                }}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  handleDrop(status);
+                }}
+                className={cn(
+                  "flex min-h-[80px] flex-col gap-2 rounded-lg bg-muted/30 p-2 transition-colors",
+                  isOver && "bg-primary/10 ring-2 ring-primary/30",
+                )}
+              >
                 {items.length === 0 ? (
                   <p className="py-6 text-center text-[11px] text-muted-foreground">
-                    Nothing here
+                    {isOver ? "Drop here" : "Nothing here"}
                   </p>
                 ) : (
                   items.map((p) => (
-                    <ProjectCard
+                    <div
                       key={p.id}
-                      project={p}
-                      clientName={
-                        p.clientId ? clientNameById.get(p.clientId) : null
-                      }
-                      variant="kanban"
-                      className="bg-background"
-                      selectable
-                      selected={selectedIds.has(p.id)}
-                      onSelectedChange={(v) => onToggleSelected(p.id, v)}
-                    />
+                      draggable
+                      onDragStart={(e) => {
+                        e.dataTransfer.effectAllowed = "move";
+                        e.dataTransfer.setData("text/plain", p.id);
+                        setDragId(p.id);
+                      }}
+                      onDragEnd={() => {
+                        setDragId(null);
+                        setOverStatus(null);
+                      }}
+                      className={cn(
+                        "cursor-grab active:cursor-grabbing",
+                        dragId === p.id && "opacity-50",
+                      )}
+                    >
+                      <ProjectCard
+                        project={p}
+                        clientName={
+                          p.clientId ? clientNameById.get(p.clientId) : null
+                        }
+                        variant="kanban"
+                        className="bg-background"
+                        selectable
+                        selected={selectedIds.has(p.id)}
+                        onSelectedChange={(v) => onToggleSelected(p.id, v)}
+                      />
+                    </div>
                   ))
                 )}
               </div>

@@ -25,6 +25,11 @@ import type {
 } from "@/lib/supabase/types";
 import { BUILTIN_TEMPLATES, type ProposalTemplateContent } from "@/features/templates/builtin";
 import {
+  applyMergeFields,
+  applyMergeFieldsDeep,
+} from "@/features/templates/merge-fields";
+import { resolveMergeContextForUser } from "@/features/templates/merge-context";
+import {
   proposalCrudSchema,
   proposalIdSchema,
   proposalItemsSchema,
@@ -185,14 +190,25 @@ export async function createProposalFromTemplateRedirectAction(
   const userId = await requireUserId();
   const supabase = await getServerSupabase();
   const template = await loadProposalTemplate(userId, cleanOptionalId(formData.get("templateId")));
-  const content = (template?.content ?? {}) as ProposalTemplateContent;
-  const title =
+  const rawContent = (template?.content ?? {}) as ProposalTemplateContent;
+  const rawTitle =
     typeof formData.get("title") === "string" && String(formData.get("title")).trim()
       ? String(formData.get("title")).trim().slice(0, 180)
       : (template?.title ?? "Untitled proposal");
   const clientId = cleanOptionalId(formData.get("clientId"));
   const projectId = cleanOptionalId(formData.get("projectId"));
   const currency = cleanCurrency(formData.get("currency"));
+
+  // Resolve merge context from the chosen client / project / profile, then
+  // substitute {{variables}} so the new draft starts personalised.
+  const mergeCtx = await resolveMergeContextForUser({
+    userId,
+    clientId,
+    projectId,
+    currency,
+  });
+  const content = applyMergeFieldsDeep(rawContent, mergeCtx);
+  const title = applyMergeFields(rawTitle, mergeCtx);
   const items =
     Array.isArray(content.items) && content.items.length > 0
       ? content.items
@@ -390,22 +406,18 @@ export async function shareProposalAction(input: {
 
   const userId = await requireUserId();
   const supabase = await getServerSupabase();
+  // Read-only: fetching the share link must NOT flip the proposal to "sent".
+  // Explicitly sending (email / WhatsApp) is what records it as sent.
   const { data, error } = await supabase
     .from("proposals")
-    .update({
-      status: "sent",
-      sent_at: new Date().toISOString(),
-    } as never)
+    .select("public_token")
     .eq("id", id.data)
     .eq("user_id", userId)
-    .select("public_token")
     .single();
 
   if (error || !data) return { ok: false, error: error?.message ?? "Could not create share link." };
   const token = String((data as Pick<ProposalRow, "public_token">).public_token);
 
-  revalidatePath("/dashboard/proposals");
-  revalidatePath(`/dashboard/proposals/${id.data}`);
   return {
     ok: true,
     data: {
@@ -464,7 +476,6 @@ export async function sendProposalEmailAction(input: {
   const missing: string[] = [];
   if (!proposal.title.trim() || proposal.title === "Untitled proposal") missing.push("title");
   if (!proposal.client_id) missing.push("client");
-  if (!proposal.project_id) missing.push("project");
   if (!proposal.valid_until) missing.push("valid until");
   if (!proposal.scope?.trim()) missing.push("scope");
   if (!proposal.deliverables?.trim()) missing.push("deliverables");

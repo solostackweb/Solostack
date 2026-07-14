@@ -109,12 +109,12 @@ export const BUILTIN_TEMPLATES: TemplateRecord[] = [
         {
           heading: "Scope of work",
           body:
-            "This agreement covers services for [project name] between [freelancer/business name] and [client/business name]. The work includes the deliverables agreed in writing before kickoff. Any material change in scope, timeline, or commercial terms will be handled through a written change request.",
+            "This agreement covers services for {{project_name}} between {{business_name}} and {{client_name}}. The work includes the deliverables agreed in writing before kickoff. Any material change in scope, timeline, or commercial terms will be handled through a written change request.",
         },
         {
           heading: "Fees and payment",
           body:
-            "Total fee: [currency and amount]. Payment is due as per the agreed invoice schedule. Work may pause if payment is overdue. Third-party costs, taxes, software, hosting, paid assets, and out-of-scope requests are billed separately unless included in writing.",
+            "Total fee: {{currency}} [amount]. Payment is due as per the agreed invoice schedule. Work may pause if payment is overdue. Third-party costs, taxes, software, hosting, paid assets, and out-of-scope requests are billed separately unless included in writing.",
         },
         {
           heading: "Client responsibilities",
@@ -151,7 +151,7 @@ export const BUILTIN_TEMPLATES: TemplateRecord[] = [
         {
           heading: "Retainer scope",
           body:
-            "This retainer covers recurring support for [client/business name]. The monthly capacity includes up to [number] hours per month for [design/development/content/strategy] support.",
+            "This retainer covers recurring support for {{client_name}}. The monthly capacity includes up to [number] hours per month for [design/development/content/strategy] support.",
         },
         {
           heading: "Requests and availability",
@@ -161,7 +161,7 @@ export const BUILTIN_TEMPLATES: TemplateRecord[] = [
         {
           heading: "Fees and billing",
           body:
-            "Monthly retainer fee: [currency and amount]. Fees are billed in advance and payable within [number] days. Unused hours [do/do not] roll over for [number] days. Work may pause if payment becomes overdue.",
+            "Monthly retainer fee: {{currency}} [amount]. Fees are billed in advance and payable within [number] days. Unused hours [do/do not] roll over for [number] days. Work may pause if payment becomes overdue.",
         },
         {
           heading: "Term and cancellation",
@@ -280,7 +280,7 @@ export const BUILTIN_TEMPLATES: TemplateRecord[] = [
     content: {
       subject: "Following up on the proposal",
       body:
-        "Hi [client name],\n\nI wanted to check whether you had a chance to review the proposal. Happy to clarify scope, timeline, or pricing if helpful.\n\nIf everything looks good, I can help with the next step and get the project moving.\n\nBest,\n[your name]",
+        "Hi {{client_name}},\n\nI wanted to check whether you had a chance to review the proposal. Happy to clarify scope, timeline, or pricing if helpful.\n\nIf everything looks good, I can help with the next step and get the project moving.\n\nBest,\n{{freelancer_name}}",
     },
   },
 ];

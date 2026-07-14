@@ -5,9 +5,7 @@
  *
  * Stays *deliberately* lean: every action validates input with Zod,
  * authenticates via `requireUserId`, and uses the user-scoped
- * Supabase client so RLS does the final authorization check. Public
- * acknowledgement is in a separate action that uses the admin client
- * with token-based capability checks.
+ * Supabase client so RLS does the final authorization check.
  */
 
 import { redirect } from "next/navigation";
@@ -19,13 +17,14 @@ import { getAdminSupabase } from "@/lib/supabase/admin";
 import { AUTH_LOGIN_ROUTE } from "@/features/auth/routes";
 import { recordActivity } from "@/features/activity/server";
 import { createNotification } from "@/features/notifications/server";
+import { applyMergeFields } from "@/features/templates/merge-fields";
+import { resolveMergeContextForUser } from "@/features/templates/merge-context";
 import {
   parseWelcomeContent,
   serializeWelcomeContent,
 } from "./content";
 import {
   ensureWelcomePublicToken,
-  recordWelcomeAcknowledgement,
 } from "./server";
 import {
   WELCOME_DOCUMENTS_INDEX,
@@ -71,7 +70,6 @@ const docInputSchema = z.object({
     .regex(/^#?[0-9a-fA-F]{6}$/, "Use a 6-digit hex colour.")
     .optional()
     .nullable(),
-  acknowledgementRequired: z.boolean().optional().default(false),
 });
 
 const idSchema = z.object({ id: z.string().uuid() });
@@ -94,21 +92,29 @@ export async function createWelcomeDocumentAction(
   const userId = await requireUserId();
   const supabase = await getServerSupabase();
 
+  // Fill {{merge fields}} from the chosen client / project / profile.
+  const mergeCtx = await resolveMergeContextForUser({
+    userId,
+    clientId: parsed.data.clientId,
+    projectId: parsed.data.projectId,
+  });
+
   const insertRow = {
     user_id: userId,
-    title: parsed.data.title,
-    intro: parsed.data.intro ?? null,
+    title: applyMergeFields(parsed.data.title, mergeCtx),
+    intro: parsed.data.intro
+      ? applyMergeFields(parsed.data.intro, mergeCtx)
+      : null,
     content: serializeWelcomeContent(
       parsed.data.sections.map((s, i) => ({
         id: `s_${i + 1}`,
-        heading: s.heading,
-        body: s.body,
+        heading: applyMergeFields(s.heading, mergeCtx),
+        body: applyMergeFields(s.body, mergeCtx),
       })),
     ),
     client_id: parsed.data.clientId ?? null,
     project_id: parsed.data.projectId ?? null,
     brand_color: normaliseColor(parsed.data.brandColor),
-    acknowledgement_required: parsed.data.acknowledgementRequired ?? false,
     status: "draft" as const,
   };
 
@@ -165,7 +171,6 @@ export async function updateWelcomeDocumentAction(
     client_id: parsed.data.clientId ?? null,
     project_id: parsed.data.projectId ?? null,
     brand_color: normaliseColor(parsed.data.brandColor),
-    acknowledgement_required: parsed.data.acknowledgementRequired ?? false,
   };
 
   const { error } = await supabase
@@ -291,7 +296,6 @@ export async function duplicateWelcomeDocumentAction(input: {
       client_id: o.client_id,
       project_id: o.project_id,
       brand_color: o.brand_color,
-      acknowledgement_required: o.acknowledgement_required,
       status: "draft",
     } as never)
     .select("id")
@@ -472,92 +476,10 @@ export async function detachWelcomeFromPortalAction(
 }
 
 // ---------------------------------------------------------------------------
-// Public-facing acknowledgement (called from /w/<token>)
-// ---------------------------------------------------------------------------
-
-const ackSchema = z.object({
-  token: z.string().regex(/^[a-f0-9]{32}$/i),
-  viewerName: z.string().trim().min(2).max(120),
-  viewerEmail: z.string().email().nullable().optional(),
-});
-
-export async function acknowledgeWelcomeDocumentAction(
-  input: z.input<typeof ackSchema>,
-): Promise<ActionResult<{ acknowledgedAt: string }>> {
-  const parsed = ackSchema.safeParse(input);
-  if (!parsed.success) {
-    return {
-      ok: false,
-      error: "Please type your full name to confirm.",
-    };
-  }
-
-  // Best-effort capture of the requester's IP + UA. Used only as a
-  // SHA-256 fingerprint hash; we never persist raw IPs.
-  const h = await headers();
-  const xff = h.get("x-forwarded-for");
-  const ip =
-    xff?.split(",")[0]?.trim() ??
-    h.get("x-real-ip") ??
-    h.get("cf-connecting-ip") ??
-    null;
-  const userAgent = h.get("user-agent");
-
-  // Authenticated portal members can also ack; surface their user id
-  // when present so the freelancer knows it was the verified client.
-  let viewerUserId: string | null = null;
-  try {
-    const supabase = await getServerSupabase();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    viewerUserId = user?.id ?? null;
-  } catch {
-    // Not authed — fine.
-  }
-
-  const result = await recordWelcomeAcknowledgement({
-    token: parsed.data.token,
-    viewerName: parsed.data.viewerName,
-    viewerEmail: parsed.data.viewerEmail ?? null,
-    viewerUserId,
-    ip,
-    userAgent,
-  });
-  if (!result.ok) {
-    return { ok: false, error: result.error ?? "Could not save." };
-  }
-  // Bust the freelancer's dashboard cache so the acknowledgement count
-  // and "acknowledged" status appear immediately on their detail page.
-  if (result.ack) {
-    const docId = result.ack.document_id;
-    revalidatePath(WELCOME_DOCUMENTS_INDEX);
-    revalidatePath(welcomeDocumentDetail(docId));
-  }
-  return {
-    ok: true,
-    data: { acknowledgedAt: result.ack!.acknowledged_at },
-    message: "Acknowledged.",
-  };
-}
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
 function normaliseColor(input?: string | null): string | null {
-  if (!input) return null;
-  const v = input.trim();
-  if (!v) return null;
-  return v.startsWith("#") ? v : `#${v}`;
-}
-
-// Used by the editor to validate JSON content before round-tripping.
-export async function _testParse(content: string) {
-  return parseWelcomeContent(content);
-}
-
-// Notification convenience export (used by the dashboard list when we
-// want to nudge the freelancer that a doc is still in draft after a
-// while — wired up later, exported now to avoid lint warnings).
-void createNotification;
+  if 

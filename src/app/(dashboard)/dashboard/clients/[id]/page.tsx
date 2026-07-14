@@ -7,6 +7,9 @@ import {
   getClientInvoiceMetrics,
 } from "@/features/clients/server";
 import { listInvoices } from "@/features/invoices/server";
+import { listProposals } from "@/features/proposals/server";
+import { listContracts } from "@/features/contracts/server";
+import { listWelcomeDocuments } from "@/features/welcome-documents/server";
 import { getClientDisplayName } from "@/features/clients/utils";
 
 interface PageProps {
@@ -26,16 +29,45 @@ export default async function ClientProfilePage({ params }: PageProps) {
   const client = await getClient(id);
   if (!client) notFound();
 
-  const [metrics, recentInvoices] = await Promise.all([
-    getClientInvoiceMetrics(client.id),
-    listInvoices({ clientId: client.id, limit: 6 }),
-  ]);
+  const [metrics, recentInvoices, proposals, contracts, welcomeDocs] =
+    await Promise.all([
+      getClientInvoiceMetrics(client.id),
+      listInvoices({ clientId: client.id, limit: 6 }),
+      listProposals({ clientId: client.id, limit: 50 }),
+      listContracts({ clientId: client.id, limit: 50 }),
+      listWelcomeDocuments({ clientId: client.id }),
+    ]);
+
+  const documents = [
+    ...proposals.map((p) => ({
+      id: p.id,
+      kind: "proposal" as const,
+      title: p.title,
+      status: p.status,
+      href: `/dashboard/proposals/${p.id}`,
+    })),
+    ...contracts.map((c) => ({
+      id: c.id,
+      kind: "contract" as const,
+      title: c.title,
+      status: c.status,
+      href: `/dashboard/contracts/${c.id}`,
+    })),
+    ...welcomeDocs.map((w) => ({
+      id: w.id,
+      kind: "welcome" as const,
+      title: w.title,
+      status: w.status,
+      href: `/dashboard/welcome/${w.id}`,
+    })),
+  ];
 
   return (
     <ClientProfileView
       client={client}
       metrics={metrics}
       recentInvoices={recentInvoices}
+      documents={documents}
     />
   );
 }

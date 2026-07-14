@@ -8,6 +8,8 @@ import {
   Calendar,
   Users,
   FileText,
+  FileSignature,
+  BookOpen,
   MoreHorizontal,
   Pencil,
   Archive,
@@ -45,6 +47,7 @@ import {
   deleteProjectAction,
   setProjectStatusAction,
 } from "../actions";
+import { createProposalFromTemplateRedirectAction } from "@/features/proposals/actions";
 
 export interface LinkedInvoice {
   id: string;
@@ -56,10 +59,35 @@ export interface LinkedInvoice {
   issueDate: string | null;
 }
 
+export interface LinkedProposal {
+  id: string;
+  title: string;
+  status: string;
+  totalAmount: number;
+  currency: string;
+}
+
+export interface LinkedContract {
+  id: string;
+  title: string;
+  status: string;
+  valueAmount: number | null;
+  currency: string;
+}
+
+export interface LinkedWelcome {
+  id: string;
+  title: string;
+  status: string;
+}
+
 interface ProjectDetailViewProps {
   project: ProjectRecord;
   client: ClientRecord | null;
   invoices: LinkedInvoice[];
+  proposals: LinkedProposal[];
+  contracts: LinkedContract[];
+  welcomeDocs: LinkedWelcome[];
   clients: Array<{ id: string; name: string; currency?: string | null }>;
   /** Newest-first list of status changes for this project. */
   statusHistory: ProjectStatusHistoryEntry[];
@@ -74,10 +102,16 @@ export function ProjectDetailView({
   project,
   client,
   invoices,
+  proposals,
+  contracts,
+  welcomeDocs,
   clients,
   statusHistory,
 }: ProjectDetailViewProps) {
   const router = useRouter();
+  const welcomeNewHref = `/dashboard/welcome/new?projectId=${project.id}${
+    project.clientId ? `&clientId=${project.clientId}` : ""
+  }`;
   const [editOpen, setEditOpen] = React.useState(false);
   const [archiveOpen, setArchiveOpen] = React.useState(false);
   const [deleteOpen, setDeleteOpen] = React.useState(false);
@@ -158,9 +192,20 @@ export function ProjectDetailView({
           <Button size="sm" variant="outline" onClick={() => setEditOpen(true)}>
             <Pencil /> Edit
           </Button>
+          <NewProposalButton
+            projectId={project.id}
+            clientId={project.clientId}
+            currency={client?.currency}
+            projectName={project.name}
+          />
           <Button asChild size="sm">
             <Link href="/dashboard/invoices/new">
               <Plus /> New invoice
+            </Link>
+          </Button>
+          <Button asChild size="sm" variant="outline">
+            <Link href={welcomeNewHref}>
+              <BookOpen className="h-4 w-4" /> Welcome doc
             </Link>
           </Button>
           <DropdownMenu>
@@ -236,6 +281,180 @@ export function ProjectDetailView({
       />
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,320px)]">
+        <div className="space-y-6">
+        <Card>
+          <CardContent className="space-y-4 p-6">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <h2 className="text-base font-semibold">
+                  Proposals · {proposals.length}
+                </h2>
+                <p className="text-xs text-muted-foreground">
+                  Package scope and pricing before a contract.
+                </p>
+              </div>
+              <NewProposalButton
+                projectId={project.id}
+                clientId={project.clientId}
+                currency={client?.currency}
+                projectName={project.name}
+                label="New"
+              />
+            </div>
+
+            {proposals.length === 0 ? (
+              <EmptyState
+                icon={FileText}
+                title="No proposals yet"
+                description="Send a proposal to move this engagement forward."
+                className="min-h-[140px]"
+              />
+            ) : (
+              <ul className="divide-y">
+                {proposals.map((p) => (
+                  <li
+                    key={p.id}
+                    className="flex items-center justify-between gap-3 py-3"
+                  >
+                    <div className="flex min-w-0 items-center gap-3">
+                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
+                        <FileText className="h-4 w-4" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-medium">{p.title}</p>
+                        <p className="text-xs capitalize text-muted-foreground">
+                          {p.status.replace(/_/g, " ")}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex shrink-0 items-center gap-3">
+                      <span className="text-sm tabular-nums">
+                        {formatMoney(p.totalAmount, p.currency)}
+                      </span>
+                      <Button asChild variant="ghost" size="sm">
+                        <Link href={`/dashboard/proposals/${p.id}`}>View</Link>
+                      </Button>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="space-y-4 p-6">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <h2 className="text-base font-semibold">
+                  Contracts · {contracts.length}
+                </h2>
+                <p className="text-xs text-muted-foreground">
+                  Agreements ready for signature.
+                </p>
+              </div>
+              <Button asChild size="sm" variant="outline">
+                <Link href="/dashboard/contracts/new">
+                  <Plus /> New
+                </Link>
+              </Button>
+            </div>
+
+            {contracts.length === 0 ? (
+              <EmptyState
+                icon={FileSignature}
+                title="No contracts yet"
+                description="Convert an accepted proposal, or create one from scratch."
+                className="min-h-[140px]"
+              />
+            ) : (
+              <ul className="divide-y">
+                {contracts.map((c) => (
+                  <li
+                    key={c.id}
+                    className="flex items-center justify-between gap-3 py-3"
+                  >
+                    <div className="flex min-w-0 items-center gap-3">
+                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
+                        <FileSignature className="h-4 w-4" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-medium">{c.title}</p>
+                        <p className="text-xs capitalize text-muted-foreground">
+                          {c.status.replace(/_/g, " ")}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex shrink-0 items-center gap-3">
+                      {c.valueAmount != null ? (
+                        <span className="text-sm tabular-nums">
+                          {formatMoney(c.valueAmount, c.currency)}
+                        </span>
+                      ) : null}
+                      <Button asChild variant="ghost" size="sm">
+                        <Link href={`/dashboard/contracts/${c.id}`}>View</Link>
+                      </Button>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="space-y-4 p-6">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <h2 className="text-base font-semibold">
+                  Welcome docs · {welcomeDocs.length}
+                </h2>
+                <p className="text-xs text-muted-foreground">
+                  A branded greeting to kick off the engagement.
+                </p>
+              </div>
+              <Button asChild size="sm" variant="outline">
+                <Link href={welcomeNewHref}>
+                  <Plus /> New
+                </Link>
+              </Button>
+            </div>
+
+            {welcomeDocs.length === 0 ? (
+              <EmptyState
+                icon={BookOpen}
+                title="No welcome docs yet"
+                description="Send a warm, branded onboarding guide to your client."
+                className="min-h-[140px]"
+              />
+            ) : (
+              <ul className="divide-y">
+                {welcomeDocs.map((w) => (
+                  <li
+                    key={w.id}
+                    className="flex items-center justify-between gap-3 py-3"
+                  >
+                    <div className="flex min-w-0 items-center gap-3">
+                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
+                        <BookOpen className="h-4 w-4" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-medium">{w.title}</p>
+                        <p className="text-xs capitalize text-muted-foreground">
+                          {w.status.replace(/_/g, " ")}
+                        </p>
+                      </div>
+                    </div>
+                    <Button asChild variant="ghost" size="sm">
+                      <Link href={`/dashboard/welcome/${w.id}`}>View</Link>
+                    </Button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </CardContent>
+        </Card>
+
         <Card>
           <CardContent className="space-y-4 p-6">
             <div className="flex items-center justify-between">
@@ -312,6 +531,7 @@ export function ProjectDetailView({
             )}
           </CardContent>
         </Card>
+        </div>
 
         <aside className="space-y-4">
           <Card>
@@ -389,6 +609,38 @@ export function ProjectDetailView({
         onConfirm={handleDelete}
       />
     </div>
+  );
+}
+
+/**
+ * Creates a blank draft proposal already linked to this project + client,
+ * then redirects straight into the builder — the fast "make a proposal from
+ * this lead" path that closes the pipeline loop.
+ */
+function NewProposalButton({
+  projectId,
+  clientId,
+  currency,
+  projectName,
+  label = "New proposal",
+}: {
+  projectId: string;
+  clientId: string | null;
+  currency?: string | null;
+  projectName: string;
+  label?: string;
+}) {
+  return (
+    <form action={createProposalFromTemplateRedirectAction}>
+      <input type="hidden" name="templateId" value="blank" />
+      <input type="hidden" name="projectId" value={projectId} />
+      {clientId ? <input type="hidden" name="clientId" value={clientId} /> : null}
+      {currency ? <input type="hidden" name="currency" value={currency} /> : null}
+      <input type="hidden" name="title" value={`${projectName} proposal`} />
+      <Button type="submit" size="sm" variant="outline">
+        <Plus /> {label}
+      </Button>
+    </form>
   );
 }
 

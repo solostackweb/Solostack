@@ -308,6 +308,24 @@ export async function supportCreateLimit(key: string): Promise<LimitResult> {
   );
 }
 
+/**
+ * Public lead-form submission — a bot could otherwise flood a freelancer's
+ * account with junk clients + lead projects (the action writes via the admin
+ * client). Keyed per IP. Fails open without Upstash.
+ */
+export async function leadSubmitLimit(key: string): Promise<LimitResult> {
+  return runLimiter(
+    {
+      prefix: "leadsubmit",
+      limit: 5,
+      windowSeconds: 10 * 60,
+      blockedMessage:
+        "You're sending inquiries too quickly. Please wait a few minutes and try again.",
+    },
+    key,
+  );
+}
+
 /** Web-push subscribe/unsubscribe — cheap to call, easy to abuse. Per IP. */
 export async function pushSubscribeLimit(key: string): Promise<LimitResult> {
   return runLimiter(

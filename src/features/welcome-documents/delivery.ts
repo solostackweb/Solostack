@@ -175,7 +175,6 @@ export async function sendWelcomeDocumentAction(
     senderEmail: getEmailSender("share").email,
     message: parsed.data.message ?? null,
     publicUrl,
-    acknowledgementRequired: doc.acknowledgementRequired,
     brand: emailBrand,
   });
 

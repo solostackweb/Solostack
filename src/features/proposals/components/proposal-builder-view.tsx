@@ -5,11 +5,17 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
+  ArrowRight,
+  BookOpen,
+  CheckCircle2,
   Copy,
   ExternalLink,
+  FileSignature,
+  FolderKanban,
   Mail,
   MessageCircle,
   Plus,
+  ReceiptText,
   Save,
   Trash2,
 } from "lucide-react";
@@ -19,6 +25,13 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { formatMoney } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { IvoContextActions } from "@/features/ai-workflows/components/ivo-context-actions";
@@ -28,6 +41,9 @@ import {
   type ProposalSellerContext,
 } from "../intelligence";
 import {
+  convertProposalToContractAction,
+  convertProposalToInvoiceAction,
+  convertProposalToProjectAction,
   saveProposalBuilderAction,
   sendProposalEmailAction,
   shareProposalAction,
@@ -76,6 +92,7 @@ export function ProposalBuilderView({
   const [isSaving, startSaving] = React.useTransition();
   const [isSendingEmail, startSendingEmail] = React.useTransition();
   const [isSharing, startSharing] = React.useTransition();
+  const [isConverting, startConverting] = React.useTransition();
   const [clientId, setClientId] = React.useState(proposal.clientId ?? "");
   const [projectId, setProjectId] = React.useState(proposal.projectId ?? "");
   const [currency, setCurrency] = React.useState(proposal.currency);
@@ -116,7 +133,7 @@ export function ProposalBuilderView({
     );
   };
 
-  const buildFormData = (status: "draft" | "sent") => {
+  const buildFormData = (status: string) => {
     if (!formRef.current) return null;
     const formData = new FormData(formRef.current);
     formData.set("id", proposal.id);
@@ -165,7 +182,6 @@ export function ProposalBuilderView({
     const missing: string[] = [];
     if (!getInputValue("title")) missing.push("title");
     if (!clientId) missing.push("client");
-    if (!projectId) missing.push("project");
     if (!getInputValue("validUntil")) missing.push("valid until");
     if (!scope.trim()) missing.push("scope");
     if (!deliverables.trim()) missing.push("deliverables");
@@ -253,6 +269,40 @@ export function ProposalBuilderView({
     });
   };
 
+  const convertTo = (kind: "contract" | "invoice" | "project") => {
+    startConverting(async () => {
+      // Persist current edits first (without changing the proposal's status),
+      // so the conversion uses the latest client, packages, and copy.
+      const formData = buildFormData(proposal.status);
+      if (formData) {
+        const saved = await saveProposalBuilderAction(undefined, formData);
+        if (!saved.ok) {
+          toast.error(saved.error);
+          return;
+        }
+      }
+      const run =
+        kind === "contract"
+          ? convertProposalToContractAction
+          : kind === "invoice"
+            ? convertProposalToInvoiceAction
+            : convertProposalToProjectAction;
+      const res = await run({ id: proposal.id });
+      if (!res.ok || !res.data) {
+        toast.error(res.ok ? "Conversion did not return a destination." : res.error);
+        return;
+      }
+      toast.success(res.message ?? "Converted");
+      const dest =
+        kind === "contract"
+          ? `/dashboard/contracts/${res.data.id}`
+          : kind === "invoice"
+            ? `/dashboard/invoices/${res.data.id}`
+            : `/dashboard/projects/${res.data.id}`;
+      router.push(dest);
+    });
+  };
+
   const selectedClient = clients.find((client) => client.id === clientId) ?? null;
   const availableProjects = React.useMemo(
     () => (clientId ? projects.filter((project) => project.clientId === clientId) : []),
@@ -301,7 +351,7 @@ export function ProposalBuilderView({
             Shape a lightweight offer, save drafts freely, then send the proposal by email or WhatsApp when it is ready.
           </p>
         </div>
-        <div className="flex shrink-0 flex-nowrap items-center gap-2 overflow-x-auto whitespace-nowrap">
+        <div className="flex flex-wrap items-center gap-2">
           <Button type="button" onClick={saveDraft} disabled={isSaving} className="shrink-0">
             {isSaving ? (
               "Saving..."
@@ -353,6 +403,83 @@ export function ProposalBuilderView({
 
       <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_420px]">
         <div className="min-w-0 space-y-5">
+          <Card
+            className={cn(
+              proposal.status === "accepted" &&
+                "border-emerald-500/30 bg-emerald-500/[0.04]",
+            )}
+          >
+            <CardContent className="p-5">
+              <div className="flex items-start gap-3">
+                <span
+                  className={cn(
+                    "flex h-9 w-9 shrink-0 items-center justify-center rounded-lg",
+                    proposal.status === "accepted"
+                      ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                      : "bg-primary/10 text-primary",
+                  )}
+                >
+                  {proposal.status === "accepted" ? (
+                    <CheckCircle2 className="h-4 w-4" />
+                  ) : (
+                    <ArrowRight className="h-4 w-4" />
+                  )}
+                </span>
+                <div className="min-w-0">
+                  <h2 className="text-base font-semibold">
+                    {proposal.status === "accepted"
+                      ? "Client accepted — move it forward"
+                      : proposal.status === "converted"
+                        ? "Proposal converted"
+                        : "Turn this proposal into the next step"}
+                  </h2>
+                  <p className="text-sm text-muted-foreground">
+                    {proposal.status === "accepted"
+                      ? "Create the contract, invoice, or project without re-entering any details."
+                      : proposal.status === "converted"
+                        ? "You can still generate another document from this proposal if you need to."
+                        : "When you're ready, convert it into a contract, invoice, or project — your edits are saved first."}
+                  </p>
+                </div>
+              </div>
+              <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
+                <Button
+                  type="button"
+                  variant={proposal.status === "accepted" ? "default" : "outline"}
+                  onClick={() => convertTo("contract")}
+                  disabled={isConverting}
+                >
+                  <FileSignature className="h-4 w-4" /> To contract
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => convertTo("invoice")}
+                  disabled={isConverting}
+                >
+                  <ReceiptText className="h-4 w-4" /> To invoice
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => convertTo("project")}
+                  disabled={isConverting}
+                >
+                  <FolderKanban className="h-4 w-4" /> To project
+                </Button>
+                <Button asChild variant="outline">
+                  <Link
+                    href={`/dashboard/welcome/new?${
+                      projectId ? `projectId=${projectId}&` : ""
+                    }${clientId ? `clientId=${clientId}` : ""}`}
+                  >
+                    <BookOpen className="h-4 w-4" /> Welcome doc
+                  </Link>
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
           <Card>
             <CardContent className="grid gap-4 p-5 sm:grid-cols-2">
               <Field label="Title" className="sm:col-span-2">
@@ -360,15 +487,16 @@ export function ProposalBuilderView({
               </Field>
               <input type="hidden" name="status" value={proposal.status} />
               <input type="hidden" name="currency" value={currency} />
+              <input type="hidden" name="clientId" value={clientId} />
+              <input type="hidden" name="projectId" value={projectId} />
               <Field label="Client">
-                <select
-                  name="clientId"
+                <Select
                   value={clientId}
-                  onChange={(event) => {
-                    const nextClientId = event.target.value;
+                  onValueChange={(nextClientId) => {
                     setClientId(nextClientId);
                     setProjectId("");
-                    const nextClient = clients.find((client) => client.id === nextClientId) ?? null;
+                    const nextClient =
+                      clients.find((client) => client.id === nextClientId) ?? null;
                     const nextGuidance = getProposalBillingGuidance({
                       seller,
                       client: nextClient
@@ -386,36 +514,43 @@ export function ProposalBuilderView({
                     setCurrency(nextGuidance.currency);
                     if (nextGuidance.recommendedTaxRate === 0) setTaxAmount(0);
                   }}
-                  required
-                  className="h-11 w-full rounded-md border bg-background px-3 text-sm"
                 >
-                  <option value="" disabled>
-                    Choose client
-                  </option>
-                  {clients.map((client) => (
-                    <option key={client.id} value={client.id}>
-                      {client.name}
-                    </option>
-                  ))}
-                </select>
+                  <SelectTrigger className="h-11">
+                    <SelectValue placeholder="Choose client" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {clients.map((client) => (
+                      <SelectItem key={client.id} value={client.id}>
+                        {client.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </Field>
               <Field label="Project">
-                <select
-                  name="projectId"
-                  value={projectId}
-                  onChange={(event) => setProjectId(event.target.value)}
+                <Select
+                  value={projectId ? projectId : "none"}
+                  onValueChange={(value) =>
+                    setProjectId(value === "none" ? "" : value)
+                  }
                   disabled={!clientId}
-                  className="h-11 w-full rounded-md border bg-background px-3 text-sm"
                 >
-                  <option value="">
-                    {clientId ? "No project" : "Choose a client first"}
-                  </option>
-                  {availableProjects.map((project) => (
-                    <option key={project.id} value={project.id}>
-                      {project.name}
-                    </option>
-                  ))}
-                </select>
+                  <SelectTrigger className="h-11">
+                    <SelectValue
+                      placeholder={
+                        clientId ? "No project" : "Choose a client first"
+                      }
+                    />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">No project</SelectItem>
+                    {availableProjects.map((project) => (
+                      <SelectItem key={project.id} value={project.id}>
+                        {project.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </Field>
               <Field label="Valid until">
                 <Input name="validUntil" type="date" defaultValue={proposal.validUntil ?? ""} />

@@ -13,7 +13,7 @@ export default function PublicShareLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="min-h-svh bg-muted/30 text-foreground antialiased">
+    <div className="doc-light-theme min-h-svh bg-muted/30 text-foreground antialiased">
       {children}
     </div>
   );

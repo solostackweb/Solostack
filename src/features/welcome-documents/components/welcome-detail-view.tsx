@@ -11,7 +11,6 @@ import {
   Link2,
   Pencil,
   PencilOff,
-  CheckCircle2,
   Clock,
   Bookmark,
 } from "lucide-react";
@@ -140,11 +139,6 @@ export function WelcomeDetailView({ doc, clients }: Props) {
 
       <div className="flex flex-wrap items-center gap-2">
         <WelcomeStatusBadge status={doc.status} />
-        {doc.acknowledgementRequired && (
-          <span className="rounded-sm bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-amber-800 dark:bg-amber-900/30 dark:text-amber-200">
-            Acknowledgement required
-          </span>
-        )}
         {doc.publicToken && (
           <a
             href={shareUrl ?? "#"}
@@ -158,22 +152,11 @@ export function WelcomeDetailView({ doc, clients }: Props) {
       </div>
 
       {/* Stats strip */}
-      <div className="grid gap-3 sm:grid-cols-3">
+      <div className="grid gap-3 sm:grid-cols-2">
         <StatPill
           icon={Eye}
           label="Views"
           value={`${doc.totalViews} (${doc.uniqueViewers} unique)`}
-        />
-        <StatPill
-          icon={CheckCircle2}
-          label="Acknowledgements"
-          value={
-            doc.acknowledgementCount > 0
-              ? `${doc.acknowledgementCount}`
-              : doc.acknowledgementRequired
-                ? "Awaiting"
-                : "Not required"
-          }
         />
         <StatPill
           icon={Clock}
@@ -186,40 +169,6 @@ export function WelcomeDetailView({ doc, clients }: Props) {
         />
       </div>
 
-      {!editing && doc.acknowledgements.length > 0 && (
-        <Card>
-          <CardContent className="space-y-3 p-5">
-            <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
-              Acknowledgement record
-            </p>
-            <ul className="divide-y">
-              {doc.acknowledgements.map((a, i) => (
-                <li
-                  key={i}
-                  className="flex items-center justify-between gap-3 py-2 text-sm"
-                >
-                  <div className="min-w-0">
-                    <p className="truncate font-medium">{a.name}</p>
-                    {a.email && (
-                      <p className="truncate text-xs text-muted-foreground">{a.email}</p>
-                    )}
-                  </div>
-                  <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
-                    {new Date(a.at).toLocaleString("en-IN", {
-                      day: "2-digit",
-                      month: "short",
-                      year: "numeric",
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </CardContent>
-        </Card>
-      )}
-
       {editing ? (
         <WelcomeEditor
           mode="edit"
@@ -230,8 +179,8 @@ export function WelcomeDetailView({ doc, clients }: Props) {
             intro: doc.intro ?? "",
             sections: doc.sections,
             clientId: doc.clientId,
+            projectId: doc.projectId,
             brandColor: doc.brandColor,
-            acknowledgementRequired: doc.acknowledgementRequired,
           }}
         />
       ) : (

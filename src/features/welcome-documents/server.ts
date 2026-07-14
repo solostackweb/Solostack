@@ -21,7 +21,6 @@ import { AUTH_LOGIN_ROUTE } from "@/features/auth/routes";
 import type {
   WelcomeDocumentRow,
   WelcomeDocumentTemplateRow,
-  WelcomeDocumentAcknowledgementRow,
 } from "@/lib/supabase/types";
 import { parseWelcomeContent } from "./content";
 import type {
@@ -65,7 +64,7 @@ async function hydrate(
   // Joined display names. We fetch only when we need them — most list
   // queries already join in SQL, but the single-record path uses this
   // helper which keeps the join surface tiny.
-  const [clientRes, projectRes, viewsRes, acksRes] = await Promise.all([
+  const [clientRes, projectRes, viewsRes] = await Promise.all([
     row.client_id
       ? admin
           .from("clients")
@@ -84,12 +83,6 @@ async function hydrate(
       .from("welcome_document_views")
       .select("view_count")
       .eq("document_id", row.id),
-    admin
-      .from("welcome_document_acknowledgements")
-      .select("viewer_name, viewer_email, acknowledged_at")
-      .eq("document_id", row.id)
-      .order("acknowledged_at", { ascending: false })
-      .limit(200),
   ]);
 
   const client = clientRes.data as
@@ -97,11 +90,6 @@ async function hydrate(
     | null;
   const project = projectRes.data as { name?: string | null } | null;
   const views = (viewsRes.data ?? []) as Array<{ view_count: number }>;
-  const acks = (acksRes.data ?? []) as Array<{
-    viewer_name: string;
-    viewer_email: string | null;
-    acknowledged_at: string;
-  }>;
 
   return {
     id: row.id,
@@ -118,7 +106,6 @@ async function hydrate(
     publicToken: row.public_token,
     version: row.version,
     parentId: row.parent_id,
-    acknowledgementRequired: row.acknowledgement_required,
     viewedAt: row.viewed_at,
     publishedAt: row.published_at,
     sentAt: row.sent_at,
@@ -126,13 +113,6 @@ async function hydrate(
     updatedAt: row.updated_at,
     totalViews: views.reduce((sum, v) => sum + (v.view_count ?? 0), 0),
     uniqueViewers: views.length,
-    acknowledgementCount: acks.length,
-    acknowledgedAt: acks[0]?.acknowledged_at ?? null,
-    acknowledgements: acks.slice(0, 100).map((a) => ({
-      name: a.viewer_name,
-      email: a.viewer_email,
-      at: a.acknowledged_at,
-    })),
   };
 }
 
@@ -140,17 +120,20 @@ async function hydrate(
 // Owner-side reads
 // ---------------------------------------------------------------------------
 
-export async function listWelcomeDocuments(): Promise<
-  WelcomeDocumentRecord[]
-> {
+export async function listWelcomeDocuments(
+  opts: { projectId?: string; clientId?: string } = {},
+): Promise<WelcomeDocumentRecord[]> {
   const user = await requireUser();
   const supabase = await getServerSupabase();
-  const { data } = await supabase
+  let query = supabase
     .from("welcome_documents")
     .select("*")
     .eq("user_id", user.id)
     .is("deleted_at", null)
     .order("updated_at", { ascending: false });
+  if (opts.projectId) query = query.eq("project_id", opts.projectId);
+  if (opts.clientId) query = query.eq("client_id", opts.clientId);
+  const { data } = await query;
 
   const rows = (data ?? []) as WelcomeDocumentRow[];
   const records = await Promise.all(rows.map((r) => hydrate(r)));
@@ -394,109 +377,3 @@ export async function recordWelcomeView(
   } as never);
 }
 
-/**
- * Record a "I have read and understood this" click. Returns the new
- * row (or the existing one if the same fingerprint already
- * acknowledged) so the page can switch to the post-ack state.
- */
-export async function recordWelcomeAcknowledgement(input: {
-  token: string;
-  viewerName: string;
-  viewerEmail: string | null;
-  viewerUserId: string | null;
-  ip: string | null;
-  userAgent: string | null;
-}): Promise<{
-  ok: boolean;
-  ack?: WelcomeDocumentAcknowledgementRow;
-  error?: string;
-}> {
-  if (!isValidWelcomeToken(input.token)) {
-    return { ok: false, error: "Invalid link." };
-  }
-  const trimmedName = input.viewerName.trim();
-  if (trimmedName.length < 2) {
-    return { ok: false, error: "Please type your full name." };
-  }
-  const admin = getAdminSupabase();
-
-  const { data: row } = await admin
-    .from("welcome_documents")
-    .select("id, user_id, title, acknowledgement_required")
-    .eq("public_token", input.token)
-    .is("deleted_at", null)
-    .maybeSingle();
-  if (!row) return { ok: false, error: "Document not found." };
-  const doc = row as {
-    id: string;
-    user_id: string;
-    title: string;
-    acknowledgement_required: boolean;
-  };
-
-  const fingerprint = createHash("sha256")
-    .update(`${input.ip ?? "no-ip"}|${input.userAgent ?? "no-ua"}`)
-    .digest("hex");
-
-  // Idempotent — if the same fingerprint (IP + UA) already acknowledged,
-  // return the existing row so the client shows the confirmation panel.
-  const { data: existingByIp } = await admin
-    .from("welcome_document_acknowledgements")
-    .select("*")
-    .eq("document_id", doc.id)
-    .eq("ip_hash", fingerprint)
-    .maybeSingle();
-  if (existingByIp) {
-    return { ok: true, ack: existingByIp as WelcomeDocumentAcknowledgementRow };
-  }
-
-  // Also guard by viewer_user_id when the requester is authenticated.
-  // This prevents a DB unique-constraint error (and a confusing "Could not
-  // save" message) when a logged-in user acknowledges from a second device.
-  if (input.viewerUserId) {
-    const { data: existingByUser } = await admin
-      .from("welcome_document_acknowledgements")
-      .select("*")
-      .eq("document_id", doc.id)
-      .eq("viewer_user_id", input.viewerUserId)
-      .maybeSingle();
-    if (existingByUser) {
-      return { ok: true, ack: existingByUser as WelcomeDocumentAcknowledgementRow };
-    }
-  }
-
-  const { data: inserted, error } = await admin
-    .from("welcome_document_acknowledgements")
-    .insert({
-      document_id: doc.id,
-      viewer_user_id: input.viewerUserId,
-      viewer_name: trimmedName,
-      viewer_email: input.viewerEmail,
-      ip_hash: fingerprint,
-      user_agent: input.userAgent,
-    } as never)
-    .select("*")
-    .single();
-
-  if (error || !inserted) {
-    return { ok: false, error: "Could not save acknowledgement." };
-  }
-
-  await admin.from("activity_events").insert({
-    user_id: doc.user_id,
-    kind: "welcome_document_acknowledged",
-    entity_type: "welcome_document",
-    entity_id: doc.id,
-    title: `${trimmedName} acknowledged the welcome guide`,
-    metadata: { document_title: doc.title, viewer_email: input.viewerEmail },
-  } as never);
-
-  await admin.from("notifications").insert({
-    user_id: doc.user_id,
-    type: "welcome_document_acknowledged",
-    title: `Welcome guide acknowledged`,
-    message: `${trimmedName} confirmed they've read "${doc.title}".`,
-  } as never);
-
-  return { ok: true, ack: inserted as WelcomeDocumentAcknowledgementRow };
-}

@@ -333,6 +333,7 @@ export interface ClientRow {
   currency: string;
   locale: string | null;
   is_foreign: boolean;
+  needs_review: boolean;
   created_at: string;
   updated_at: string;
 }

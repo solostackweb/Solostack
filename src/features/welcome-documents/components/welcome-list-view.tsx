@@ -94,11 +94,8 @@ export function WelcomeListView({ documents, clients }: Props) {
   const stats = React.useMemo(() => {
     const total = documents.length;
     const published = documents.filter((d) => d.status === "published").length;
-    const acknowledged = documents.filter(
-      (d) => d.acknowledgementCount > 0,
-    ).length;
     const totalViews = documents.reduce((s, d) => s + d.totalViews, 0);
-    return { total, published, acknowledged, totalViews };
+    return { total, published, totalViews };
   }, [documents]);
 
   const handleSend = (doc: WelcomeDocumentRecord) => {
@@ -215,16 +212,11 @@ export function WelcomeListView({ documents, clients }: Props) {
         )}
       >
         <div className="min-w-0 space-y-6">
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-3">
         <Stat label="Total documents" value={stats.total.toString()} />
         <Stat
           label="Published"
           value={stats.published.toString()}
-          tone="success"
-        />
-        <Stat
-          label="Acknowledged"
-          value={stats.acknowledged.toString()}
           tone="success"
         />
         <Stat label="Views" value={stats.totalViews.toString()} />
@@ -347,11 +339,6 @@ function WelcomeRow({
   const meta = [
     doc.clientName ?? "Unassigned",
     `${doc.totalViews} ${doc.totalViews === 1 ? "view" : "views"}`,
-    doc.acknowledgementCount > 0
-      ? `Acknowledged${
-          doc.acknowledgementCount > 1 ? ` ×${doc.acknowledgementCount}` : ""
-        }`
-      : null,
     updated,
   ].filter(Boolean) as string[];
 
@@ -369,11 +356,6 @@ function WelcomeRow({
             <div className="flex items-center gap-2">
               <p className="truncate text-sm font-medium">{doc.title}</p>
               <WelcomeStatusBadge status={doc.status} />
-              {doc.acknowledgementRequired && (
-                <span className="rounded-sm bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-amber-800 dark:bg-amber-900/30 dark:text-amber-200">
-                  Ack
-                </span>
-              )}
             </div>
             <p className="mt-0.5 truncate text-xs text-muted-foreground">
               {meta.join(" · ")}

@@ -39,6 +39,17 @@ export async function listLeadSubmissions(): Promise<LeadSubmissionRecord[]> {
   );
 }
 
+export async function getLeadForm(id: string): Promise<LeadFormRecord | null> {
+  const supabase = await getServerSupabase();
+  const { data, error } = await supabase
+    .from("lead_forms")
+    .select("*")
+    .eq("id", id)
+    .maybeSingle();
+  if (error || !data) return null;
+  return data as LeadFormRecord;
+}
+
 export async function getPublicLeadForm(slug: string): Promise<LeadFormRecord> {
   const admin = getAdminSupabase();
   const { data, error } = await admin
