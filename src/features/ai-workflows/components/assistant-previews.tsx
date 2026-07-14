@@ -2,7 +2,6 @@ import * as React from "react";
 import {
   Bookmark,
   BookOpen,
-  Check,
   CheckCircle2,
   ExternalLink,
   FolderKanban,
@@ -550,12 +549,6 @@ export function WelcomeDocDraftPreview({
         </p>
       )}
       <SectionList sections={preview.sections} limit={4} />
-      {preview.acknowledgementRequired && (
-        <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
-          <Check className="h-3 w-3 text-green-500" />
-          Client acknowledgement required
-        </p>
-      )}
       <div className="flex flex-wrap gap-2">
         <Button
           type="button"
@@ -831,8 +824,7 @@ export function WelcomeDocListBlock({
             {r.sentAt ? ` · sent ${r.sentAt.slice(0, 10)}` : ""}
           </p>
           <p className="mt-0.5 text-[11px] text-muted-foreground">
-            {r.views} view{r.views === 1 ? "" : "s"} · {r.acknowledgements} acknowledgement
-            {r.acknowledgements === 1 ? "" : "s"}
+            {r.views} view{r.views === 1 ? "" : "s"}
           </p>
           <div className="mt-2 flex flex-wrap gap-1.5">
             <a href={`/dashboard/welcome/${r.id}`} className={ROW_CHIP}>

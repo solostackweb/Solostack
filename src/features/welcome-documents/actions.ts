@@ -482,4 +482,9 @@ export async function detachWelcomeFromPortalAction(
 // ---------------------------------------------------------------------------
 
 function normaliseColor(input?: string | null): string | null {
-  if 
+  if (!input) return null;
+  const trimmed = input.trim();
+  if (!trimmed) return null;
+  const hex = trimmed.startsWith("#") ? trimmed : `#${trimmed}`;
+  return /^#[0-9a-fA-F]{6}$/.test(hex) ? hex.toLowerCase() : null;
+}

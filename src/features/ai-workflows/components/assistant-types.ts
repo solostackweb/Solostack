@@ -90,7 +90,6 @@ export interface AiWelcomeDocPreview {
   title: string;
   intro: string | null;
   sections: Array<{ heading: string; body: string }>;
-  acknowledgementRequired: boolean;
   clientName: string | null;
   clientEmail: string | null;
   clientPhone: string | null;
@@ -140,6 +139,5 @@ export interface AiWelcomeDocListRow {
   clientName: string;
   status: string;
   views: number;
-  acknowledgements: number;
   sentAt: string | null;
 }

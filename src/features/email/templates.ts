@@ -640,7 +640,6 @@ export interface WelcomeDocumentSentInput {
   senderEmail?: string;
   message: string | null;
   publicUrl: string;
-  acknowledgementRequired: boolean;
   brand?: EmailBrand;
 }
 
@@ -654,11 +653,6 @@ export function renderWelcomeDocumentEmail(
     `It's a five-minute read and answers most of the questions clients ask along the way. Worth skimming before we kick things off.`,
   ];
   if (input.message?.trim()) paragraphs.push(input.message.trim());
-  const secondary = input.acknowledgementRequired
-    ? [
-        "Once you've read it, please tap “I've read and understood” at the bottom of the page — that's our handshake to get started.",
-      ]
-    : undefined;
   return {
     subject,
     html: envelope({
@@ -668,7 +662,6 @@ export function renderWelcomeDocumentEmail(
       subheading: "A quick five-minute read",
       paragraphs,
       cta: { label: "Read the guide", href: input.publicUrl },
-      secondaryParagraphs: secondary,
       signature: formatSenderSignature(input.senderName, input.senderEmail),
       brand: input.brand,
     }),

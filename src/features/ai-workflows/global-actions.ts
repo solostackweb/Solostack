@@ -2109,7 +2109,6 @@ export async function refineWelcomeDocFromAiAction(
   const sections = draft.sections.length > 0 ? draft.sections : existingSections;
   const title = cleanAiAnswer(draft.title) || doc.title;
   const intro = draft.intro ?? doc.intro ?? null;
-  const acknowledgementRequired = draft.acknowledgementRequired ?? doc.acknowledgement_required ?? false;
 
   const res = await updateWelcomeDocumentAction({
     id: doc.id,
@@ -2119,7 +2118,6 @@ export async function refineWelcomeDocFromAiAction(
     clientId: doc.client_id ?? null,
     projectId: doc.project_id ?? null,
     brandColor: doc.brand_color ?? null,
-    acknowledgementRequired,
   });
   if (!res.ok) return { ok: false as const, error: res.error };
 
@@ -2153,7 +2151,6 @@ export async function refineWelcomeDocFromAiAction(
       title,
       intro,
       sections,
-      acknowledgementRequired,
       clientName: client?.business_name || client?.full_name || null,
       clientEmail: client?.email ?? null,
       clientPhone: client?.phone ?? null,
@@ -2883,7 +2880,6 @@ export async function listWelcomeDocsForAiAction(input: { filter?: "open" | "all
     clientName: d.clientName || "No client",
     status: d.status,
     views: d.totalViews,
-    acknowledgements: d.acknowledgementCount,
     sentAt: d.sentAt,
   }));
   return { ok: true as const, data: { rows, filter } };
@@ -3132,7 +3128,6 @@ export async function createWelcomeDocFromAiAction(input: AiCreateInput) {
   let title: string;
   let intro: string | null;
   let sections: Array<{ heading: string; body: string }>;
-  let acknowledgementRequired: boolean;
 
   const tpl =
     template !== WELCOME_CUSTOM
@@ -3144,7 +3139,6 @@ export async function createWelcomeDocFromAiAction(input: AiCreateInput) {
     title = clientDisplay ? `Welcome, ${clientDisplay}` : tpl.title;
     intro = tpl.intro ?? null;
     sections = tpl.sections.map((s) => ({ heading: s.heading, body: s.body }));
-    acknowledgementRequired = true;
   } else {
     // Custom path — collect content details, then draft with AI.
     const contentMissing = nextMissingField("welcome_document", fields, {});
@@ -3175,7 +3169,6 @@ export async function createWelcomeDocFromAiAction(input: AiCreateInput) {
     title = cleanAiAnswer(draft.title) || (clientDisplay ? `Welcome, ${clientDisplay}` : "Welcome document");
     intro = draft.intro || null;
     sections = draft.sections;
-    acknowledgementRequired = draft.acknowledgementRequired ?? true;
   }
 
   const res = await createWelcomeDocumentAction({
@@ -3184,7 +3177,6 @@ export async function createWelcomeDocFromAiAction(input: AiCreateInput) {
     sections,
     clientId: clientId || null,
     projectId: projectId || null,
-    acknowledgementRequired,
     brandColor: null,
   });
   if (!res.ok || !res.data?.id) {
@@ -3198,7 +3190,6 @@ export async function createWelcomeDocFromAiAction(input: AiCreateInput) {
       title,
       intro,
       sections,
-      acknowledgementRequired,
       clientName: clientDisplay,
       clientEmail: client?.email ?? null,
       clientPhone: client?.phone ?? null,
