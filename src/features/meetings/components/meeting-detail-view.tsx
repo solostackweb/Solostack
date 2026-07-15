@@ -164,7 +164,11 @@ export function MeetingDetailView({
           ) : embeddable ? (
             <div className="space-y-3">
               {joining ? (
-                <DailyEmbed url={meeting.meetLink ?? ""} title={meeting.topic} />
+                <DailyEmbed
+                  url={meeting.meetLink ?? ""}
+                  title={meeting.topic}
+                  onLeft={() => setJoining(false)}
+                />
               ) : (
                 <Button type="button" onClick={() => setJoining(true)}>
                   <Video className="h-4 w-4" /> Join call

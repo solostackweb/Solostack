@@ -17,6 +17,9 @@ interface PublicMeeting {
   meetLink: string | null;
 }
 
+const JOIN_OPEN_MIN = 15;
+const JOIN_GRACE_MIN = 30;
+
 function fmtFull(iso: string): string {
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return iso;
@@ -72,7 +75,14 @@ export function MeetingConfirmView({
   );
   const [busy, setBusy] = React.useState(false);
   const [joined, setJoined] = React.useState(false);
+  const [left, setLeft] = React.useState(false);
   const [pendingSlot, setPendingSlot] = React.useState<string | null>(null);
+  const [now, setNow] = React.useState(() => Date.now());
+
+  React.useEffect(() => {
+    const timer = setInterval(() => setNow(Date.now()), 30_000);
+    return () => clearInterval(timer);
+  }, []);
 
   const grouped = React.useMemo(() => {
     const map = new Map<string, string[]>();
@@ -112,7 +122,41 @@ export function MeetingConfirmView({
     colorScheme: "light",
   } as React.CSSProperties;
 
+  const startMs = confirmedAt ? new Date(confirmedAt).getTime() : null;
+  const joinOpensMs = startMs !== null ? startMs - JOIN_OPEN_MIN * 60_000 : null;
+  const joinClosesMs =
+    startMs !== null
+      ? startMs + meeting.durationMinutes * 60_000 + JOIN_GRACE_MIN * 60_000
+      : null;
+  const ended =
+    (joinClosesMs !== null && now > joinClosesMs) ||
+    meeting.status === "completed";
+  const canJoin = joinOpensMs !== null && now >= joinOpensMs && !ended;
+  const embeddable = isEmbeddableRoom(meetLink);
   const cancelled = meeting.status === "cancelled";
+
+  // ---- Full-width in-call stage --------------------------------------------
+  if (confirmedAt && joined && embeddable && meetLink && !left && !ended) {
+    return (
+      <div
+        className="min-h-screen bg-slate-950 text-white"
+        style={{ colorScheme: "dark" }}
+      >
+        <div className="mx-auto max-w-5xl px-4 py-6">
+          <div className="mb-3 flex items-center gap-2 text-sm font-medium text-slate-200">
+            <Video className="h-4 w-4" /> {meeting.topic}
+          </div>
+          <DailyEmbed
+            url={meetLink}
+            onLeft={() => {
+              setJoined(false);
+              setLeft(true);
+            }}
+          />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900" style={lightVars}>
@@ -148,10 +192,21 @@ export function MeetingConfirmView({
       <main className="mx-auto -mt-6 max-w-xl px-5 pb-12 sm:px-10">
         <article className="rounded-2xl border bg-white p-6 shadow-sm sm:p-8">
           {cancelled ? (
-            <p className="text-sm text-slate-600">
+            <p className="text-center text-sm text-slate-600">
               This meeting has been cancelled. Please reach out to {hostName} to
               reschedule.
             </p>
+          ) : left ? (
+            <Centered
+              tone="emerald"
+              title="You've left the call"
+              body={`Thanks! You can close this tab now. ${hostName} will follow up if anything else is needed.`}
+            />
+          ) : confirmedAt && ended ? (
+            <Centered
+              title="This meeting has ended"
+              body="Thanks for using Stackivo — you can safely close this tab."
+            />
           ) : confirmedAt ? (
             <div className="space-y-4 text-center">
               <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-emerald-100 text-emerald-600">
@@ -165,11 +220,10 @@ export function MeetingConfirmView({
                   {fmtFull(confirmedAt)}
                 </p>
               </div>
-              {meetLink ? (
-                isEmbeddableRoom(meetLink) ? (
-                  joined ? (
-                    <DailyEmbed url={meetLink} title={meeting.topic} />
-                  ) : (
+
+              {canJoin ? (
+                meetLink ? (
+                  embeddable ? (
                     <button
                       type="button"
                       onClick={() => setJoined(true)}
@@ -177,21 +231,26 @@ export function MeetingConfirmView({
                     >
                       <Video className="h-4 w-4" /> Join the call
                     </button>
+                  ) : (
+                    <a
+                      href={meetLink}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="mx-auto inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground"
+                    >
+                      <Video className="h-4 w-4" /> Join the call
+                    </a>
                   )
                 ) : (
-                  <a
-                    href={meetLink}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="mx-auto inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground"
-                  >
-                    <Video className="h-4 w-4" /> Join the call
-                  </a>
+                  <p className="text-xs text-slate-500">
+                    {hostName} will share the video link before the call.
+                  </p>
                 )
               ) : (
-                <p className="text-xs text-slate-500">
-                  {hostName} will share the video link before the call. A
-                  calendar invite is on its way to your inbox.
+                <p className="rounded-lg bg-slate-50 px-4 py-3 text-xs text-slate-500">
+                  You can join {JOIN_OPEN_MIN} minutes before your call — this
+                  page updates automatically. A calendar invite is in your
+                  inbox.
                 </p>
               )}
             </div>
@@ -246,6 +305,33 @@ export function MeetingConfirmView({
           Powered by Stackivo · This page is private to you.
         </p>
       </main>
+    </div>
+  );
+}
+
+function Centered({
+  title,
+  body,
+  tone,
+}: {
+  title: string;
+  body: string;
+  tone?: "emerald";
+}) {
+  return (
+    <div className="space-y-3 text-center">
+      <div
+        className={
+          "mx-auto flex h-12 w-12 items-center justify-center rounded-full " +
+          (tone === "emerald"
+            ? "bg-emerald-100 text-emerald-600"
+            : "bg-slate-100 text-slate-500")
+        }
+      >
+        <Check className="h-6 w-6" />
+      </div>
+      <p className="text-lg font-semibold text-slate-900">{title}</p>
+      <p className="mx-auto max-w-sm text-sm text-slate-500">{body}</p>
     </div>
   );
 }

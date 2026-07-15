@@ -97,7 +97,11 @@ function PortalCallCard({ meeting }: { meeting: PortalMeeting }) {
           {meeting.meetLink ? (
             isEmbeddableRoom(meeting.meetLink) ? (
               joined ? (
-                <DailyEmbed url={meeting.meetLink} title={meeting.topic} />
+                <DailyEmbed
+                  url={meeting.meetLink}
+                  title={meeting.topic}
+                  onLeft={() => setJoined(false)}
+                />
               ) : (
                 <button
                   type="button"
