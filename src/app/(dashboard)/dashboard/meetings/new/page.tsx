@@ -1,5 +1,10 @@
 import { listClients } from "@/features/clients/server";
 import { MeetingNewView } from "@/features/meetings/components/meeting-new-view";
+import { getServerSupabase } from "@/lib/supabase/server";
+import {
+  getCalendarConnection,
+  isGoogleConfigured,
+} from "@/features/scheduling/server";
 
 export const metadata = { title: "Schedule a call | Stackivo" };
 export const dynamic = "force-dynamic";
@@ -10,7 +15,17 @@ interface PageProps {
 
 export default async function NewMeetingPage({ searchParams }: PageProps) {
   const sp = await searchParams;
-  const clients = await listClients({ limit: 300 });
+  const supabase = await getServerSupabase();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const [clients, connection] = await Promise.all([
+    listClients({ limit: 300 }),
+    user
+      ? getCalendarConnection(user.id)
+      : Promise.resolve({ connected: false, email: null }),
+  ]);
 
   return (
     <MeetingNewView
@@ -18,6 +33,7 @@ export default async function NewMeetingPage({ searchParams }: PageProps) {
         id: client.id,
         name: client.businessName || client.fullName,
       }))}
+      availabilityEnabled={isGoogleConfigured() && connection.connected}
       prefill={{
         topic: sp.topic,
         clientId: sp.clientId ?? null,

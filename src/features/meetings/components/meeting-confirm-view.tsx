@@ -137,6 +137,12 @@ export function MeetingConfirmView({
                 </p>
               )}
             </div>
+          ) : meeting.proposedSlots.length === 0 ? (
+            <p className="text-sm text-slate-600">
+              No open times right now. Please check back shortly or reach out to
+              {" "}
+              {hostName}.
+            </p>
           ) : (
             <div className="space-y-3">
               <p className="text-sm font-medium text-slate-700">

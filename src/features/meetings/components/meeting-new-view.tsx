@@ -190,22 +190,70 @@ export function MeetingNewView({
             </Field>
           </div>
 
-          <div className="space-y-2">
-            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              Proposed times
+          {availabilityEnabled ? (
+            <div className="space-y-2">
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                How should the client pick a time?
+              </p>
+              <div className="grid gap-2 sm:grid-cols-2">
+                <button
+                  type="button"
+                  onClick={() => setMode("slots")}
+                  className={
+                    "rounded-lg border p-3 text-left text-sm transition " +
+                    (mode === "slots"
+                      ? "border-primary bg-primary/5"
+                      : "hover:border-primary/40")
+                  }
+                >
+                  <span className="font-medium">Propose specific times</span>
+                  <span className="mt-0.5 block text-xs text-muted-foreground">
+                    You offer a few options.
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setMode("availability")}
+                  className={
+                    "rounded-lg border p-3 text-left text-sm transition " +
+                    (mode === "availability"
+                      ? "border-primary bg-primary/5"
+                      : "hover:border-primary/40")
+                  }
+                >
+                  <span className="font-medium">My live availability</span>
+                  <span className="mt-0.5 block text-xs text-muted-foreground">
+                    Client picks from your open calendar times.
+                  </span>
+                </button>
+              </div>
+            </div>
+          ) : null}
+
+          {mode === "slots" ? (
+            <div className="space-y-2">
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Proposed times
+              </p>
+              {slots.map((slot, index) => (
+                <Input
+                  key={index}
+                  type="datetime-local"
+                  value={slot}
+                  onChange={(event) => updateSlot(index, event.target.value)}
+                />
+              ))}
+              <p className="text-xs text-muted-foreground">
+                Offer up to three options, in your local timezone.
+              </p>
+            </div>
+          ) : (
+            <p className="rounded-lg border border-dashed bg-muted/20 p-3 text-xs text-muted-foreground">
+              The client will see your live open times (working hours minus
+              busy calendar blocks) and pick one. A Google Calendar event with a
+              Meet link is created automatically.
             </p>
-            {slots.map((slot, index) => (
-              <Input
-                key={index}
-                type="datetime-local"
-                value={slot}
-                onChange={(event) => updateSlot(index, event.target.value)}
-              />
-            ))}
-            <p className="text-xs text-muted-foreground">
-              Offer up to three options, in your local timezone.
-            </p>
-          </div>
+          )}
 
           <Field label="Notes (optional)">
             <Textarea
