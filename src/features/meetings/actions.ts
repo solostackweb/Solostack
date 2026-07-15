@@ -14,6 +14,7 @@ import {
 } from "@/features/scheduling/server";
 import { createCalendarEvent } from "@/features/scheduling/google";
 import { buildMeetingIcs } from "./calendar";
+import { createDailyRoom, isDailyConfigured } from "./video";
 
 export type MeetingActionResult<T = undefined> =
   | { ok: true; data?: T; message?: string }
@@ -141,7 +142,7 @@ const confirmSchema = z.object({
 
 export async function confirmMeetingSlotAction(
   input: z.infer<typeof confirmSchema>,
-): Promise<MeetingActionResult> {
+): Promise<MeetingActionResult<{ meetLink: string | null }>> {
   const parsed = confirmSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: "Invalid input." };
 
@@ -174,6 +175,9 @@ export async function confirmMeetingSlotAction(
   if (meeting.status === "cancelled") {
     return { ok: false, error: "This meeting was cancelled." };
   }
+  if (meeting.status === "confirmed") {
+    return { ok: false, error: "This meeting is already booked." };
+  }
 
   const slot = parsed.data.slot;
   if (meeting.mode === "availability") {
@@ -199,6 +203,7 @@ export async function confirmMeetingSlotAction(
   // and use the generated Meet link.
   let meetLink = meeting.meet_link;
   if (meeting.mode === "availability") {
+    // Availability bookings create a real Google Calendar event + Meet link.
     const token = await accessTokenForBooking(meeting.user_id);
     if (token) {
       const clientEmail = await lookupClientEmail(meeting.client_id);
@@ -215,6 +220,11 @@ export async function confirmMeetingSlotAction(
       });
       if (event?.meetLink) meetLink = event.meetLink;
     }
+  } else if (!meetLink && isDailyConfigured()) {
+    // Slot bookings auto-create an in-app Daily room on confirm — no manual
+    // "turn on video" step. Falls through to a pasted link if this fails.
+    const room = await createDailyRoom({ expiresAt: slot });
+    if (room) meetLink = room.url;
   }
 
   const { error } = await admin
@@ -259,7 +269,11 @@ export async function confirmMeetingSlotAction(
     attachment,
   }).catch(() => undefined);
 
-  return { ok: true, message: "Your time is confirmed." };
+  return {
+    ok: true,
+    data: { meetLink },
+    message: "Your time is confirmed.",
+  };
 }
 
 // ---------------------------------------------------------------------------
