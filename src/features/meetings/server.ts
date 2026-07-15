@@ -43,6 +43,25 @@ export async function listMeetingsForOwner(
   return ((data ?? []) as MeetingRow[]).map(mapMeetingRow);
 }
 
+/**
+ * Meetings tied to a client — used inside the client portal. Access is already
+ * enforced by the portal loader before this is called, so this uses the
+ * service-role client scoped by client_id. Cancelled meetings are hidden.
+ */
+export async function listMeetingsForClient(
+  clientId: string,
+): Promise<Meeting[]> {
+  if (!clientId) return [];
+  const admin = getAdminSupabase();
+  const { data } = await admin
+    .from("meetings")
+    .select("*")
+    .eq("client_id", clientId)
+    .neq("status", "cancelled")
+    .order("created_at", { ascending: false });
+  return ((data ?? []) as MeetingRow[]).map(mapMeetingRow);
+}
+
 /** A single meeting owned by the signed-in freelancer, for the detail page. */
 export async function getMeetingForOwner(id: string): Promise<Meeting | null> {
   const userId = await currentUserId();
