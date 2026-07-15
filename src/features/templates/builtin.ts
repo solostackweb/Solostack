@@ -252,35 +252,4 @@ export const BUILTIN_TEMPLATES: TemplateRecord[] = [
       ],
     },
   },
-  {
-    id: "invoice-note-export-service",
-    userId: null,
-    templateType: "invoice_note",
-    title: "Export Service Invoice Note",
-    description: "Short note for foreign clients and zero-rated export services.",
-    category: "export",
-    active: true,
-    isSystem: true,
-    updatedAt: null,
-    content: {
-      body:
-        "This invoice is for export of services. GST is zero-rated where applicable. Payment may be made in the invoice currency; internal INR records use the locked conversion rate.",
-    },
-  },
-  {
-    id: "email-proposal-follow-up",
-    userId: null,
-    templateType: "email",
-    title: "Proposal Follow-up",
-    description: "A concise follow-up after sharing a proposal.",
-    category: "sales",
-    active: true,
-    isSystem: true,
-    updatedAt: null,
-    content: {
-      subject: "Following up on the proposal",
-      body:
-        "Hi {{client_name}},\n\nI wanted to check whether you had a chance to review the proposal. Happy to clarify scope, timeline, or pricing if helpful.\n\nIf everything looks good, I can help with the next step and get the project moving.\n\nBest,\n{{freelancer_name}}",
-    },
-  },
 ];

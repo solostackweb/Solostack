@@ -12,6 +12,8 @@ import {
   Eye,
   GripVertical,
   CircleAlert,
+  FileText,
+  FileSignature,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -42,7 +44,6 @@ import type {
 } from "../types";
 import { createContractAction } from "../actions";
 import { sendContractAction } from "../delivery";
-import { TemplatePicker } from "./template-picker";
 import { ContractPreview } from "./contract-preview";
 import type { AiContractDraft } from "@/features/ai-workflows/types";
 
@@ -154,6 +155,14 @@ export function ContractBuilderView({
       t.sections.map((s) => ({ ...s, id: newSectionId() })),
     );
     setTitle(t.name);
+    setStep("build");
+  };
+
+  const handleBlank = () => {
+    setTemplate(null);
+    setKind("contract");
+    setSections([{ id: newSectionId(), heading: "Scope of work", body: "" }]);
+    setTitle("Untitled contract");
     setStep("build");
   };
 
@@ -398,10 +407,41 @@ export function ContractBuilderView({
           </div>
         </div>
 
-        <TemplatePicker
-          templates={pickerTemplates}
-          onSelect={handlePickTemplate}
-        />
+        <div>
+          <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            Start fresh
+          </p>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            <ContractStartCard
+              title="Blank contract"
+              description="Start with a clean scope-of-work section and add your own terms."
+              badge="Flexible"
+              icon={FileText}
+              onClick={handleBlank}
+            />
+          </div>
+        </div>
+
+        {pickerTemplates.length > 0 ? (
+          <div>
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Starter templates
+            </p>
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {pickerTemplates.map((t) => (
+                <ContractStartCard
+                  key={t.id}
+                  title={t.name}
+                  description={t.description}
+                  badge={t.popular ? "Popular" : "Template"}
+                  icon={FileSignature}
+                  meta={`${t.sections.length} sections${t.readingTime > 0 ? ` · ~${t.readingTime} min read` : ""}`}
+                  onClick={() => handlePickTemplate(t)}
+                />
+              ))}
+            </div>
+          </div>
+        ) : null}
       </div>
     );
   }
@@ -732,6 +772,48 @@ function hasUnresolvedPlaceholders(
 ): boolean {
   return [title, ...sections.flatMap((section) => [section.heading, section.body])]
     .some((value) => PLACEHOLDER_PATTERN.test(value));
+}
+
+function ContractStartCard({
+  title,
+  description,
+  badge,
+  icon: Icon = FileSignature,
+  meta,
+  onClick,
+}: {
+  title: string;
+  description: string;
+  badge: string;
+  icon?: typeof FileSignature;
+  meta?: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="group flex h-full w-full flex-col rounded-xl border bg-card p-5 text-left transition hover:border-primary/40 hover:shadow-sm"
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex h-10 w-10 items-center justify-center rounded-lg border bg-background text-primary">
+          <Icon className="h-5 w-5" />
+        </div>
+        <span className="rounded-full border bg-background px-2 py-0.5 text-[11px] font-semibold text-muted-foreground">
+          {badge}
+        </span>
+      </div>
+      <h3 className="mt-4 text-base font-semibold">{title}</h3>
+      <p className="mt-2 line-clamp-3 flex-1 text-sm leading-6 text-muted-foreground">
+        {description}
+      </p>
+      {meta ? (
+        <p className="mt-3 border-t pt-3 text-[11px] text-muted-foreground">
+          {meta}
+        </p>
+      ) : null}
+    </button>
+  );
 }
 
 function mapTemplateRecordToContractTemplate(template: TemplateRecord): ContractTemplate {

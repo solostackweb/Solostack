@@ -28,8 +28,6 @@ const TYPE_OPTIONS: Array<{ value: TemplateType; label: string }> = [
   { value: "proposal", label: "Proposal" },
   { value: "contract", label: "Contract" },
   { value: "welcome_doc", label: "Welcome doc" },
-  { value: "invoice_note", label: "Invoice note" },
-  { value: "email", label: "Email" },
 ];
 
 export function TemplatesView({

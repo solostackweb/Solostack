@@ -351,7 +351,7 @@ export function ProposalBuilderView({
             Shape a lightweight offer, save drafts freely, then send the proposal by email or WhatsApp when it is ready.
           </p>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2 sm:flex-nowrap sm:justify-end">
           <Button type="button" onClick={saveDraft} disabled={isSaving} className="shrink-0">
             {isSaving ? (
               "Saving..."

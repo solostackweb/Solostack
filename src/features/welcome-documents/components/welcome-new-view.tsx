@@ -212,15 +212,25 @@ export function WelcomeNewView({
 
       <div>
         <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-          Stackivo templates
+          Start fresh
         </h2>
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           <BlankCard onSelect={() => setShowBlankEditor(true)} />
-          {system.map((t) => (
-            <TemplateCard key={t.id} tpl={t} />
-          ))}
         </div>
       </div>
+
+      {system.length > 0 && (
+        <div>
+          <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            Stackivo templates
+          </h2>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {system.map((t) => (
+              <TemplateCard key={t.id} tpl={t} />
+            ))}
+          </div>
+        </div>
+      )}
 
       {personal.length > 0 && (
         <div>
