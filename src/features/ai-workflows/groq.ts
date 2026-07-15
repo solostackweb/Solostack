@@ -1,6 +1,7 @@
 import "server-only";
 
 import { requireServerEnv } from "@/config/env";
+import { log } from "@/lib/logger";
 
 interface GroqChatMessage {
   role: "system" | "user";
@@ -13,6 +14,29 @@ interface GroqChatResponse {
       content?: string;
     };
   }>;
+  usage?: {
+    prompt_tokens?: number;
+    completion_tokens?: number;
+    total_tokens?: number;
+  };
+}
+
+export interface AiProviderResultMeta {
+  provider: "groq";
+  outcome:
+    | "succeeded"
+    | "not_configured"
+    | "model_rejected"
+    | "http_error"
+    | "network_error"
+    | "empty_response"
+    | "invalid_json";
+  model: string | null;
+  attempts: number;
+  durationMs: number;
+  promptTokens: number | null;
+  completionTokens: number | null;
+  totalTokens: number | null;
 }
 
 /**
@@ -62,13 +86,42 @@ export async function generateStructuredJson({
   messages,
   temperature = 0.2,
   maxTokens = 8000,
+  operation = "structured_json",
+  onResult,
 }: {
   messages: GroqChatMessage[];
   temperature?: number;
   maxTokens?: number;
+  /** Stable, non-PII label used to monitor quality by assistant capability. */
+  operation?: string;
+  /** Server-only observer used by the durable Ivo run ledger. */
+  onResult?: (result: AiProviderResultMeta) => void;
 }): Promise<unknown | null> {
+  const requestStartedAt = Date.now();
+  let totalAttempts = 0;
+  let lastModel: string | null = null;
+  let lastOutcome: AiProviderResultMeta["outcome"] = "network_error";
+  const report = (
+    outcome: AiProviderResultMeta["outcome"],
+    details: Partial<Pick<AiProviderResultMeta, "model" | "promptTokens" | "completionTokens" | "totalTokens">> = {},
+  ) => {
+    onResult?.({
+      provider: "groq",
+      outcome,
+      model: details.model ?? lastModel,
+      attempts: totalAttempts,
+      durationMs: Date.now() - requestStartedAt,
+      promptTokens: details.promptTokens ?? null,
+      completionTokens: details.completionTokens ?? null,
+      totalTokens: details.totalTokens ?? null,
+    });
+  };
   const serverEnv = requireServerEnv();
-  if (!serverEnv.groqApiKey) return null;
+  if (!serverEnv.groqApiKey) {
+    log.debug("ai.provider.skipped", { provider: "groq", operation, reason: "not_configured" });
+    report("not_configured");
+    return null;
+  }
 
   // Try the configured model first, then the stable fallback if the configured
   // one is rejected as unknown/decommissioned.
@@ -78,6 +131,7 @@ export async function generateStructuredJson({
       : [serverEnv.groqModel, GROQ_FALLBACK_MODEL];
 
   for (const model of models) {
+    lastModel = model;
     // Reasoning models handle chain-of-thought differently. With Groq JSON mode,
     // reasoning must be returned separately or hidden; raw reasoning in content
     // is rejected. GPT-OSS also accepts `reasoning_effort`, so keep it low for
@@ -103,10 +157,12 @@ export async function generateStructuredJson({
     let modelRejected = false;
 
     for (let attempt = 1; attempt <= GROQ_MAX_ATTEMPTS; attempt++) {
+      totalAttempts += 1;
       // Abort the request if it exceeds the timeout — frees the function and lets
       // callers fall back to their local/deterministic path quickly.
       const controller = new AbortController();
       const timer = setTimeout(() => controller.abort(), GROQ_TIMEOUT_MS);
+      const startedAt = Date.now();
       try {
         const res = await fetch(
           "https://api.groq.com/openai/v1/chat/completions",
@@ -123,6 +179,11 @@ export async function generateStructuredJson({
 
         // Retry transient upstream errors (rate limit / server) once.
         if (res.status === 429 || res.status >= 500) {
+          lastOutcome = "http_error";
+          log.warn("ai.provider.retryable_http_error", {
+            provider: "groq", operation, model, attempt, status: res.status,
+            latencyMs: Date.now() - startedAt,
+          });
           if (attempt < GROQ_MAX_ATTEMPTS) {
             await sleep(300 * attempt);
             continue;
@@ -134,27 +195,77 @@ export async function generateStructuredJson({
         // decommissioned. Don't retry the same model — fall through to the next
         // candidate (the stable fallback).
         if (res.status === 400 || res.status === 404) {
+          lastOutcome = "model_rejected";
+          log.warn("ai.provider.model_rejected", {
+            provider: "groq", operation, model, status: res.status,
+            latencyMs: Date.now() - startedAt,
+          });
           modelRejected = true;
           break;
         }
 
         if (!res.ok) {
+          lastOutcome = "http_error";
+          log.warn("ai.provider.http_error", {
+            provider: "groq", operation, model, attempt, status: res.status,
+            latencyMs: Date.now() - startedAt,
+          });
           break;
         }
 
         const json = (await res.json()) as GroqChatResponse;
         const content = json.choices?.[0]?.message?.content;
-        if (!content) return null;
-        return parseJsonLoose(content);
+        if (!content) {
+          log.warn("ai.provider.empty_response", {
+            provider: "groq", operation, model, attempt,
+            latencyMs: Date.now() - startedAt,
+          });
+          report("empty_response", { model });
+          return null;
+        }
+        const parsed = parseJsonLoose(content);
+        if (parsed === null) {
+          log.warn("ai.provider.invalid_json", {
+            provider: "groq", operation, model, attempt,
+            latencyMs: Date.now() - startedAt, responseChars: content.length,
+          });
+          report("invalid_json", { model });
+          return null;
+        }
+        log.info("ai.provider.succeeded", {
+          provider: "groq", operation, model, attempt,
+          latencyMs: Date.now() - startedAt,
+          promptTokens: json.usage?.prompt_tokens,
+          completionTokens: json.usage?.completion_tokens,
+          totalTokens: json.usage?.total_tokens,
+        });
+        report("succeeded", {
+          model,
+          promptTokens: json.usage?.prompt_tokens ?? null,
+          completionTokens: json.usage?.completion_tokens ?? null,
+          totalTokens: json.usage?.total_tokens ?? null,
+        });
+        return parsed;
       } catch (err) {
+        lastOutcome = "network_error";
         // Retry once on abort/network errors; otherwise stop this model.
         const retriable =
           err instanceof Error &&
           (err.name === "AbortError" || err.name === "TypeError");
         if (retriable && attempt < GROQ_MAX_ATTEMPTS) {
+          log.warn("ai.provider.retryable_network_error", {
+            provider: "groq", operation, model, attempt,
+            reason: err instanceof Error ? err.name : "unknown",
+            latencyMs: Date.now() - startedAt,
+          });
           await sleep(300 * attempt);
           continue;
         }
+        log.warn("ai.provider.network_error", {
+          provider: "groq", operation, model, attempt,
+          reason: err instanceof Error ? err.name : "unknown",
+          latencyMs: Date.now() - startedAt,
+        });
         break;
       } finally {
         clearTimeout(timer);
@@ -169,5 +280,6 @@ export async function generateStructuredJson({
 
   // Every candidate failed. Return null so callers fall back gracefully instead
   // of surfacing an exception.
+  report(lastOutcome);
   return null;
 }

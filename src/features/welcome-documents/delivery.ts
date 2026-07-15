@@ -47,6 +47,7 @@ const sendSchema = z.object({
   message: z.string().max(2000).optional(),
   /** Send a copy to the freelancer's own profile email. */
   ccSelf: z.boolean().optional(),
+  idempotencyKey: z.string().trim().min(8).max(200).optional(),
 });
 
 export async function sendWelcomeDocumentAction(
@@ -204,6 +205,9 @@ export async function sendWelcomeDocumentAction(
     ],
     metadata: { documentId: doc.id },
     tags: ["welcome_document_sent", "share"],
+    idempotencyKey: parsed.data.idempotencyKey
+      ? `welcome-email:${user.id}:${parsed.data.idempotencyKey}`
+      : null,
   });
 
   await recordActivity({

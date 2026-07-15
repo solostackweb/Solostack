@@ -38,6 +38,7 @@ const sendSchema = z.object({
   toName: z.string().trim().min(1).optional(),
   message: z.string().max(2000).optional(),
   ccSelf: z.boolean().optional(),
+  idempotencyKey: z.string().trim().min(8).max(200).optional(),
 });
 
 async function requireUser() {
@@ -174,6 +175,9 @@ export async function sendInvoiceAction(
       publicUrl,
     },
     tags: ["invoice_sent", "billing"],
+    idempotencyKey: parsed.data.idempotencyKey
+      ? `invoice-email:${user.id}:${parsed.data.idempotencyKey}`
+      : null,
   });
 
   // Mark the invoice as issued ('sent') regardless of whether the *email*

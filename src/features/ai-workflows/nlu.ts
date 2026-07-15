@@ -3,7 +3,7 @@ import "server-only";
 import type { ClientRecord } from "@/features/clients/server";
 import type { ProjectRecord } from "@/features/projects/server";
 import { getClientDisplayName } from "@/features/clients/utils";
-import { generateStructuredJson } from "./groq";
+import { generateStructuredJson, type AiProviderResultMeta } from "./groq";
 import {
   AI_WORKFLOWS,
   type AiFields,
@@ -246,8 +246,16 @@ function localInterpret(ctx: InterpretContext): AiInterpretation {
 // Groq-powered interpretation
 // ---------------------------------------------------------------------------
 
-export async function interpretMessage(ctx: InterpretContext): Promise<AiInterpretation> {
+export interface AiInterpretMessageResult {
+  interpretation: AiInterpretation;
+  providerMeta: AiProviderResultMeta | null;
+}
+
+export async function interpretMessageDetailed(
+  ctx: InterpretContext,
+): Promise<AiInterpretMessageResult> {
   const fallback = localInterpret(ctx);
+  let providerMeta: AiProviderResultMeta | null = null;
 
   const clientList = ctx.clients.slice(0, 200).map((c) => ({
     id: c.id,
@@ -264,6 +272,10 @@ export async function interpretMessage(ctx: InterpretContext): Promise<AiInterpr
   }));
 
   const aiJson = await generateStructuredJson({
+    operation: "intent_extraction",
+    onResult: (result) => {
+      providerMeta = result;
+    },
     temperature: 0.1,
     messages: [
       {
@@ -326,7 +338,9 @@ export async function interpretMessage(ctx: InterpretContext): Promise<AiInterpr
     ],
   }).catch(() => null);
 
-  if (!aiJson || typeof aiJson !== "object") return fallback;
+  if (!aiJson || typeof aiJson !== "object") {
+    return { interpretation: fallback, providerMeta };
+  }
 
   const raw = aiJson as Record<string, unknown>;
   const intentRaw = typeof raw.intent === "string" ? raw.intent : "";
@@ -335,7 +349,7 @@ export async function interpretMessage(ctx: InterpretContext): Promise<AiInterpr
     fallback.confident &&
     (intentRaw === "support" || intentRaw === "general" || !intentRaw)
   ) {
-    return fallback;
+    return { interpretation: fallback, providerMeta };
   }
   const intent = ([...AI_WORKFLOWS, "general", "query"] as string[]).includes(intentRaw)
     ? (intentRaw as AiIntent)
@@ -361,11 +375,18 @@ export async function interpretMessage(ctx: InterpretContext): Promise<AiInterpr
       : undefined) ?? fallback.projectId;
 
   return {
-    intent,
-    confident: raw.confident === true,
-    fields: { ...fallback.fields, ...fields },
-    clientId,
-    projectId,
-    provider: "groq",
+    interpretation: {
+      intent,
+      confident: raw.confident === true,
+      fields: { ...fallback.fields, ...fields },
+      clientId,
+      projectId,
+      provider: "groq",
+    },
+    providerMeta,
   };
+}
+
+export async function interpretMessage(ctx: InterpretContext): Promise<AiInterpretation> {
+  return (await interpretMessageDetailed(ctx)).interpretation;
 }

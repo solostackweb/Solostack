@@ -16,35 +16,12 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { StackivoMark } from "@/components/brand/stackivo-logo";
 import { cn } from "@/lib/utils";
-import { saveAsTemplateAction } from "@/features/welcome-documents/actions";
 import {
-  approveInvoiceFromAiAction,
-  approveWelcomeDocFromAiAction,
-  contractWhatsappFromAiAction,
-  createClientFromAiAction,
-  createContractFromAiAction,
-  createInvoiceFromAiAction,
-  createProjectFromAiAction,
-  createTimeEntryFromAiAction,
-  createWelcomeDocFromAiAction,
-  emailInvoiceFromAiAction,
-  interpretAiMessageAction,
-  invoiceWhatsappFromAiAction,
-  refineContractFromAiAction,
-  refineInvoiceFromAiAction,
-  refineWelcomeDocFromAiAction,
-  sendContractFromAiAction,
-  sendWelcomeDocFromAiAction,
-  welcomeDocWhatsappFromAiAction,
   answerFromDocsAction,
   answerBusinessQuestionAction,
-  consumeAiMessageQuotaAction,
   getAiUsageAction,
   getAssistantSuggestionsAction,
-  remindOverdueInvoicesFromAiAction,
-  invoiceUnbilledTimeFromAiAction,
   listInvoicesForAiAction,
-  markInvoicePaidFromAiAction,
   listContractsForAiAction,
   listClientsForAiAction,
   listProjectsForAiAction,
@@ -59,6 +36,12 @@ import type {
   AiContractPreview,
   AiWelcomeDocPreview,
   AiConfirmSummary,
+  AiEntityOption,
+  AiInvoiceListRow,
+  AiContractListRow,
+  AiClientListRow,
+  AiProjectListRow,
+  AiWelcomeDocListRow,
 } from "./assistant-types";
 import {
   ASSISTANT_NAME,
@@ -68,10 +51,6 @@ import {
   formatMoney,
   modeIntro,
   conversationalReply,
-  isBusinessDataQuestion,
-  isInformationalQuestion,
-  isSkipReply,
-  fieldValidationError,
   isAffirmative,
   isNegative,
   isAbandonFlow,
@@ -94,9 +73,7 @@ import {
   ProjectListBlock,
   WelcomeDocListBlock,
 } from "./assistant-previews";
-import { createTicketAction } from "@/features/support/ticket-actions";
 import {
-  AI_SKIP_SENTINEL,
   NO_CLIENT_SENTINEL,
   NO_PROJECT_SENTINEL,
   type AiFields,
@@ -104,6 +81,49 @@ import {
   type AiMissingField,
 } from "@/features/ai-workflows/types";
 import { IVO_ASK_EVENT, type IvoAskDetail } from "./ivo-entry-point";
+import {
+  appendIvoMessageAction,
+  planIvoWorkflowProgressAction,
+  processIvoMessageAction,
+  resumeIvoConversationAction,
+  saveIvoConversationStateAction,
+  startNewIvoConversationAction,
+} from "@/features/ai-workflows/conversation-actions";
+import {
+  approveInvoiceIvoToolAction,
+  createClientIvoToolAction,
+  createContractDraftIvoToolAction,
+  createInvoiceDraftIvoToolAction,
+  createProjectIvoToolAction,
+  createTimeEntryIvoToolAction,
+  createUnbilledTimeInvoiceIvoToolAction,
+  createWelcomeDraftIvoToolAction,
+  emailContractIvoToolAction,
+  emailInvoiceIvoToolAction,
+  emailWelcomeDocumentIvoToolAction,
+  forwardToSupportIvoToolAction,
+  markInvoicePaidIvoToolAction,
+  prepareContractWhatsAppIvoToolAction,
+  prepareInvoiceWhatsAppIvoToolAction,
+  prepareWelcomeWhatsAppIvoToolAction,
+  publishWelcomeDocumentIvoToolAction,
+  refineContractIvoToolAction,
+  refineInvoiceIvoToolAction,
+  refineWelcomeDocumentIvoToolAction,
+  rejectIvoToolAction,
+  remindOverdueInvoicesIvoToolAction,
+  saveWelcomeTemplateIvoToolAction,
+} from "@/features/ai-workflows/tool-actions";
+import type {
+  IvoConversationSnapshot,
+  IvoPendingConfirmation,
+  IvoResolvedMessageBlock,
+  IvoRuntimePromptBlock,
+  IvoToolResponseDescriptor,
+  IvoWorkflowNextAction,
+  IvoWorkflowTool,
+  IvoWorkflowState,
+} from "@/features/ai-workflows/conversation-types";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -135,6 +155,7 @@ export function StackivoAiAssistant({ clients, projects, user }: StackivoAiAssis
   const [input, setInput] = React.useState("");
   const [suggestions, setSuggestions] = React.useState<AssistantSuggestion[]>([]);
   const [aiUsage, setAiUsage] = React.useState<{ used: number; limit: number; plan: string } | null>(null);
+  const [conversationId, setConversationId] = React.useState<string | null>(null);
   const suggestionsLoaded = React.useRef(false);
   const submitRef = React.useRef<((text?: string) => void) | null>(null);
   const userFirstName = React.useMemo(
@@ -167,12 +188,8 @@ export function StackivoAiAssistant({ clients, projects, user }: StackivoAiAssis
     React.useState<AiWelcomeDocPreview | null>(null);
   // When a confirmation summary is showing, a typed "yes"/"confirm"/"cancel"
   // acts on it (in addition to the buttons).
-  const [pendingConfirm, setPendingConfirm] = React.useState<null | {
-    workflow: AiMode;
-    fields: AiFields;
-    cId: string;
-    pId: string;
-  }>(null);
+  const [pendingConfirm, setPendingConfirm] = React.useState<IvoPendingConfirmation | null>(null);
+  const [pendingProposal, setPendingProposal] = React.useState<"overdue_reminders" | null>(null);
   // Mobile/PWA: the desktop panel lives in a hidden md-only rail, so on small
   // screens we portal the panel to document.body and render it full-screen.
   const [isMobile, setIsMobile] = React.useState(false);
@@ -199,6 +216,10 @@ export function StackivoAiAssistant({ clients, projects, user }: StackivoAiAssis
   // forward it to the human support team and hold the original question here.
   // We never file a ticket without the user saying yes.
   const pendingSupportForwardRef = React.useRef<string | null>(null);
+  const pendingUnbilledClientRef = React.useRef<{
+    send: boolean;
+    choices: Array<{ id: string; name: string }>;
+  } | null>(null);
   const runWorkflowRef = React.useRef<
     (
       workflow: AiMode,
@@ -207,17 +228,65 @@ export function StackivoAiAssistant({ clients, projects, user }: StackivoAiAssis
       pId: string,
       text: string,
       confirm?: boolean,
+      toolRequestKey?: string,
+      plannedAction?: IvoWorkflowNextAction,
     ) => Promise<void>
   >(async () => {});
   const resizeActiveRef = React.useRef(false);
   const resizeStartXRef = React.useRef(0);
   const resizeStartWidthRef = React.useRef(440);
   const panelWidthRef = React.useRef(440);
+  const conversationIdRef = React.useRef<string | null>(null);
+  const conversationLoadRef = React.useRef<Promise<IvoConversationSnapshot | null> | null>(null);
+  const conversationHydratedRef = React.useRef(false);
+  const conversationWriteQueueRef = React.useRef<Promise<void>>(Promise.resolve());
+  const activeRunIdRef = React.useRef<string | null>(null);
+  const deliveryRequestKeysRef = React.useRef<
+    Map<string, { requestId: string; activeCalls: number }>
+  >(new Map());
+
+  const getDeliveryRequestKey = React.useCallback((scope: string) => {
+    const existing = deliveryRequestKeysRef.current.get(scope);
+    if (existing) {
+      existing.activeCalls += 1;
+      return existing.requestId;
+    }
+    const created = crypto.randomUUID();
+    deliveryRequestKeysRef.current.set(scope, { requestId: created, activeCalls: 1 });
+    return created;
+  }, []);
+
+  const releaseDeliveryRequestKey = React.useCallback((scope: string, requestId: string) => {
+    const current = deliveryRequestKeysRef.current.get(scope);
+    if (!current || current.requestId !== requestId) return;
+    current.activeCalls -= 1;
+    if (current.activeCalls <= 0) {
+      deliveryRequestKeysRef.current.delete(scope);
+    }
+  }, []);
 
   const RESIZE_MIN = 420;
   const RESIZE_MAX = 720;
 
   const handleNewConversation = React.useCallback(() => {
+    conversationHydratedRef.current = true;
+    const priorLoad = conversationLoadRef.current;
+    const priorWrites = conversationWriteQueueRef.current;
+    setConversationId(null);
+    conversationLoadRef.current = Promise.all([
+      priorLoad?.catch(() => null) ?? Promise.resolve(null),
+      priorWrites.catch(() => undefined),
+    ]).then(async () => {
+      conversationIdRef.current = null;
+      const result = await startNewIvoConversationAction();
+      if (!result.ok) {
+        conversationLoadRef.current = null;
+        return null;
+      }
+      conversationIdRef.current = result.data.id;
+      setConversationId(result.data.id);
+      return result.data;
+    });
     setMode("general");
     setCollected({});
     setPendingField(null);
@@ -229,12 +298,95 @@ export function StackivoAiAssistant({ clients, projects, user }: StackivoAiAssis
     setActiveInvoice(null);
     setActiveWelcomeDoc(null);
     setPendingConfirm(null);
+    setPendingProposal(null);
+    activeRunIdRef.current = null;
     pendingSupportForwardRef.current = null;
+    pendingUnbilledClientRef.current = null;
     transcriptRef.current = [];
     setMessages([]);
   }, []);
 
+  const ensureConversation = React.useCallback(() => {
+    if (conversationIdRef.current) {
+      return Promise.resolve<IvoConversationSnapshot | null>(null);
+    }
+    if (!conversationLoadRef.current) {
+      conversationLoadRef.current = resumeIvoConversationAction().then((result) => {
+        if (!result.ok) {
+          conversationLoadRef.current = null;
+          return null;
+        }
+        conversationIdRef.current = result.data.id;
+        setConversationId(result.data.id);
+        return result.data;
+      });
+    }
+    return conversationLoadRef.current;
+  }, []);
+
   React.useEffect(() => { setMounted(true); }, []);
+
+  // Restore the active textual conversation and resumable workflow state once.
+  React.useEffect(() => {
+    if (!open || conversationHydratedRef.current) return;
+    conversationHydratedRef.current = true;
+    void ensureConversation().then((snapshot) => {
+      if (!snapshot || transcriptRef.current.length > 0) return;
+      const restored: Message[] = snapshot.messages.map((message) => ({
+        id: message.id,
+        role: message.role,
+        content: message.content,
+        suggestions: message.suggestions,
+        tip: message.tip,
+        persistedBlock: message.block,
+      }));
+      const state = snapshot.state;
+      const lastText = snapshot.messages.at(-1)?.content;
+      if (state.pendingField && lastText !== state.pendingField.question) {
+        restored.push({
+          id: `resume-${snapshot.id}`,
+          role: "assistant",
+          content: state.pendingField.question,
+        });
+      }
+      transcriptRef.current = snapshot.messages
+        .map(({ role, content }) => ({ role, content }))
+        .slice(-12);
+      setMessages(restored);
+
+      // Resume the most recently persisted entity card from canonical data.
+      // Only genuine drafts become refinement targets; published/sent records
+      // remain visible but cannot accidentally be edited through a stale card.
+      const lastBlock = [...snapshot.messages]
+        .reverse()
+        .find((message) => message.block)?.block;
+      if (lastBlock?.type === "entity_preview" && lastBlock.entityType === "invoice") {
+        const preview = lastBlock.data as unknown as AiInvoicePreview;
+        setLastInvoicePreview(preview);
+        if (lastBlock.variant === "draft" && preview.status === "draft") {
+          setActiveInvoice(preview);
+        }
+      } else if (lastBlock?.type === "entity_preview" && lastBlock.entityType === "contract") {
+        const preview = lastBlock.data as unknown as AiContractPreview;
+        if (lastBlock.variant === "draft" && preview.status === "draft") {
+          setActiveContract(preview);
+        }
+      } else if (lastBlock?.type === "entity_preview" && lastBlock.entityType === "welcome_document") {
+        const preview = lastBlock.data as unknown as AiWelcomeDocPreview;
+        if (lastBlock.variant === "draft" && preview.status === "draft") {
+          setActiveWelcomeDoc(preview);
+        }
+      }
+
+      setMode(state.mode);
+      setCollected(state.collected);
+      setPendingField(state.pendingField);
+      setPendingConfirm(state.pendingConfirmation);
+      setPendingProposal(state.pendingProposal);
+      setClientId(state.clientId);
+      setProjectId(state.projectId);
+    });
+  }, [ensureConversation, open]);
 
   // Refresh the AI usage indicator each time the panel opens.
   React.useEffect(() => {
@@ -326,15 +478,123 @@ export function StackivoAiAssistant({ clients, projects, user }: StackivoAiAssis
   }, [messages, open, pending]);
 
   const push = React.useCallback((message: Omit<Message, "id">) => {
-    // Record textual turns (skip JSX previews/pickers) as conversation memory.
+    const messageId = newId();
+    const persistedContent = typeof message.content === "string"
+      ? message.content
+      : message.persistence?.content;
+    // Only plain text enters model conversation memory. Rich blocks persist a
+    // safe entity reference and a textual fallback, not their rendered data.
     if (typeof message.content === "string") {
       transcriptRef.current = [
         ...transcriptRef.current,
         { role: message.role, content: message.content },
       ].slice(-12);
     }
-    setMessages((prev) => [...prev, { ...message, id: newId() }]);
-  }, []);
+    if (persistedContent) {
+      // Persistence is deliberately best-effort: a temporary database problem
+      // must not block the visible assistant response. The stable client id
+      // makes retries safe across React transitions and double-clicks.
+      const targetConversation = conversationIdRef.current
+        ? Promise.resolve(conversationIdRef.current)
+        : ensureConversation().then(() => conversationIdRef.current);
+      conversationWriteQueueRef.current = conversationWriteQueueRef.current
+        .then(async () => {
+          const activeConversationId = await targetConversation;
+          if (!activeConversationId) return;
+          await appendIvoMessageAction({
+            conversationId: activeConversationId,
+            clientMessageId: messageId,
+            role: message.role,
+            kind: message.persistence?.kind ?? "text",
+            content: persistedContent,
+            suggestions: message.suggestions,
+            tip: message.tip,
+            block: message.persistence?.block,
+          });
+        })
+        .catch(() => {
+          // Server actions already classify/log persistence failures. Keep the
+          // queue alive so one failed write cannot suppress later messages.
+        });
+    }
+    setMessages((prev) => [...prev, { ...message, id: messageId }]);
+    return messageId;
+  }, [ensureConversation]);
+
+  // Persist the minimal state required to resume a partially completed flow.
+  // Rich previews are rebuilt from canonical domain records rather than being
+  // serialized into the conversation table.
+  React.useEffect(() => {
+    if (!conversationId) return;
+    const state: IvoWorkflowState = {
+      version: 1,
+      mode,
+      collected,
+      pendingField,
+      pendingConfirmation: pendingConfirm,
+      pendingProposal,
+      clientId,
+      projectId,
+    };
+    const timer = window.setTimeout(() => {
+      void saveIvoConversationStateAction({ conversationId, state });
+    }, 500);
+    return () => window.clearTimeout(timer);
+  }, [clientId, collected, conversationId, mode, pendingConfirm, pendingField, pendingProposal, projectId]);
+
+  const emailInvoiceWithIvo = React.useCallback(async (invoiceId: string, fixedRequestId?: string) => {
+    await ensureConversation();
+    const activeConversationId = conversationIdRef.current;
+    if (!activeConversationId) return { ok: false as const, error: "I couldn't start this delivery." };
+    const scope = `invoice.email:${invoiceId}`;
+    const requestId = fixedRequestId ?? getDeliveryRequestKey(scope);
+    try {
+      return await emailInvoiceIvoToolAction({
+        conversationId: activeConversationId,
+        runId: activeRunIdRef.current ?? undefined,
+        invoiceId,
+        requestId,
+      });
+    } finally {
+      if (!fixedRequestId) releaseDeliveryRequestKey(scope, requestId);
+    }
+  }, [ensureConversation, getDeliveryRequestKey, releaseDeliveryRequestKey]);
+
+  const emailContractWithIvo = React.useCallback(async (contractId: string) => {
+    await ensureConversation();
+    const activeConversationId = conversationIdRef.current;
+    if (!activeConversationId) return { ok: false as const, error: "I couldn't start this delivery." };
+    const scope = `contract.email:${contractId}`;
+    const requestId = getDeliveryRequestKey(scope);
+    try {
+      return await emailContractIvoToolAction({
+        conversationId: activeConversationId,
+        runId: activeRunIdRef.current ?? undefined,
+        contractId,
+        requestId,
+      });
+    } finally {
+      releaseDeliveryRequestKey(scope, requestId);
+    }
+  }, [ensureConversation, getDeliveryRequestKey, releaseDeliveryRequestKey]);
+
+  const emailWelcomeWithIvo = React.useCallback(async (welcomeDocId: string) => {
+    await ensureConversation();
+    const activeConversationId = conversationIdRef.current;
+    if (!activeConversationId) return { ok: false as const, error: "I couldn't start this delivery." };
+    const scope = `welcome_document.email:${welcomeDocId}`;
+    const requestId = getDeliveryRequestKey(scope);
+    try {
+      return await emailWelcomeDocumentIvoToolAction({
+        conversationId: activeConversationId,
+        runId: activeRunIdRef.current ?? undefined,
+        welcomeDocId,
+        requestId,
+      });
+    } finally {
+      releaseDeliveryRequestKey(scope, requestId);
+    }
+  }, [ensureConversation, getDeliveryRequestKey, releaseDeliveryRequestKey]);
 
   // ----- Invoice handlers -----
 
@@ -351,11 +611,21 @@ export function StackivoAiAssistant({ clients, projects, user }: StackivoAiAssis
       });
       startTransition(async () => {
         if (channel === "email" || channel === "both") {
-          const email = await emailInvoiceFromAiAction({ invoiceId: preview.id });
+          const email = await emailInvoiceWithIvo(preview.id);
           if (!email.ok) { push({ role: "assistant", content: email.error }); return; }
         }
         if (channel === "whatsapp" || channel === "both") {
-          const wa = await invoiceWhatsappFromAiAction({ invoiceId: preview.id });
+          await ensureConversation();
+          const activeConversationId = conversationIdRef.current;
+          if (!activeConversationId) {
+            push({ role: "assistant", content: "I couldn't safely prepare this WhatsApp share. Please try again." });
+            return;
+          }
+          const wa = await prepareInvoiceWhatsAppIvoToolAction({
+            conversationId: activeConversationId,
+            runId: activeRunIdRef.current ?? undefined,
+            invoiceId: preview.id,
+          });
           if (!wa.ok) { push({ role: "assistant", content: wa.error }); return; }
           window.open(wa.data.url, "_blank", "noopener,noreferrer");
         }
@@ -371,7 +641,7 @@ export function StackivoAiAssistant({ clients, projects, user }: StackivoAiAssis
         router.refresh();
       });
     },
-    [push, router],
+    [emailInvoiceWithIvo, ensureConversation, push, router],
   );
 
   const handleInvoiceApprove = React.useCallback(
@@ -380,7 +650,17 @@ export function StackivoAiAssistant({ clients, projects, user }: StackivoAiAssis
         push({ role: "user", content: `Approve ${preview.invoiceNumber}` });
       }
       startTransition(async () => {
-        const res = await approveInvoiceFromAiAction({ invoiceId: preview.id });
+        await ensureConversation();
+        const activeConversationId = conversationIdRef.current;
+        if (!activeConversationId) {
+          push({ role: "assistant", content: "I couldn't start this approval. Please try again." });
+          return;
+        }
+        const res = await approveInvoiceIvoToolAction({
+          conversationId: activeConversationId,
+          runId: activeRunIdRef.current ?? undefined,
+          invoiceId: preview.id,
+        });
         if (!res.ok) { push({ role: "assistant", content: res.error }); return; }
         // Merge the fresh, server-read invoice (reflects any edits) over the
         // in-memory preview so the delivery card shows the CORRECT total.
@@ -401,6 +681,11 @@ export function StackivoAiAssistant({ clients, projects, user }: StackivoAiAssis
         };
         push({
           role: "assistant",
+          persistence: {
+            kind: "preview",
+            content: "Invoice approved and ready for delivery.",
+            block: { type: "entity_preview", entityType: "invoice", entityId: fresh.id, variant: "delivery" },
+          },
           content: (
             <InvoiceDeliveryActions
               preview={fresh}
@@ -413,7 +698,7 @@ export function StackivoAiAssistant({ clients, projects, user }: StackivoAiAssis
         router.refresh();
       });
     },
-    [handleInvoiceDelivery, push, router],
+    [ensureConversation, handleInvoiceDelivery, push, router],
   );
 
   // ----- Welcome doc handlers -----
@@ -423,11 +708,21 @@ export function StackivoAiAssistant({ clients, projects, user }: StackivoAiAssis
       push({ role: "user", content: channel === "email" ? "Send by email" : "Open WhatsApp" });
       startTransition(async () => {
         if (channel === "email") {
-          const res = await sendWelcomeDocFromAiAction({ welcomeDocId: preview.id });
+          const res = await emailWelcomeWithIvo(preview.id);
           if (!res.ok) { push({ role: "assistant", content: res.error }); return; }
           push({ role: "assistant", content: "Done. Welcome document emailed to the client." });
         } else {
-          const res = await welcomeDocWhatsappFromAiAction({ welcomeDocId: preview.id });
+          await ensureConversation();
+          const activeConversationId = conversationIdRef.current;
+          if (!activeConversationId) {
+            push({ role: "assistant", content: "I couldn't safely prepare this WhatsApp share. Please try again." });
+            return;
+          }
+          const res = await prepareWelcomeWhatsAppIvoToolAction({
+            conversationId: activeConversationId,
+            runId: activeRunIdRef.current ?? undefined,
+            welcomeDocId: preview.id,
+          });
           if (!res.ok) { push({ role: "assistant", content: res.error }); return; }
           window.open(res.data.url, "_blank", "noopener,noreferrer");
           push({ role: "assistant", content: "WhatsApp is open with the welcome document link ready to send." });
@@ -435,17 +730,32 @@ export function StackivoAiAssistant({ clients, projects, user }: StackivoAiAssis
         router.refresh();
       });
     },
-    [push, router],
+    [emailWelcomeWithIvo, ensureConversation, push, router],
   );
 
   const handleWelcomeDocApprove = React.useCallback(
     (preview: AiWelcomeDocPreview) => {
       push({ role: "user", content: `Approve and publish ${preview.title}` });
       startTransition(async () => {
-        const res = await approveWelcomeDocFromAiAction({ welcomeDocId: preview.id });
+        await ensureConversation();
+        const activeConversationId = conversationIdRef.current;
+        if (!activeConversationId) {
+          push({ role: "assistant", content: "I couldn't start this publishing action. Please try again." });
+          return;
+        }
+        const res = await publishWelcomeDocumentIvoToolAction({
+          conversationId: activeConversationId,
+          runId: activeRunIdRef.current ?? undefined,
+          welcomeDocId: preview.id,
+        });
         if (!res.ok) { push({ role: "assistant", content: res.error }); return; }
         push({
           role: "assistant",
+          persistence: {
+            kind: "preview",
+            content: "Welcome document published and ready for delivery.",
+            block: { type: "entity_preview", entityType: "welcome_document", entityId: preview.id, variant: "delivery" },
+          },
           content: (
             <WelcomeDocDeliveryActions
               preview={preview}
@@ -457,26 +767,41 @@ export function StackivoAiAssistant({ clients, projects, user }: StackivoAiAssis
         router.refresh();
       });
     },
-    [handleWelcomeDocDelivery, push, router],
+    [ensureConversation, handleWelcomeDocDelivery, push, router],
   );
 
   const handleSaveWelcomeTemplate = React.useCallback(
     (preview: AiWelcomeDocPreview) => {
       push({ role: "user", content: "Save as a template" });
+      const scope = `welcome_document.save_template:${preview.id}`;
+      const requestId = getDeliveryRequestKey(scope);
       startTransition(async () => {
-        const res = await saveAsTemplateAction({
-          id: preview.id,
-          templateTitle: preview.title || "Welcome template",
-        });
-        push({
-          role: "assistant",
-          content: res.ok
-            ? "Saved as a reusable template — you'll see it next time you create a welcome document."
-            : res.error || "Could not save the template.",
-        });
+        try {
+          await ensureConversation();
+          const activeConversationId = conversationIdRef.current;
+          if (!activeConversationId) {
+            push({ role: "assistant", content: "I couldn't safely save this template. Please try again." });
+            return;
+          }
+          const res = await saveWelcomeTemplateIvoToolAction({
+            conversationId: activeConversationId,
+            runId: activeRunIdRef.current ?? undefined,
+            requestId,
+            welcomeDocId: preview.id,
+            title: preview.title || "Welcome template",
+          });
+          push({
+            role: "assistant",
+            content: res.ok
+              ? "Saved as a reusable template — you'll see it next time you create a welcome document."
+              : res.error || "Could not save the template.",
+          });
+        } finally {
+          releaseDeliveryRequestKey(scope, requestId);
+        }
       });
     },
-    [push],
+    [ensureConversation, getDeliveryRequestKey, push, releaseDeliveryRequestKey],
   );
 
   // ----- Contract handlers -----
@@ -485,7 +810,7 @@ export function StackivoAiAssistant({ clients, projects, user }: StackivoAiAssis
     (preview: AiContractPreview) => {
       push({ role: "user", content: `Approve and email ${preview.title}` });
       startTransition(async () => {
-        const res = await sendContractFromAiAction({ contractId: preview.id });
+        const res = await emailContractWithIvo(preview.id);
         if (!res.ok) { push({ role: "assistant", content: res.error }); return; }
         setActiveContract(null);
         push({
@@ -495,14 +820,24 @@ export function StackivoAiAssistant({ clients, projects, user }: StackivoAiAssis
         router.refresh();
       });
     },
-    [push, router],
+    [emailContractWithIvo, push, router],
   );
 
   const handleContractWhatsApp = React.useCallback(
     (preview: AiContractPreview) => {
       push({ role: "user", content: `Open WhatsApp for ${preview.title}` });
       startTransition(async () => {
-        const res = await contractWhatsappFromAiAction({ contractId: preview.id });
+        await ensureConversation();
+        const activeConversationId = conversationIdRef.current;
+        if (!activeConversationId) {
+          push({ role: "assistant", content: "I couldn't safely prepare this WhatsApp share. Please try again." });
+          return;
+        }
+        const res = await prepareContractWhatsAppIvoToolAction({
+          conversationId: activeConversationId,
+          runId: activeRunIdRef.current ?? undefined,
+          contractId: preview.id,
+        });
         if (!res.ok) { push({ role: "assistant", content: res.error }); return; }
         setActiveContract(null);
         window.open(res.data.url, "_blank", "noopener,noreferrer");
@@ -510,7 +845,7 @@ export function StackivoAiAssistant({ clients, projects, user }: StackivoAiAssis
         router.refresh();
       });
     },
-    [push, router],
+    [ensureConversation, push, router],
   );
 
   // ----- Conversational support / docs answering -----
@@ -589,7 +924,16 @@ export function StackivoAiAssistant({ clients, projects, user }: StackivoAiAssis
 
   const runRemindOverdue = React.useCallback(async () => {
     push({ role: "assistant", content: "Sending reminders…" });
-    const res = await remindOverdueInvoicesFromAiAction();
+    await ensureConversation();
+    const activeConversationId = conversationIdRef.current;
+    if (!activeConversationId) {
+      push({ role: "assistant", content: "I couldn't safely start these reminders. Please try again." });
+      return;
+    }
+    const res = await remindOverdueInvoicesIvoToolAction({
+      conversationId: activeConversationId,
+      runId: activeRunIdRef.current ?? undefined,
+    });
     if (!res.ok) {
       push({ role: "assistant", content: res.error });
       return;
@@ -605,27 +949,61 @@ export function StackivoAiAssistant({ clients, projects, user }: StackivoAiAssis
           : `I couldn't send those — ${skipped} skipped (missing a client email or share link). Add those and try again.`;
     push({ role: "assistant", content: summary });
     router.refresh();
-  }, [push, router]);
+  }, [ensureConversation, push, router]);
 
   // ----- One-tap action: invoice unbilled tracked time -----
 
   const runInvoiceUnbilled = React.useCallback(
-    async (cId?: string, opts?: { send?: boolean }) => {
+    async (cId: string | undefined, opts: { send?: boolean; requestId: string }) => {
       push({ role: "assistant", content: "Pulling your unbilled time…" });
-      const res = await invoiceUnbilledTimeFromAiAction({ clientId: cId });
-      if (!res.ok) {
-        push({ role: "assistant", content: res.error });
+      await ensureConversation();
+      const activeConversationId = conversationIdRef.current;
+      if (!activeConversationId) {
+        push({ role: "assistant", content: "I couldn't safely start this invoice. Please try again." });
         return;
       }
+      const res = await createUnbilledTimeInvoiceIvoToolAction({
+        conversationId: activeConversationId,
+        runId: activeRunIdRef.current ?? undefined,
+        requestId: opts.requestId,
+        clientId: cId,
+      });
+      if (!res.ok) {
+        if (res.clientChoices?.length) {
+          pendingUnbilledClientRef.current = {
+            send: Boolean(opts.send),
+            choices: res.clientChoices,
+          };
+          push({
+            role: "assistant",
+            content: res.error,
+            suggestions: res.clientChoices.map((choice) => choice.name),
+          });
+        } else {
+          push({ role: "assistant", content: res.error });
+        }
+        return;
+      }
+      pendingUnbilledClientRef.current = null;
       const d = res.data;
       const amt = formatMoney(Math.round(d.totalAmount), d.currency);
       let sentOk = false;
       if (opts?.send) {
-        const sent = await emailInvoiceFromAiAction({ invoiceId: d.id });
+        const sent = await emailInvoiceWithIvo(d.id, opts.requestId);
         sentOk = sent.ok;
       }
       push({
         role: "assistant",
+        persistence: {
+          kind: "preview",
+          content: `${opts?.send && sentOk ? "Created and sent" : "Created draft"} invoice ${d.invoiceNumber}.`,
+          block: {
+            type: "entity_preview",
+            entityType: "invoice",
+            entityId: d.id,
+            variant: opts?.send && sentOk ? "delivery" : "draft",
+          },
+        },
         content: (
           <span>
             {opts?.send && sentOk ? "Created and sent" : "Created draft"} invoice{" "}
@@ -643,18 +1021,19 @@ export function StackivoAiAssistant({ clients, projects, user }: StackivoAiAssis
       });
       router.refresh();
     },
-    [push, router],
+    [emailInvoiceWithIvo, ensureConversation, push, router],
   );
 
   const handleContractRowSend = React.useCallback(
     (id: string) => {
+      push({ role: "user", content: "Email contract" });
       startTransition(async () => {
-        const res = await sendContractFromAiAction({ contractId: id });
+        const res = await emailContractWithIvo(id);
         push({ role: "assistant", content: res.ok ? "Contract sent ✓" : res.error });
         router.refresh();
       });
     },
-    [push, router],
+    [emailContractWithIvo, push, router],
   );
 
   const runListContracts = React.useCallback(
@@ -678,6 +1057,11 @@ export function StackivoAiAssistant({ clients, projects, user }: StackivoAiAssis
       push({ role: "assistant", content: "Here are your contracts:" });
       push({
         role: "assistant",
+        persistence: {
+          kind: "result",
+          content: "Contract list.",
+          block: { type: "entity_list", entityType: "contract", entityIds: rows.map((row) => row.id) },
+        },
         content: <ContractListBlock rows={rows} onSend={handleContractRowSend} />,
       });
     },
@@ -698,6 +1082,11 @@ export function StackivoAiAssistant({ clients, projects, user }: StackivoAiAssis
     push({ role: "assistant", content: "Here are your clients:" });
     push({
       role: "assistant",
+      persistence: {
+        kind: "result",
+        content: "Client list.",
+        block: { type: "entity_list", entityType: "client", entityIds: rows.map((row) => row.id) },
+      },
       content: (
         <ClientListBlock
           rows={rows}
@@ -734,6 +1123,11 @@ export function StackivoAiAssistant({ clients, projects, user }: StackivoAiAssis
       });
       push({
         role: "assistant",
+        persistence: {
+          kind: "result",
+          content: "Project list.",
+          block: { type: "entity_list", entityType: "project", entityIds: rows.map((row) => row.id) },
+        },
         content: (
           <ProjectListBlock
             rows={rows}
@@ -776,6 +1170,11 @@ export function StackivoAiAssistant({ clients, projects, user }: StackivoAiAssis
       });
       push({
         role: "assistant",
+        persistence: {
+          kind: "result",
+          content: "Welcome document list.",
+          block: { type: "entity_list", entityType: "welcome_document", entityIds: rows.map((row) => row.id) },
+        },
         content: (
           <WelcomeDocListBlock
             rows={rows}
@@ -791,8 +1190,19 @@ export function StackivoAiAssistant({ clients, projects, user }: StackivoAiAssis
 
   const handleRowMarkPaid = React.useCallback(
     (id: string) => {
+      push({ role: "user", content: "Mark invoice paid" });
       startTransition(async () => {
-        const res = await markInvoicePaidFromAiAction({ invoiceId: id });
+        await ensureConversation();
+        const activeConversationId = conversationIdRef.current;
+        if (!activeConversationId) {
+          push({ role: "assistant", content: "I couldn't start this status change. Please try again." });
+          return;
+        }
+        const res = await markInvoicePaidIvoToolAction({
+          conversationId: activeConversationId,
+          runId: activeRunIdRef.current ?? undefined,
+          invoiceId: id,
+        });
         push({
           role: "assistant",
           content: res.ok ? "Marked paid ✓" : res.error,
@@ -800,13 +1210,14 @@ export function StackivoAiAssistant({ clients, projects, user }: StackivoAiAssis
         router.refresh();
       });
     },
-    [push, router],
+    [ensureConversation, push, router],
   );
 
   const handleRowRemind = React.useCallback(
     (id: string) => {
+      push({ role: "user", content: "Email invoice reminder" });
       startTransition(async () => {
-        const res = await emailInvoiceFromAiAction({ invoiceId: id });
+        const res = await emailInvoiceWithIvo(id);
         push({
           role: "assistant",
           content: res.ok ? "Reminder sent ✓" : res.error || "Couldn't send that reminder.",
@@ -814,7 +1225,7 @@ export function StackivoAiAssistant({ clients, projects, user }: StackivoAiAssis
         router.refresh();
       });
     },
-    [push, router],
+    [emailInvoiceWithIvo, push, router],
   );
 
   const runListInvoices = React.useCallback(
@@ -845,6 +1256,11 @@ export function StackivoAiAssistant({ clients, projects, user }: StackivoAiAssis
       });
       push({
         role: "assistant",
+        persistence: {
+          kind: "result",
+          content: "Invoice list.",
+          block: { type: "entity_list", entityType: "invoice", entityIds: rows.map((row) => row.id) },
+        },
         content: (
           <InvoiceListBlock
             rows={rows}
@@ -867,7 +1283,11 @@ export function StackivoAiAssistant({ clients, projects, user }: StackivoAiAssis
       pId: string,
       text: string,
       confirm = false,
+      toolRequestKey = crypto.randomUUID(),
+      plannedAction?: IvoWorkflowNextAction,
     ) => {
+      let effectiveToolRequestKey = toolRequestKey;
+      let sequencedTool: IvoWorkflowTool | null = null;
       const actionInput = {
         fields,
         clientId: cId || undefined,
@@ -876,13 +1296,47 @@ export function StackivoAiAssistant({ clients, projects, user }: StackivoAiAssis
         confirm,
       };
 
+      if (
+        (workflow === "client" ||
+          workflow === "project" ||
+          workflow === "time_entry" ||
+          workflow === "invoice" ||
+          workflow === "contract" ||
+          workflow === "welcome_document") &&
+        !conversationIdRef.current
+      ) {
+        await ensureConversation();
+      }
       // Show a pre-create summary and wait for the user to approve it.
-      const showConfirm = (summary: AiConfirmSummary) => {
+      const showConfirm = (
+        summary: AiConfirmSummary,
+        response: IvoToolResponseDescriptor,
+      ) => {
+        const confirmationTarget =
+          workflow === "client" && sequencedTool === "client.create"
+            ? { workflow: "client" as const, tool: "client.create" as const }
+            : workflow === "project" && sequencedTool === "project.create"
+              ? { workflow: "project" as const, tool: "project.create" as const }
+              : workflow === "time_entry" && sequencedTool === "time_entry.create"
+                ? { workflow: "time_entry" as const, tool: "time_entry.create" as const }
+                : null;
+        if (!confirmationTarget) {
+          push({ role: "assistant", content: "I couldn't safely prepare that confirmation." });
+          return;
+        }
         setPendingField(null);
         // Remember the pending creation so a typed "yes"/"cancel" works too.
-        setPendingConfirm({ workflow, fields, cId, pId });
+        setPendingConfirm({
+          ...confirmationTarget,
+          fields,
+          cId,
+          pId,
+          toolRequestKey: effectiveToolRequestKey,
+          summary,
+        });
         push({
           role: "assistant",
+          persistence: response,
           content: (
             <ConfirmBlock
               summary={summary}
@@ -890,11 +1344,30 @@ export function StackivoAiAssistant({ clients, projects, user }: StackivoAiAssis
                 setPendingConfirm(null);
                 push({ role: "user", content: "Confirm" });
                 startTransition(async () => {
-                  await runWorkflowRef.current(workflow, fields, cId, pId, "", true);
+                  await runWorkflowRef.current(
+                    workflow,
+                    fields,
+                    cId,
+                    pId,
+                    "",
+                    true,
+                    effectiveToolRequestKey,
+                    {
+                      kind: "invoke_tool",
+                      tool: confirmationTarget.tool,
+                      requestId: effectiveToolRequestKey,
+                    },
+                  );
                 });
               }}
               onCancel={() => {
                 setPendingConfirm(null);
+                if (conversationIdRef.current) {
+                  void rejectIvoToolAction({
+                    conversationId: conversationIdRef.current,
+                    idempotencyKey: effectiveToolRequestKey,
+                  });
+                }
                 finish();
                 push({ role: "assistant", content: "No problem — cancelled. What next?" });
               }}
@@ -903,21 +1376,10 @@ export function StackivoAiAssistant({ clients, projects, user }: StackivoAiAssis
         });
       };
 
-      const askMissing = (missing: AiMissingField) => {
+      const askMissing = (missing: AiMissingField, prompt: IvoRuntimePromptBlock) => {
         setPendingField(missing);
-        if (missing.field === "clientId") {
-          const subject =
-            workflow === "invoice"
-              ? "invoice"
-              : workflow === "contract"
-                ? "contract"
-                : workflow === "project"
-                  ? "project"
-                  : workflow === "welcome_document"
-                    ? "welcome document"
-                    : "";
-          const label = subject ? `Which client is this ${subject} for?` : "Which client is this for?";
-          const allowSkip = workflow === "project" || workflow === "welcome_document";
+        if (prompt.type === "picker" && prompt.pickerType === "client") {
+          const { label, allowSkip } = prompt;
           const proceed = (id: string, display: string) => {
             // Persist the choice — including the "no client" sentinel — so the
             // next message keeps it and the workflow doesn't re-ask.
@@ -930,6 +1392,11 @@ export function StackivoAiAssistant({ clients, projects, user }: StackivoAiAssis
           };
           push({
             role: "assistant",
+            persistence: {
+              kind: "picker",
+              content: label,
+              block: { type: "picker", pickerType: "client", label, allowSkip },
+            },
             content: (
               <ClientPicker
                 clients={clients}
@@ -942,8 +1409,8 @@ export function StackivoAiAssistant({ clients, projects, user }: StackivoAiAssis
               />
             ),
           });
-        } else if (missing.field === "projectId") {
-          const label = missing.question || "Which project should I log this time against?";
+        } else if (prompt.type === "picker" && prompt.pickerType === "project") {
+          const { label, allowSkip } = prompt;
           // Show projects for the chosen client when one is set, else all.
           const options = cId ? projects.filter((p) => p.clientId === cId) : projects;
           const proceed = (id: string, display: string) => {
@@ -958,11 +1425,16 @@ export function StackivoAiAssistant({ clients, projects, user }: StackivoAiAssis
           };
           push({
             role: "assistant",
+            persistence: {
+              kind: "picker",
+              content: label,
+              block: { type: "picker", pickerType: "project", label, allowSkip },
+            },
             content: (
               <ProjectPicker
                 projects={options}
                 label={label}
-                allowSkip
+                allowSkip={allowSkip}
                 onSelect={(id) =>
                   proceed(id, projects.find((p) => p.id === id)?.name ?? "Selected project")
                 }
@@ -970,8 +1442,8 @@ export function StackivoAiAssistant({ clients, projects, user }: StackivoAiAssis
               />
             ),
           });
-        } else if (missing.field === "state") {
-          const label = missing.question || "Which state are they in?";
+        } else if (prompt.type === "picker" && prompt.pickerType === "state") {
+          const { label } = prompt;
           const proceed = (stateName: string) => {
             setPendingField(null);
             const nextFields = { ...fields, state: stateName };
@@ -983,9 +1455,14 @@ export function StackivoAiAssistant({ clients, projects, user }: StackivoAiAssis
           };
           push({
             role: "assistant",
+            persistence: {
+              kind: "picker",
+              content: label,
+              block: { type: "picker", pickerType: "state", label, allowSkip: false },
+            },
             content: <StatePicker label={label} onSelect={proceed} />,
           });
-        } else if (missing.field === "welcomeTemplate") {
+        } else if (prompt.type === "picker" && prompt.pickerType === "welcome_template") {
           const proceed = (templateId: string, display: string) => {
             setPendingField(null);
             const nextFields = { ...fields, welcomeTemplate: templateId };
@@ -997,30 +1474,38 @@ export function StackivoAiAssistant({ clients, projects, user }: StackivoAiAssis
           };
           push({
             role: "assistant",
+            persistence: {
+              kind: "picker",
+              content: prompt.label,
+              block: {
+                type: "picker",
+                pickerType: "welcome_template",
+                label: prompt.label,
+                allowSkip: prompt.allowSkip,
+              },
+            },
             content: <WelcomeTemplatePicker onSelect={proceed} />,
           });
-        } else {
+        } else if (prompt.type === "question") {
           push({
             role: "assistant",
             content: (
               <>
-                <span className="block">{missing.question}</span>
-                {missing.placeholder ? (
+                <span className="block">{prompt.content}</span>
+                {prompt.placeholder ? (
                   <span className="mt-1 block text-xs text-muted-foreground">
-                    {missing.placeholder}
+                    {prompt.placeholder}
                   </span>
                 ) : null}
-                {missing.optional ? (
+                {prompt.optional ? (
                   <span className="mt-1 block text-xs text-muted-foreground">
                     Optional — reply “skip” to leave it out.
                   </span>
                 ) : null}
               </>
             ),
-            suggestions: missing.optional
-              ? [...(missing.suggestions ?? []), "Skip"]
-              : missing.suggestions,
-            tip: missing.tip,
+            suggestions: prompt.suggestions,
+            tip: prompt.tip,
           });
         }
       };
@@ -1037,14 +1522,73 @@ export function StackivoAiAssistant({ clients, projects, user }: StackivoAiAssis
         setActiveInvoice(null);
         setActiveWelcomeDoc(null);
         setPendingConfirm(null);
+        setPendingProposal(null);
+        activeRunIdRef.current = null;
       };
 
-      switch (workflow) {
-        case "invoice": {
-          const res = await createInvoiceFromAiAction(actionInput);
+      let nextAction = plannedAction;
+      if (!confirm) {
+        if (
+          nextAction === undefined &&
+          workflow !== "general" &&
+          workflow !== "support"
+        ) {
+          if (!conversationIdRef.current) {
+            push({ role: "assistant", content: "I couldn't continue that workflow. Please try again." });
+            return;
+          }
+          const progress = await planIvoWorkflowProgressAction({
+            conversationId: conversationIdRef.current,
+            workflow,
+            fields,
+            clientId: cId,
+            projectId: pId,
+          });
+          if (!progress.ok) {
+            push({ role: "assistant", content: progress.error });
+            return;
+          }
+          nextAction = progress.nextAction;
+        }
+        if (!nextAction && (workflow === "general" || workflow === "support")) {
+          nextAction = { kind: "answer_support" };
+        }
+        if (nextAction?.kind === "ask_field") {
+          askMissing(nextAction.field, nextAction.prompt);
+          return;
+        }
+      }
+
+      if (nextAction?.kind === "answer_support") {
+        await runSupport(text, workflow === "support");
+        if (workflow === "support") finish();
+        return;
+      }
+      if (nextAction?.kind !== "invoke_tool") {
+        push({ role: "assistant", content: "I couldn't select a safe next action. Please try again." });
+        return;
+      }
+      sequencedTool = nextAction.tool;
+      effectiveToolRequestKey = nextAction.requestId;
+
+      const toolActionInput = conversationIdRef.current
+        ? {
+            ...actionInput,
+            conversationId: conversationIdRef.current,
+            runId: activeRunIdRef.current ?? undefined,
+            idempotencyKey: effectiveToolRequestKey,
+          }
+        : null;
+
+      switch (sequencedTool) {
+        case "invoice.draft": {
+          if (!toolActionInput) {
+            push({ role: "assistant", content: "I couldn't start this draft. Please try again." });
+            return;
+          }
+          const res = await createInvoiceDraftIvoToolAction(toolActionInput);
           if (!res.ok) {
-            if ("missing" in res && res.missing) askMissing(res.missing);
-            else push({ role: "assistant", content: res.error });
+            push({ role: "assistant", content: res.error });
             return;
           }
           const preview = res.data.preview;
@@ -1054,6 +1598,7 @@ export function StackivoAiAssistant({ clients, projects, user }: StackivoAiAssis
           setActiveInvoice(preview);
           push({
             role: "assistant",
+            persistence: res.response,
             content: (
               <InvoiceDraftPreview
                 preview={preview}
@@ -1066,17 +1611,21 @@ export function StackivoAiAssistant({ clients, projects, user }: StackivoAiAssis
           return;
         }
 
-        case "client": {
-          const res = await createClientFromAiAction(actionInput);
+        case "client.create": {
+          if (!toolActionInput) {
+            push({ role: "assistant", content: "I couldn't start this action. Please try again." });
+            return;
+          }
+          const res = await createClientIvoToolAction(toolActionInput);
           if (!res.ok) {
-            if ("missing" in res && res.missing) askMissing(res.missing);
-            else if ("needsConfirm" in res && res.needsConfirm) showConfirm(res.summary);
+            if ("needsConfirm" in res && res.needsConfirm) showConfirm(res.summary, res.response);
             else push({ role: "assistant", content: res.error });
             return;
           }
           finish();
           push({
             role: "assistant",
+            persistence: res.response,
             content: (
               <ResultBlock
                 title="Client created"
@@ -1090,17 +1639,21 @@ export function StackivoAiAssistant({ clients, projects, user }: StackivoAiAssis
           return;
         }
 
-        case "project": {
-          const res = await createProjectFromAiAction(actionInput);
+        case "project.create": {
+          if (!toolActionInput) {
+            push({ role: "assistant", content: "I couldn't start this action. Please try again." });
+            return;
+          }
+          const res = await createProjectIvoToolAction(toolActionInput);
           if (!res.ok) {
-            if ("missing" in res && res.missing) askMissing(res.missing);
-            else if ("needsConfirm" in res && res.needsConfirm) showConfirm(res.summary);
+            if ("needsConfirm" in res && res.needsConfirm) showConfirm(res.summary, res.response);
             else push({ role: "assistant", content: res.error });
             return;
           }
           finish();
           push({
             role: "assistant",
+            persistence: res.response,
             content: (
               <ResultBlock
                 title="Project created"
@@ -1114,11 +1667,14 @@ export function StackivoAiAssistant({ clients, projects, user }: StackivoAiAssis
           return;
         }
 
-        case "contract": {
-          const res = await createContractFromAiAction(actionInput);
+        case "contract.draft": {
+          if (!toolActionInput) {
+            push({ role: "assistant", content: "I couldn't start this draft. Please try again." });
+            return;
+          }
+          const res = await createContractDraftIvoToolAction(toolActionInput);
           if (!res.ok) {
-            if ("missing" in res && res.missing) askMissing(res.missing);
-            else push({ role: "assistant", content: res.error });
+            push({ role: "assistant", content: res.error });
             return;
           }
           finish();
@@ -1127,6 +1683,7 @@ export function StackivoAiAssistant({ clients, projects, user }: StackivoAiAssis
           setActiveContract(res.data);
           push({
             role: "assistant",
+            persistence: res.response,
             content: (
               <ContractDraftPreview
                 preview={res.data}
@@ -1140,11 +1697,14 @@ export function StackivoAiAssistant({ clients, projects, user }: StackivoAiAssis
           return;
         }
 
-        case "welcome_document": {
-          const res = await createWelcomeDocFromAiAction(actionInput);
+        case "welcome_document.draft": {
+          if (!toolActionInput) {
+            push({ role: "assistant", content: "I couldn't start this draft. Please try again." });
+            return;
+          }
+          const res = await createWelcomeDraftIvoToolAction(toolActionInput);
           if (!res.ok) {
-            if ("missing" in res && res.missing) askMissing(res.missing);
-            else push({ role: "assistant", content: res.error });
+            push({ role: "assistant", content: res.error });
             return;
           }
           finish();
@@ -1152,6 +1712,7 @@ export function StackivoAiAssistant({ clients, projects, user }: StackivoAiAssis
           setActiveWelcomeDoc(res.data);
           push({
             role: "assistant",
+            persistence: res.response,
             content: (
               <WelcomeDocDraftPreview
                 preview={res.data}
@@ -1165,11 +1726,14 @@ export function StackivoAiAssistant({ clients, projects, user }: StackivoAiAssis
           return;
         }
 
-        case "time_entry": {
-          const res = await createTimeEntryFromAiAction(actionInput);
+        case "time_entry.create": {
+          if (!toolActionInput) {
+            push({ role: "assistant", content: "I couldn't start this action. Please try again." });
+            return;
+          }
+          const res = await createTimeEntryIvoToolAction(toolActionInput);
           if (!res.ok) {
-            if ("missing" in res && res.missing) askMissing(res.missing);
-            else if ("needsConfirm" in res && res.needsConfirm) showConfirm(res.summary);
+            if ("needsConfirm" in res && res.needsConfirm) showConfirm(res.summary, res.response);
             else push({ role: "assistant", content: res.error });
             return;
           }
@@ -1177,6 +1741,7 @@ export function StackivoAiAssistant({ clients, projects, user }: StackivoAiAssis
           finish();
           push({
             role: "assistant",
+            persistence: res.response,
             content: (
               <ResultBlock
                 title="Time entry logged"
@@ -1190,15 +1755,8 @@ export function StackivoAiAssistant({ clients, projects, user }: StackivoAiAssis
           return;
         }
 
-        case "support": {
-          await runSupport(text, true);
-          finish();
-          return;
-        }
-
         default: {
-          // General free-form chat — answer from docs without filing a ticket.
-          await runSupport(text, false);
+          push({ role: "assistant", content: "I couldn't execute that action safely." });
           return;
         }
       }
@@ -1214,6 +1772,7 @@ export function StackivoAiAssistant({ clients, projects, user }: StackivoAiAssis
       handleWelcomeDocApprove,
       handleSaveWelcomeTemplate,
       projects,
+      ensureConversation,
     ],
   );
 
@@ -1235,6 +1794,7 @@ export function StackivoAiAssistant({ clients, projects, user }: StackivoAiAssis
       setActiveInvoice(null);
       setActiveWelcomeDoc(null);
       setPendingConfirm(null);
+      setPendingProposal(null);
       push({ role: "assistant", content: <span className="block">{modeIntro(nextMode)}</span> });
       // Proactively start the walkthrough by asking the first required field,
       // so picking a workflow doesn't leave the user at a blank prompt with no
@@ -1248,38 +1808,13 @@ export function StackivoAiAssistant({ clients, projects, user }: StackivoAiAssis
     [push],
   );
 
-  // Keyword fallback intent detection (used only when the NLU is unavailable).
-  const detectMode = React.useCallback(
-    (text: string): AiMode => {
-      const t = text.toLowerCase();
-      const action = /\b(create|make|draft|add|new|start|log|raise|generate|send|prepare|build|issue|set ?up)\b/.test(t);
-      const keyword: AiMode | null =
-        /invoice|bill\s|billing|receipt|charge/.test(t) ? "invoice"
-        : /contract|agreement|proposal|nda|retainer/.test(t) ? "contract"
-        : /welcome|onboard|kickoff/.test(t) ? "welcome_document"
-        : /\bproject\b/.test(t) ? "project"
-        : /\bclient\b|\bcustomer\b|\bcontact\b/.test(t) ? "client"
-        : /\btime\b|\bhours?\b|\bminutes?\b|\blog\b|\bbillable\b/.test(t) ? "time_entry"
-        : null;
-      // A clear command ("help me create a contract") starts that workflow even
-      // though it contains "help".
-      if (keyword && action) return keyword;
-      // Questions and help/pricing topics are answered from docs, not drafted.
-      if (isInformationalQuestion(text)) return "support";
-      if (/support|bug|issue|help|how do|how to|what is|privacy|terms|pricing|price|\bplans?\b|refund|upgrade|subscription/.test(t)) return "support";
-      if (keyword) return keyword;
-      return mode;
-    },
-    [mode],
-  );
-
   // ----- Submit handler -----
 
   const handleSubmit = React.useCallback((override?: string) => {
     const text = (override ?? input).trim();
     if (!text || pending) return;
     setInput("");
-    push({ role: "user", content: text });
+    const userMessageId = push({ role: "user", content: text });
 
     // Resolve an outstanding "forward this to support?" offer before anything
     // else, so a yes/no acts on it instead of being re-interpreted.
@@ -1289,11 +1824,17 @@ export function StackivoAiAssistant({ clients, projects, user }: StackivoAiAssis
       if (/^(yes,? forward to support|yes|forward( it)?|please( do)?|go ahead|yep|yeah|sure|do it)$/.test(lc)) {
         pendingSupportForwardRef.current = null;
         startTransition(async () => {
-          const ticket = await createTicketAction({
-            category: "how-to",
-            subject: fwd.slice(0, 180),
+          await ensureConversation();
+          const activeConversationId = conversationIdRef.current;
+          if (!activeConversationId) {
+            push({ role: "assistant", content: "I couldn't safely forward this just now. Please try again." });
+            return;
+          }
+          const ticket = await forwardToSupportIvoToolAction({
+            conversationId: activeConversationId,
+            runId: activeRunIdRef.current ?? undefined,
+            requestId: userMessageId,
             message: fwd,
-            channel: "chat",
             page: typeof window !== "undefined" ? window.location.pathname : undefined,
           });
           push({
@@ -1314,6 +1855,36 @@ export function StackivoAiAssistant({ clients, projects, user }: StackivoAiAssis
       pendingSupportForwardRef.current = null;
     }
 
+    const pendingUnbilled = pendingUnbilledClientRef.current;
+    if (pendingUnbilled) {
+      if (isNegative(text) || isAbandonFlow(text)) {
+        pendingUnbilledClientRef.current = null;
+        push({ role: "assistant", content: "No problem — I won't create that invoice." });
+        return;
+      }
+      const normalized = text.trim().toLowerCase();
+      const choice = pendingUnbilled.choices.find((candidate) => {
+        const name = candidate.name.trim().toLowerCase();
+        return normalized === name || normalized.includes(name);
+      });
+      if (!choice) {
+        push({
+          role: "assistant",
+          content: "Which client's unbilled time should I invoice?",
+          suggestions: pendingUnbilled.choices.map((candidate) => candidate.name),
+        });
+        return;
+      }
+      pendingUnbilledClientRef.current = null;
+      startTransition(async () => {
+        await runInvoiceUnbilled(choice.id, {
+          send: pendingUnbilled.send,
+          requestId: userMessageId,
+        });
+      });
+      return;
+    }
+
     // A confirmation summary is showing — let a typed "yes"/"create"/"cancel"
     // act on it, just like the buttons.
     const pc = pendingConfirmRef.current;
@@ -1321,12 +1892,27 @@ export function StackivoAiAssistant({ clients, projects, user }: StackivoAiAssis
       if (isAffirmative(text)) {
         setPendingConfirm(null);
         startTransition(async () => {
-          await runWorkflowRef.current(pc.workflow, pc.fields, pc.cId, pc.pId, "", true);
+          await runWorkflowRef.current(
+            pc.workflow,
+            pc.fields,
+            pc.cId,
+            pc.pId,
+            "",
+            true,
+            pc.toolRequestKey,
+            { kind: "invoke_tool", tool: pc.tool, requestId: pc.toolRequestKey },
+          );
         });
         return;
       }
       if (isNegative(text)) {
         setPendingConfirm(null);
+        if (conversationIdRef.current) {
+          void rejectIvoToolAction({
+            conversationId: conversationIdRef.current,
+            idempotencyKey: pc.toolRequestKey,
+          });
+        }
         setMode("general");
         setCollected({});
         setPendingField(null);
@@ -1336,6 +1922,12 @@ export function StackivoAiAssistant({ clients, projects, user }: StackivoAiAssis
         return;
       }
       // Otherwise treat it as an edit/new input and re-interpret normally.
+      if (conversationIdRef.current) {
+        void rejectIvoToolAction({
+          conversationId: conversationIdRef.current,
+          idempotencyKey: pc.toolRequestKey,
+        });
+      }
       setPendingConfirm(null);
     }
 
@@ -1359,6 +1951,7 @@ export function StackivoAiAssistant({ clients, projects, user }: StackivoAiAssis
       setActiveInvoice(null);
       setActiveWelcomeDoc(null);
       setPendingConfirm(null);
+      setPendingProposal(null);
       push({
         role: "assistant",
         content: "Sure — I've set that aside. What would you like to do next?",
@@ -1372,6 +1965,7 @@ export function StackivoAiAssistant({ clients, projects, user }: StackivoAiAssis
       mode === "general" &&
       !pendingField &&
       !pendingConfirmRef.current &&
+      !pendingProposal &&
       !activeContract &&
       !activeInvoice &&
       !activeWelcomeDoc &&
@@ -1387,21 +1981,10 @@ export function StackivoAiAssistant({ clients, projects, user }: StackivoAiAssis
       return;
     }
 
-    // Local short-circuits — handle these WITHOUT a Groq call to save tokens
-    // and latency. Only applies mid-flow (a field is pending), where the reply
-    // is unambiguous:
-    //   • "skip" on an optional field → record the skip and continue.
-    //   • a greeting / thanks / meta remark → reply conversationally + re-ask.
+    // Local short-circuit for conversational remarks while a field is pending.
+    // Field answers — including optional skips — go through the server runtime
+    // so persisted state and the rendered workflow cannot disagree.
     if (pendingField && pendingField.field !== "clientId") {
-      if (pendingField.optional && isSkipReply(text)) {
-        const merged = { ...collected, [pendingField.field]: AI_SKIP_SENTINEL };
-        setCollected(merged);
-        setPendingField(null);
-        startTransition(async () => {
-          await runWorkflowRef.current(mode, merged, clientId, projectId, "");
-        });
-        return;
-      }
       const chat = conversationalReply(text, userFirstName);
       if (chat) {
         push({ role: "assistant", content: chat });
@@ -1432,52 +2015,124 @@ export function StackivoAiAssistant({ clients, projects, user }: StackivoAiAssis
     }
 
     startTransition(async () => {
-      // 0. Monthly AI-message quota (per plan). Counts once per answered
-      //    message; over the cap we stop before any model call and nudge upgrade.
-      const quota = await consumeAiMessageQuotaAction();
-      if (!quota.ok) {
+      // The server runtime owns persistence, quota/rate policy, NLU, and the
+      // durable run record. The client only renders the resulting plan.
+      await ensureConversation();
+      const activeConversationId = conversationIdRef.current;
+      if (!activeConversationId) {
+        push({ role: "assistant", content: "I couldn't start the conversation just now. Please try again." });
+        return;
+      }
+      const processed = await processIvoMessageAction({
+        conversationId: activeConversationId,
+        clientMessageId: userMessageId,
+        message: text,
+        currentWorkflow: mode === "general" ? undefined : mode,
+        pendingField: pendingField
+          ? { field: pendingField.field, optional: pendingField.optional }
+          : undefined,
+        pendingProposal: pendingProposal ?? undefined,
+        activeDraft: activeContract
+          ? { entityType: "contract", entityId: activeContract.id }
+          : activeInvoice
+            ? { entityType: "invoice", entityId: activeInvoice.id }
+            : activeWelcomeDoc
+              ? { entityType: "welcome_document", entityId: activeWelcomeDoc.id }
+              : undefined,
+        collected,
+        clientId,
+        projectId,
+        history: transcriptRef.current.slice(0, -1),
+      });
+      if (!processed.ok && processed.reason === "quota") {
         const nextTier =
-          quota.plan === "free"
+          processed.plan === "free"
             ? "Upgrade to Pro for 100 messages a month."
-            : quota.plan === "pro"
+            : processed.plan === "pro"
               ? "Upgrade to Business for 500 messages a month."
               : "Email support@stackivo.me if you need a higher limit.";
         setAiUsage((u) => (u && u.limit >= 0 ? { ...u, used: u.limit } : u));
         push({
           role: "assistant",
-          content: `You've used all ${quota.limit} AI messages included in your ${quota.plan} plan this month. ${nextTier} Your quota resets at the start of next month.`,
+          content: `You've used all ${processed.limit} AI messages included in your ${processed.plan} plan this month. ${nextTier} Your quota resets at the start of next month.`,
         });
         return;
       }
-      setAiUsage((u) => (u && u.limit >= 0 ? { ...u, used: u.used + 1 } : u));
+      const usageConsumed = processed.ok
+        ? processed.data.usageConsumed
+        : "usageConsumed" in processed && processed.usageConsumed;
+      if (usageConsumed) {
+        setAiUsage((u) => (u && u.limit >= 0 ? { ...u, used: u.used + 1 } : u));
+      }
+      if (!processed.ok) {
+        push({ role: "assistant", content: processed.error });
+        return;
+      }
+      activeRunIdRef.current = processed.data.runId;
+      const nlu: AiInterpretation = processed.data.interpretation;
+      const decision = processed.data.decision;
 
-      // 1. Interpret the message (intent + structured fields + resolved ids).
-      const interpreted = await interpretAiMessageAction({
-        message: text,
-        currentWorkflow: mode === "general" ? undefined : mode,
-        collected,
-        history: transcriptRef.current.slice(0, -1),
-      });
-      const nlu: AiInterpretation | null = interpreted.ok ? interpreted.data : null;
+      if (decision.kind === "overdue_reminders") {
+        if (decision.action === "execute") {
+          setPendingProposal(null);
+          await runRemindOverdue();
+        } else if (decision.action === "dismiss") {
+          setPendingProposal(null);
+          push({ role: "assistant", content: "No problem — I'm here when you need." });
+        } else {
+          setPendingProposal("overdue_reminders");
+          push({
+            role: "assistant",
+            content:
+              "Want me to email a payment reminder to every client with an overdue invoice? (Safe to run once a day — it won't double-send.)",
+            suggestions: ["Yes, send reminders", "Not now"],
+          });
+        }
+        return;
+      }
+      if (decision.kind === "unbilled_invoice") {
+        if (pendingProposal) setPendingProposal(null);
+        await runInvoiceUnbilled(decision.clientId, {
+          send: decision.send,
+          requestId: userMessageId,
+        });
+        return;
+      }
+      // Any unrelated reply abandons an outstanding reminder proposal rather
+      // than leaving a stale approval context active in the conversation.
+      if (pendingProposal) setPendingProposal(null);
 
-      // 1b. If a contract draft is open, revise it in place — unless the user
-      // is starting a brand-new document or confidently switching workflow.
-      if (activeContract) {
+      // Read-only routing and target-workflow selection now come from the
+      // authenticated server runtime instead of a second client-side router.
+      if (decision.kind === "list") {
+        if (decision.entityType === "invoice") await runListInvoices(decision.filter);
+        else if (decision.entityType === "contract") await runListContracts(decision.filter);
+        else if (decision.entityType === "client") await runListClients();
+        else if (decision.entityType === "project") await runListProjects(decision.filter);
+        else await runListWelcomeDocs(decision.filter);
+        return;
+      }
+      if (decision.kind === "business_query") {
+        await runQuery(text);
+        return;
+      }
+      if (decision.kind === "support") {
+        await runSupport(text, true);
+        return;
+      }
+
+      // Draft ownership/status and refine-vs-new selection are server-owned.
+      if (decision.kind === "refine" && decision.entityType === "contract" && activeContract) {
         const chat = conversationalReply(text, userFirstName);
         if (chat) {
           push({ role: "assistant", content: chat });
           return;
         }
-        const switchingAway =
-          !!nlu?.confident && nlu.intent !== "general" && nlu.intent !== "contract";
-        const startsNewContract =
-          /\b(create|draft|start|generate|prepare|make)\s+(a\s+|an\s+|another\s+|new\s+)?(new\s+)?(contract|proposal|agreement)\b/i.test(
-            text,
-          ) ||
-          /\b(new|another|second|separate|different)\s+(contract|proposal|agreement)\b/i.test(text);
-        if (!switchingAway && !startsNewContract) {
-          const res = await refineContractFromAiAction({
+          const res = await refineContractIvoToolAction({
+            conversationId: activeConversationId,
+            runId: activeRunIdRef.current ?? undefined,
             contractId: activeContract.id,
+            requestId: userMessageId,
             instruction: text,
           });
           if (!res.ok) {
@@ -1487,6 +2142,11 @@ export function StackivoAiAssistant({ clients, projects, user }: StackivoAiAssis
           setActiveContract(res.data);
           push({
             role: "assistant",
+            persistence: {
+              kind: "preview",
+              content: "Contract draft updated and ready for review.",
+              block: { type: "entity_preview", entityType: "contract", entityId: res.data.id, variant: "draft" },
+            },
             content: (
               <ContractDraftPreview
                 preview={res.data}
@@ -1498,24 +2158,16 @@ export function StackivoAiAssistant({ clients, projects, user }: StackivoAiAssis
           });
           router.refresh();
           return;
-        }
-        // Starting fresh / switching: drop the refinement context and continue.
-        setActiveContract(null);
       }
 
-      // 1c. If an invoice draft is open, revise it in place from the message —
-      // unless the user is clearly starting a new invoice or switching workflow.
-      if (activeInvoice) {
+      if (decision.kind === "refine" && decision.entityType === "invoice" && activeInvoice) {
         const chat = conversationalReply(text, userFirstName);
         if (chat) { push({ role: "assistant", content: chat }); return; }
-        const switchingAway =
-          !!nlu?.confident && nlu.intent !== "general" && nlu.intent !== "invoice";
-        const startsNew =
-          /\b(create|draft|make|generate|raise|new|another)\s+(a\s+|an\s+|another\s+|new\s+)?(new\s+)?(invoice|bill)\b/i.test(text) ||
-          /\b(new|another|second|separate|different)\s+invoice\b/i.test(text);
-        if (!switchingAway && !startsNew) {
-          const res = await refineInvoiceFromAiAction({
+          const res = await refineInvoiceIvoToolAction({
+            conversationId: activeConversationId,
+            runId: activeRunIdRef.current ?? undefined,
             invoiceId: activeInvoice.id,
+            requestId: userMessageId,
             instruction: text,
           });
           if (!res.ok) { push({ role: "assistant", content: res.error }); return; }
@@ -1523,6 +2175,11 @@ export function StackivoAiAssistant({ clients, projects, user }: StackivoAiAssis
           setLastInvoicePreview(res.data);
           push({
             role: "assistant",
+            persistence: {
+              kind: "preview",
+              content: "Invoice draft updated and ready for review.",
+              block: { type: "entity_preview", entityType: "invoice", entityId: res.data.id, variant: "draft" },
+            },
             content: (
               <InvoiceDraftPreview
                 preview={res.data}
@@ -1533,28 +2190,27 @@ export function StackivoAiAssistant({ clients, projects, user }: StackivoAiAssis
           });
           router.refresh();
           return;
-        }
-        setActiveInvoice(null);
       }
 
-      // 1d. If a welcome doc draft is open, revise it in place from the message.
-      if (activeWelcomeDoc) {
+      if (decision.kind === "refine" && decision.entityType === "welcome_document" && activeWelcomeDoc) {
         const chat = conversationalReply(text, userFirstName);
         if (chat) { push({ role: "assistant", content: chat }); return; }
-        const switchingAway =
-          !!nlu?.confident && nlu.intent !== "general" && nlu.intent !== "welcome_document";
-        const startsNew =
-          /\b(create|draft|make|generate|prepare|new|another)\s+(a\s+|an\s+|another\s+|new\s+)?(new\s+)?(welcome|onboarding)\b/i.test(text) ||
-          /\b(new|another)\s+(welcome|onboarding)\b/i.test(text);
-        if (!switchingAway && !startsNew) {
-          const res = await refineWelcomeDocFromAiAction({
+          const res = await refineWelcomeDocumentIvoToolAction({
+            conversationId: activeConversationId,
+            runId: activeRunIdRef.current ?? undefined,
             welcomeDocId: activeWelcomeDoc.id,
+            requestId: userMessageId,
             instruction: text,
           });
           if (!res.ok) { push({ role: "assistant", content: res.error }); return; }
           setActiveWelcomeDoc(res.data);
           push({
             role: "assistant",
+            persistence: {
+              kind: "preview",
+              content: "Welcome document draft updated and ready for review.",
+              block: { type: "entity_preview", entityType: "welcome_document", entityId: res.data.id, variant: "draft" },
+            },
             content: (
               <WelcomeDocDraftPreview
                 preview={res.data}
@@ -1566,9 +2222,20 @@ export function StackivoAiAssistant({ clients, projects, user }: StackivoAiAssis
           });
           router.refresh();
           return;
-        }
-        setActiveWelcomeDoc(null);
       }
+      if (decision.kind === "refine") {
+        push({
+          role: "assistant",
+          content: "That draft is no longer available for refinement. Open it from the workspace to review its current status.",
+        });
+        return;
+      }
+
+      // A new workflow or explicit switch closes the local refinement target;
+      // the server has already decided this message should not edit it.
+      if (activeContract) setActiveContract(null);
+      if (activeInvoice) setActiveInvoice(null);
+      if (activeWelcomeDoc) setActiveWelcomeDoc(null);
 
       // 1e. Mid-question chit-chat guard. If we're waiting on a specific field
       // and the user types a greeting / thanks / meta remark (not an answer and
@@ -1607,162 +2274,9 @@ export function StackivoAiAssistant({ clients, projects, user }: StackivoAiAssis
         }
       }
 
-      // 1b2. Bulk action: chase overdue invoices. Detected before the data-query
-      //      short-circuit (so "overdue" isn't read as a plain question), with a
-      //      one-tap confirm because it sends outbound email.
-      {
-        const lc = text.trim().toLowerCase();
-        if (lc === "yes, send reminders") {
-          await runRemindOverdue();
-          return;
-        }
-        if (lc === "not now" && !pendingField) {
-          push({ role: "assistant", content: "No problem — I'm here when you need." });
-          return;
-        }
-        if (
-          /\b(send|chase|remind)\b/.test(lc) &&
-          /(reminder|overdue|unpaid|outstanding|past[- ]?due)/.test(lc) &&
-          /(overdue|unpaid|outstanding|past[- ]?due|reminder)/.test(lc) &&
-          !pendingField
-        ) {
-          push({
-            role: "assistant",
-            content:
-              "Want me to email a payment reminder to every client with an overdue invoice? (Safe to run once a day — it won't double-send.)",
-            suggestions: ["Yes, send reminders", "Not now"],
-          });
-          return;
-        }
-      }
-
-      // 1b3. Bill unbilled tracked time into a draft invoice.
-      {
-        const lc = text.trim().toLowerCase();
-        if (/unbilled/.test(lc) && /\b(invoice|bill)\b/.test(lc) && !pendingField) {
-          await runInvoiceUnbilled(nlu?.clientId, { send: /\bsend\b/.test(lc) });
-          return;
-        }
-      }
-
-      // 1b4. Interactive invoice list ("show my overdue/unpaid invoices") with
-      //      per-row Open / Mark paid / Remind actions.
-      {
-        const lc = text.trim().toLowerCase();
-        if (/\b(show|list|view|see)\b/.test(lc) && /\binvoices?\b/.test(lc) && !pendingField) {
-          const f: "unpaid" | "overdue" | "all" = /overdue/.test(lc)
-            ? "overdue"
-            : /\ball\b/.test(lc)
-              ? "all"
-              : "unpaid";
-          await runListInvoices(f);
-          return;
-        }
-        if (/\b(show|list|view|see)\b/.test(lc) && /\b(contracts?|proposals?)\b/.test(lc) && !pendingField) {
-          await runListContracts(/\b(all|every)\b/.test(lc) ? "all" : "pending");
-          return;
-        }
-        if (/\b(show|list|view|see)\b/.test(lc) && /\b(clients?|customers?)\b/.test(lc) && !pendingField) {
-          await runListClients();
-          return;
-        }
-        if (
-          /\b(show|list|view|see|review)\b/.test(lc) &&
-          /\b(projects?|engagements?|work)\b/.test(lc) &&
-          !pendingField
-        ) {
-          await runListProjects(/\b(all|every|completed|archived|cancelled)\b/.test(lc) ? "all" : "active");
-          return;
-        }
-        if (
-          /\b(show|list|view|see|review|attention)\b/.test(lc) &&
-          /\b(welcome|onboarding)\b/.test(lc) &&
-          /\b(docs?|documents?|guides?)\b/.test(lc) &&
-          !pendingField
-        ) {
-          await runListWelcomeDocs(/\b(all|every|archived)\b/.test(lc) ? "all" : "open");
-          return;
-        }
-      }
-
-      // 1c. A question about the user's OWN business numbers (revenue, overdue,
-      //     who paid, unbilled, top clients…) is answered from their data, not
-      //     routed into a create workflow. Skip while answering a field prompt.
-      if (
-        (nlu?.intent === "query" || isBusinessDataQuestion(text)) &&
-        (mode === "general" || !pendingField)
-      ) {
-        await runQuery(text);
-        return;
-      }
-
-      // 1g. A confident product/how-to/support question is answered from docs
-      //     here (works from the home screen too), and if the docs don't cover
-      //     it we OFFER to forward it — without entering a sticky support mode.
-      if (nlu?.intent === "support" && nlu.confident && (mode === "general" || !pendingField)) {
-        await runSupport(text, true);
-        return;
-      }
-
-      // 2. Decide the target workflow.
-      //    - From the home screen, an informational question ("what about
-      //      billing?", "how do invoices work?") is answered from the docs
-      //      instead of opening a workflow.
-      //    - Otherwise the home screen enters the detected workflow; mid-flow we
-      //      only switch when the NLU is confident the user changed task.
-      let targetMode: AiMode = mode;
-      if (mode === "general" && isInformationalQuestion(text)) {
-        targetMode = "general";
-      } else if (nlu) {
-        const intent = nlu.intent;
-        // While we're waiting on a specific field answer, the message is an
-        // ANSWER, not a command — so don't let an incidental keyword in it
-        // (e.g. answering "What work did you do?" with "client call") switch
-        // workflows. Only an explicit command ("actually create an invoice")
-        // is allowed to switch mid-question.
-        const explicitSwitchCommand =
-          /\b(create|make|draft|add|new|start|log|raise|generate|prepare|switch to|instead)\b/.test(
-            text.toLowerCase(),
-          );
-        const isSwitch =
-          nlu.confident &&
-          intent !== "general" &&
-          intent !== mode &&
-          (!pendingField || pendingField.field === "clientId" || explicitSwitchCommand);
-        if (mode === "general") {
-          // A support/question intent is answered from docs (general handler);
-          // an actionable intent opens its workflow.
-          targetMode =
-            intent === "support" || intent === "general" || intent === "query"
-              ? "general"
-              : intent;
-        } else if (isSwitch && intent !== "query") {
-          // "query" is a data-question intent, not a workflow mode — it is
-          // short-circuited elsewhere, so never use it as a target mode.
-          targetMode = intent;
-        }
-      } else if (mode === "general") {
-        // NLU unavailable — fall back to keyword routing.
-        targetMode = detectMode(text);
-      }
-
-      const switching = targetMode !== mode;
-      if (switching) setMode(targetMode);
-
-      // 2b. Validate a direct answer to a pending field before saving it. If the
-      // reply clearly can't fill that field (e.g. text for an amount) and the
-      // NLU didn't extract a clean value either, gently re-ask with an example
-      // rather than storing nonsense. Optional "skip" always passes.
-      if (
-        !switching &&
-        pendingField &&
-        pendingField.field !== "clientId" &&
-        !(pendingField.optional && isSkipReply(text)) &&
-        !nlu?.fields?.[pendingField.field]
-      ) {
-        const validationError = fieldValidationError(pendingField.field, text);
-        if (validationError) {
-          push({ role: "assistant", content: validationError });
+      if (decision.kind === "field_error") {
+        push({ role: "assistant", content: decision.message });
+        if (pendingField) {
           push({
             role: "assistant",
             content: (
@@ -1780,43 +2294,39 @@ export function StackivoAiAssistant({ clients, projects, user }: StackivoAiAssis
               : pendingField.suggestions,
             tip: pendingField.tip,
           });
-          return;
         }
+        return;
       }
 
-      // 3. Merge newly extracted fields onto what we already collected.
-      const baseFields: AiFields = switching ? {} : { ...collected };
-      let merged: AiFields;
-      if (!switching && pendingField && pendingField.field !== "clientId") {
-        // Direct reply to a specific field prompt: assign the answer to THAT
-        // field only and skip generic NLU extraction. Otherwise a numeric reply
-        // (e.g. a discount or due-date answer like "345") gets re-read as the
-        // invoice amount and clobbers an earlier answer. An optional "skip" is
-        // recorded as a sentinel so the field counts as addressed without
-        // inventing a value. When the NLU normalised THIS field (e.g. an amount
-        // or an ISO date), prefer that clean value over the raw text.
-        merged = { ...baseFields };
-        const normalized = nlu?.fields?.[pendingField.field]?.trim();
-        merged[pendingField.field] =
-          pendingField.optional && isSkipReply(text)
-            ? AI_SKIP_SENTINEL
-            : normalized || text;
-      } else {
-        merged = { ...baseFields, ...(nlu?.fields ?? {}) };
+      if (decision.kind !== "workflow") {
+        push({
+          role: "assistant",
+          content: "I couldn't continue that workflow safely. Please try again.",
+        });
+        return;
       }
 
+      // The server returns the complete canonical state for the next workflow
+      // step: validated fields plus client/project carry-over or reset.
+      const { targetMode, switching, fields: merged, clientId: cId, projectId: pId } = decision;
+      if (switching) setMode(targetMode);
       setCollected(merged);
       setPendingField(null);
-
-      // 4. Resolve client/project — prefer the NLU match. When switching
-      // workflows, never inherit the previous one's client/project; only a
-      // client/project named in this very message carries over.
-      const cId = nlu?.clientId || (switching ? "" : clientId);
-      const pId = nlu?.projectId || (switching ? "" : projectId);
       if (cId !== clientId) setClientId(cId);
       if (pId !== projectId) setProjectId(pId);
 
-      await runWorkflow(targetMode, merged, cId, pId, text);
+      await runWorkflow(
+        targetMode,
+        merged,
+        cId,
+        pId,
+        text,
+        false,
+        decision.nextAction.kind === "invoke_tool"
+          ? decision.nextAction.requestId
+          : crypto.randomUUID(),
+        decision.nextAction,
+      );
     });
   }, [
     input,
@@ -1833,10 +2343,11 @@ export function StackivoAiAssistant({ clients, projects, user }: StackivoAiAssis
     mode,
     collected,
     pendingField,
+    pendingProposal,
     clientId,
     projectId,
     push,
-    detectMode,
+    ensureConversation,
     runWorkflow,
     runQuery,
     runSupport,
@@ -1868,6 +2379,228 @@ export function StackivoAiAssistant({ clients, projects, user }: StackivoAiAssis
   }, []);
 
   // ----- Render -----
+
+  const renderPersistedBlock = (block: IvoResolvedMessageBlock) => {
+    if (block.type === "picker") {
+      const options = ((block.data as { options?: AiEntityOption[] }).options ?? []);
+      if (block.pickerType === "client") {
+        const proceed = (id: string, display: string) => {
+          setClientId(id);
+          setPendingField(null);
+          push({ role: "user", content: display });
+          startTransition(async () => runWorkflowRef.current(mode, collected, id, projectId, ""));
+        };
+        return (
+          <ClientPicker
+            clients={options}
+            label={block.label}
+            allowSkip={block.allowSkip}
+            onSelect={(id) => proceed(id, options.find((option) => option.id === id)?.name ?? "Selected client")}
+            onSkip={() => proceed(NO_CLIENT_SENTINEL, "No client (internal)")}
+          />
+        );
+      }
+      if (block.pickerType === "project") {
+        const proceed = (id: string, display: string) => {
+          setProjectId(id);
+          setPendingField(null);
+          push({ role: "user", content: display });
+          startTransition(async () => runWorkflowRef.current(mode, collected, clientId, id, ""));
+        };
+        return (
+          <ProjectPicker
+            projects={options}
+            label={block.label}
+            allowSkip={block.allowSkip}
+            onSelect={(id) => proceed(id, options.find((option) => option.id === id)?.name ?? "Selected project")}
+            onSkip={() => proceed(NO_PROJECT_SENTINEL, "No project (internal)")}
+          />
+        );
+      }
+      if (block.pickerType === "state") {
+        return (
+          <StatePicker
+            label={block.label}
+            onSelect={(stateName) => {
+              const nextFields = { ...collected, state: stateName };
+              setCollected(nextFields);
+              setPendingField(null);
+              push({ role: "user", content: stateName });
+              startTransition(async () => runWorkflowRef.current(mode, nextFields, clientId, projectId, ""));
+            }}
+          />
+        );
+      }
+      return (
+        <WelcomeTemplatePicker
+          onSelect={(templateId, display) => {
+            const nextFields = { ...collected, welcomeTemplate: templateId };
+            setCollected(nextFields);
+            setPendingField(null);
+            push({ role: "user", content: display });
+            startTransition(async () => runWorkflowRef.current(mode, nextFields, clientId, projectId, ""));
+          }}
+        />
+      );
+    }
+
+    if (block.type === "entity_list") {
+      const rows = (block.data as { rows?: unknown[] }).rows ?? [];
+      if (block.entityType === "invoice") {
+        return <InvoiceListBlock rows={rows as AiInvoiceListRow[]} onMarkPaid={handleRowMarkPaid} onRemind={handleRowRemind} />;
+      }
+      if (block.entityType === "contract") {
+        return <ContractListBlock rows={rows as AiContractListRow[]} onSend={handleContractRowSend} />;
+      }
+      if (block.entityType === "client") {
+        return (
+          <ClientListBlock
+            rows={rows as AiClientListRow[]}
+            onInvoice={(name) => submitRef.current?.(`Create an invoice for ${name}`)}
+          />
+        );
+      }
+      if (block.entityType === "project") {
+        return (
+          <ProjectListBlock
+            rows={rows as AiProjectListRow[]}
+            onInvoice={(name) => submitRef.current?.(`Create an invoice for project ${name}`)}
+          />
+        );
+      }
+      return (
+        <WelcomeDocListBlock
+          rows={rows as AiWelcomeDocListRow[]}
+          onCreate={() => submitRef.current?.("Help me prepare a welcome document for a client")}
+        />
+      );
+    }
+
+    if (block.type === "entity_result") {
+      const data = block.data as Record<string, unknown>;
+      if (block.entityType === "client") {
+        return (
+          <ResultBlock
+            title="Client created"
+            description={`Added ${String(data.name ?? "the client")} to your workspace.`}
+            actionLabel="Open clients"
+            onAction={() => router.push("/dashboard/clients")}
+          />
+        );
+      }
+      if (block.entityType === "project") {
+        return (
+          <ResultBlock
+            title="Project created"
+            description={`${String(data.name ?? "Project")} is ready.`}
+            actionLabel="Open projects"
+            onAction={() => router.push("/dashboard/projects")}
+          />
+        );
+      }
+      return (
+        <ResultBlock
+          title="Time entry logged"
+          description={`${String(data.description ?? "Time entry")} — ${Number(data.hours ?? 0)}h ${Number(data.minutes ?? 0)}m${data.billable ? " · billable" : " · non-billable"}.`}
+          actionLabel="Open time tracker"
+          onAction={() => router.push("/dashboard/time")}
+        />
+      );
+    }
+
+    if (block.type === "confirmation") {
+      const summary = block.data as unknown as AiConfirmSummary;
+      return (
+        <ConfirmBlock
+          summary={summary}
+          onConfirm={() => {
+            const confirmation = pendingConfirmRef.current;
+            if (!confirmation || confirmation.toolRequestKey !== block.requestId) return;
+            setPendingConfirm(null);
+            push({ role: "user", content: "Confirm" });
+            startTransition(async () => {
+              await runWorkflowRef.current(
+                confirmation.workflow,
+                confirmation.fields,
+                confirmation.cId,
+                confirmation.pId,
+                "",
+                true,
+                confirmation.toolRequestKey,
+                {
+                  kind: "invoke_tool",
+                  tool: confirmation.tool,
+                  requestId: confirmation.toolRequestKey,
+                },
+              );
+            });
+          }}
+          onCancel={() => {
+            const confirmation = pendingConfirmRef.current;
+            if (!confirmation || confirmation.toolRequestKey !== block.requestId) return;
+            setPendingConfirm(null);
+            if (conversationIdRef.current) {
+              void rejectIvoToolAction({
+                conversationId: conversationIdRef.current,
+                idempotencyKey: confirmation.toolRequestKey,
+              });
+            }
+            setMode("general");
+            setCollected({});
+            setPendingField(null);
+            setClientId("");
+            setProjectId("");
+            push({ role: "assistant", content: "No problem — cancelled. What next?" });
+          }}
+        />
+      );
+    }
+
+    if (block.entityType === "invoice") {
+      const preview = block.data as unknown as AiInvoicePreview;
+      return block.variant === "delivery" ? (
+        <InvoiceDeliveryActions
+          preview={preview}
+          onDeliver={handleInvoiceDelivery}
+          onOpen={() => router.push(`/dashboard/invoices/${preview.id}`)}
+        />
+      ) : (
+        <InvoiceDraftPreview
+          preview={preview}
+          onApprove={handleInvoiceApprove}
+          onOpen={() => router.push(`/dashboard/invoices/${preview.id}`)}
+        />
+      );
+    }
+
+    if (block.entityType === "contract") {
+      const preview = block.data as unknown as AiContractPreview;
+      return (
+        <ContractDraftPreview
+          preview={preview}
+          onApproveAndSend={handleContractApproveAndSend}
+          onWhatsApp={handleContractWhatsApp}
+          onOpen={() => router.push(`/dashboard/contracts/${preview.id}`)}
+        />
+      );
+    }
+
+    const preview = block.data as unknown as AiWelcomeDocPreview;
+    return block.variant === "delivery" ? (
+      <WelcomeDocDeliveryActions
+        preview={preview}
+        onDeliver={handleWelcomeDocDelivery}
+        onOpen={() => router.push(`/dashboard/welcome/${preview.id}`)}
+      />
+    ) : (
+      <WelcomeDocDraftPreview
+        preview={preview}
+        onApprove={handleWelcomeDocApprove}
+        onOpen={() => router.push(`/dashboard/welcome/${preview.id}`)}
+        onSaveTemplate={handleSaveWelcomeTemplate}
+      />
+    );
+  };
 
   return (
     <>
@@ -2127,7 +2860,9 @@ export function StackivoAiAssistant({ clients, projects, user }: StackivoAiAssis
                         : "mr-auto rounded-2xl rounded-bl-md border border-border/70 bg-background shadow-sm",
                     )}
                   >
-                    {message.role === "assistant" && typeof message.content === "string"
+                    {message.persistedBlock
+                      ? renderPersistedBlock(message.persistedBlock)
+                      : message.role === "assistant" && typeof message.content === "string"
                       ? formatAssistantMessageContent(message.content)
                       : message.content}
                     {message.role === "assistant" && message.tip ? (

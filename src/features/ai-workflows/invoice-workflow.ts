@@ -44,6 +44,7 @@ export async function draftInvoiceWithAi({
   const localDraft = buildLocalDraft(input);
 
   const aiJson = await generateStructuredJson({
+    operation: "invoice_draft",
     messages: [
       {
         role: "system",

@@ -36,6 +36,7 @@ const sendSchema = z.object({
   toName: z.string().trim().min(1).optional(),
   message: z.string().max(2000).optional(),
   ccSelf: z.boolean().optional(),
+  idempotencyKey: z.string().trim().min(8).max(200).optional(),
 });
 
 async function requireUser() {
@@ -173,6 +174,9 @@ export async function sendContractAction(
     ],
     metadata: { contractId: contract.id, kind: contract.kind },
     tags: [contract.kind === "proposal" ? "proposal_sent" : "contract_sent", "share"],
+    idempotencyKey: parsed.data.idempotencyKey
+      ? `contract-email:${user.id}:${parsed.data.idempotencyKey}`
+      : null,
   });
 
   await recordActivity({

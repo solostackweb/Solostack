@@ -315,6 +315,76 @@ export interface AutomationSuggestionRow {
   expires_at: string | null;
 }
 
+export interface IvoConversationRow {
+  id: string;
+  user_id: string;
+  title: string | null;
+  status: "active" | "archived";
+  current_mode:
+    | "general"
+    | "invoice"
+    | "contract"
+    | "welcome_document"
+    | "client"
+    | "project"
+    | "time_entry"
+    | "support";
+  workflow_state: Json;
+  last_message_at: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface IvoMessageRow {
+  id: string;
+  conversation_id: string;
+  user_id: string;
+  role: "user" | "assistant" | "system" | "tool";
+  kind: "text" | "question" | "picker" | "preview" | "confirmation" | "result" | "error";
+  content: string | null;
+  payload: Json;
+  client_message_id: string | null;
+  created_at: string;
+}
+
+export interface IvoRunRow {
+  id: string;
+  conversation_id: string | null;
+  user_id: string;
+  operation: string;
+  request_key: string | null;
+  provider: string | null;
+  model: string | null;
+  status: "running" | "succeeded" | "failed" | "cancelled";
+  outcome: string | null;
+  error_code: string | null;
+  prompt_tokens: number | null;
+  completion_tokens: number | null;
+  duration_ms: number | null;
+  metadata: Json;
+  started_at: string;
+  finished_at: string | null;
+  created_at: string;
+}
+
+export interface IvoActionAttemptRow {
+  id: string;
+  conversation_id: string | null;
+  run_id: string | null;
+  user_id: string;
+  tool_key: string;
+  idempotency_key: string;
+  approval_state: "not_required" | "required" | "approved" | "rejected";
+  status: "proposed" | "executing" | "succeeded" | "failed" | "cancelled";
+  input_summary: Json;
+  output_summary: Json;
+  entity_type: string | null;
+  entity_id: string | null;
+  error_code: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface ClientRow {
   id: string;
   user_id: string;
@@ -1378,6 +1448,32 @@ export interface Database {
         Insert: Partial<AutomationSuggestionRow> &
           Pick<AutomationSuggestionRow, "user_id" | "trigger_key" | "title" | "prompt">;
         Update: Partial<AutomationSuggestionRow>;
+        Relationships: [];
+      };
+      ivo_conversations: {
+        Row: IvoConversationRow;
+        Insert: Partial<IvoConversationRow> & Pick<IvoConversationRow, "user_id">;
+        Update: Partial<IvoConversationRow>;
+        Relationships: [];
+      };
+      ivo_messages: {
+        Row: IvoMessageRow;
+        Insert: Partial<IvoMessageRow> &
+          Pick<IvoMessageRow, "conversation_id" | "user_id" | "role">;
+        Update: Partial<IvoMessageRow>;
+        Relationships: [];
+      };
+      ivo_runs: {
+        Row: IvoRunRow;
+        Insert: Partial<IvoRunRow> & Pick<IvoRunRow, "user_id" | "operation">;
+        Update: Partial<IvoRunRow>;
+        Relationships: [];
+      };
+      ivo_action_attempts: {
+        Row: IvoActionAttemptRow;
+        Insert: Partial<IvoActionAttemptRow> &
+          Pick<IvoActionAttemptRow, "user_id" | "tool_key" | "idempotency_key">;
+        Update: Partial<IvoActionAttemptRow>;
         Relationships: [];
       };
       contracts: {

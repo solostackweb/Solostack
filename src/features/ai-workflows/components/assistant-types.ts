@@ -1,4 +1,9 @@
 import type { ReactNode } from "react";
+import type {
+  IvoMessageBlockReference,
+  IvoResolvedMessageBlock,
+  IvoToolResponseDescriptor,
+} from "@/features/ai-workflows/conversation-types";
 
 /**
  * Shared types for the Stackivo AI assistant. Extracted from the main
@@ -42,6 +47,14 @@ export interface Message {
   suggestions?: string[];
   /** Optional short professional tip shown under an assistant message. */
   tip?: string;
+  /** Safe reference persisted for actionable React cards. */
+  persistence?: IvoToolResponseDescriptor | {
+    kind: "picker";
+    content: string;
+    block: IvoMessageBlockReference;
+  };
+  /** Canonical block data reconstructed by the server during resume. */
+  persistedBlock?: IvoResolvedMessageBlock;
 }
 
 export interface AiInvoicePreview {
@@ -81,6 +94,8 @@ export interface AiContractPreview {
   valueAmount: number | null;
   currency: string;
   sections: Array<{ heading: string; body: string }>;
+  /** Present when reconstructed from the canonical contract record. */
+  status?: string;
   /** True when the client is foreign — cross-border contract. */
   isInternational?: boolean;
 }
@@ -94,6 +109,8 @@ export interface AiWelcomeDocPreview {
   clientEmail: string | null;
   clientPhone: string | null;
   projectName: string | null;
+  /** Present when reconstructed from the canonical welcome-document record. */
+  status?: string;
 }
 
 export interface AiConfirmSummary {

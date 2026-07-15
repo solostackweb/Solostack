@@ -222,6 +222,8 @@ export async function createTicketAction(
   } as never);
   if (msgErr) {
     log.error("support.create_ticket.message_failed", { error: msgErr.message });
+    await admin.from("support_tickets").delete().eq("id", ticket.id);
+    return { ok: false, error: "Couldn't save your support message. Please try again." };
   }
 
   const threadUrl = userId ? inAppThreadUrl(ticket.id) : guestThreadUrl(ticket.public_token);

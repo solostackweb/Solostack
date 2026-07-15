@@ -246,6 +246,7 @@ export async function draftOperationalWorkflow(
 ): Promise<{ draft: OperationsDraft; provider: "groq" | "local" }> {
   const fallback = localDraft(workflow, ctx);
   const aiJson = await generateStructuredJson({
+    operation: `workflow_draft.${workflow}`,
     messages: [
       {
         role: "system",

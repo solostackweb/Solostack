@@ -64,6 +64,10 @@ import {
   type AiWelcomeDraft,
   type AiWorkflow,
 } from "./types";
+import {
+  IVO_MISSING_FIELD_QUESTIONS as MISSING_FIELD_QUESTIONS,
+  ivoDiscountQuestion as discountQuestion,
+} from "./workflow-progress";
 
 /** A field/value row shown in a pre-create confirmation summary. */
 type AiConfirmLine = [label: string, value: string];
@@ -75,10 +79,12 @@ interface AiConfirmSummary {
 
 const aiInvoiceIdSchema = z.object({
   invoiceId: z.string().uuid("Invalid invoice id"),
+  idempotencyKey: z.string().uuid().optional(),
 });
 
 const aiContractIdSchema = z.object({
   contractId: z.string().uuid("Invalid contract id"),
+  idempotencyKey: z.string().uuid().optional(),
 });
 
 const aiDocsQuestionSchema = z.object({
@@ -199,152 +205,9 @@ function field(fields: AiFields | undefined, key: string): string {
   return cleanAiAnswer(fields?.[key]);
 }
 
-const MISSING_FIELD_QUESTIONS: Record<string, AiMissingField> = {
-  clientId: { field: "clientId", question: "Which client is this for?" },
-  fullName: { field: "fullName", question: "What's the client's name?", placeholder: "Example: Riya Sharma" },
-  name: { field: "name", question: "What should I name this project?", placeholder: "Example: Website Redesign" },
-  workDescription: {
-    field: "workDescription",
-    question: "What work should I bill for?",
-    placeholder: "Example: Landing page design",
-  },
-  amount: {
-    field: "amount",
-    question: "What amount should I invoice?",
-    placeholder: "Example: 50000",
-    tip: "Use the selected client's invoice currency.",
-  },
-  scope: {
-    field: "scope",
-    question: "Describe the scope, deliverables, and timeline.",
-    placeholder: "Example: 5-page website, CMS setup, 3-week timeline",
-  },
-  process: {
-    field: "process",
-    question: "What working style, communication, and process should it cover?",
-    placeholder: "Example: Weekly Friday updates, feedback in one doc, replies within a day",
-  },
-  description: {
-    field: "description",
-    question: "What work did you do?",
-    placeholder: "Example: Client call and wireframe revisions",
-  },
-  duration: {
-    field: "duration",
-    question: "How long, and is it billable?",
-    placeholder: "Example: 2h 30m, billable",
-    suggestions: ["30m, billable", "1h, billable", "2h 30m, billable", "1h, non-billable"],
-  },
-  question: { field: "question", question: "What do you need help with?" },
-  projectId: { field: "projectId", question: "Which project should I link this to? Or choose “No project”." },
-  // Contract detail prompts (offered once each, user can reply "skip").
-  type: {
-    field: "type",
-    question: "What kind of document is this — agreement, proposal, NDA, or retainer? Or reply “skip”.",
-    placeholder: "Example: Service agreement",
-    optional: true,
-    suggestions: ["Service agreement", "Proposal", "NDA", "Retainer"],
-  },
-  commercials: {
-    field: "commercials",
-    question: "What are the fees and payment terms? Or reply “skip”.",
-    placeholder: "Example: ₹150000, 50% upfront, balance on delivery",
-    optional: true,
-    suggestions: ["50% upfront, 50% on delivery", "Full payment upfront", "Monthly retainer"],
-    tip: "Splitting payment (e.g. 50% upfront) protects your cash flow and reduces the risk of non-payment.",
-  },
-  timeline: {
-    field: "timeline",
-    question: "What's the timeline or key milestones? Or reply “skip”.",
-    placeholder: "Example: 3 weeks — design week 1, build weeks 2–3",
-    optional: true,
-  },
-  clauses: {
-    field: "clauses",
-    question: "Any special clauses, exclusions, or responsibilities? Or reply “skip”.",
-    placeholder: "Example: 2 revision rounds, confidentiality, client provides content",
-    optional: true,
-  },
-  // Welcome-document detail prompts (offered once each, user can reply "skip").
-  relationship: {
-    field: "relationship",
-    question: "What's the working relationship and what should the client expect? Or reply “skip”.",
-    placeholder: "Example: 3-month retainer, monthly check-ins",
-    optional: true,
-  },
-  operations: {
-    field: "operations",
-    question: "Any payment, scheduling, or logistics details to include? Or reply “skip”.",
-    placeholder: "Example: invoices on the 1st, Net 7, Slack for chat",
-    optional: true,
-  },
-  tone: {
-    field: "tone",
-    question: "What tone should it have — warm, premium, or direct? Or reply “skip”.",
-    placeholder: "Example: warm and professional",
-    optional: true,
-    suggestions: ["Warm and friendly", "Premium and polished", "Direct and concise"],
-  },
-  // Client fields — asked one at a time.
-  email: {
-    field: "email",
-    question: "What's their email address?",
-    placeholder: "Example: rupal@acme.com",
-  },
-  billingAddress: {
-    field: "billingAddress",
-    question: "What's their billing address?",
-    placeholder: "Example: 12 MG Road, Indore 452001",
-  },
-  state: {
-    field: "state",
-    question: "Which state are they in? (used for GST)",
-    placeholder: "Example: Madhya Pradesh",
-  },
-  // Optional prompts (offered once, user can reply "skip").
-  phone: {
-    field: "phone",
-    question: "What's their phone number? Or reply “skip”.",
-    placeholder: "Example: +91 98765 43210",
-    optional: true,
-  },
-  notes: {
-    field: "notes",
-    question: "Any notes to add before I create them? Or reply “skip”.",
-    placeholder: "Example: Referred by Anil; prefers email",
-    optional: true,
-  },
-  discount: {
-    field: "discount",
-    question: "Any discount? Enter an amount or %, or reply “skip”.",
-    placeholder: "Example: 5000 or 10%",
-    optional: true,
-    suggestions: ["No discount", "10%"],
-  },
-  dueDate: {
-    field: "dueDate",
-    question: "When is it due? e.g. “in 15 days”, or reply “skip”.",
-    placeholder: "Example: in 15 days",
-    optional: true,
-    suggestions: ["In 7 days", "In 15 days", "In 30 days", "End of month"],
-    tip: "Shorter due dates (7–15 days) typically get you paid faster.",
-  },
-};
-
 /** Human-readable state name for a GST state code (for confirmation summaries). */
 function stateName(code: string): string {
   return INDIAN_STATES.find((s) => s.code === code)?.name ?? "—";
-}
-
-function discountQuestion(currency?: string): AiMissingField {
-  const cur = (currency || "INR").toUpperCase();
-  const flatExample = cur === "INR" ? "₹5000 off" : `${cur} 5 off`;
-  return {
-    ...MISSING_FIELD_QUESTIONS.discount,
-    question: `Any discount? Enter a ${cur} amount or %, or reply “skip”.`,
-    placeholder: cur === "INR" ? "Example: ₹5000 or 10%" : `Example: ${cur} 5 or 10%`,
-    suggestions: ["No discount", "10%", flatExample],
-  };
 }
 
 /**
@@ -1277,13 +1140,15 @@ export async function invoiceUnbilledTimeFromAiAction(input: { clientId?: string
       const { data: cs } = await supabase
         .from("clients")
         .select("id, full_name, business_name")
+        .eq("user_id", userId)
         .in("id", clientIds);
-      const names = ((cs as Array<{ id: string; full_name: string | null; business_name: string | null }> | null) ?? [])
-        .map((c) => c.business_name || c.full_name || "client")
+      const choices = ((cs as Array<{ id: string; full_name: string | null; business_name: string | null }> | null) ?? [])
+        .map((c) => ({ id: c.id, name: c.business_name || c.full_name || "client" }))
         .slice(0, 6);
       return {
         ok: false as const,
-        error: `You have unbilled time for a few clients (${names.join(", ")}). Which one should I invoice?`,
+        error: `You have unbilled time for a few clients (${choices.map((choice) => choice.name).join(", ")}). Which one should I invoice?`,
+        clientChoices: choices,
       };
     }
   }
@@ -1368,6 +1233,7 @@ export async function invoiceUnbilledTimeFromAiAction(input: { clientId?: string
       .from("clients")
       .select("full_name, business_name")
       .eq("id", clientId)
+      .eq("user_id", userId)
       .maybeSingle(),
     supabase
       .from("invoices")
@@ -1469,7 +1335,10 @@ export async function approveInvoiceFromAiAction(input: z.infer<typeof aiInvoice
 export async function emailInvoiceFromAiAction(input: z.infer<typeof aiInvoiceIdSchema>) {
   const parsed = aiInvoiceIdSchema.safeParse(input);
   if (!parsed.success) return { ok: false as const, error: "Invalid invoice." };
-  return sendInvoiceAction({ invoiceId: parsed.data.invoiceId });
+  return sendInvoiceAction({
+    invoiceId: parsed.data.invoiceId,
+    idempotencyKey: parsed.data.idempotencyKey,
+  });
 }
 
 export async function invoiceWhatsappFromAiAction(input: z.infer<typeof aiInvoiceIdSchema>) {
@@ -1721,7 +1590,10 @@ export async function createContractFromAiAction(input: AiCreateInput) {
 export async function sendContractFromAiAction(input: z.infer<typeof aiContractIdSchema>) {
   const parsed = aiContractIdSchema.safeParse(input);
   if (!parsed.success) return { ok: false as const, error: "Invalid contract." };
-  return sendContractAction({ contractId: parsed.data.contractId });
+  return sendContractAction({
+    contractId: parsed.data.contractId,
+    idempotencyKey: parsed.data.idempotencyKey,
+  });
 }
 
 const aiContractRefineSchema = z.object({
@@ -2406,6 +2278,7 @@ export async function answerFromDocsAction(input: z.infer<typeof aiDocsQuestionS
   if (local) return { ok: true as const, data: local };
 
   const ai = await generateStructuredJson({
+    operation: "support_answer",
     temperature: 0.4,
     maxTokens: await aiReplyMaxTokens(),
     messages: [
@@ -2471,6 +2344,7 @@ export async function answerFromDocsAction(input: z.infer<typeof aiDocsQuestionS
 
 const aiWelcomeDocIdSchema = z.object({
   welcomeDocId: z.string().uuid("Invalid welcome document id"),
+  idempotencyKey: z.string().uuid().optional(),
 });
 
 /** Sentinel for the "describe it myself" choice in the welcome template picker. */
@@ -3002,6 +2876,7 @@ export async function answerBusinessQuestionAction(
   }
 
   const ai = await generateStructuredJson({
+    operation: "business_answer",
     temperature: 0.2,
     maxTokens: await aiReplyMaxTokens(),
     messages: [
@@ -3214,7 +3089,10 @@ export async function sendWelcomeDocFromAiAction(
 ) {
   const parsed = aiWelcomeDocIdSchema.safeParse(input);
   if (!parsed.success) return { ok: false as const, error: "Invalid welcome document." };
-  return sendWelcomeDocumentAction({ documentId: parsed.data.welcomeDocId });
+  return sendWelcomeDocumentAction({
+    documentId: parsed.data.welcomeDocId,
+    idempotencyKey: parsed.data.idempotencyKey,
+  });
 }
 
 export async function welcomeDocWhatsappFromAiAction(
