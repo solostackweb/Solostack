@@ -51,11 +51,16 @@ export function MeetingsListView({ meetings }: { meetings: Meeting[] }) {
         title="Meetings"
         description="Schedule calls, share a link so clients pick a time, and keep everything in one place."
         actions={
-          <Button asChild size="sm">
-            <Link href="/dashboard/meetings/new">
-              <Plus className="h-4 w-4" /> Schedule a call
-            </Link>
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button asChild size="sm" variant="outline">
+              <Link href="/dashboard/meetings/availability">Availability</Link>
+            </Button>
+            <Button asChild size="sm">
+              <Link href="/dashboard/meetings/new">
+                <Plus className="h-4 w-4" /> Schedule a call
+              </Link>
+            </Button>
+          </div>
         }
       />
 

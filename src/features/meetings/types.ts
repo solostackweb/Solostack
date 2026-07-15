@@ -15,6 +15,7 @@ export interface Meeting {
   meetLink: string | null;
   location: string | null;
   status: MeetingStatus;
+  mode: string;
   publicToken: string;
   clientId: string | null;
   projectId: string | null;
@@ -41,6 +42,7 @@ export function mapMeetingRow(row: MeetingRow): Meeting {
     meetLink: row.meet_link,
     location: row.location,
     status: row.status,
+    mode: row.mode,
     publicToken: row.public_token,
     clientId: row.client_id,
     projectId: row.project_id,

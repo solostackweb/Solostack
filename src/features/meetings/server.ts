@@ -86,7 +86,7 @@ export async function getMeetingForOwner(id: string): Promise<Meeting | null> {
  */
 export async function getMeetingByToken(
   token: string,
-): Promise<{ meeting: Meeting; hostName: string } | null> {
+): Promise<{ meeting: Meeting; hostName: string; ownerId: string } | null> {
   if (!token) return null;
   const admin = getAdminSupabase();
 
@@ -121,5 +121,5 @@ export async function getMeetingByToken(
     p?.full_name ||
     "Your freelancer";
 
-  return { meeting: mapMeetingRow(row), hostName };
+  return { meeting: mapMeetingRow(row), hostName, ownerId: row.user_id };
 }

@@ -660,6 +660,29 @@ export interface InvoiceItemRow {
   created_at: string;
 }
 
+export interface CalendarConnectionRow {
+  user_id: string;
+  provider: string;
+  google_email: string | null;
+  access_token: string | null;
+  refresh_token: string | null;
+  token_expiry: string | null;
+  scope: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface SchedulingSettingsRow {
+  user_id: string;
+  timezone: string;
+  working_hours: Json;
+  buffer_minutes: number;
+  min_notice_hours: number;
+  slot_interval_minutes: number;
+  created_at: string;
+  updated_at: string;
+}
+
 export type MeetingStatus =
   | "proposed"
   | "confirmed"
@@ -682,6 +705,7 @@ export interface MeetingRow {
   meet_link: string | null;
   location: string | null;
   status: MeetingStatus;
+  mode: string;
   public_token: string;
   created_at: string;
   updated_at: string;
@@ -1383,6 +1407,20 @@ export interface Database {
         Insert: Partial<MeetingRow> &
           Pick<MeetingRow, "user_id" | "topic" | "public_token">;
         Update: Partial<MeetingRow>;
+        Relationships: [];
+      };
+      calendar_connections: {
+        Row: CalendarConnectionRow;
+        Insert: Partial<CalendarConnectionRow> &
+          Pick<CalendarConnectionRow, "user_id">;
+        Update: Partial<CalendarConnectionRow>;
+        Relationships: [];
+      };
+      scheduling_settings: {
+        Row: SchedulingSettingsRow;
+        Insert: Partial<SchedulingSettingsRow> &
+          Pick<SchedulingSettingsRow, "user_id">;
+        Update: Partial<SchedulingSettingsRow>;
         Relationships: [];
       };
       proposal_items: {

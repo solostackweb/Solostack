@@ -28,15 +28,18 @@ interface Prefill {
 export function MeetingNewView({
   clients,
   prefill,
+  availabilityEnabled,
 }: {
   clients: ClientOption[];
   prefill: Prefill;
+  availabilityEnabled: boolean;
 }) {
   const [topic, setTopic] = React.useState(prefill.topic ?? "");
   const [duration, setDuration] = React.useState(30);
   const [notes, setNotes] = React.useState("");
   const [clientId, setClientId] = React.useState(prefill.clientId ?? "");
   const [slots, setSlots] = React.useState<string[]>(["", "", ""]);
+  const [mode, setMode] = React.useState<"slots" | "availability">("slots");
   const [saving, setSaving] = React.useState(false);
   const [shareUrl, setShareUrl] = React.useState<string | null>(null);
   const [copied, setCopied] = React.useState(false);
@@ -49,17 +52,20 @@ export function MeetingNewView({
       toast.error("Add a topic for the call.");
       return;
     }
-    const isoSlots = slots
-      .map((slot) => slot.trim())
-      .filter(Boolean)
-      .map((slot) => {
-        const date = new Date(slot);
-        return Number.isNaN(date.getTime()) ? null : date.toISOString();
-      })
-      .filter((slot): slot is string => slot !== null);
-    if (isoSlots.length === 0) {
-      toast.error("Offer at least one time slot.");
-      return;
+    let isoSlots: string[] = [];
+    if (mode === "slots") {
+      isoSlots = slots
+        .map((slot) => slot.trim())
+        .filter(Boolean)
+        .map((slot) => {
+          const date = new Date(slot);
+          return Number.isNaN(date.getTime()) ? null : date.toISOString();
+        })
+        .filter((slot): slot is string => slot !== null);
+      if (isoSlots.length === 0) {
+        toast.error("Offer at least one time slot.");
+        return;
+      }
     }
 
     setSaving(true);
@@ -68,6 +74,7 @@ export function MeetingNewView({
       notes: notes.trim() || undefined,
       durationMinutes: duration,
       slots: isoSlots,
+      mode,
       clientId: clientId || null,
       projectId: prefill.projectId ?? null,
       proposalId: prefill.proposalId ?? null,

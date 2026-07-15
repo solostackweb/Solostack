@@ -8,6 +8,11 @@ import { getServerSupabase } from "@/lib/supabase/server";
 import { getAdminSupabase } from "@/lib/supabase/admin";
 import { sendEmail } from "@/features/email/service";
 import { getPublicAppUrl } from "@/features/documents/urls";
+import {
+  accessTokenForBooking,
+  computeOpenSlots,
+} from "@/features/scheduling/server";
+import { createCalendarEvent } from "@/features/scheduling/google";
 import { buildMeetingIcs } from "./calendar";
 
 export type MeetingActionResult<T = undefined> =
@@ -51,7 +56,8 @@ const createSchema = z.object({
   notes: z.string().trim().max(4000).optional(),
   durationMinutes: z.number().int().min(5).max(480).optional(),
   timezone: z.string().trim().max(80).optional(),
-  slots: z.array(z.string().trim().min(1)).min(1).max(5),
+  slots: z.array(z.string().trim().min(1)).max(5).optional(),
+  mode: z.enum(["slots", "availability"]).optional(),
   clientId: z.string().uuid().optional().nullable(),
   projectId: z.string().uuid().optional().nullable(),
   proposalId: z.string().uuid().optional().nullable(),
@@ -72,6 +78,11 @@ export async function createMeetingAction(
     };
   }
   const d = parsed.data;
+  const mode = d.mode ?? "slots";
+  const slots = d.slots ?? [];
+  if (mode === "slots" && slots.length === 0) {
+    return { ok: false, error: "Offer at least one time slot." };
+  }
 
   const supabase = await getServerSupabase();
   const { data, error } = await supabase
@@ -82,7 +93,8 @@ export async function createMeetingAction(
       notes: d.notes ?? null,
       duration_minutes: d.durationMinutes ?? 30,
       timezone: d.timezone ?? "Asia/Kolkata",
-      proposed_slots: d.slots,
+      proposed_slots: slots,
+      mode,
       client_id: d.clientId ?? null,
       project_id: d.projectId ?? null,
       proposal_id: d.proposalId ?? null,
@@ -137,7 +149,7 @@ export async function confirmMeetingSlotAction(
   const { data: found } = await admin
     .from("meetings")
     .select(
-      "id, proposed_slots, status, user_id, topic, timezone, duration_minutes, client_id, meet_link",
+      "id, proposed_slots, status, user_id, topic, timezone, duration_minutes, client_id, meet_link, mode",
     )
     .eq("public_token", parsed.data.token)
     .maybeSingle();
@@ -153,6 +165,7 @@ export async function confirmMeetingSlotAction(
         duration_minutes: number;
         client_id: string | null;
         meet_link: string | null;
+        mode: string;
       }
     | null;
   if (!meeting) {
@@ -162,20 +175,54 @@ export async function confirmMeetingSlotAction(
     return { ok: false, error: "This meeting was cancelled." };
   }
 
-  const slots = Array.isArray(meeting.proposed_slots)
-    ? (meeting.proposed_slots as unknown[]).filter(
-        (value): value is string => typeof value === "string",
-      )
-    : [];
-  if (!slots.includes(parsed.data.slot)) {
-    return { ok: false, error: "That time is no longer available." };
+  const slot = parsed.data.slot;
+  if (meeting.mode === "availability") {
+    // Re-check live availability to avoid double-booking.
+    const open = await computeOpenSlots(meeting.user_id, {
+      durationMinutes: meeting.duration_minutes,
+    });
+    if (!open.includes(slot)) {
+      return { ok: false, error: "That time is no longer available." };
+    }
+  } else {
+    const slots = Array.isArray(meeting.proposed_slots)
+      ? (meeting.proposed_slots as unknown[]).filter(
+          (value): value is string => typeof value === "string",
+        )
+      : [];
+    if (!slots.includes(slot)) {
+      return { ok: false, error: "That time is no longer available." };
+    }
+  }
+
+  // Availability bookings create the event on the freelancer's Google Calendar
+  // and use the generated Meet link.
+  let meetLink = meeting.meet_link;
+  if (meeting.mode === "availability") {
+    const token = await accessTokenForBooking(meeting.user_id);
+    if (token) {
+      const clientEmail = await lookupClientEmail(meeting.client_id);
+      const endIso = new Date(
+        new Date(slot).getTime() + meeting.duration_minutes * 60_000,
+      ).toISOString();
+      const event = await createCalendarEvent(token, {
+        summary: meeting.topic,
+        startIso: slot,
+        endIso,
+        attendeeEmail: clientEmail,
+        timezone: meeting.timezone,
+        withMeet: true,
+      });
+      if (event?.meetLink) meetLink = event.meetLink;
+    }
   }
 
   const { error } = await admin
     .from("meetings")
     .update({
-      scheduled_at: parsed.data.slot,
+      scheduled_at: slot,
       status: "confirmed",
+      meet_link: meetLink,
       updated_at: new Date().toISOString(),
     } as never)
     .eq("public_token", parsed.data.token);
@@ -186,10 +233,10 @@ export async function confirmMeetingSlotAction(
   const ics = buildMeetingIcs({
     uid: meeting.id,
     topic: meeting.topic,
-    startIso: parsed.data.slot,
+    startIso: slot,
     durationMinutes: meeting.duration_minutes,
-    description: meeting.meet_link ? `Join: ${meeting.meet_link}` : null,
-    location: meeting.meet_link ?? null,
+    description: meetLink ? `Join: ${meetLink}` : null,
+    location: meetLink ?? null,
   });
   const attachment = {
     name: "meeting.ics",
@@ -208,7 +255,7 @@ export async function confirmMeetingSlotAction(
     topic: meeting.topic,
     timezone: meeting.timezone,
     slot: parsed.data.slot,
-    meetLink: meeting.meet_link,
+    meetLink,
     attachment,
   }).catch(() => undefined);
 
@@ -288,6 +335,19 @@ function escapeHtml(value: string): string {
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;");
+}
+
+async function lookupClientEmail(
+  clientId: string | null,
+): Promise<string | null> {
+  if (!clientId) return null;
+  const admin = getAdminSupabase();
+  const { data } = await admin
+    .from("clients")
+    .select("email")
+    .eq("id", clientId)
+    .maybeSingle();
+  return (data as { email: string | null } | null)?.email ?? null;
 }
 
 async function ownerContact(
