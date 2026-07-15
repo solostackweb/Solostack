@@ -7,6 +7,7 @@ import {
   ArrowLeft,
   ArrowRight,
   BookOpen,
+  CalendarClock,
   CheckCircle2,
   Copy,
   ExternalLink,
@@ -474,6 +475,15 @@ export function ProposalBuilderView({
                     }${clientId ? `clientId=${clientId}` : ""}`}
                   >
                     <BookOpen className="h-4 w-4" /> Welcome doc
+                  </Link>
+                </Button>
+                <Button asChild variant="outline">
+                  <Link
+                    href={`/dashboard/meetings/new?proposalId=${proposal.id}${
+                      clientId ? `&clientId=${clientId}` : ""
+                    }${projectId ? `&projectId=${projectId}` : ""}`}
+                  >
+                    <CalendarClock className="h-4 w-4" /> Book a call
                   </Link>
                 </Button>
               </div>

@@ -10,6 +10,7 @@ import {
   Trash2,
   Copy,
   BookOpen,
+  CalendarClock,
   CheckCircle2,
   ReceiptText,
   XCircle,
@@ -416,6 +417,19 @@ export function ContractDetailView({
                   <CheckCircle2 /> Mark signed
                 </Button>
               )}
+              <Button asChild size="sm" variant="outline">
+                <Link
+                  href={`/dashboard/meetings/new?contractId=${contract.id}${
+                    contract.clientId ? `&clientId=${contract.clientId}` : ""
+                  }${
+                    contract.projectId
+                      ? `&projectId=${contract.projectId}`
+                      : ""
+                  }`}
+                >
+                  <CalendarClock /> Book a call
+                </Link>
+              </Button>
               {contract.status === "signed" && (
                 <>
                   <Button size="sm" onClick={handleConvertToInvoice}>

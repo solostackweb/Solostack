@@ -660,6 +660,33 @@ export interface InvoiceItemRow {
   created_at: string;
 }
 
+export type MeetingStatus =
+  | "proposed"
+  | "confirmed"
+  | "cancelled"
+  | "completed";
+
+export interface MeetingRow {
+  id: string;
+  user_id: string;
+  client_id: string | null;
+  project_id: string | null;
+  proposal_id: string | null;
+  contract_id: string | null;
+  topic: string;
+  notes: string | null;
+  duration_minutes: number;
+  timezone: string;
+  proposed_slots: Json;
+  scheduled_at: string | null;
+  meet_link: string | null;
+  location: string | null;
+  status: MeetingStatus;
+  public_token: string;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface ContractRow {
   id: string;
   user_id: string;
@@ -1349,6 +1376,13 @@ export interface Database {
         Insert: Partial<ProposalRow> &
           Pick<ProposalRow, "user_id" | "title">;
         Update: Partial<ProposalRow>;
+        Relationships: [];
+      };
+      meetings: {
+        Row: MeetingRow;
+        Insert: Partial<MeetingRow> &
+          Pick<MeetingRow, "user_id" | "topic" | "public_token">;
+        Update: Partial<MeetingRow>;
         Relationships: [];
       };
       proposal_items: {
