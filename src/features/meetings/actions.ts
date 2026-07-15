@@ -8,6 +8,7 @@ import { getServerSupabase } from "@/lib/supabase/server";
 import { getAdminSupabase } from "@/lib/supabase/admin";
 import { sendEmail } from "@/features/email/service";
 import { getPublicAppUrl } from "@/features/documents/urls";
+import { buildMeetingIcs } from "./calendar";
 
 export type MeetingActionResult<T = undefined> =
   | { ok: true; data?: T; message?: string }
@@ -135,7 +136,9 @@ export async function confirmMeetingSlotAction(
   const admin = getAdminSupabase();
   const { data: found } = await admin
     .from("meetings")
-    .select("id, proposed_slots, status, user_id, topic, timezone")
+    .select(
+      "id, proposed_slots, status, user_id, topic, timezone, duration_minutes, client_id, meet_link",
+    )
     .eq("public_token", parsed.data.token)
     .maybeSingle();
 
@@ -147,6 +150,9 @@ export async function confirmMeetingSlotAction(
         user_id: string;
         topic: string;
         timezone: string;
+        duration_minutes: number;
+        client_id: string | null;
+        meet_link: string | null;
       }
     | null;
   if (!meeting) {
@@ -176,12 +182,34 @@ export async function confirmMeetingSlotAction(
 
   if (error) return { ok: false, error: error.message };
 
-  // Best-effort: let the freelancer know a time was picked.
+  // Best-effort: calendar invite (.ics) + notify both sides.
+  const ics = buildMeetingIcs({
+    uid: meeting.id,
+    topic: meeting.topic,
+    startIso: parsed.data.slot,
+    durationMinutes: meeting.duration_minutes,
+    description: meeting.meet_link ? `Join: ${meeting.meet_link}` : null,
+    location: meeting.meet_link ?? null,
+  });
+  const attachment = {
+    name: "meeting.ics",
+    content: Buffer.from(ics, "utf8"),
+  };
+
   await notifyOwnerOfConfirm({
     userId: meeting.user_id,
     topic: meeting.topic,
     timezone: meeting.timezone,
     slot: parsed.data.slot,
+    attachment,
+  }).catch(() => undefined);
+  await notifyClientOfConfirm({
+    clientId: meeting.client_id,
+    topic: meeting.topic,
+    timezone: meeting.timezone,
+    slot: parsed.data.slot,
+    meetLink: meeting.meet_link,
+    attachment,
   }).catch(() => undefined);
 
   return { ok: true, message: "Your time is confirmed." };
@@ -329,6 +357,7 @@ async function notifyOwnerOfConfirm(args: {
   topic: string;
   timezone: string;
   slot: string;
+  attachment?: { name: string; content: Buffer };
 }): Promise<void> {
   const owner = await ownerContact(args.userId);
   if (!owner.email) return;
@@ -354,6 +383,61 @@ async function notifyOwnerOfConfirm(args: {
         <p style="color:#64748b;font-size:12px">Add the video link from your Stackivo meetings page so they can join.</p>
       </div>`,
     text: `Your client confirmed "${args.topic}" for ${when}.`,
+    attachments: args.attachment ? [args.attachment] : undefined,
     tags: ["meeting-confirmed"],
+  });
+}
+
+async function notifyClientOfConfirm(args: {
+  clientId: string | null;
+  topic: string;
+  timezone: string;
+  slot: string;
+  meetLink: string | null;
+  attachment?: { name: string; content: Buffer };
+}): Promise<void> {
+  if (!args.clientId) return;
+
+  const admin = getAdminSupabase();
+  const { data } = await admin
+    .from("clients")
+    .select("email, full_name, business_name")
+    .eq("id", args.clientId)
+    .maybeSingle();
+  const client = data as
+    | { email: string | null; full_name: string; business_name: string | null }
+    | null;
+  if (!client?.email) return;
+
+  const clientName = client.business_name || client.full_name || "there";
+  let when = args.slot;
+  try {
+    when = new Intl.DateTimeFormat("en-IN", {
+      timeZone: args.timezone || "Asia/Kolkata",
+      dateStyle: "full",
+      timeStyle: "short",
+    }).format(new Date(args.slot));
+  } catch {
+    /* fall back to the raw ISO string */
+  }
+
+  const joinLine = args.meetLink
+    ? `<p><a href="${args.meetLink}">Join link</a></p>`
+    : "";
+
+  await sendEmail({
+    type: "share",
+    to: { email: client.email, name: clientName },
+    subject: `Confirmed: ${args.topic}`,
+    html: `<div style="font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:#0f172a;line-height:1.6">
+        <p>Hi ${escapeHtml(clientName)},</p>
+        <p>Your call <strong>${escapeHtml(args.topic)}</strong> is confirmed:</p>
+        <p><strong>${escapeHtml(when)}</strong></p>
+        ${joinLine}
+        <p style="color:#64748b;font-size:12px">A calendar invite is attached.</p>
+      </div>`,
+    text: `Your call "${args.topic}" is confirmed for ${when}.`,
+    attachments: args.attachment ? [args.attachment] : undefined,
+    tags: ["meeting-confirmed-client"],
   });
 }

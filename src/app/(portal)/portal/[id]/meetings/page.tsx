@@ -1,5 +1,4 @@
 import { getClientPortalProps } from "@/features/portals/client-portal-data";
-import { ClientPortalMeetings } from "@/features/portals/components/client-portal-pages";
 import { listMeetingsForClient } from "@/features/meetings/server";
 import { PortalScheduledCalls } from "@/features/meetings/components/portal-scheduled-calls";
 
@@ -18,20 +17,17 @@ export default async function ClientPortalMeetingsPage({
     : [];
 
   return (
-    <div className="space-y-6">
-      <PortalScheduledCalls
-        meetings={calls.map((meeting) => ({
-          id: meeting.id,
-          topic: meeting.topic,
-          durationMinutes: meeting.durationMinutes,
-          proposedSlots: meeting.proposedSlots,
-          scheduledAt: meeting.scheduledAt,
-          status: meeting.status,
-          meetLink: meeting.meetLink,
-          publicToken: meeting.publicToken,
-        }))}
-      />
-      <ClientPortalMeetings data={data} />
-    </div>
+    <PortalScheduledCalls
+      meetings={calls.map((meeting) => ({
+        id: meeting.id,
+        topic: meeting.topic,
+        durationMinutes: meeting.durationMinutes,
+        proposedSlots: meeting.proposedSlots,
+        scheduledAt: meeting.scheduledAt,
+        status: meeting.status,
+        meetLink: meeting.meetLink,
+        publicToken: meeting.publicToken,
+      }))}
+    />
   );
 }

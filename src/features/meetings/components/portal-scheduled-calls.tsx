@@ -40,16 +40,21 @@ export function PortalScheduledCalls({
 }: {
   meetings: PortalMeeting[];
 }) {
-  if (meetings.length === 0) return null;
-
   return (
     <section className="space-y-3">
       <h2 className="text-sm font-semibold">Scheduled calls</h2>
-      <div className="space-y-3">
-        {meetings.map((meeting) => (
-          <PortalCallCard key={meeting.id} meeting={meeting} />
-        ))}
-      </div>
+      {meetings.length === 0 ? (
+        <p className="rounded-xl border border-dashed bg-muted/20 p-6 text-center text-sm text-muted-foreground">
+          No calls scheduled yet. When your freelancer sets one up, you&apos;ll
+          pick a time and join right here.
+        </p>
+      ) : (
+        <div className="space-y-3">
+          {meetings.map((meeting) => (
+            <PortalCallCard key={meeting.id} meeting={meeting} />
+          ))}
+        </div>
+      )}
     </section>
   );
 }

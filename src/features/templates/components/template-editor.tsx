@@ -80,9 +80,6 @@ export function TemplateEditor({
         ? content.body
         : "",
   );
-  const [ackRequired, setAckRequired] = React.useState(
-    Boolean((content as WelcomeDocTemplateContent).acknowledgementRequired),
-  );
 
   const usesSections = type === "contract" || type === "welcome_doc";
   const initialSections = (
@@ -157,7 +154,6 @@ export function TemplateEditor({
         terms,
         subject,
         body,
-        ackRequired,
         sections: sections.map((s) => [s.heading, s.body]),
       }),
     [
@@ -170,7 +166,6 @@ export function TemplateEditor({
       terms,
       subject,
       body,
-      ackRequired,
       sections,
     ],
   );
@@ -332,17 +327,6 @@ export function TemplateEditor({
                     <Field label="Intro">
                       <Textarea name="body" rows={3} value={body} onChange={(e) => setBody(e.target.value)} onFocus={focusField(setBody)} />
                     </Field>
-                    <label className="flex items-center gap-2 text-sm">
-                      <input
-                        type="checkbox"
-                        name="acknowledgementRequired"
-                        value="true"
-                        checked={ackRequired}
-                        onChange={(e) => setAckRequired(e.target.checked)}
-                        className="h-4 w-4"
-                      />
-                      Require acknowledgement
-                    </label>
                   </>
                 ) : null}
                 <div className="flex items-center justify-between">

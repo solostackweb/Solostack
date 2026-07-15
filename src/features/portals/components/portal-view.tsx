@@ -83,7 +83,6 @@ import {
 import { attachWelcomeToPortalAction } from "@/features/welcome-documents/actions";
 import { PORTAL_DASHBOARD_INDEX } from "@/features/portals/routes";
 import { UpdatesSection } from "./updates-section";
-import { MeetingsSection } from "./meetings-section";
 import type {
   PortalActivityRow,
   PortalFileRow,
@@ -235,13 +234,6 @@ export function PortalView(props: ViewProps) {
         isOwner={isOwner}
         currentUserId={props.currentUserId}
       />
-      <MeetingsSection
-        portalId={props.portalId}
-        portalName={props.portalName}
-        meetings={props.meetings}
-        isOwner={isOwner}
-        currentUserId={props.currentUserId}
-      />
       <ProposalsSection
         proposals={props.proposals}
         available={props.availableProposals}
@@ -290,13 +282,6 @@ export function PortalView(props: ViewProps) {
         portalId={props.portalId}
         portalName={props.portalName}
         updates={props.updates}
-        isOwner={isOwner}
-        currentUserId={props.currentUserId}
-      />
-      <MeetingsSection
-        portalId={props.portalId}
-        portalName={props.portalName}
-        meetings={props.meetings}
         isOwner={isOwner}
         currentUserId={props.currentUserId}
       />
@@ -550,15 +535,6 @@ function ClientPortalExperience(props: ViewProps) {
         onOpenDocument={setViewerDoc}
       />
 
-      <section id="portal-meetings" className="mt-6 scroll-mt-24">
-        <MeetingsSection
-          portalId={props.portalId}
-          portalName={props.portalName}
-          meetings={props.meetings}
-          isOwner={false}
-          currentUserId={props.currentUserId}
-        />
-      </section>
 
       <ClientMorePanel
         portalName={props.portalName}
@@ -879,7 +855,7 @@ function ClientFilesPanel({
                 key={`welcome-${document.id}`}
                 icon={BookOpen}
                 title={document.title}
-                meta={`${document.status.replace(/_/g, " ")}${document.acknowledgement_required ? " • acknowledgement required" : ""}`}
+                meta={`${document.status.replace(/_/g, " ")}`}
                 disabled={!document.public_token}
                 onOpen={() =>
                   document.public_token &&
@@ -1094,7 +1070,6 @@ function ClientBottomNav() {
     { href: "#portal-home", icon: Home, label: "Home" },
     { href: "#portal-updates", icon: MessageSquare, label: "Updates" },
     { href: "#portal-files", icon: Files, label: "Files" },
-    { href: "#portal-meetings", icon: Video, label: "Meetings" },
     { href: "#portal-more", icon: MoreHorizontal, label: "More" },
   ] as const;
 
@@ -1218,7 +1193,6 @@ function initialsFromPortalName(name: string): string {
 function MobileNavBar() {
   const items = [
     { href: "#portal-updates",  icon: MessageSquare, label: "Updates" },
-    { href: "#portal-meetings", icon: Video,         label: "Meetings" },
     { href: "#portal-files",    icon: Files,         label: "Files"    },
     { href: "#portal-chat",     icon: Send,          label: "Chat"     },
   ] as const;
@@ -1277,7 +1251,7 @@ function WelcomeDocumentsSection({
             items={available.map((doc) => ({
               id: doc.id,
               label: doc.title,
-              meta: `${doc.status.replace(/_/g, " ")}${doc.acknowledgement_required ? " · ack" : ""}`,
+              meta: `${doc.status.replace(/_/g, " ")}`,
             }))}
             onAttach={async (id) => attachWelcomeToPortalAction({ portalId, documentId: id })}
           />
@@ -1292,7 +1266,6 @@ function WelcomeDocumentsSection({
         ) : (
           <ul className={`divide-y rounded-lg border ${documents.length > 5 ? "max-h-[28rem] overflow-y-auto scrollbar-thin" : ""}`}>
             {documents.map((d) => {
-              const needsAck = d.acknowledgement_required && d.status !== "acknowledged";
               return (
                 <li key={d.id} className="px-3 py-3">
                   <div className="flex items-center justify-between gap-3">
@@ -1300,7 +1273,6 @@ function WelcomeDocumentsSection({
                       <p className="truncate text-sm font-medium">{d.title}</p>
                       <p className="mt-0.5 text-[11px] capitalize text-muted-foreground">
                         {d.status.replace(/_/g, " ")}
-                        {d.acknowledgement_required ? " · acknowledgement required" : ""}
                       </p>
                     </div>
                     {isOwner ? (
@@ -1317,11 +1289,11 @@ function WelcomeDocumentsSection({
                         <Button
                           asChild
                           size="sm"
-                          variant={needsAck ? "default" : "outline"}
+                          variant="outline"
                           className="h-8 shrink-0"
                         >
                           <Link href={`/w/${d.public_token}`} target="_blank">
-                            {needsAck ? "Read & acknowledge" : "Read guide"}
+                            Read guide
                             <ExternalLink className="h-3.5 w-3.5" />
                           </Link>
                         </Button>

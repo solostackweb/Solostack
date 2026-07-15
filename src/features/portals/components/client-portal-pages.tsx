@@ -264,15 +264,7 @@ export function ClientPortalHome({ data }: { data: ClientPortalProps }) {
   }, [data.portalId]);
 
   // Onboarding checklist — only items that actually apply to this portal.
-  const welcomeNeedsAck = data.welcomeDocuments.some(
-    (d) => d.acknowledgement_required && d.status !== "acknowledged",
-  );
   const onboardingItems = [
-    data.welcomeDocuments.length > 0 && {
-      label: "Review your welcome guide",
-      done: !welcomeNeedsAck,
-      href: `/portal/${data.portalId}/files`,
-    },
     data.contracts.length > 0 && {
       label: "Review & sign your contract",
       done: unsignedContracts === 0,
@@ -837,7 +829,7 @@ export function ClientPortalFiles({ data }: { data: ClientPortalProps }) {
                   key={doc.id}
                   icon={BookOpen}
                   title={doc.title}
-                  meta={doc.acknowledgement_required ? "Welcome guide • acknowledgement required" : "Welcome guide"}
+                  meta="Welcome guide"
                   href={doc.public_token ? `/w/${doc.public_token}` : null}
                   comments={{
                     portalId: data.portalId,
