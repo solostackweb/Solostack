@@ -153,6 +153,9 @@ function MeetingCard({ meeting }: { meeting: Meeting }) {
               )}
               {copied ? "Copied" : "Copy client link"}
             </Button>
+            <Button asChild size="sm" variant="ghost">
+              <Link href={`/dashboard/meetings/${meeting.id}`}>Open</Link>
+            </Button>
             {meeting.status === "confirmed" ? (
               <>
                 <Button

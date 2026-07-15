@@ -5,6 +5,7 @@ import { CalendarClock, CheckCircle2, Video } from "lucide-react";
 import { toast } from "sonner";
 
 import { confirmMeetingSlotAction } from "../actions";
+import { DailyEmbed, isEmbeddableRoom } from "./daily-embed";
 
 interface PublicMeeting {
   topic: string;
@@ -41,6 +42,7 @@ export function MeetingConfirmView({
     meeting.status === "confirmed" ? meeting.scheduledAt : null,
   );
   const [busy, setBusy] = React.useState(false);
+  const [joined, setJoined] = React.useState(false);
 
   const pick = async (slot: string) => {
     setBusy(true);
@@ -104,14 +106,31 @@ export function MeetingConfirmView({
                 {formatSlot(confirmedAt)}
               </p>
               {meeting.meetLink ? (
-                <a
-                  href={meeting.meetLink}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground"
-                >
-                  <Video className="h-4 w-4" /> Join the call
-                </a>
+                isEmbeddableRoom(meeting.meetLink) ? (
+                  joined ? (
+                    <DailyEmbed
+                      url={meeting.meetLink}
+                      title={meeting.topic}
+                    />
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setJoined(true)}
+                      className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground"
+                    >
+                      <Video className="h-4 w-4" /> Join the call
+                    </button>
+                  )
+                ) : (
+                  <a
+                    href={meeting.meetLink}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground"
+                  >
+                    <Video className="h-4 w-4" /> Join the call
+                  </a>
+                )
               ) : (
                 <p className="text-xs text-slate-500">
                   {hostName} will share the video link before the call.

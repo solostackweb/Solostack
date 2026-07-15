@@ -43,6 +43,23 @@ export async function listMeetingsForOwner(
   return ((data ?? []) as MeetingRow[]).map(mapMeetingRow);
 }
 
+/** A single meeting owned by the signed-in freelancer, for the detail page. */
+export async function getMeetingForOwner(id: string): Promise<Meeting | null> {
+  const userId = await currentUserId();
+  if (!userId) return null;
+
+  const supabase = await getServerSupabase();
+  const { data } = await supabase
+    .from("meetings")
+    .select("*")
+    .eq("id", id)
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  const row = data as MeetingRow | null;
+  return row ? mapMeetingRow(row) : null;
+}
+
 /**
  * Public lookup by token — used by the client-facing confirm page. The client
  * is not logged in, so this goes through the service-role client and is scoped
