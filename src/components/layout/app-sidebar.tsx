@@ -15,13 +15,13 @@ const SIDEBAR_GROUPS: Array<{ label: string; items: NavItem[] }> = [
   {
     label: "Workspace",
     items: primaryNav.filter((item) =>
-      ["Dashboard", "Clients", "Lead Forms", "Projects", "Proposals"].includes(item.title),
+      ["Dashboard", "Clients", "Lead Forms", "Projects", "Meetings"].includes(item.title),
     ),
   },
   {
     label: "Documents",
     items: primaryNav.filter((item) =>
-      ["Invoices", "Contracts", "Welcome Docs", "Templates"].includes(item.title),
+      ["Documents", "Templates", "Invoices"].includes(item.title),
     ),
   },
   {
