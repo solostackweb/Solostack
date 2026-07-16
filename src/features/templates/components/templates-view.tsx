@@ -61,14 +61,16 @@ export function TemplatesView({
         </p>
       </header>
 
-      <section className="grid gap-5 xl:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
-        {/* Create — pick a type, open the full builder */}
-        <div className="rounded-xl border bg-card p-5 shadow-sm">
-          <h2 className="text-sm font-semibold">Create a template</h2>
-          <p className="mt-1 text-xs text-muted-foreground">
-            Pick a type to open the builder with a live preview and merge fields.
-          </p>
-          <div className="mt-4 grid gap-2 sm:grid-cols-2">
+      {/* Create — compact full-width band; pick a type to open the builder */}
+      <section className="rounded-xl border bg-card p-5 shadow-sm">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div className="min-w-0">
+            <h2 className="text-sm font-semibold">Create a template</h2>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Pick a type to open the builder with a live preview and merge fields.
+            </p>
+          </div>
+          <div className="grid gap-2 sm:grid-cols-3 lg:w-auto lg:min-w-[420px]">
             {TYPE_OPTIONS.map((option) => (
               <Link
                 key={option.value}
@@ -81,36 +83,37 @@ export function TemplatesView({
             ))}
           </div>
         </div>
+      </section>
 
-        <section className="rounded-xl border bg-card p-5 shadow-sm">
-          <h2 className="text-sm font-semibold">Your template library</h2>
-          <p className="mt-1 text-xs text-muted-foreground">
-            Saved templates appear in the matching proposal, contract, and welcome
-            document flows.
-          </p>
-          <div className="mt-4 space-y-5">
-            {templates.length === 0 ? (
-              <div className="rounded-xl border border-dashed p-8 text-center text-sm text-muted-foreground">
-                No saved templates yet. Create one, or fork a starter below.
-              </div>
-            ) : (
-              groupedTemplates
-                .filter((group) => group.templates.length > 0)
-                .map((group) => (
-                  <div key={group.value}>
-                    <p className="mb-2 text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-                      {group.label}
-                    </p>
-                    <div className="space-y-3">
-                      {group.templates.map((template) => (
-                        <TemplateLibraryCard key={template.id} template={template} />
-                      ))}
-                    </div>
+      {/* Library — full width, cards flow into a responsive grid as it grows */}
+      <section className="rounded-xl border bg-card p-5 shadow-sm">
+        <h2 className="text-sm font-semibold">Your template library</h2>
+        <p className="mt-1 text-xs text-muted-foreground">
+          Saved templates appear in the matching proposal, contract, and welcome
+          document flows.
+        </p>
+        <div className="mt-4 space-y-6">
+          {templates.length === 0 ? (
+            <div className="rounded-xl border border-dashed p-8 text-center text-sm text-muted-foreground">
+              No saved templates yet. Create one, or fork a starter below.
+            </div>
+          ) : (
+            groupedTemplates
+              .filter((group) => group.templates.length > 0)
+              .map((group) => (
+                <div key={group.value}>
+                  <p className="mb-2 text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                    {group.label}
+                  </p>
+                  <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                    {group.templates.map((template) => (
+                      <TemplateLibraryCard key={template.id} template={template} />
+                    ))}
                   </div>
-                ))
-            )}
-          </div>
-        </section>
+                </div>
+              ))
+          )}
+        </div>
       </section>
 
       {builtins.length > 0 ? (
@@ -135,7 +138,7 @@ export function TemplatesView({
 
 function BuiltinTemplateCard({ template }: { template: TemplateRecord }) {
   return (
-    <article className="flex flex-col rounded-xl border bg-background p-4">
+    <article className="flex h-full flex-col rounded-xl border bg-background p-4">
       <div className="flex items-center gap-2">
         <TemplateTypeIcon type={template.templateType} />
         <h3 className="min-w-0 flex-1 truncate text-sm font-semibold">
@@ -149,7 +152,7 @@ function BuiltinTemplateCard({ template }: { template: TemplateRecord }) {
         {template.description ?? template.category}
       </p>
       <TemplatePreview template={template} />
-      <form action={cloneTemplateRedirectAction} className="mt-3">
+      <form action={cloneTemplateRedirectAction} className="mt-auto pt-3">
         <input type="hidden" name="sourceId" value={template.id} />
         <Button type="submit" size="sm" variant="outline" className="w-full">
           <Wand2 className="h-3.5 w-3.5" /> Use as starting point
@@ -161,7 +164,7 @@ function BuiltinTemplateCard({ template }: { template: TemplateRecord }) {
 
 function TemplateLibraryCard({ template }: { template: TemplateRecord }) {
   return (
-    <article className="rounded-xl border bg-background p-4">
+    <article className="flex h-full flex-col rounded-xl border bg-background p-4">
       <div className="flex items-center gap-2">
         <TemplateTypeIcon type={template.templateType} />
         <h3 className="min-w-0 flex-1 truncate text-sm font-semibold">
@@ -180,7 +183,7 @@ function TemplateLibraryCard({ template }: { template: TemplateRecord }) {
         {template.description ?? template.category}
       </p>
       <TemplatePreview template={template} />
-      <div className="mt-3 flex flex-wrap gap-2">
+      <div className="mt-auto flex flex-wrap gap-2 pt-3">
         <Button asChild size="sm" variant="outline">
           <Link href={`/dashboard/templates/${template.id}`}>
             <Pencil className="h-3.5 w-3.5" /> Edit
