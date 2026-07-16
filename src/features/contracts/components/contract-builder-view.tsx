@@ -37,6 +37,10 @@ import type { ContractKindRow } from "@/lib/supabase/types";
 import { useProfile } from "@/features/profile/context";
 import { getDisplayName } from "@/features/profile/utils";
 import type { TemplateRecord, ContractTemplateContent } from "@/features/templates/builtin";
+import {
+  applyMergeFields,
+  type MergeContext,
+} from "@/features/templates/merge-fields";
 import { CONTRACT_KIND_LABEL, CONTRACT_KINDS } from "../status";
 import type {
   ContractSection,
@@ -355,6 +359,38 @@ export function ContractBuilderView({
 
   const clientDisplayName = client ? getClientDisplayName(client) : null;
   const freelancerName = getDisplayName(profile) || profile?.fullName || "";
+
+  // Live substitution map for {{merge fields}}. The editable text keeps the
+  // raw {{tokens}} (so the draft stays reusable and re-resolves if the client
+  // changes); the preview and the saved document show the real values. The
+  // server re-applies the same substitution on save (contracts/actions.ts).
+  const mergeCtx = React.useMemo<MergeContext>(
+    () => ({
+      client_name: clientDisplayName || "",
+      client_company: client?.businessName || "",
+      client_email: client?.email || "",
+      project_name: project?.name || "",
+      business_name:
+        profile?.businessName || profile?.legalName || freelancerName || "",
+      freelancer_name: freelancerName || "",
+      currency: selectedCurrency || "",
+      today: new Date().toLocaleDateString("en-IN", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+      }),
+    }),
+    [
+      clientDisplayName,
+      client?.businessName,
+      client?.email,
+      project?.name,
+      profile?.businessName,
+      profile?.legalName,
+      freelancerName,
+      selectedCurrency,
+    ],
+  );
   const placeholderReplacements = React.useMemo(
     () =>
       buildContractPlaceholderReplacements({
@@ -397,9 +433,13 @@ export function ContractBuilderView({
   }, [placeholderReplacements]);
 
   const previewData = {
-    title: title || "Untitled contract",
+    title: applyMergeFields(title || "Untitled contract", mergeCtx),
     kind,
-    sections,
+    sections: sections.map((section) => ({
+      ...section,
+      heading: applyMergeFields(section.heading, mergeCtx),
+      body: applyMergeFields(section.body, mergeCtx),
+    })),
     signers: [
       ...(freelancerName
         ? [
