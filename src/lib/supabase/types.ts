@@ -730,6 +730,33 @@ export interface InvoiceItemRow {
   created_at: string;
 }
 
+export interface QuestionnaireRow {
+  id: string;
+  user_id: string;
+  title: string;
+  description: string | null;
+  questions: Json;
+  active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface QuestionnaireSendRow {
+  id: string;
+  user_id: string;
+  questionnaire_id: string | null;
+  client_id: string | null;
+  project_id: string | null;
+  title: string;
+  questions: Json;
+  responses: Json;
+  status: string;
+  public_token: string;
+  submitted_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface CalendarConnectionRow {
   user_id: string;
   provider: string;
@@ -1517,6 +1544,20 @@ export interface Database {
         Insert: Partial<SchedulingSettingsRow> &
           Pick<SchedulingSettingsRow, "user_id">;
         Update: Partial<SchedulingSettingsRow>;
+        Relationships: [];
+      };
+      questionnaires: {
+        Row: QuestionnaireRow;
+        Insert: Partial<QuestionnaireRow> &
+          Pick<QuestionnaireRow, "user_id" | "title">;
+        Update: Partial<QuestionnaireRow>;
+        Relationships: [];
+      };
+      questionnaire_sends: {
+        Row: QuestionnaireSendRow;
+        Insert: Partial<QuestionnaireSendRow> &
+          Pick<QuestionnaireSendRow, "user_id" | "title" | "public_token">;
+        Update: Partial<QuestionnaireSendRow>;
         Relationships: [];
       };
       proposal_items: {

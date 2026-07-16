@@ -15,7 +15,7 @@ const SIDEBAR_GROUPS: Array<{ label: string; items: NavItem[] }> = [
   {
     label: "Workspace",
     items: primaryNav.filter((item) =>
-      ["Dashboard", "Clients", "Lead Forms", "Projects", "Meetings"].includes(item.title),
+      ["Dashboard", "Clients", "Projects", "Meetings"].includes(item.title),
     ),
   },
   {
