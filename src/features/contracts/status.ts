@@ -26,7 +26,9 @@ export const CONTRACT_STATUS_LABEL: Record<ContractStatusRow, string> = {
   expired: "Expired",
 };
 
-export const CONTRACT_KINDS: ContractKindRow[] = ["proposal", "contract"];
+// Proposals are now their own document type, so the contract builder only
+// offers "contract". The "proposal" label is kept below for any legacy rows.
+export const CONTRACT_KINDS: ContractKindRow[] = ["contract"];
 
 export const CONTRACT_KIND_LABEL: Record<ContractKindRow, string> = {
   proposal: "Proposal",

@@ -86,6 +86,25 @@ export async function middleware(request: NextRequest) {
   // detect the current route without relying on x-invoke-path, which
   // is not reliably set on Vercel's Edge runtime.
   response.headers.set("x-pathname", pathname);
+
+  // Permissions-Policy — single source of truth (kept out of next.config so
+  // there's never a conflicting duplicate header). Camera + mic are blocked
+  // everywhere by default, EXCEPT the meeting-video routes (owner detail page
+  // + the public client link) which embed the cross-origin Daily.co iframe.
+  // Without this, the browser denies getUserMedia before it can even prompt,
+  // leaving Daily stuck on its "unblock your camera" screen. `camera=*`
+  // delegates the feature to the Daily frame — the browser still asks the
+  // user before actually granting access.
+  const isVideoRoute =
+    pathname.startsWith("/dashboard/meetings/") ||
+    pathname.startsWith("/m/") ||
+    (pathname.startsWith("/portal/") && pathname.includes("/meetings"));
+  response.headers.set(
+    "Permissions-Policy",
+    isVideoRoute
+      ? "camera=*, microphone=*, display-capture=*, autoplay=*, geolocation=(), interest-cohort=()"
+      : "camera=(), microphone=(), geolocation=(), interest-cohort=()",
+  );
   const isClientPortalUser =
     user?.user_metadata &&
     (user.user_metadata as { auth_context?: unknown }).auth_context ===

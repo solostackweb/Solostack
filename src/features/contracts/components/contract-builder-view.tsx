@@ -149,8 +149,8 @@ export function ContractBuilderView({
 
   const handlePickTemplate = (t: ContractTemplate) => {
     setTemplate(t);
-    // The DB only knows two kinds; map proposal-likes to proposal.
-    setKind(t.kind === "proposal" ? "proposal" : "contract");
+    // Proposals are their own document type now — everything here is a contract.
+    setKind("contract");
     setSections(
       t.sections.map((s) => ({ ...s, id: newSectionId() })),
     );
@@ -596,23 +596,25 @@ export function ContractBuilderView({
                 />
               </Field>
               <div className="grid gap-3 sm:grid-cols-2">
-                <Field label="Kind">
-                  <Select
-                    value={kind}
-                    onValueChange={(v) => setKind(v as ContractKindRow)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {CONTRACT_KINDS.map((k) => (
-                        <SelectItem key={k} value={k}>
-                          {CONTRACT_KIND_LABEL[k]}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </Field>
+                {CONTRACT_KINDS.length > 1 ? (
+                  <Field label="Kind">
+                    <Select
+                      value={kind}
+                      onValueChange={(v) => setKind(v as ContractKindRow)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {CONTRACT_KINDS.map((k) => (
+                          <SelectItem key={k} value={k}>
+                            {CONTRACT_KIND_LABEL[k]}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </Field>
+                ) : null}
                 <Field label={`Value (${selectedCurrency})`}>
                   <Input
                     type="number"

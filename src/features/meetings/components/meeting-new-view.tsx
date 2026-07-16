@@ -2,7 +2,8 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { ArrowLeft, CalendarClock, Check, Copy } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { ArrowLeft, CalendarClock } from "lucide-react";
 import { toast } from "sonner";
 
 import { PageHeader } from "@/components/shared/page-header";
@@ -41,8 +42,7 @@ export function MeetingNewView({
   const [slots, setSlots] = React.useState<string[]>(["", "", ""]);
   const [mode, setMode] = React.useState<"slots" | "availability">("slots");
   const [saving, setSaving] = React.useState(false);
-  const [shareUrl, setShareUrl] = React.useState<string | null>(null);
-  const [copied, setCopied] = React.useState(false);
+  const router = useRouter();
 
   const updateSlot = (index: number, value: string) =>
     setSlots((prev) => prev.map((slot, i) => (i === index ? value : slot)));
@@ -86,58 +86,10 @@ export function MeetingNewView({
       toast.error(res.error);
       return;
     }
-    toast.success(res.message ?? "Call created.");
-    setShareUrl(`${window.location.origin}/m/${res.data?.publicToken ?? ""}`);
+    toast.success(res.message ?? "Call created. Share the link from your meetings.");
+    router.push("/dashboard/meetings");
+    router.refresh();
   };
-
-  const copy = async () => {
-    if (!shareUrl) return;
-    await navigator.clipboard.writeText(shareUrl);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 1500);
-  };
-
-  if (shareUrl) {
-    return (
-      <div className="space-y-6">
-        <PageHeader
-          title="Call created"
-          description="Share this private link with your client — they'll pick one of your times."
-        />
-        <Card>
-          <CardContent className="space-y-4 p-6">
-            <div className="flex items-center gap-2">
-              <Input readOnly value={shareUrl} className="font-mono text-xs" />
-              <Button type="button" variant="outline" onClick={copy}>
-                {copied ? (
-                  <Check className="h-4 w-4" />
-                ) : (
-                  <Copy className="h-4 w-4" />
-                )}
-                {copied ? "Copied" : "Copy"}
-              </Button>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <Button asChild variant="outline">
-                <Link href="/dashboard/meetings">View all calls</Link>
-              </Button>
-              <Button
-                type="button"
-                onClick={() => {
-                  setShareUrl(null);
-                  setTopic("");
-                  setNotes("");
-                  setSlots(["", "", ""]);
-                }}
-              >
-                Schedule another
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
 
   return (
     <div className="space-y-6">
