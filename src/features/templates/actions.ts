@@ -6,6 +6,7 @@ import { z } from "zod";
 import { AUTH_LOGIN_ROUTE } from "@/features/auth/routes";
 import { getServerSupabase } from "@/lib/supabase/server";
 import type { DocumentTemplateRow } from "@/lib/supabase/types";
+import { coerceFormValues } from "@/lib/form";
 import { BUILTIN_TEMPLATES } from "./builtin";
 
 export type TemplateActionResult<T = undefined> =
@@ -41,19 +42,21 @@ export async function createTemplateAction(
   _prev: TemplateActionResult<{ id: string }> | undefined,
   formData: FormData,
 ): Promise<TemplateActionResult<{ id: string }>> {
-  const parsed = templateSchema.safeParse({
-    templateType: formData.get("templateType"),
-    title: formData.get("title"),
-    description: formData.get("description"),
-    category: formData.get("category") || "general",
-    scope: formData.get("scope"),
-    deliverables: formData.get("deliverables"),
-    timeline: formData.get("timeline"),
-    terms: formData.get("terms"),
-    subject: formData.get("subject"),
-    body: formData.get("body"),
-    acknowledgementRequired: formData.get("acknowledgementRequired") === "true",
-  });
+  const parsed = templateSchema.safeParse(
+    coerceFormValues({
+      templateType: formData.get("templateType"),
+      title: formData.get("title"),
+      description: formData.get("description"),
+      category: formData.get("category") || "general",
+      scope: formData.get("scope"),
+      deliverables: formData.get("deliverables"),
+      timeline: formData.get("timeline"),
+      terms: formData.get("terms"),
+      subject: formData.get("subject"),
+      body: formData.get("body"),
+      acknowledgementRequired: formData.get("acknowledgementRequired") === "true",
+    }),
+  );
 
   if (!parsed.success) {
     return {
@@ -109,19 +112,21 @@ export async function updateTemplateAction(
   formData: FormData,
 ): Promise<TemplateActionResult<{ id: string }>> {
   const idParse = z.string().uuid().safeParse(formData.get("id"));
-  const parsed = templateSchema.safeParse({
-    templateType: formData.get("templateType"),
-    title: formData.get("title"),
-    description: formData.get("description"),
-    category: formData.get("category") || "general",
-    scope: formData.get("scope"),
-    deliverables: formData.get("deliverables"),
-    timeline: formData.get("timeline"),
-    terms: formData.get("terms"),
-    subject: formData.get("subject"),
-    body: formData.get("body"),
-    acknowledgementRequired: formData.get("acknowledgementRequired") === "true",
-  });
+  const parsed = templateSchema.safeParse(
+    coerceFormValues({
+      templateType: formData.get("templateType"),
+      title: formData.get("title"),
+      description: formData.get("description"),
+      category: formData.get("category") || "general",
+      scope: formData.get("scope"),
+      deliverables: formData.get("deliverables"),
+      timeline: formData.get("timeline"),
+      terms: formData.get("terms"),
+      subject: formData.get("subject"),
+      body: formData.get("body"),
+      acknowledgementRequired: formData.get("acknowledgementRequired") === "true",
+    }),
+  );
 
   if (!idParse.success || !parsed.success) {
     return {

@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { getAdminSupabase } from "@/lib/supabase/admin";
+import { coerceFormValues } from "@/lib/form";
 import { runAdminAction } from "@/features/admin/server";
 import type { AdminActionResult } from "@/features/admin/actions";
 import { normaliseCouponCode } from "./coupons";
@@ -77,21 +78,23 @@ function validateCouponInput(parsed: z.infer<typeof couponSchema>): string | nul
 export async function adminCreateCouponAction(
   formData: FormData,
 ): Promise<AdminActionResult> {
-  const parsed = couponSchema.safeParse({
-    code: formData.get("code"),
-    name: formData.get("name"),
-    description: formData.get("description") || undefined,
-    grantType: formData.get("grantType") || "discount",
-    grantDurationDays: formData.get("grantDurationDays") || undefined,
-    discountType: formData.get("discountType"),
-    discountValue: formData.get("discountValue"),
-    appliesToPlan: formData.get("appliesToPlan") || "all",
-    appliesToCycle: formData.get("appliesToCycle") || "all",
-    maxRedemptions: formData.get("maxRedemptions") || undefined,
-    maxRedemptionsPerUser: formData.get("maxRedemptionsPerUser") || 1,
-    startsAt: formData.get("startsAt") || undefined,
-    expiresAt: formData.get("expiresAt") || undefined,
-  });
+  const parsed = couponSchema.safeParse(
+    coerceFormValues({
+      code: formData.get("code"),
+      name: formData.get("name"),
+      description: formData.get("description") || undefined,
+      grantType: formData.get("grantType") || "discount",
+      grantDurationDays: formData.get("grantDurationDays") || undefined,
+      discountType: formData.get("discountType"),
+      discountValue: formData.get("discountValue"),
+      appliesToPlan: formData.get("appliesToPlan") || "all",
+      appliesToCycle: formData.get("appliesToCycle") || "all",
+      maxRedemptions: formData.get("maxRedemptions") || undefined,
+      maxRedemptionsPerUser: formData.get("maxRedemptionsPerUser") || 1,
+      startsAt: formData.get("startsAt") || undefined,
+      expiresAt: formData.get("expiresAt") || undefined,
+    }),
+  );
   if (!parsed.success) {
     return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid coupon." };
   }
@@ -134,21 +137,23 @@ export async function adminUpdateCouponAction(
   const couponId = couponIdSchema.safeParse(id);
   if (!couponId.success) return { ok: false, error: "Invalid coupon." };
 
-  const parsed = couponSchema.safeParse({
-    code: formData.get("code"),
-    name: formData.get("name"),
-    description: formData.get("description") || undefined,
-    grantType: formData.get("grantType") || "discount",
-    grantDurationDays: formData.get("grantDurationDays") || undefined,
-    discountType: formData.get("discountType"),
-    discountValue: formData.get("discountValue"),
-    appliesToPlan: formData.get("appliesToPlan") || "all",
-    appliesToCycle: formData.get("appliesToCycle") || "all",
-    maxRedemptions: formData.get("maxRedemptions") || undefined,
-    maxRedemptionsPerUser: formData.get("maxRedemptionsPerUser") || 1,
-    startsAt: formData.get("startsAt") || undefined,
-    expiresAt: formData.get("expiresAt") || undefined,
-  });
+  const parsed = couponSchema.safeParse(
+    coerceFormValues({
+      code: formData.get("code"),
+      name: formData.get("name"),
+      description: formData.get("description") || undefined,
+      grantType: formData.get("grantType") || "discount",
+      grantDurationDays: formData.get("grantDurationDays") || undefined,
+      discountType: formData.get("discountType"),
+      discountValue: formData.get("discountValue"),
+      appliesToPlan: formData.get("appliesToPlan") || "all",
+      appliesToCycle: formData.get("appliesToCycle") || "all",
+      maxRedemptions: formData.get("maxRedemptions") || undefined,
+      maxRedemptionsPerUser: formData.get("maxRedemptionsPerUser") || 1,
+      startsAt: formData.get("startsAt") || undefined,
+      expiresAt: formData.get("expiresAt") || undefined,
+    }),
+  );
   if (!parsed.success) {
     return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid coupon." };
   }

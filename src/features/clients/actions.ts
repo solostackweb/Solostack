@@ -11,6 +11,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { getServerSupabase } from "@/lib/supabase/server";
+import { coerceFormValues } from "@/lib/form";
 import { AUTH_LOGIN_ROUTE } from "@/features/auth/routes";
 import { normaliseGstin } from "@/features/gst/validation";
 import { clientCrudSchema, clientIdSchema } from "./server-schemas";
@@ -36,20 +37,22 @@ async function requireUserId(): Promise<string> {
 }
 
 function parseFromFormData(formData: FormData) {
-  return clientCrudSchema.safeParse({
-    gstRegistered: formData.get("gstRegistered") === "true",
-    fullName: formData.get("fullName"),
-    businessName: formData.get("businessName"),
-    email: formData.get("email"),
-    phone: formData.get("phone"),
-    country: formData.get("country") ?? undefined,
-    currency: formData.get("currency") ?? undefined,
-    locale: formData.get("locale") ?? undefined,
-    stateCode: formData.get("stateCode") ?? "",
-    billingAddress: formData.get("billingAddress") ?? "",
-    notes: formData.get("notes"),
-    gstin: formData.get("gstin") ?? "",
-  });
+  return clientCrudSchema.safeParse(
+    coerceFormValues({
+      gstRegistered: formData.get("gstRegistered") === "true",
+      fullName: formData.get("fullName"),
+      businessName: formData.get("businessName"),
+      email: formData.get("email"),
+      phone: formData.get("phone"),
+      country: formData.get("country") ?? undefined,
+      currency: formData.get("currency") ?? undefined,
+      locale: formData.get("locale") ?? undefined,
+      stateCode: formData.get("stateCode") ?? "",
+      billingAddress: formData.get("billingAddress") ?? "",
+      notes: formData.get("notes"),
+      gstin: formData.get("gstin") ?? "",
+    }),
+  );
 }
 
 // --- Create -----------------------------------------------------------------

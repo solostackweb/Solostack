@@ -17,6 +17,7 @@ import { getFxRateToInr } from "@/features/payments/fx";
 import { isValidPublicShareToken } from "@/features/share/server";
 import { getAdminSupabase } from "@/lib/supabase/admin";
 import { getServerSupabase } from "@/lib/supabase/server";
+import { coerceFormValues } from "@/lib/form";
 import type {
   DocumentTemplateRow,
   ProposalItemRow,
@@ -98,21 +99,23 @@ async function loadProposalTemplate(userId: string, templateId: string | null) {
 }
 
 function parseProposalForm(formData: FormData) {
-  return proposalCrudSchema.safeParse({
-    title: formData.get("title"),
-    clientId: formData.get("clientId"),
-    projectId: formData.get("projectId"),
-    status: formData.get("status") ?? "draft",
-    currency: formData.get("currency") ?? "INR",
-    subtotal: formData.get("subtotal") ?? 0,
-    taxAmount: formData.get("taxAmount") ?? 0,
-    totalAmount: formData.get("totalAmount") ?? 0,
-    validUntil: formData.get("validUntil"),
-    scope: formData.get("scope"),
-    deliverables: formData.get("deliverables"),
-    timeline: formData.get("timeline"),
-    terms: formData.get("terms"),
-  });
+  return proposalCrudSchema.safeParse(
+    coerceFormValues({
+      title: formData.get("title"),
+      clientId: formData.get("clientId"),
+      projectId: formData.get("projectId"),
+      status: formData.get("status") ?? "draft",
+      currency: formData.get("currency") ?? "INR",
+      subtotal: formData.get("subtotal") ?? 0,
+      taxAmount: formData.get("taxAmount") ?? 0,
+      totalAmount: formData.get("totalAmount") ?? 0,
+      validUntil: formData.get("validUntil"),
+      scope: formData.get("scope"),
+      deliverables: formData.get("deliverables"),
+      timeline: formData.get("timeline"),
+      terms: formData.get("terms"),
+    }),
+  );
 }
 
 function proposalPayload(

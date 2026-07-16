@@ -13,6 +13,7 @@ import { redirect } from "next/navigation";
 import { AUTH_LOGIN_ROUTE } from "@/features/auth/routes";
 import { normaliseGstin } from "@/features/gst/validation";
 import { getServerSupabase } from "@/lib/supabase/server";
+import { coerceFormValues } from "@/lib/form";
 import type { OnboardingStep } from "@/lib/supabase/types";
 import { trackServerEvent } from "@/lib/analytics/server";
 import { applyPendingReferralAction } from "@/features/referral/actions";
@@ -85,17 +86,19 @@ export async function saveBusinessStep(
   _prev: ActionResult | undefined,
   formData: FormData,
 ): Promise<ActionResult> {
-  const parsed = businessStepSchema.safeParse({
-    legalName: formData.get("legalName"),
-    businessName: formData.get("businessName"),
-    businessType: formData.get("businessType"),
-    addressLine1: formData.get("addressLine1"),
-    addressLine2: formData.get("addressLine2"),
-    city: formData.get("city"),
-    stateCode: formData.get("stateCode"),
-    postalCode: formData.get("postalCode"),
-    country: formData.get("country") ?? "IN",
-  });
+  const parsed = businessStepSchema.safeParse(
+    coerceFormValues({
+      legalName: formData.get("legalName"),
+      businessName: formData.get("businessName"),
+      businessType: formData.get("businessType"),
+      addressLine1: formData.get("addressLine1"),
+      addressLine2: formData.get("addressLine2"),
+      city: formData.get("city"),
+      stateCode: formData.get("stateCode"),
+      postalCode: formData.get("postalCode"),
+      country: formData.get("country") ?? "IN",
+    }),
+  );
   if (!parsed.success) return flatErrors(parsed);
 
   const userId = await requireUserId();
@@ -181,15 +184,17 @@ export async function saveInvoiceStep(
   _prev: ActionResult | undefined,
   formData: FormData,
 ): Promise<ActionResult> {
-  const parsed = invoiceStepSchema.safeParse({
-    defaultCurrency: formData.get("defaultCurrency") ?? "INR",
-    timezone: formData.get("timezone") ?? "Asia/Kolkata",
-    invoicePrefix: formData.get("invoicePrefix") ?? "INV-",
-    invoiceNextNumber: formData.get("invoiceNextNumber") ?? 1,
-    invoiceDefaultDueDays: formData.get("invoiceDefaultDueDays") ?? 14,
-    invoiceDefaultNotes: formData.get("invoiceDefaultNotes"),
-    invoiceDefaultTerms: formData.get("invoiceDefaultTerms"),
-  });
+  const parsed = invoiceStepSchema.safeParse(
+    coerceFormValues({
+      defaultCurrency: formData.get("defaultCurrency") ?? "INR",
+      timezone: formData.get("timezone") ?? "Asia/Kolkata",
+      invoicePrefix: formData.get("invoicePrefix") ?? "INV-",
+      invoiceNextNumber: formData.get("invoiceNextNumber") ?? 1,
+      invoiceDefaultDueDays: formData.get("invoiceDefaultDueDays") ?? 14,
+      invoiceDefaultNotes: formData.get("invoiceDefaultNotes"),
+      invoiceDefaultTerms: formData.get("invoiceDefaultTerms"),
+    }),
+  );
   if (!parsed.success) return flatErrors(parsed);
 
   const userId = await requireUserId();
@@ -212,12 +217,14 @@ export async function saveSignatureStep(
   _prev: ActionResult | undefined,
   formData: FormData,
 ): Promise<ActionResult> {
-  const parsed = signatureSchema.safeParse({
-    signatureType: formData.get("signatureType"),
-    signatureImageUrl: formData.get("signatureImageUrl"),
-    signatureTextValue: formData.get("signatureTextValue"),
-    signatureFontFamily: formData.get("signatureFontFamily"),
-  });
+  const parsed = signatureSchema.safeParse(
+    coerceFormValues({
+      signatureType: formData.get("signatureType"),
+      signatureImageUrl: formData.get("signatureImageUrl"),
+      signatureTextValue: formData.get("signatureTextValue"),
+      signatureFontFamily: formData.get("signatureFontFamily"),
+    }),
+  );
   if (!parsed.success) return flatErrors(parsed);
 
   const result = await saveSignatureStepData(parsed.data);
@@ -278,17 +285,19 @@ export async function saveFirstClientStep(
   _prev: ActionResult | undefined,
   formData: FormData,
 ): Promise<ActionResult> {
-  const parsed = firstClientStepSchema.safeParse({
-    gstRegistered: formData.get("gstRegistered") === "true",
-    fullName: formData.get("fullName"),
-    businessName: formData.get("businessName"),
-    email: formData.get("email"),
-    phone: formData.get("phone"),
-    stateCode: formData.get("stateCode"),
-    billingAddress: formData.get("billingAddress"),
-    notes: formData.get("notes"),
-    gstin: formData.get("gstin") ?? "",
-  });
+  const parsed = firstClientStepSchema.safeParse(
+    coerceFormValues({
+      gstRegistered: formData.get("gstRegistered") === "true",
+      fullName: formData.get("fullName"),
+      businessName: formData.get("businessName"),
+      email: formData.get("email"),
+      phone: formData.get("phone"),
+      stateCode: formData.get("stateCode"),
+      billingAddress: formData.get("billingAddress"),
+      notes: formData.get("notes"),
+      gstin: formData.get("gstin") ?? "",
+    }),
+  );
   if (!parsed.success) return flatErrors(parsed);
 
   const userId = await requireUserId();

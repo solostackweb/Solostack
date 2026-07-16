@@ -15,6 +15,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { getServerSupabase } from "@/lib/supabase/server";
+import { coerceFormValues } from "@/lib/form";
 import { AUTH_LOGIN_ROUTE } from "@/features/auth/routes";
 import {
   invoiceCrudSchema,
@@ -64,7 +65,7 @@ function readPayload(formData: FormData): unknown {
       return null;
     }
   }
-  return {
+  return coerceFormValues({
     clientId: formData.get("clientId"),
     projectId: formData.get("projectId"),
     invoiceNumber: formData.get("invoiceNumber"),
@@ -76,7 +77,7 @@ function readPayload(formData: FormData): unknown {
     notes: formData.get("notes"),
     terms: formData.get("terms"),
     lines: [],
-  };
+  });
 }
 
 interface ResolvedParties {

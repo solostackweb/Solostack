@@ -26,6 +26,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { getServerSupabase } from "@/lib/supabase/server";
+import { coerceFormValues } from "@/lib/form";
 import { AUTH_LOGIN_ROUTE } from "@/features/auth/routes";
 import {
   clearPaymentMethod,
@@ -79,13 +80,15 @@ export async function setBankPaymentMethodAction(
   _prev: ActionResult | undefined,
   formData: FormData,
 ): Promise<ActionResult> {
-  const parsed = bankSchema.safeParse({
-    methodType: formData.get("methodType"),
-    accountHolderName: formData.get("accountHolderName"),
-    bankAccountNumber: formData.get("bankAccountNumber"),
-    ifsc: formData.get("ifsc"),
-    pan: formData.get("pan"),
-  });
+  const parsed = bankSchema.safeParse(
+    coerceFormValues({
+      methodType: formData.get("methodType"),
+      accountHolderName: formData.get("accountHolderName"),
+      bankAccountNumber: formData.get("bankAccountNumber"),
+      ifsc: formData.get("ifsc"),
+      pan: formData.get("pan"),
+    }),
+  );
 
   if (!parsed.success) {
     const flat = parsed.error.flatten().fieldErrors;
@@ -211,10 +214,12 @@ export async function setFeePassthroughAction(
   _prev: ActionResult | undefined,
   formData: FormData,
 ): Promise<ActionResult> {
-  const parsed = feePassthroughSchema.safeParse({
-    enabled: formData.get("enabled"),
-    percent: formData.get("percent") || undefined,
-  });
+  const parsed = feePassthroughSchema.safeParse(
+    coerceFormValues({
+      enabled: formData.get("enabled"),
+      percent: formData.get("percent") || undefined,
+    }),
+  );
   if (!parsed.success) {
     return { ok: false, error: "Invalid fee passthrough settings." };
   }

@@ -7,6 +7,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { getServerSupabase } from "@/lib/supabase/server";
+import { coerceFormValues } from "@/lib/form";
 import { AUTH_LOGIN_ROUTE } from "@/features/auth/routes";
 import {
   projectCrudSchema,
@@ -33,16 +34,18 @@ async function requireUserId(): Promise<string> {
 }
 
 function parse(formData: FormData) {
-  return projectCrudSchema.safeParse({
-    name: formData.get("name"),
-    description: formData.get("description"),
-    clientId: formData.get("clientId"),
-    status: formData.get("status") ?? "planning",
-    startDate: formData.get("startDate"),
-    dueDate: formData.get("dueDate"),
-    billingEnabled: formData.get("billingEnabled") ?? "false",
-    hourlyRate: formData.get("hourlyRate") ?? 0,
-  });
+  return projectCrudSchema.safeParse(
+    coerceFormValues({
+      name: formData.get("name"),
+      description: formData.get("description"),
+      clientId: formData.get("clientId"),
+      status: formData.get("status") ?? "planning",
+      startDate: formData.get("startDate"),
+      dueDate: formData.get("dueDate"),
+      billingEnabled: formData.get("billingEnabled") ?? "false",
+      hourlyRate: formData.get("hourlyRate") ?? 0,
+    }),
+  );
 }
 
 export async function createProjectAction(

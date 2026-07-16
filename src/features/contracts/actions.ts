@@ -12,6 +12,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { randomUUID } from "node:crypto";
 import { getServerSupabase } from "@/lib/supabase/server";
+import { coerceFormValues } from "@/lib/form";
 import { AUTH_LOGIN_ROUTE } from "@/features/auth/routes";
 import { applyMergeFields } from "@/features/templates/merge-fields";
 import { resolveMergeContextForUser } from "@/features/templates/merge-context";
@@ -47,17 +48,19 @@ class FxRateUnavailableError extends Error {
 }
 
 function parse(formData: FormData) {
-  return contractCrudSchema.safeParse({
-    kind: formData.get("kind") ?? "contract",
-    title: formData.get("title"),
-    content: formData.get("content"),
-    clientId: formData.get("clientId"),
-    projectId: formData.get("projectId"),
-    status: formData.get("status") ?? "draft",
-    currency: formData.get("currency") ?? "INR",
-    valueAmount: formData.get("valueAmount") ?? "",
-    expiresAt: formData.get("expiresAt"),
-  });
+  return contractCrudSchema.safeParse(
+    coerceFormValues({
+      kind: formData.get("kind") ?? "contract",
+      title: formData.get("title"),
+      content: formData.get("content"),
+      clientId: formData.get("clientId"),
+      projectId: formData.get("projectId"),
+      status: formData.get("status") ?? "draft",
+      currency: formData.get("currency") ?? "INR",
+      valueAmount: formData.get("valueAmount") ?? "",
+      expiresAt: formData.get("expiresAt"),
+    }),
+  );
 }
 
 async function resolveContractValue(input: {

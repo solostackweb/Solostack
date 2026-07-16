@@ -6,6 +6,7 @@ import { z } from "zod";
 import { getAdminSupabase } from "@/lib/supabase/admin";
 import { getPublicAppUrl } from "@/features/documents/urls";
 import { getServerSupabase } from "@/lib/supabase/server";
+import { coerceFormValues } from "@/lib/form";
 import { getClientIp, leadSubmitLimit } from "@/lib/rate-limit";
 import { AUTH_LOGIN_ROUTE } from "@/features/auth/routes";
 import { countryForLeadForm, normalizeLeadPhone } from "./countries";
@@ -83,12 +84,14 @@ export async function createLeadFormAction(
   _prev: LeadFormActionResult<{ id: string; url: string }> | undefined,
   formData: FormData,
 ): Promise<LeadFormActionResult<{ id: string; url: string }>> {
-  const parsed = createLeadFormSchema.safeParse({
-    name: formData.get("name"),
-    title: formData.get("title"),
-    description: formData.get("description"),
-    brandColor: formData.get("brandColor") || "#2563EB",
-  });
+  const parsed = createLeadFormSchema.safeParse(
+    coerceFormValues({
+      name: formData.get("name"),
+      title: formData.get("title"),
+      description: formData.get("description"),
+      brandColor: formData.get("brandColor") || "#2563EB",
+    }),
+  );
 
   if (!parsed.success) {
     return {
@@ -139,14 +142,16 @@ export async function updateLeadFormAction(
     return { ok: false, error: "The form fields could not be read." };
   }
 
-  const parsed = updateLeadFormSchema.safeParse({
-    id: formData.get("id"),
-    name: formData.get("name"),
-    title: formData.get("title"),
-    description: formData.get("description"),
-    brandColor: formData.get("brandColor") || "#2563EB",
-    fields: rawFields,
-  });
+  const parsed = updateLeadFormSchema.safeParse(
+    coerceFormValues({
+      id: formData.get("id"),
+      name: formData.get("name"),
+      title: formData.get("title"),
+      description: formData.get("description"),
+      brandColor: formData.get("brandColor") || "#2563EB",
+      fields: rawFields,
+    }),
+  );
 
   if (!parsed.success) {
     return {
@@ -210,18 +215,20 @@ export async function submitPublicLeadAction(
     return { ok: false, error: rl.message };
   }
 
-  const parsed = publicLeadSchema.safeParse({
-    formId: formData.get("formId"),
-    name: formData.get("name"),
-    email: formData.get("email"),
-    company: formData.get("company"),
-    phone: formData.get("phone"),
-    country: formData.get("country"),
-    currency: formData.get("currency"),
-    project: formData.get("project"),
-    budget: formData.get("budget"),
-    timeline: formData.get("timeline"),
-  });
+  const parsed = publicLeadSchema.safeParse(
+    coerceFormValues({
+      formId: formData.get("formId"),
+      name: formData.get("name"),
+      email: formData.get("email"),
+      company: formData.get("company"),
+      phone: formData.get("phone"),
+      country: formData.get("country"),
+      currency: formData.get("currency"),
+      project: formData.get("project"),
+      budget: formData.get("budget"),
+      timeline: formData.get("timeline"),
+    }),
+  );
 
   if (!parsed.success) {
     return {
