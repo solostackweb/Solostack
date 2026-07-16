@@ -14,7 +14,12 @@ type DailyFrame = {
   join: (options: { url: string }) => void;
   on: (event: string, handler: () => void) => void;
   destroy: () => void;
+  iframe?: () => HTMLIFrameElement | null;
 };
+
+// Permissions the embedded call needs the browser to prompt for.
+const IFRAME_ALLOW =
+  "camera; microphone; autoplay; display-capture; fullscreen; speaker; screen-wake-lock";
 type DailyGlobal = {
   createFrame: (el: HTMLElement, props: Record<string, unknown>) => DailyFrame;
 };
@@ -88,6 +93,16 @@ export function DailyEmbed({
           },
         });
         frameRef.current = frame;
+        // Explicitly declare the media permissions on the iframe so the
+        // browser prompts for camera/mic. The parent page delegates these
+        // features via the Permissions-Policy header (see middleware.ts);
+        // without both halves, browsers deny getUserMedia without asking.
+        try {
+          const el = frame.iframe?.();
+          if (el) el.setAttribute("allow", IFRAME_ALLOW);
+        } catch {
+          /* older SDKs manage the allow attribute themselves */
+        }
         frame.on("left-meeting", () => onLeftRef.current?.());
         frame.join({ url });
       })
