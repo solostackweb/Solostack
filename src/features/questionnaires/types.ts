@@ -6,6 +6,9 @@ import type {
 export type QuestionType =
   | "short_text"
   | "long_text"
+  | "email"
+  | "phone"
+  | "number"
   | "single_choice"
   | "multi_choice"
   | "dropdown"
@@ -19,6 +22,8 @@ export interface Question {
   type: QuestionType;
   label: string;
   required: boolean;
+  /** Optional hint shown under the question on the client form. */
+  help?: string;
   /** Choices for single_choice / multi_choice / dropdown. */
   options?: string[];
   /** Rating scale max (default 5). */
@@ -28,6 +33,9 @@ export interface Question {
 export const QUESTION_TYPE_LABEL: Record<QuestionType, string> = {
   short_text: "Short text",
   long_text: "Long text",
+  email: "Email",
+  phone: "Phone",
+  number: "Number",
   single_choice: "Multiple choice",
   multi_choice: "Checkboxes",
   dropdown: "Dropdown",
@@ -40,6 +48,9 @@ export const QUESTION_TYPE_LABEL: Record<QuestionType, string> = {
 export const QUESTION_TYPES: QuestionType[] = [
   "short_text",
   "long_text",
+  "email",
+  "phone",
+  "number",
   "single_choice",
   "multi_choice",
   "dropdown",
@@ -76,6 +87,9 @@ export function normalizeQuestions(raw: unknown): Question[] {
       label,
       required: Boolean(r.required),
     };
+    if (typeof r.help === "string" && r.help.trim()) {
+      q.help = r.help.trim();
+    }
     if (questionNeedsOptions(type)) {
       q.options = Array.isArray(r.options)
         ? r.options.filter(

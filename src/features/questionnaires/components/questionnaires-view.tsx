@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { FileQuestion, Pencil, Plus, Send, Trash2, Wand2 } from "lucide-react";
+import { FileQuestion, Inbox, Pencil, Plus, Send, Trash2, Wand2 } from "lucide-react";
 
 import { PageHeader } from "@/components/shared/page-header";
 import { Button } from "@/components/ui/button";
@@ -10,11 +10,17 @@ import {
   createFromStarterAction,
   deleteQuestionnaireAction,
 } from "../actions";
+import {
+  SendQuestionnaireDialog,
+  type SendClientOption,
+} from "./send-questionnaire-dialog";
 
 export function QuestionnairesView({
   questionnaires,
+  clients,
 }: {
   questionnaires: Questionnaire[];
+  clients: SendClientOption[];
 }) {
   return (
     <div className="space-y-6">
@@ -62,11 +68,20 @@ export function QuestionnairesView({
                         <Pencil className="h-3.5 w-3.5" /> Edit
                       </Link>
                     </Button>
-                    <Button asChild size="sm">
-                      <Link href={`/dashboard/questionnaires/${q.id}/send`}>
-                        <Send className="h-3.5 w-3.5" /> Send
+                    <Button asChild size="sm" variant="outline">
+                      <Link href={`/dashboard/questionnaires/${q.id}/responses`}>
+                        <Inbox className="h-3.5 w-3.5" /> Responses
                       </Link>
                     </Button>
+                    <SendQuestionnaireDialog
+                      questionnaireId={q.id}
+                      clients={clients}
+                      trigger={
+                        <Button size="sm">
+                          <Send className="h-3.5 w-3.5" /> Send
+                        </Button>
+                      }
+                    />
                     <form action={deleteQuestionnaireAction}>
                       <input type="hidden" name="id" value={q.id} />
                       <Button size="sm" variant="ghost" className="text-destructive">

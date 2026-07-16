@@ -4,13 +4,26 @@ import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
+  AlignLeft,
   ArrowLeft,
+  Calendar,
+  CheckSquare,
   ChevronDown,
   ChevronUp,
+  CircleDot,
+  Hash,
+  Link2,
+  List,
+  Mail,
+  Phone,
   Plus,
   Save,
+  Star,
+  ToggleLeft,
   Trash2,
+  Type,
   X,
+  type LucideIcon,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -19,6 +32,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   QUESTION_TYPE_LABEL,
   QUESTION_TYPES,
@@ -32,6 +51,21 @@ import {
   createQuestionnaireAction,
   updateQuestionnaireAction,
 } from "../actions";
+
+const TYPE_ICON: Record<QuestionType, LucideIcon> = {
+  short_text: Type,
+  long_text: AlignLeft,
+  email: Mail,
+  phone: Phone,
+  number: Hash,
+  single_choice: CircleDot,
+  multi_choice: CheckSquare,
+  dropdown: List,
+  yes_no: ToggleLeft,
+  rating: Star,
+  date: Calendar,
+  file: Link2,
+};
 
 export function QuestionnaireBuilder({
   mode,
@@ -50,10 +84,19 @@ export function QuestionnaireBuilder({
   );
   const [saving, setSaving] = React.useState(false);
 
-  const addQuestion = () =>
+  const addQuestion = (type: QuestionType) =>
     setQuestions((prev) => [
       ...prev,
-      { id: newQuestionId(), type: "short_text", label: "", required: false },
+      {
+        id: newQuestionId(),
+        type,
+        label: "",
+        required: false,
+        options: questionNeedsOptions(type)
+          ? ["Option 1", "Option 2"]
+          : undefined,
+        max: type === "rating" ? 5 : undefined,
+      },
     ]);
 
   const updateQuestion = (id: string, patch: Partial<Question>) =>
@@ -123,12 +166,12 @@ export function QuestionnaireBuilder({
     <div className="space-y-6">
       <PageHeader
         title={mode === "edit" ? "Edit questionnaire" : "New questionnaire"}
-        description="Build a reusable intake form, then send it to any client from their profile."
+        description="Build a reusable intake form, then send it to any client."
         actions={
           <div className="flex items-center gap-2">
             <Button asChild variant="outline" size="sm">
               <Link href="/dashboard/questionnaires">
-                <ArrowLeft className="h-4 w-4" /> Questionnaires
+                <ArrowLeft className="h-4 w-4" /> Back
               </Link>
             </Button>
             <Button size="sm" onClick={save} disabled={saving}>
@@ -140,141 +183,196 @@ export function QuestionnaireBuilder({
 
       <Card>
         <CardContent className="space-y-4 p-6">
-          <label className="block space-y-1.5">
-            <span className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-              Title
-            </span>
-            <Input
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="Web design intake"
-            />
-          </label>
-          <label className="block space-y-1.5">
-            <span className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-              Description (optional)
-            </span>
-            <Textarea
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              rows={2}
-              placeholder="A short intro shown at the top of the form."
-            />
-          </label>
+          <Input
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="Questionnaire title"
+            className="h-11 text-lg font-semibold"
+          />
+          <Textarea
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            rows={2}
+            placeholder="A short intro shown at the top of the form (optional)."
+          />
         </CardContent>
       </Card>
 
       <div className="space-y-3">
-        {questions.map((q, index) => (
-          <Card key={q.id}>
-            <CardContent className="space-y-3 p-4">
-              <div className="flex items-start gap-3">
-                <span className="mt-2 text-xs font-semibold text-muted-foreground">
-                  {index + 1}
-                </span>
-                <div className="flex-1 space-y-3">
-                  <Input
-                    value={q.label}
-                    onChange={(e) =>
-                      updateQuestion(q.id, { label: e.target.value })
-                    }
-                    placeholder="Question text"
-                  />
-                  <div className="flex flex-wrap items-center gap-3">
-                    <select
-                      value={q.type}
-                      onChange={(e) =>
-                        changeType(q.id, e.target.value as QuestionType)
-                      }
-                      className="h-9 rounded-md border bg-background px-2 text-sm"
-                    >
-                      {QUESTION_TYPES.map((t) => (
-                        <option key={t} value={t}>
-                          {QUESTION_TYPE_LABEL[t]}
-                        </option>
-                      ))}
-                    </select>
-                    <label className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                      <input
-                        type="checkbox"
-                        checked={q.required}
-                        onChange={(e) =>
-                          updateQuestion(q.id, { required: e.target.checked })
-                        }
-                        className="h-4 w-4"
-                      />
-                      Required
-                    </label>
-                    {q.type === "rating" ? (
-                      <label className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                        Scale to
-                        <Input
-                          type="number"
-                          min={2}
-                          max={10}
-                          value={q.max ?? 5}
-                          onChange={(e) =>
-                            updateQuestion(q.id, {
-                              max: Number(e.target.value || 5),
-                            })
-                          }
-                          className="h-9 w-16"
-                        />
-                      </label>
-                    ) : null}
-                  </div>
+        {questions.length === 0 ? (
+          <div className="rounded-xl border border-dashed p-8 text-center text-sm text-muted-foreground">
+            No questions yet. Add your first question below.
+          </div>
+        ) : null}
 
-                  {questionNeedsOptions(q.type) ? (
-                    <OptionsEditor
-                      options={q.options ?? []}
-                      onChange={(options) => updateQuestion(q.id, { options })}
-                    />
-                  ) : null}
-                </div>
-                <div className="flex flex-col gap-1">
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    className="h-7 w-7"
-                    onClick={() => move(q.id, "up")}
-                    disabled={index === 0}
-                    aria-label="Move up"
-                  >
-                    <ChevronUp className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    className="h-7 w-7"
-                    onClick={() => move(q.id, "down")}
-                    disabled={index === questions.length - 1}
-                    aria-label="Move down"
-                  >
-                    <ChevronDown className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    className="h-7 w-7 text-destructive"
-                    onClick={() => removeQuestion(q.id)}
-                    aria-label="Remove"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+        {questions.map((q, index) => (
+          <QuestionCard
+            key={q.id}
+            index={index}
+            total={questions.length}
+            question={q}
+            onChange={(patch) => updateQuestion(q.id, patch)}
+            onChangeType={(t) => changeType(q.id, t)}
+            onMove={(dir) => move(q.id, dir)}
+            onRemove={() => removeQuestion(q.id)}
+          />
         ))}
 
-        <Button type="button" variant="outline" onClick={addQuestion}>
-          <Plus className="h-4 w-4" /> Add question
-        </Button>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button type="button" variant="outline" className="w-full">
+              <Plus className="h-4 w-4" /> Add question
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start" className="w-56">
+            {QUESTION_TYPES.map((type) => {
+              const Icon = TYPE_ICON[type];
+              return (
+                <DropdownMenuItem
+                  key={type}
+                  onSelect={() => addQuestion(type)}
+                >
+                  <Icon className="h-4 w-4" /> {QUESTION_TYPE_LABEL[type]}
+                </DropdownMenuItem>
+              );
+            })}
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
     </div>
+  );
+}
+
+function QuestionCard({
+  index,
+  total,
+  question,
+  onChange,
+  onChangeType,
+  onMove,
+  onRemove,
+}: {
+  index: number;
+  total: number;
+  question: Question;
+  onChange: (patch: Partial<Question>) => void;
+  onChangeType: (type: QuestionType) => void;
+  onMove: (dir: "up" | "down") => void;
+  onRemove: () => void;
+}) {
+  const Icon = TYPE_ICON[question.type];
+  return (
+    <Card>
+      <CardContent className="p-4">
+        <div className="flex items-start gap-3">
+          <div className="mt-1 flex flex-col items-center gap-1">
+            <span className="flex h-7 w-7 items-center justify-center rounded-md bg-muted text-[11px] font-semibold text-muted-foreground">
+              {index + 1}
+            </span>
+          </div>
+
+          <div className="min-w-0 flex-1 space-y-3">
+            <Input
+              value={question.label}
+              onChange={(e) => onChange({ label: e.target.value })}
+              placeholder="Question"
+              className="font-medium"
+            />
+            <Input
+              value={question.help ?? ""}
+              onChange={(e) => onChange({ help: e.target.value })}
+              placeholder="Help text (optional)"
+              className="h-9 text-sm"
+            />
+
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="flex items-center gap-1.5 rounded-md border bg-background px-2">
+                <Icon className="h-4 w-4 text-muted-foreground" />
+                <select
+                  value={question.type}
+                  onChange={(e) => onChangeType(e.target.value as QuestionType)}
+                  className="h-9 bg-transparent text-sm focus:outline-none"
+                >
+                  {QUESTION_TYPES.map((t) => (
+                    <option key={t} value={t}>
+                      {QUESTION_TYPE_LABEL[t]}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <label className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                <input
+                  type="checkbox"
+                  checked={question.required}
+                  onChange={(e) => onChange({ required: e.target.checked })}
+                  className="h-4 w-4"
+                />
+                Required
+              </label>
+
+              {question.type === "rating" ? (
+                <label className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                  Scale
+                  <Input
+                    type="number"
+                    min={2}
+                    max={10}
+                    value={question.max ?? 5}
+                    onChange={(e) =>
+                      onChange({ max: Number(e.target.value || 5) })
+                    }
+                    className="h-9 w-16"
+                  />
+                </label>
+              ) : null}
+            </div>
+
+            {questionNeedsOptions(question.type) ? (
+              <OptionsEditor
+                options={question.options ?? []}
+                onChange={(options) => onChange({ options })}
+              />
+            ) : null}
+          </div>
+
+          <div className="flex flex-col gap-1">
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7"
+              onClick={() => onMove("up")}
+              disabled={index === 0}
+              aria-label="Move up"
+            >
+              <ChevronUp className="h-4 w-4" />
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7"
+              onClick={() => onMove("down")}
+              disabled={index === total - 1}
+              aria-label="Move down"
+            >
+              <ChevronDown className="h-4 w-4" />
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7 text-destructive"
+              onClick={onRemove}
+              aria-label="Remove"
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -297,6 +395,7 @@ function OptionsEditor({
       </p>
       {options.map((option, i) => (
         <div key={i} className="flex items-center gap-2">
+          <span className="text-xs text-muted-foreground">{i + 1}.</span>
           <Input
             value={option}
             onChange={(e) => update(i, e.target.value)}

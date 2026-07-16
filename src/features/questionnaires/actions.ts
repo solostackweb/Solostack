@@ -44,6 +44,9 @@ const questionSchema = z.object({
   type: z.enum([
     "short_text",
     "long_text",
+    "email",
+    "phone",
+    "number",
     "single_choice",
     "multi_choice",
     "dropdown",
@@ -54,6 +57,7 @@ const questionSchema = z.object({
   ]),
   label: z.string().trim().min(1).max(300),
   required: z.boolean().optional(),
+  help: z.string().max(300).optional(),
   options: z.array(z.string()).optional(),
   max: z.number().optional(),
 });
