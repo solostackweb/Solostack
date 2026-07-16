@@ -414,4 +414,160 @@ export const BUILTIN_WELCOME_TEMPLATES: WelcomeDocumentTemplate[] = [
       },
     ],
   },
+  {
+    id: "__builtin_marketing",
+    title: "Marketing / SEO client welcome",
+    description:
+      "For marketing, growth, and SEO engagements — sets expectations on channels, reporting, approvals, and realistic timelines.",
+    intro:
+      "Welcome aboard — I'm excited to start growing [Brand]! This guide covers how we'll work together, what results to expect (and when), how we'll report, and what I'll need from you. Marketing compounds over time, so a little alignment now sets us up for a strong few months. Reply any time with questions.",
+    category: "Marketing",
+    isSystem: true,
+    sections: [
+      {
+        id: "s_1",
+        heading: "What we're working towards",
+        body: "Our north star for this engagement is [the goal — e.g. more qualified leads, higher organic traffic, better ROAS]. Everything we do maps back to that. I focus on outcomes that move the business, not vanity metrics.",
+      },
+      {
+        id: "s_2",
+        heading: "Channels & scope",
+        body: "This engagement covers:\n\n- **Channels:** [SEO / paid ads / social / email — your mix]\n- **Monthly outputs:** [e.g. content, campaign management, technical fixes]\n- **Not included:** [website builds, large content production, ad spend]\n\nAd spend and tool subscriptions are billed separately or paid by you directly.",
+      },
+      {
+        id: "s_3",
+        heading: "Realistic timelines",
+        body: "Marketing needs a ramp. Paid channels show signal in [2–4 weeks]; SEO typically takes [3–6 months] to move meaningfully. I'll share early leading indicators so you can see progress before the headline numbers catch up.",
+      },
+      {
+        id: "s_4",
+        heading: "Reporting & metrics",
+        body: "You'll get a clear report every [two weeks / month] covering what we did, what it drove, and what's next. We'll agree the 3–4 metrics that matter up front so reporting stays honest and focused — no dashboards for the sake of it.",
+      },
+      {
+        id: "s_5",
+        heading: "Approvals & turnaround",
+        body: "For anything client-facing (ads, content, emails), I'll share drafts for approval. Please consolidate feedback into one response and return it within [2 business days] so we don't lose campaign momentum. [Name] has final sign-off.",
+      },
+      {
+        id: "s_6",
+        heading: "What I'll need from you",
+        body: "To hit the ground running:\n\n- Access to [analytics, Search Console, ad accounts, CMS, social profiles]\n- [Brand assets and any existing guidelines]\n- A quick call to align on offers, audience, and priorities\n\nSecure access via [a password manager / platform invites] — please don't paste credentials in chat.",
+      },
+      {
+        id: "s_7",
+        heading: "Billing",
+        body: "The retainer is invoiced [on the 1st / at kickoff] via Stackivo, payment terms net [15] days. Ad spend is separate. Work continues seamlessly as long as invoices are current.",
+      },
+      {
+        id: "s_8",
+        heading: "First 30 days",
+        body: "1. **Kickoff** — align on goals, audience, and access ([date]).\n2. **Setup & audit** — tracking, baselines, quick wins.\n3. **Launch** — first campaigns/content live.\n4. **Review** — first report and plan for month two.\n\nTo begin, confirm the kickoff date and share access. Let's grow this.",
+      },
+    ],
+  },
+  {
+    id: "__builtin_retainer",
+    title: "Retainer client welcome",
+    description:
+      "For ongoing monthly retainers — explains capacity, how to request work, priorities, rollover, and billing.",
+    intro:
+      "Welcome, and thank you for choosing an ongoing partnership! This short guide explains how our retainer works so you get the most from it every month — how to request work, how priorities and capacity work, and how billing runs. The goal is simple: dependable, high-quality support without the overhead of a full-time hire.",
+    category: "Retainer",
+    isSystem: true,
+    sections: [
+      {
+        id: "s_1",
+        heading: "How the retainer works",
+        body: "Your retainer reserves **[number] hours per month** of my time for [design / development / content / marketing]. Think of it as a dedicated, flexible block you can direct at whatever matters most that month.",
+      },
+      {
+        id: "s_2",
+        heading: "Requesting work",
+        body: "Send requests through [email / the client portal / project tool]. For each one I'll confirm priority, estimated effort, and expected delivery before I start — so you always know what's happening and when.",
+      },
+      {
+        id: "s_3",
+        heading: "Priorities & capacity",
+        body: "At the start of each month we align on priorities. If requests exceed the monthly capacity, we'll agree what's most important; anything beyond capacity is either scheduled for next month or quoted as extra with your approval first.",
+      },
+      {
+        id: "s_4",
+        heading: "Rollover & unused time",
+        body: "Unused hours [do not roll over / roll over up to [number] hours for [30] days]. This keeps the arrangement fair to both sides and my schedule reliably available to you.",
+      },
+      {
+        id: "s_5",
+        heading: "Communication",
+        body: "Main channel: [email / portal]. Working hours: [Mon–Fri, business hours]. I reply within [one business day]. You'll get a short summary of delivered work at the end of each month.",
+      },
+      {
+        id: "s_6",
+        heading: "Billing",
+        body: "The retainer is billed **in advance** on [the 1st / your start date] via Stackivo, payment terms net [number] days. Work pauses if payment is overdue. Cancel any time with [15] days' notice.",
+      },
+      {
+        id: "s_7",
+        heading: "What I'll need from you",
+        body: "Timely briefs and assets, quick decisions, and a single point of contact. The clearer the direction, the more value you get from each month's hours.",
+      },
+      {
+        id: "s_8",
+        heading: "Getting started",
+        body: "1. Confirm your start date and first month's priorities.\n2. Share access and any assets I'll need.\n3. Send your first requests — I'll confirm and get going.\n\nHere's to a smooth, productive partnership.",
+      },
+    ],
+  },
+  {
+    id: "__builtin_photographer",
+    title: "Photographer / creative welcome",
+    description:
+      "For photo and video shoots — covers the shoot process, prep, day-of logistics, editing, delivery, and usage rights.",
+    intro:
+      "Welcome — I can't wait to create something beautiful for you! This guide walks you through how a shoot works from start to finish: how we prepare, what happens on the day, how editing and delivery work, and how your files and usage rights are handled. A quick read now means a relaxed, well-run shoot later.",
+    category: "Creative",
+    isSystem: true,
+    sections: [
+      {
+        id: "s_1",
+        heading: "The process at a glance",
+        body: "Every project follows four stages: **Plan → Shoot → Edit → Deliver.** You'll know exactly what's happening at each step, and I'll confirm dates and details in writing so there are no surprises.",
+      },
+      {
+        id: "s_2",
+        heading: "Before the shoot",
+        body: "In the lead-up we'll confirm:\n\n- The shot list / concept and any references you love\n- Location, date, and timing\n- Wardrobe, props, or products needed\n- Anyone else involved (talent, stylists)\n\nThe more we lock in beforehand, the smoother the day runs.",
+      },
+      {
+        id: "s_3",
+        heading: "On the day",
+        body: "Please allow [X hours] for the shoot at [location]. I'll bring the gear and direction; you bring [the products / people / wardrobe]. We'll work through the shot list with room for a few creative extras. Weather or availability changes are handled together, calmly.",
+      },
+      {
+        id: "s_4",
+        heading: "Editing & selection",
+        body: "After the shoot I'll cull and edit the strongest frames. You'll receive [a gallery / selects] to choose your favourites, and I'll finish those to a polished standard. Editing style follows the look we agreed — natural, on-brand, and consistent.",
+      },
+      {
+        id: "s_5",
+        heading: "Delivery",
+        body: "You'll receive [number] final [edited images / videos] in [formats] via [gallery / drive] within [2–3 weeks] of the shoot. One round of revisions on the selected finals is included; extra edits or additional deliverables are quoted first.",
+      },
+      {
+        id: "s_6",
+        heading: "Usage rights & files",
+        body: "On full payment you receive the agreed final deliverables with **usage rights as specified** [e.g. web + social, or full commercial]. Raw/unedited files remain with me unless we've agreed otherwise. Please back up your delivered files — I archive projects [90] days after delivery.",
+      },
+      {
+        id: "s_7",
+        heading: "Payments",
+        body: "A [50]% booking fee secures your date; the balance is due on delivery, via [UPI / bank transfer / Wise / PayPal / card link]. The booking fee reserves the shoot slot and covers pre-production.",
+      },
+      {
+        id: "s_8",
+        heading: "Next steps",
+        body: "1. Confirm your shoot date and location.\n2. Pay the booking fee to lock it in.\n3. Share references and any details for the shot list.\n\nExcited to make something you'll love — see you on set!",
+      },
+    ],
+  },
 ];

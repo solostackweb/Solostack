@@ -7,10 +7,13 @@ import {
   CalendarCheck,
   CalendarClock,
   Check,
+  CheckCircle2,
   Copy,
+  Hourglass,
   Plus,
   Settings2,
   Video,
+  type LucideIcon,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -121,9 +124,24 @@ export function MeetingsHubView({
 
       {/* Stats */}
       <div className="grid gap-3 sm:grid-cols-3">
-        <Stat label="Awaiting client" value={pending.length} tone="amber" />
-        <Stat label="Upcoming" value={upcoming.length} tone="emerald" />
-        <Stat label="Completed" value={completedCount} tone="primary" />
+        <Stat
+          label="Awaiting client"
+          value={pending.length}
+          tone="amber"
+          icon={Hourglass}
+        />
+        <Stat
+          label="Upcoming"
+          value={upcoming.length}
+          tone="emerald"
+          icon={CalendarClock}
+        />
+        <Stat
+          label="Completed"
+          value={completedCount}
+          tone="primary"
+          icon={CheckCircle2}
+        />
       </div>
 
       {/* Availability / calendar */}
@@ -204,26 +222,42 @@ function Stat({
   label,
   value,
   tone,
+  icon: Icon,
 }: {
   label: string;
   value: number;
   tone: "amber" | "emerald" | "primary";
+  icon: LucideIcon;
 }) {
-  const toneClass =
+  const style =
     tone === "amber"
-      ? "text-amber-600 dark:text-amber-400"
+      ? { text: "text-amber-600 dark:text-amber-400", bg: "bg-amber-500/10" }
       : tone === "emerald"
-        ? "text-emerald-600 dark:text-emerald-400"
-        : "text-primary";
+        ? {
+            text: "text-emerald-600 dark:text-emerald-400",
+            bg: "bg-emerald-500/10",
+          }
+        : { text: "text-primary", bg: "bg-primary/10" };
   return (
     <Card>
-      <CardContent className="p-5">
-        <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-          {label}
-        </p>
-        <p className={cn("mt-1 text-3xl font-bold tabular-nums", toneClass)}>
-          {value}
-        </p>
+      <CardContent className="flex items-center gap-4 p-5">
+        <div
+          className={cn(
+            "flex h-11 w-11 shrink-0 items-center justify-center rounded-xl",
+            style.bg,
+            style.text,
+          )}
+        >
+          <Icon className="h-5 w-5" />
+        </div>
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            {label}
+          </p>
+          <p className={cn("text-2xl font-bold tabular-nums", style.text)}>
+            {value}
+          </p>
+        </div>
       </CardContent>
     </Card>
   );
@@ -305,8 +339,15 @@ function MeetingCard({
           }`
         : MEETING_STATUS_LABEL[meeting.status];
 
+  const accent =
+    variant === "pending"
+      ? "border-l-amber-400"
+      : variant === "upcoming"
+        ? "border-l-emerald-400"
+        : "border-l-border";
+
   return (
-    <Card>
+    <Card className={cn("border-l-4", accent)}>
       <CardContent className="flex flex-wrap items-center justify-between gap-3 p-4">
         <div className="min-w-0">
           <div className="flex items-center gap-2">
