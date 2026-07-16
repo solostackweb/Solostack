@@ -4,16 +4,12 @@ import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
-  CalendarCheck,
   CalendarClock,
   Check,
-  CheckCircle2,
   Copy,
-  Hourglass,
   Plus,
   Settings2,
   Video,
-  type LucideIcon,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -21,20 +17,8 @@ import { PageHeader } from "@/components/shared/page-header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
-import { MEETING_STATUS_LABEL, type Meeting } from "../types";
+import { MEETING_STATUS_LABEL, type Meeting, type MeetingStatus } from "../types";
 import { cancelMeetingAction, completeMeetingAction } from "../actions";
-
-interface Connection {
-  connected: boolean;
-  email: string | null;
-}
-
-interface Settings {
-  timezone: string;
-  workingHours: Record<string, Array<[string, string]>>;
-  bufferMinutes: number;
-  minNoticeHours: number;
-}
 
 function formatSlot(iso: string): string {
   const date = new Date(iso);
@@ -48,138 +32,123 @@ function formatSlot(iso: string): string {
   }).format(date);
 }
 
-const STATUS_STYLE: Record<string, string> = {
+const STATUS_STYLE: Record<MeetingStatus, string> = {
   proposed: "bg-amber-500/10 text-amber-700 dark:text-amber-300",
   confirmed: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
   cancelled: "bg-muted text-muted-foreground",
   completed: "bg-primary/10 text-primary",
 };
 
-export function MeetingsHubView({
-  meetings,
-  connection,
-  settings,
-  googleConfigured,
-}: {
-  meetings: Meeting[];
-  connection: Connection;
-  settings: Settings;
-  googleConfigured: boolean;
-}) {
-  const now = Date.now();
-  const pending = meetings.filter((m) => m.status === "proposed");
-  const upcoming = meetings
-    .filter(
-      (m) =>
-        m.status === "confirmed" &&
-        (!m.scheduledAt || new Date(m.scheduledAt).getTime() >= now),
-    )
-    .sort(
-      (a, b) =>
-        new Date(a.scheduledAt ?? 0).getTime() -
-        new Date(b.scheduledAt ?? 0).getTime(),
+type ColumnKey = "waiting" | "scheduled" | "wrapped";
+
+const COLUMNS: Array<{
+  key: ColumnKey;
+  label: string;
+  dot: string;
+  count: string;
+  empty: string;
+}> = [
+  {
+    key: "waiting",
+    label: "Waiting for client",
+    dot: "bg-amber-400",
+    count: "text-amber-600 dark:text-amber-400",
+    empty: "No calls waiting on a client.",
+  },
+  {
+    key: "scheduled",
+    label: "Scheduled",
+    dot: "bg-emerald-400",
+    count: "text-emerald-600 dark:text-emerald-400",
+    empty: "Nothing scheduled yet.",
+  },
+  {
+    key: "wrapped",
+    label: "Wrapped up",
+    dot: "bg-slate-400",
+    count: "text-muted-foreground",
+    empty: "Completed and cancelled calls land here.",
+  },
+];
+
+function columnForStatus(status: MeetingStatus): ColumnKey {
+  if (status === "proposed") return "waiting";
+  if (status === "confirmed") return "scheduled";
+  return "wrapped"; // completed | cancelled
+}
+
+export function MeetingsHubView({ meetings }: { meetings: Meeting[] }) {
+  const router = useRouter();
+  // Optimistic status overrides so a completed card jumps columns instantly.
+  const [override, setOverride] = React.useState<Record<string, MeetingStatus>>(
+    {},
+  );
+  const draggingId = React.useRef<string | null>(null);
+  const [overCol, setOverCol] = React.useState<ColumnKey | null>(null);
+
+  const statusOf = React.useCallback(
+    (m: Meeting): MeetingStatus => override[m.id] ?? m.status,
+    [override],
+  );
+
+  const byColumn = React.useMemo(() => {
+    const map: Record<ColumnKey, Meeting[]> = {
+      waiting: [],
+      scheduled: [],
+      wrapped: [],
+    };
+    for (const m of meetings) map[columnForStatus(statusOf(m))].push(m);
+    map.waiting.sort(
+      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
     );
-  const past = meetings
-    .filter(
-      (m) =>
-        m.status === "completed" ||
-        m.status === "cancelled" ||
-        (m.status === "confirmed" &&
-          m.scheduledAt !== null &&
-          new Date(m.scheduledAt).getTime() < now),
-    )
-    .sort(
+    map.scheduled.sort(
       (a, b) =>
-        new Date(b.scheduledAt ?? b.createdAt).getTime() -
-        new Date(a.scheduledAt ?? a.createdAt).getTime(),
+        new Date(a.scheduledAt ?? a.createdAt).getTime() -
+        new Date(b.scheduledAt ?? b.createdAt).getTime(),
     );
-  const completedCount = meetings.filter(
-    (m) => m.status === "completed",
-  ).length;
+    map.wrapped.sort(
+      (a, b) =>
+        new Date(b.scheduledAt ?? b.updatedAt).getTime() -
+        new Date(a.scheduledAt ?? a.updatedAt).getTime(),
+    );
+    return map;
+  }, [meetings, statusOf]);
 
-  const enabledDays = Object.values(settings.workingHours).filter(
-    (ranges) => Array.isArray(ranges) && ranges.length > 0,
-  ).length;
+  const markDone = React.useCallback(
+    async (id: string) => {
+      setOverride((p) => ({ ...p, [id]: "completed" }));
+      const res = await completeMeetingAction({ id });
+      if (!res.ok) {
+        setOverride((p) => {
+          const next = { ...p };
+          delete next[id];
+          return next;
+        });
+        toast.error(res.error ?? "Could not update the call.");
+        return;
+      }
+      toast.success("Marked as done.");
+      router.refresh();
+    },
+    [router],
+  );
 
-  return (
-    <div className="space-y-6">
-      <PageHeader
-        title="Meetings"
-        description="Schedule client calls, track who still needs to pick a time, and manage your availability — all in one place."
-        actions={
-          <div className="flex items-center gap-2">
-            <Button asChild size="sm" variant="outline">
-              <Link href="/dashboard/meetings/availability">
-                <Settings2 className="h-4 w-4" /> Availability
-              </Link>
-            </Button>
-            <Button asChild size="sm">
-              <Link href="/dashboard/meetings/new">
-                <Plus className="h-4 w-4" /> Schedule a call
-              </Link>
-            </Button>
-          </div>
-        }
-      />
+  const handleDrop = (col: ColumnKey) => {
+    const id = draggingId.current;
+    draggingId.current = null;
+    setOverCol(null);
+    if (!id) return;
+    const meeting = meetings.find((m) => m.id === id);
+    // The only valid drag transition is a scheduled call → wrapped up.
+    if (meeting && col === "wrapped" && statusOf(meeting) === "confirmed") {
+      void markDone(id);
+    }
+  };
 
-      {/* Stats */}
-      <div className="grid gap-3 sm:grid-cols-3">
-        <Stat
-          label="Awaiting client"
-          value={pending.length}
-          tone="amber"
-          icon={Hourglass}
-        />
-        <Stat
-          label="Upcoming"
-          value={upcoming.length}
-          tone="emerald"
-          icon={CalendarClock}
-        />
-        <Stat
-          label="Completed"
-          value={completedCount}
-          tone="primary"
-          icon={CheckCircle2}
-        />
-      </div>
-
-      {/* Availability / calendar */}
-      <Card>
-        <CardContent className="flex flex-wrap items-center justify-between gap-4 p-5">
-          <div className="flex items-start gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg border bg-background text-primary">
-              <CalendarCheck className="h-5 w-5" />
-            </div>
-            <div>
-              <p className="text-sm font-semibold">
-                {googleConfigured && connection.connected
-                  ? "Live availability is on"
-                  : "Availability"}
-              </p>
-              <p className="text-xs text-muted-foreground">
-                {googleConfigured && connection.connected
-                  ? `Google Calendar connected${connection.email ? ` · ${connection.email}` : ""}`
-                  : googleConfigured
-                    ? "Connect Google Calendar to let clients book your live open times."
-                    : "Set your working hours; clients pick from the times you offer."}
-                {" · "}
-                {enabledDays} day{enabledDays === 1 ? "" : "s"}/week · {settings.bufferMinutes}m buffer ·{" "}
-                {settings.minNoticeHours}h notice
-              </p>
-            </div>
-          </div>
-          <Button asChild size="sm" variant="outline">
-            <Link href="/dashboard/meetings/availability">
-              {googleConfigured && connection.connected
-                ? "Manage"
-                : "Set up"}
-            </Link>
-          </Button>
-        </CardContent>
-      </Card>
-
-      {meetings.length === 0 ? (
+  if (meetings.length === 0) {
+    return (
+      <div className="space-y-6">
+        <Header />
         <Card>
           <CardContent className="flex flex-col items-center gap-3 p-10 text-center">
             <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted text-muted-foreground">
@@ -195,107 +164,113 @@ export function MeetingsHubView({
             </Button>
           </CardContent>
         </Card>
-      ) : (
-        <div className="space-y-6">
-          <Section title="Awaiting client's pick" count={pending.length}>
-            {pending.map((m) => (
-              <MeetingCard key={m.id} meeting={m} variant="pending" />
-            ))}
-          </Section>
-          <Section title="Upcoming" count={upcoming.length}>
-            {upcoming.map((m) => (
-              <MeetingCard key={m.id} meeting={m} variant="upcoming" />
-            ))}
-          </Section>
-          <Section title="Past" count={past.length} muted>
-            {past.map((m) => (
-              <MeetingCard key={m.id} meeting={m} variant="past" />
-            ))}
-          </Section>
-        </div>
-      )}
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-5">
+      <Header />
+
+      <div className="grid gap-4 md:grid-cols-3">
+        {COLUMNS.map((col) => {
+          const items = byColumn[col.key];
+          const isTarget = col.key === "wrapped";
+          const isOver = overCol === col.key && isTarget;
+          return (
+            <div
+              key={col.key}
+              onDragOver={(e) => {
+                if (!isTarget) return;
+                e.preventDefault();
+                if (overCol !== col.key) setOverCol(col.key);
+              }}
+              onDragLeave={() => setOverCol((c) => (c === col.key ? null : c))}
+              onDrop={(e) => {
+                e.preventDefault();
+                handleDrop(col.key);
+              }}
+              className={cn(
+                "flex flex-col gap-3 rounded-xl border bg-muted/30 p-3 transition-colors",
+                isOver && "ring-2 ring-emerald-400/60",
+              )}
+            >
+              <div className="flex items-center gap-2 px-1">
+                <span className={cn("h-2 w-2 rounded-full", col.dot)} />
+                <h2 className="text-sm font-semibold">{col.label}</h2>
+                <span
+                  className={cn(
+                    "ml-auto text-xs font-semibold tabular-nums",
+                    col.count,
+                  )}
+                >
+                  {items.length}
+                </span>
+              </div>
+              <div className="flex flex-col gap-2">
+                {items.length === 0 ? (
+                  <p className="rounded-lg border border-dashed p-4 text-center text-xs text-muted-foreground">
+                    {col.empty}
+                  </p>
+                ) : (
+                  items.map((m) => (
+                    <MeetingCard
+                      key={m.id}
+                      meeting={m}
+                      status={statusOf(m)}
+                      onMarkDone={() => markDone(m.id)}
+                      onDragStart={() => {
+                        draggingId.current = m.id;
+                      }}
+                    />
+                  ))
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      <p className="text-xs text-muted-foreground">
+        Tip: drag a scheduled call into &ldquo;Wrapped up&rdquo; to mark it done.
+      </p>
     </div>
   );
 }
 
-function Stat({
-  label,
-  value,
-  tone,
-  icon: Icon,
-}: {
-  label: string;
-  value: number;
-  tone: "amber" | "emerald" | "primary";
-  icon: LucideIcon;
-}) {
-  const style =
-    tone === "amber"
-      ? { text: "text-amber-600 dark:text-amber-400", bg: "bg-amber-500/10" }
-      : tone === "emerald"
-        ? {
-            text: "text-emerald-600 dark:text-emerald-400",
-            bg: "bg-emerald-500/10",
-          }
-        : { text: "text-primary", bg: "bg-primary/10" };
+function Header() {
   return (
-    <Card>
-      <CardContent className="flex items-center gap-4 p-5">
-        <div
-          className={cn(
-            "flex h-11 w-11 shrink-0 items-center justify-center rounded-xl",
-            style.bg,
-            style.text,
-          )}
-        >
-          <Icon className="h-5 w-5" />
+    <PageHeader
+      title="Meetings"
+      description="Track every client call from request to wrap-up in one board."
+      actions={
+        <div className="flex items-center gap-2">
+          <Button asChild size="sm" variant="outline">
+            <Link href="/dashboard/meetings/availability">
+              <Settings2 className="h-4 w-4" /> Availability
+            </Link>
+          </Button>
+          <Button asChild size="sm">
+            <Link href="/dashboard/meetings/new">
+              <Plus className="h-4 w-4" /> Schedule a call
+            </Link>
+          </Button>
         </div>
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-            {label}
-          </p>
-          <p className={cn("text-2xl font-bold tabular-nums", style.text)}>
-            {value}
-          </p>
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
-function Section({
-  title,
-  count,
-  muted,
-  children,
-}: {
-  title: string;
-  count: number;
-  muted?: boolean;
-  children: React.ReactNode;
-}) {
-  if (count === 0) return null;
-  return (
-    <div>
-      <h2
-        className={cn(
-          "mb-2 text-xs font-semibold uppercase tracking-[0.14em]",
-          muted ? "text-muted-foreground/70" : "text-muted-foreground",
-        )}
-      >
-        {title} · {count}
-      </h2>
-      <div className="space-y-2">{children}</div>
-    </div>
+      }
+    />
   );
 }
 
 function MeetingCard({
   meeting,
-  variant,
+  status,
+  onMarkDone,
+  onDragStart,
 }: {
   meeting: Meeting;
-  variant: "pending" | "upcoming" | "past";
+  status: MeetingStatus;
+  onMarkDone: () => void;
+  onDragStart: () => void;
 }) {
   const router = useRouter();
   const [busy, setBusy] = React.useState(false);
@@ -312,24 +287,29 @@ function MeetingCard({
     setTimeout(() => setCopied(false), 1500);
   };
 
-  const run = async (
-    fn: () => Promise<{ ok: boolean; error?: string; message?: string }>,
-  ) => {
+  const cancel = async () => {
     setBusy(true);
-    const res = await fn();
+    const res = await cancelMeetingAction({ id: meeting.id });
     setBusy(false);
     if (!res.ok) {
-      toast.error(res.error ?? "Something went wrong.");
+      toast.error(res.error ?? "Could not cancel the call.");
       return;
     }
-    if (res.message) toast.success(res.message);
+    toast.success("Meeting cancelled.");
     router.refresh();
   };
 
+  const draggable = status === "confirmed";
+  const isCancelled = status === "cancelled";
+  const pastDue =
+    status === "confirmed" &&
+    meeting.scheduledAt !== null &&
+    new Date(meeting.scheduledAt).getTime() < Date.now();
+
   const subtitle =
-    meeting.status === "confirmed" && meeting.scheduledAt
+    status === "confirmed" && meeting.scheduledAt
       ? formatSlot(meeting.scheduledAt)
-      : meeting.status === "proposed"
+      : status === "proposed"
         ? `${meeting.proposedSlots.length || "Live"} ${
             meeting.mode === "availability"
               ? "availability"
@@ -337,42 +317,45 @@ function MeetingCard({
                 ? "option"
                 : "options"
           }`
-        : MEETING_STATUS_LABEL[meeting.status];
-
-  const accent =
-    variant === "pending"
-      ? "border-l-amber-400"
-      : variant === "upcoming"
-        ? "border-l-emerald-400"
-        : "border-l-border";
+        : status === "cancelled"
+          ? "Cancelled"
+          : meeting.scheduledAt
+            ? formatSlot(meeting.scheduledAt)
+            : "Completed";
 
   return (
-    <Card className={cn("border-l-4", accent)}>
-      <CardContent className="flex flex-wrap items-center justify-between gap-3 p-4">
-        <div className="min-w-0">
-          <div className="flex items-center gap-2">
-            <Link
-              href={`/dashboard/meetings/${meeting.id}`}
-              className="truncate text-sm font-semibold hover:underline"
-            >
-              {meeting.topic}
-            </Link>
-            <span
-              className={cn(
-                "rounded-full px-2 py-0.5 text-[10px] font-semibold",
-                STATUS_STYLE[meeting.status],
-              )}
-            >
-              {MEETING_STATUS_LABEL[meeting.status]}
-            </span>
-          </div>
-          <p className="mt-0.5 text-xs text-muted-foreground">
-            {subtitle} · {meeting.durationMinutes} min
-          </p>
+    <Card
+      draggable={draggable}
+      onDragStart={draggable ? onDragStart : undefined}
+      className={cn(
+        "border",
+        draggable && "cursor-grab active:cursor-grabbing",
+        isCancelled && "opacity-60",
+      )}
+    >
+      <CardContent className="space-y-2 p-3">
+        <div className="flex items-start justify-between gap-2">
+          <Link
+            href={`/dashboard/meetings/${meeting.id}`}
+            className="truncate text-sm font-semibold hover:underline"
+          >
+            {meeting.topic}
+          </Link>
+          <span
+            className={cn(
+              "shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold",
+              STATUS_STYLE[status],
+            )}
+          >
+            {MEETING_STATUS_LABEL[status]}
+          </span>
         </div>
-
-        <div className="flex items-center gap-2">
-          {variant === "pending" ? (
+        <p className="text-xs text-muted-foreground">
+          {subtitle} · {meeting.durationMinutes} min
+          {pastDue ? " · ended" : ""}
+        </p>
+        <div className="flex flex-wrap gap-1.5 pt-1">
+          {status === "proposed" ? (
             <Button type="button" size="sm" variant="outline" onClick={copy}>
               {copied ? (
                 <Check className="h-3.5 w-3.5" />
@@ -382,34 +365,33 @@ function MeetingCard({
               {copied ? "Copied" : "Copy link"}
             </Button>
           ) : null}
-          {variant === "upcoming" && meeting.meetLink ? (
+          {status === "confirmed" && meeting.meetLink ? (
             <Button asChild size="sm">
               <a href={meeting.meetLink} target="_blank" rel="noreferrer">
                 <Video className="h-3.5 w-3.5" /> Join
               </a>
             </Button>
           ) : null}
-          {variant === "upcoming" ? (
+          {status === "confirmed" ? (
             <Button
               type="button"
               size="sm"
               variant="outline"
-              onClick={() => run(() => completeMeetingAction({ id: meeting.id }))}
-              disabled={busy}
+              onClick={onMarkDone}
             >
-              Done
+              <Check className="h-3.5 w-3.5" /> Mark done
             </Button>
           ) : null}
           <Button asChild size="sm" variant="ghost">
             <Link href={`/dashboard/meetings/${meeting.id}`}>Open</Link>
           </Button>
-          {variant !== "past" ? (
+          {status === "proposed" || status === "confirmed" ? (
             <Button
               type="button"
               size="sm"
               variant="ghost"
               className="text-destructive"
-              onClick={() => run(() => cancelMeetingAction({ id: meeting.id }))}
+              onClick={cancel}
               disabled={busy}
             >
               Cancel
