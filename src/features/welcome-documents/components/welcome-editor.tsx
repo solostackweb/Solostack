@@ -117,6 +117,9 @@ export function WelcomeEditor(props: Props) {
     e.preventDefault();
     if (!title.trim()) {
       toast.error("Give the document a title.");
+      const el = document.getElementById("wd-title");
+      el?.scrollIntoView({ behavior: "smooth", block: "center" });
+      requestAnimationFrame(() => (el as HTMLInputElement | null)?.focus());
       return;
     }
     const cleanedSections = sections

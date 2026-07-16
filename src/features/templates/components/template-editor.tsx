@@ -6,6 +6,7 @@ import { useFormStatus } from "react-dom";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
+  AlertCircle,
   ArrowLeft,
   ChevronDown,
   ChevronUp,
@@ -46,6 +47,32 @@ interface Section {
 const SAMPLE_VALUES: Record<string, string> = Object.fromEntries(
   MERGE_VARIABLES.map((v) => [v.key, v.sample]),
 );
+
+/** Human labels for the fields the server can flag, used in the error banner. */
+const FIELD_LABELS: Record<string, string> = {
+  title: "Title",
+  category: "Category",
+  description: "Description",
+  scope: "Scope",
+  deliverables: "Deliverables",
+  timeline: "Timeline",
+  terms: "Terms",
+  subject: "Subject",
+  body: "Body",
+};
+
+/** Order in which to jump to the first field needing a fix. */
+const FIELD_ORDER = [
+  "title",
+  "category",
+  "description",
+  "scope",
+  "deliverables",
+  "timeline",
+  "terms",
+  "subject",
+  "body",
+];
 
 export function TemplateEditor({
   mode,
@@ -209,6 +236,33 @@ export function TemplateEditor({
 
   const [tab, setTab] = React.useState<"edit" | "preview">("edit");
 
+  // Per-field validation errors returned by the server action.
+  const fieldErrors = state && !state.ok ? state.fieldErrors : undefined;
+  const errFor = (name: string): string | undefined => fieldErrors?.[name]?.[0];
+  const errorList = fieldErrors
+    ? (Object.entries(fieldErrors)
+        .filter(([, msgs]) => Array.isArray(msgs) && msgs.length > 0)
+        .map(([name, msgs]) => [name, msgs![0]] as const))
+    : [];
+
+  // Scroll to a specific field and focus it (switching to Edit on mobile).
+  const jumpToField = React.useCallback((name: string) => {
+    setTab("edit");
+    const el = formRef.current?.querySelector<HTMLInputElement | HTMLTextAreaElement>(
+      `[name="${name}"]`,
+    );
+    if (!el) return;
+    el.scrollIntoView({ behavior: "smooth", block: "center" });
+    requestAnimationFrame(() => el.focus());
+  }, []);
+
+  // On a failed save, jump straight to the first field that needs fixing.
+  React.useEffect(() => {
+    if (!state || state.ok || !state.fieldErrors) return;
+    const first = FIELD_ORDER.find((n) => state.fieldErrors?.[n]?.length);
+    if (first) jumpToField(first);
+  }, [state, jumpToField]);
+
   return (
     <form ref={formRef} action={action} className="space-y-5">
       {mode === "edit" && template ? (
@@ -248,6 +302,32 @@ export function TemplateEditor({
         </div>
       </div>
 
+      {errorList.length > 0 ? (
+        <div className="rounded-lg border border-destructive/40 bg-destructive/5 p-4">
+          <div className="flex items-center gap-2 text-sm font-semibold text-destructive">
+            <AlertCircle className="h-4 w-4 shrink-0" />
+            {errorList.length === 1
+              ? "One field needs fixing"
+              : `${errorList.length} fields need fixing`}
+          </div>
+          <ul className="mt-2 space-y-1">
+            {errorList.map(([name, msg]) => (
+              <li key={name}>
+                <button
+                  type="button"
+                  onClick={() => jumpToField(name)}
+                  className="text-left text-sm text-destructive underline-offset-2 hover:underline"
+                >
+                  <span className="font-medium">{FIELD_LABELS[name] ?? name}</span>
+                  {" — "}
+                  {msg}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+
       {/* Mobile Edit / Preview toggle */}
       <div className="inline-flex rounded-lg bg-muted p-0.5 xl:hidden">
         <TabButton active={tab === "edit"} onClick={() => setTab("edit")} icon={PencilLine}>
@@ -268,7 +348,7 @@ export function TemplateEditor({
         >
           <Card>
             <CardContent className="grid gap-4 p-5">
-              <Field label="Title">
+              <Field label="Title" error={errFor("title")}>
                 <Input
                   name="title"
                   value={title}
@@ -279,14 +359,14 @@ export function TemplateEditor({
                 />
               </Field>
               <div className="grid gap-4 sm:grid-cols-2">
-                <Field label="Category">
+                <Field label="Category" error={errFor("category")}>
                   <Input
                     name="category"
                     value={category}
                     onChange={(e) => setCategory(e.target.value)}
                   />
                 </Field>
-                <Field label="Description">
+                <Field label="Description" error={errFor("description")}>
                   <Input
                     name="description"
                     value={description}
@@ -301,17 +381,17 @@ export function TemplateEditor({
           {type === "proposal" ? (
             <Card>
               <CardContent className="grid gap-4 p-5">
-                <Field label="Scope">
+                <Field label="Scope" error={errFor("scope")}>
                   <Textarea name="scope" rows={4} value={scope} onChange={(e) => setScope(e.target.value)} onFocus={focusField(setScope)} />
                 </Field>
-                <Field label="Deliverables">
+                <Field label="Deliverables" error={errFor("deliverables")}>
                   <Textarea name="deliverables" rows={4} value={deliverables} onChange={(e) => setDeliverables(e.target.value)} onFocus={focusField(setDeliverables)} />
                 </Field>
                 <div className="grid gap-4 sm:grid-cols-2">
-                  <Field label="Timeline">
+                  <Field label="Timeline" error={errFor("timeline")}>
                     <Textarea name="timeline" rows={4} value={timeline} onChange={(e) => setTimeline(e.target.value)} onFocus={focusField(setTimeline)} />
                   </Field>
-                  <Field label="Terms">
+                  <Field label="Terms" error={errFor("terms")}>
                     <Textarea name="terms" rows={4} value={terms} onChange={(e) => setTerms(e.target.value)} onFocus={focusField(setTerms)} />
                   </Field>
                 </div>
@@ -324,7 +404,7 @@ export function TemplateEditor({
               <CardContent className="space-y-4 p-5">
                 {type === "welcome_doc" ? (
                   <>
-                    <Field label="Intro">
+                    <Field label="Intro" error={errFor("body")}>
                       <Textarea name="body" rows={3} value={body} onChange={(e) => setBody(e.target.value)} onFocus={focusField(setBody)} />
                     </Field>
                   </>
@@ -398,11 +478,11 @@ export function TemplateEditor({
             <Card>
               <CardContent className="grid gap-4 p-5">
                 {type === "email" ? (
-                  <Field label="Subject">
+                  <Field label="Subject" error={errFor("subject")}>
                     <Input name="subject" value={subject} onChange={(e) => setSubject(e.target.value)} onFocus={focusField(setSubject)} />
                   </Field>
                 ) : null}
-                <Field label="Body">
+                <Field label="Body" error={errFor("body")}>
                   <Textarea name="body" rows={7} value={body} onChange={(e) => setBody(e.target.value)} onFocus={focusField(setBody)} />
                 </Field>
               </CardContent>
@@ -578,11 +658,33 @@ function SaveButton({ mode, dirty }: { mode: "create" | "edit"; dirty: boolean }
   );
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Field({
+  label,
+  children,
+  error,
+}: {
+  label: string;
+  children: React.ReactNode;
+  error?: string;
+}) {
   return (
-    <label className="space-y-1.5">
-      <span className="text-xs font-medium text-muted-foreground">{label}</span>
+    <label
+      className={cn(
+        "space-y-1.5",
+        error &&
+          "[&_input]:border-destructive [&_input]:ring-1 [&_input]:ring-destructive [&_textarea]:border-destructive [&_textarea]:ring-1 [&_textarea]:ring-destructive",
+      )}
+    >
+      <span
+        className={cn(
+          "text-xs font-medium",
+          error ? "text-destructive" : "text-muted-foreground",
+        )}
+      >
+        {label}
+      </span>
       {children}
+      {error ? <span className="block text-xs text-destructive">{error}</span> : null}
     </label>
   );
 }

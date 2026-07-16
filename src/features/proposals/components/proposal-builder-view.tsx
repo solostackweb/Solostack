@@ -179,24 +179,39 @@ export function ProposalBuilderView({
     return field instanceof HTMLInputElement ? field.value.trim() : "";
   };
 
+  // Scroll to a field/section and focus it so the user lands on what's missing.
+  const jumpToField = (selector: string) => {
+    const el = formRef.current?.querySelector<HTMLElement>(selector);
+    if (!el) return;
+    el.scrollIntoView({ behavior: "smooth", block: "center" });
+    requestAnimationFrame(() => el.focus?.());
+  };
+
   const validateForPublishing = (channel: "email" | "whatsapp") => {
     const missing: string[] = [];
-    if (!getInputValue("title")) missing.push("title");
-    if (!clientId) missing.push("client");
-    if (!getInputValue("validUntil")) missing.push("valid until");
-    if (!scope.trim()) missing.push("scope");
-    if (!deliverables.trim()) missing.push("deliverables");
-    if (!timeline.trim()) missing.push("timeline");
-    if (!terms.trim()) missing.push("terms");
+    let firstTarget: string | null = null;
+    const flag = (label: string, selector: string | null) => {
+      missing.push(label);
+      if (!firstTarget && selector) firstTarget = selector;
+    };
+    if (!getInputValue("title")) flag("title", '[name="title"]');
+    if (!clientId) flag("client", '[data-jump-id="client"]');
+    if (!getInputValue("validUntil")) flag("valid until", '[name="validUntil"]');
+    if (!scope.trim()) flag("scope", '[name="scope"]');
+    if (!deliverables.trim()) flag("deliverables", '[name="deliverables"]');
+    if (!timeline.trim()) flag("timeline", '[name="timeline"]');
+    if (!terms.trim()) flag("terms", '[name="terms"]');
     const validItems = draftItems.filter(
       (item) => item.description.trim() && Number(item.quantity) > 0 && Number(item.unitPrice) >= 0,
     );
-    if (validItems.length === 0) missing.push("at least one package");
-    if (total <= 0) missing.push("proposal total");
-    if (channel === "email" && !selectedClient?.email) missing.push("client email");
+    if (validItems.length === 0) flag("at least one package", '[data-jump-id="packages"]');
+    if (total <= 0) flag("proposal total", '[data-jump-id="packages"]');
+    if (channel === "email" && !selectedClient?.email)
+      flag("client email", '[data-jump-id="client"]');
 
     if (missing.length > 0) {
-      toast.error(`Please complete ${missing.join(", ")} before sending.`);
+      toast.error(`Please complete ${missing.join(", ")} — taking you there.`);
+      if (firstTarget) jumpToField(firstTarget);
       return false;
     }
     return true;
@@ -525,7 +540,7 @@ export function ProposalBuilderView({
                     if (nextGuidance.recommendedTaxRate === 0) setTaxAmount(0);
                   }}
                 >
-                  <SelectTrigger className="h-11">
+                  <SelectTrigger className="h-11" data-jump-id="client">
                     <SelectValue placeholder="Choose client" />
                   </SelectTrigger>
                   <SelectContent>
@@ -582,7 +597,13 @@ export function ProposalBuilderView({
             <CardContent className="space-y-4 p-5">
               <div className="flex items-center justify-between gap-3">
                 <div>
-                  <h2 className="text-lg font-semibold">Packages and line items</h2>
+                  <h2
+                    className="text-lg font-semibold outline-none"
+                    data-jump-id="packages"
+                    tabIndex={-1}
+                  >
+                    Packages and line items
+                  </h2>
                   <p className="text-sm text-muted-foreground">
                     Add offer packages, milestones, retainers, or optional service lines.
                   </p>

@@ -224,6 +224,49 @@ export function ContractBuilderView({
     }
   }, [applyAiDraft]);
 
+  const editorRef = React.useRef<HTMLDivElement>(null);
+
+  // All editable fields that may hold [bracket] placeholders, in document order.
+  const placeholderTargets = React.useMemo(
+    () => [
+      { id: "ph-title", value: title },
+      ...sections.flatMap((s) => [
+        { id: `ph-heading-${s.id}`, value: s.heading },
+        { id: `ph-body-${s.id}`, value: s.body },
+      ]),
+    ],
+    [title, sections],
+  );
+
+  const placeholderCount = React.useMemo(
+    () =>
+      placeholderTargets.reduce(
+        (n, t) => n + (t.value.match(/\[[^\]\n]{2,80}\]/g)?.length ?? 0),
+        0,
+      ),
+    [placeholderTargets],
+  );
+
+  // Scroll to the first field still holding a [bracket], focus it and select the
+  // bracket so the user can type straight over it.
+  const jumpToPlaceholder = React.useCallback(() => {
+    const target = placeholderTargets.find((t) => PLACEHOLDER_PATTERN.test(t.value));
+    if (!target) return;
+    setMobileTab("edit");
+    requestAnimationFrame(() => {
+      const el = editorRef.current?.querySelector<
+        HTMLInputElement | HTMLTextAreaElement
+      >(`[data-ph-id="${target.id}"]`);
+      if (!el) return;
+      el.scrollIntoView({ behavior: "smooth", block: "center" });
+      el.focus();
+      const match = target.value.match(/\[[^\]\n]{2,80}\]/);
+      if (match && typeof match.index === "number") {
+        el.setSelectionRange(match.index, match.index + match[0].length);
+      }
+    });
+  }, [placeholderTargets]);
+
   const persist = async (status: "draft" | "sent") => {
     const safeTitle = title.trim() || template?.name || "Untitled contract";
     if (status === "sent") {
@@ -237,8 +280,9 @@ export function ContractBuilderView({
       }
       if (hasUnresolvedPlaceholders(title, sections)) {
         toast.error(
-          "Review the template placeholders before sending. Replace bracketed text like [date], [amount], or [client name].",
+          "Replace the bracketed placeholders before sending — jumping you to the first one.",
         );
+        jumpToPlaceholder();
         return;
       }
     }
@@ -501,22 +545,38 @@ export function ContractBuilderView({
       </div>
 
       {template && (
-        <div className="flex gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-amber-950 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-100">
+        <div className="flex flex-wrap items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-amber-950 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-100">
           <CircleAlert className="mt-0.5 h-4 w-4 shrink-0" />
-          <div className="space-y-1 text-sm">
-            <p className="font-medium">Review this template before sending</p>
+          <div className="min-w-0 flex-1 space-y-1 text-sm">
+            <p className="font-medium">
+              {placeholderCount > 0
+                ? `${placeholderCount} placeholder${placeholderCount === 1 ? "" : "s"} left to replace`
+                : "All placeholders replaced"}
+            </p>
             <p className="text-xs leading-5 text-amber-900/80 dark:text-amber-100/80">
-              Replace all bracketed placeholders, check names, dates, fees, scope,
-              payment terms, and revision limits. You can save a draft anytime,
-              but sending is blocked while bracketed placeholders remain.
+              Replace bracketed text like [date], [amount], or [client name], then
+              check names, fees, scope, and revision limits. Save a draft anytime;
+              sending is blocked while placeholders remain.
             </p>
           </div>
+          {placeholderCount > 0 && (
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              onClick={jumpToPlaceholder}
+              className="shrink-0 border-amber-300 bg-white/60 text-amber-900 hover:bg-white dark:border-amber-500/40 dark:bg-transparent dark:text-amber-100"
+            >
+              Jump to placeholder
+            </Button>
+          )}
         </div>
       )}
 
       <div className="grid gap-6 lg:grid-cols-2">
         {/* EDITOR */}
         <div
+          ref={editorRef}
           className={cn(
             "space-y-4",
             mobileTab === "preview" && "hidden lg:block",
@@ -529,6 +589,7 @@ export function ContractBuilderView({
               </p>
               <Field label="Title">
                 <Input
+                  data-ph-id="ph-title"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   placeholder="Website redesign proposal"
@@ -671,6 +732,7 @@ export function ContractBuilderView({
                           {String(i + 1).padStart(2, "0")}
                         </span>
                         <Input
+                          data-ph-id={`ph-heading-${s.id}`}
                           value={s.heading}
                           onChange={(e) =>
                             updateSection(s.id, { heading: e.target.value })
@@ -689,6 +751,7 @@ export function ContractBuilderView({
                         </Button>
                       </div>
                       <Textarea
+                        data-ph-id={`ph-body-${s.id}`}
                         value={s.body}
                         onChange={(e) =>
                           updateSection(s.id, { body: e.target.value })
