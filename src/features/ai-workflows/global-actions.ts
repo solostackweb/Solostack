@@ -1514,7 +1514,12 @@ export async function createMeetingFromAiAction(input: AiCreateInput) {
     mode: "availability",
     slots: [],
   });
-  if (!res.ok) return { ok: false as const, error: res.error };
+  if (!res.ok || !res.data) {
+    return {
+      ok: false as const,
+      error: res.ok ? "Could not schedule the call." : res.error,
+    };
+  }
 
   return {
     ok: true as const,

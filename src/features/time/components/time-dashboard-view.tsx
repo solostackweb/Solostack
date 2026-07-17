@@ -45,12 +45,7 @@ import {
   TimeEntriesTable,
   type TimeEntryLookup,
 } from "./time-entries-table";
-import {
-  AiWorkflowTriggerButton,
-  OperationalAiAgentWorkflow,
-} from "@/features/ai-workflows/components/operational-ai-agent-workflow";
 import { IvoEntryPoint, openIvo } from "@/features/ai-workflows/components/ivo-entry-point";
-import type { AiTimeEntryDraft } from "@/features/ai-workflows/types";
 
 interface TimeDashboardViewProps {
   entries: TimeEntryRecord[];
@@ -91,8 +86,6 @@ export function TimeDashboardView({
   const searchParams = useSearchParams();
   const [manualOpen, setManualOpen] = React.useState(false);
   const [editingEntry, setEditingEntry] = React.useState<TimeEntryRecord | null>(null);
-  const [aiOpen, setAiOpen] = React.useState(false);
-  const [aiDraft, setAiDraft] = React.useState<AiTimeEntryDraft | null>(null);
   const [search, setSearch] = React.useState(filters.q);
   const [tab, setTab] = React.useState<"tracker" | "reports">("tracker");
 
@@ -185,12 +178,11 @@ export function TimeDashboardView({
               label="Ask Ivo"
               variant="outline"
             />
-            <AiWorkflowTriggerButton
-              active={aiOpen}
-              onClick={() => setAiOpen((value) => !value)}
-            >
-              Generate time entry with AI
-            </AiWorkflowTriggerButton>
+            <IvoEntryPoint
+              prompt="Log time for a project"
+              label="Log with AI"
+              variant="secondary"
+            />
             <Button size="sm" onClick={() => setManualOpen(true)}>
               <Plus /> Log time
             </Button>
@@ -227,12 +219,7 @@ export function TimeDashboardView({
       </div>
 
       {tab === "tracker" && (
-      <div
-        className={cn(
-          "grid items-start gap-6",
-          aiOpen ? "xl:grid-cols-[minmax(0,1fr)_420px]" : "grid-cols-1",
-        )}
-      >
+      <div className={cn("grid items-start gap-6", "grid-cols-1")}>
         <div className="min-w-0 space-y-6">
       <UnbilledBanner seconds={unbilled.seconds} amount={unbilled.amount} />
 
@@ -352,20 +339,6 @@ export function TimeDashboardView({
       </div>
         </div>
 
-        <OperationalAiAgentWorkflow<AiTimeEntryDraft>
-          workflow="time_entry"
-          title="Log time"
-          intro="let's turn your work context into a clean time entry. I will draft the description, duration, billing state, and rate for review."
-          projects={projects}
-          defaultHourlyRate={defaultHourlyRate}
-          open={aiOpen}
-          onOpenChange={setAiOpen}
-          applyLabel="Review time entry"
-          onApplyDraft={(draft) => {
-            setAiDraft(draft);
-            setManualOpen(true);
-          }}
-        />
       </div>
       )}
 
@@ -397,7 +370,7 @@ export function TimeDashboardView({
         }}
         projects={projects}
         defaultHourlyRate={defaultHourlyRate}
-        initialAiDraft={aiDraft}
+        initialAiDraft={null}
         editing={editingEntry}
       />
     </div>

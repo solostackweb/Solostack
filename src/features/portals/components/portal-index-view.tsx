@@ -16,12 +16,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { EmptyState } from "@/components/shared/empty-state";
 import { PageHeader } from "@/components/shared/page-header";
 import { cn } from "@/lib/utils";
-import {
-  AiWorkflowTriggerButton,
-  OperationalAiAgentWorkflow,
-} from "@/features/ai-workflows/components/operational-ai-agent-workflow";
 import { IvoContextActions } from "@/features/ai-workflows/components/ivo-context-actions";
-import type { AiPortalDraft } from "@/features/ai-workflows/types";
 import { portalDashboardDetail } from "../routes";
 import { CreatePortalButton } from "./create-portal-button";
 
@@ -48,19 +43,7 @@ export function PortalIndexView({
   clients,
   activeClientIds,
 }: PortalIndexViewProps) {
-  const [aiOpen, setAiOpen] = React.useState(false);
-  const [aiDraft, setAiDraft] = React.useState<AiPortalDraft | null>(null);
 
-  const clientOptions = React.useMemo(
-    () =>
-      clients.map((client) => ({
-        id: client.id,
-        name: client.businessName
-          ? `${client.businessName} - ${client.fullName}`
-          : client.fullName,
-      })),
-    [clients],
-  );
   const activePortals = ownedPortals.filter((portal) => portal.status === "active").length;
   const clientMap = React.useMemo(
     () => new Map(clients.map((client) => [client.id, client])),
@@ -73,19 +56,11 @@ export function PortalIndexView({
         title="Client portals"
         description="Branded shared workspaces for your clients."
         actions={
-          <div className="flex items-center gap-2">
-            <AiWorkflowTriggerButton
-              active={aiOpen}
-              onClick={() => setAiOpen((value) => !value)}
-            >
-              Generate portal with AI
-            </AiWorkflowTriggerButton>
-            <CreatePortalButton
-              clients={clients}
-              activeClientIds={activeClientIds}
-              initialAiDraft={aiDraft}
-            />
-          </div>
+          <CreatePortalButton
+            clients={clients}
+            activeClientIds={activeClientIds}
+            initialAiDraft={null}
+          />
         }
       />
 
@@ -108,12 +83,7 @@ export function PortalIndexView({
         ]}
       />
 
-      <div
-        className={cn(
-          "grid items-start gap-6",
-          aiOpen ? "xl:grid-cols-[minmax(0,1fr)_420px]" : "grid-cols-1",
-        )}
-      >
+      <div className={cn("grid items-start gap-6", "grid-cols-1")}>
         <div className="min-w-0">
           {ownedPortals.length === 0 ? (
             <EmptyState
@@ -198,16 +168,6 @@ export function PortalIndexView({
           )}
         </div>
 
-        <OperationalAiAgentWorkflow<AiPortalDraft>
-          workflow="portal"
-          title="Create portal"
-          intro="let's create a client portal. I will pick up the client context, draft the portal name and brand setup, then open the portal form for review."
-          clients={clientOptions}
-          open={aiOpen}
-          onOpenChange={setAiOpen}
-          applyLabel="Review portal setup"
-          onApplyDraft={(draft) => setAiDraft(draft)}
-        />
       </div>
     </div>
   );

@@ -48,12 +48,7 @@ import { ContractStatusBadge } from "./contract-status-badge";
 import { ContractMobileCard } from "./contract-mobile-card";
 import { deleteContractAction } from "../actions";
 import { sendContractAction } from "../delivery";
-import {
-  AiWorkflowTriggerButton,
-  OperationalAiAgentWorkflow,
-} from "@/features/ai-workflows/components/operational-ai-agent-workflow";
 import { IvoEntryPoint, openIvo } from "@/features/ai-workflows/components/ivo-entry-point";
-import type { AiContractDraft } from "@/features/ai-workflows/types";
 
 interface ContractsListViewProps {
   contracts: ContractRecord[];
@@ -68,11 +63,9 @@ interface ContractsListViewProps {
 export function ContractsListView({
   contracts,
   clients,
-  projects,
 }: ContractsListViewProps) {
   const router = useRouter();
   const [search, setSearch] = React.useState("");
-  const [aiOpen, setAiOpen] = React.useState(false);
   const [statusFilter, setStatusFilter] = React.useState<
     ContractStatusRow | "all"
   >("all");
@@ -178,12 +171,11 @@ export function ContractsListView({
               label="Ask Ivo"
               variant="outline"
             />
-            <AiWorkflowTriggerButton
-              active={aiOpen}
-              onClick={() => setAiOpen((value) => !value)}
-            >
-              Generate new contract with AI
-            </AiWorkflowTriggerButton>
+            <IvoEntryPoint
+              prompt="Draft a contract for a client"
+              label="Draft with AI"
+              variant="secondary"
+            />
             <Button asChild size="sm">
               <Link href="/dashboard/contracts/new">
                 <Plus /> New contract
@@ -193,12 +185,7 @@ export function ContractsListView({
         }
       />
 
-      <div
-        className={cn(
-          "grid items-start gap-6",
-          aiOpen ? "xl:grid-cols-[minmax(0,1fr)_420px]" : "grid-cols-1",
-        )}
-      >
+      <div className={cn("grid items-start gap-6", "grid-cols-1")}>
         <div className="min-w-0 space-y-6">
       <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
         <Stat label="Total contracts" value={stats.total.toString()} featured />
@@ -316,20 +303,6 @@ export function ContractsListView({
       )}
         </div>
 
-        <OperationalAiAgentWorkflow<AiContractDraft>
-          workflow="contract"
-          title="Create contract"
-          intro="let's draft a contract or proposal. I will collect the commercial context, generate the sections, then open the builder for review."
-          clients={clients}
-          projects={projects}
-          open={aiOpen}
-          onOpenChange={setAiOpen}
-          applyLabel="Continue in contract builder"
-          onApplyDraft={(draft) => {
-            window.sessionStorage.setItem("stackivo.ai.contractDraft", JSON.stringify(draft));
-            router.push("/dashboard/contracts/new");
-          }}
-        />
       </div>
     </div>
   );
