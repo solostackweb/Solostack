@@ -37,6 +37,7 @@ export type AiMode =
   | "client"
   | "project"
   | "time_entry"
+  | "meeting"
   | "support";
 
 export interface Message {
@@ -55,6 +56,12 @@ export interface Message {
   };
   /** Canonical block data reconstructed by the server during resume. */
   persistedBlock?: IvoResolvedMessageBlock;
+  /**
+   * Optional stability key. If two assistant messages with the same key are
+   * pushed back-to-back (nothing in between), the second is dropped — this
+   * guards against duplicate question/card renders from a re-entrant workflow.
+   */
+  dedupeKey?: string;
 }
 
 export interface AiInvoicePreview {

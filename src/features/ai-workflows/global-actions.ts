@@ -20,6 +20,7 @@ import { getContractShareUrl } from "@/features/documents/urls";
 import { createClientAction } from "@/features/clients/actions";
 import { createProjectAction } from "@/features/projects/actions";
 import { manualTimeEntryAction } from "@/features/time/actions";
+import { createMeetingAction } from "@/features/meetings/actions";
 import { INDIAN_STATES } from "@/features/gst/state-codes";
 import { ensureInvoicePublicToken } from "@/features/share/server";
 import { buildWaUrl } from "@/lib/whatsapp";
@@ -1452,6 +1453,189 @@ function appendStandardLegalClauses(
   return out;
 }
 
+function meetingMinutesFromField(value: string): number {
+  const clamp = (n: number) => Math.min(480, Math.max(5, Math.round(n)));
+  const cleaned = cleanAiAnswer(value).toLowerCase();
+  if (!cleaned) return 30;
+  const hours = cleaned.match(/(\d+(?:\.\d+)?)\s*(h|hr|hour)/);
+  if (hours) return clamp(Number(hours[1]) * 60);
+  const mins = cleaned.match(/(\d+)\s*(m|min)/);
+  if (mins) return clamp(Number(mins[1]));
+  const n = cleaned.replace(/,/g, "").match(/\d+/)?.[0];
+  return n ? clamp(Number(n)) : 30;
+}
+
+/**
+ * Schedule a call from chat. Creates a meeting in "availability" mode (the
+ * client picks from the freelancer's open times), emails the client the booking
+ * link, and returns a light preview for the in-chat "share link" card.
+ */
+export async function createMeetingFromAiAction(input: AiCreateInput) {
+  const parsed = aiCreateSchema.safeParse(input);
+  if (!parsed.success) {
+    return { ok: false as const, error: "Tell me about the call first." };
+  }
+  const fields = parsed.data.fields ?? {};
+  const clientId = parsed.data.clientId || "";
+
+  const missing = nextMissingField("meeting", fields, {
+    clientId,
+    projectId: "",
+    projectSkipped: false,
+  });
+  if (missing) {
+    return { ok: false as const, error: missing.question, missing };
+  }
+
+  const userId = await requireUserId();
+  const supabase = await getServerSupabase();
+  const { data: clientRow } = clientId
+    ? await supabase
+        .from("clients")
+        .select("id, full_name, business_name")
+        .eq("id", clientId)
+        .eq("user_id", userId)
+        .maybeSingle()
+    : { data: null };
+  const client = clientRow as
+    | { id: string; full_name?: string | null; business_name?: string | null }
+    | null;
+  const clientName = client
+    ? client.business_name || client.full_name || "your client"
+    : "your client";
+
+  const topic = field(fields, "topic") || "Call";
+  const durationMinutes = meetingMinutesFromField(field(fields, "meetingLength"));
+
+  const res = await createMeetingAction({
+    topic,
+    durationMinutes,
+    clientId: clientId || null,
+    mode: "availability",
+    slots: [],
+  });
+  if (!res.ok) return { ok: false as const, error: res.error };
+
+  return {
+    ok: true as const,
+    data: {
+      id: res.data.id,
+      publicToken: res.data.publicToken,
+      topic,
+      clientName,
+      durationMinutes,
+    },
+  };
+}
+
+/**
+ * Create a DRAFT proposal in the dedicated Proposals feature (not the contracts
+ * table) from the chat-collected fields, with a single line item from the scope
+ * + amount. The user finishes packages/pricing and sends from the proposal
+ * builder. Returns a light preview for the in-chat "open proposal" card.
+ */
+export async function createProposalFromAiAction(input: AiCreateInput) {
+  const parsed = aiCreateSchema.safeParse(input);
+  if (!parsed.success) {
+    return { ok: false as const, error: "Tell me about the proposal first." };
+  }
+  const fields = parsed.data.fields ?? {};
+  const clientId = parsed.data.clientId || "";
+  const rawProjectId = parsed.data.projectId || "";
+  const projectSkipped = rawProjectId === NO_PROJECT_SENTINEL;
+  const projectId = projectSkipped ? "" : rawProjectId;
+
+  const missing = nextMissingField("contract", fields, {
+    clientId,
+    projectId,
+    projectSkipped,
+  });
+  if (missing) {
+    return { ok: false as const, error: missing.question, missing };
+  }
+
+  const userId = await requireUserId();
+  const supabase = await getServerSupabase();
+  const [{ data: clientRow }, { data: projectRow }] = await Promise.all([
+    supabase
+      .from("clients")
+      .select("id, full_name, business_name, currency, is_foreign")
+      .eq("id", clientId)
+      .eq("user_id", userId)
+      .maybeSingle(),
+    projectId
+      ? supabase
+          .from("projects")
+          .select("id, name")
+          .eq("id", projectId)
+          .eq("user_id", userId)
+          .maybeSingle()
+      : Promise.resolve({ data: null }),
+  ]);
+  const client = clientRow as
+    | {
+        id: string;
+        full_name?: string | null;
+        business_name?: string | null;
+        currency?: string | null;
+        is_foreign?: boolean | null;
+      }
+    | null;
+  if (!client) return { ok: false as const, error: "Choose a client you have access to." };
+  const project = projectRow as { id: string; name?: string | null } | null;
+
+  const currency = client.is_foreign ? client.currency || "USD" : "INR";
+  const clientName = client.business_name || client.full_name || "Selected client";
+  const scope = field(fields, "scope");
+  const commercials = field(fields, "commercials");
+  const amount = amountFromField(field(fields, "amount") || commercials);
+  const subtotal = Math.round(Math.max(0, amount) * 100) / 100;
+  const title = `Proposal for ${clientName}${project?.name ? ` — ${project.name}` : ""}`;
+  const validUntil = new Date(Date.now() + 14 * 86_400_000).toISOString().slice(0, 10);
+
+  const { data, error } = await supabase
+    .from("proposals")
+    .insert({
+      user_id: userId,
+      title,
+      client_id: clientId,
+      project_id: projectId || null,
+      status: "draft",
+      currency,
+      subtotal,
+      tax_amount: 0,
+      total_amount: subtotal,
+      valid_until: validUntil,
+      scope: scope || null,
+      deliverables: field(fields, "deliverables") || null,
+      timeline: field(fields, "timeline") || null,
+      terms: field(fields, "clauses") || field(fields, "terms") || null,
+    } as never)
+    .select("id")
+    .single();
+
+  if (error || !data) {
+    return { ok: false as const, error: error?.message ?? "Could not create the proposal." };
+  }
+  const proposalId = String((data as { id: string }).id);
+
+  await supabase.from("proposal_items").insert([
+    {
+      proposal_id: proposalId,
+      description: (scope || "Professional services").slice(0, 200),
+      quantity: 1,
+      unit_price: subtotal,
+      amount: subtotal,
+      sort_order: 0,
+    },
+  ] as never);
+
+  return {
+    ok: true as const,
+    data: { id: proposalId, title, clientName, total: subtotal, currency },
+  };
+}
+
 export async function createContractFromAiAction(input: AiCreateInput) {
   const parsed = aiCreateSchema.safeParse(input);
   if (!parsed.success) {
@@ -2558,6 +2742,7 @@ export async function remindOverdueInvoicesFromAiAction() {
   const { data: rows } = await supabase
     .from("invoices")
     .select("id, client_id, invoice_number, currency, total_amount, due_date, public_token, status")
+    .eq("user_id", userId)
     .in("status", ["sent", "viewed", "overdue"])
     .lt("due_date", todayIso);
 
@@ -2594,6 +2779,7 @@ export async function remindOverdueInvoicesFromAiAction() {
       .from("clients")
       .select("email, full_name")
       .eq("id", inv.client_id)
+      .eq("user_id", userId)
       .maybeSingle();
     const c = client as { email?: string | null; full_name?: string | null } | null;
     if (!c?.email) {
@@ -2653,7 +2839,10 @@ export async function remindOverdueInvoicesFromAiAction() {
       attachments: reminderAttachments,
       metadata: { invoiceId: inv.id, daysOverdue, via: "assistant" },
       tags: ["invoice_reminder", "assistant"],
-      idempotencyKey: `invoice-reminder-manual:${inv.id}:${todayIso}`,
+      // Shared namespace with the overdue cron (invoices-overdue/route.ts) so a
+      // manual send and the automatic reminder dedupe against each other and a
+      // client can't get two identical reminders on the same overdue-day.
+      idempotencyKey: `invoice-reminder:${inv.id}:d${daysOverdue}`,
     });
 
     if (dispatch.ok) {
@@ -2681,6 +2870,7 @@ export async function listContractsForAiAction(input: { filter?: "pending" | "al
   let q = supabase
     .from("contracts")
     .select("id, title, kind, client_id, status")
+    .eq("user_id", userId)
     .order("updated_at", { ascending: false })
     .limit(15);
   if (filter === "pending") q = q.in("status", ["draft", "sent", "viewed"]);
@@ -2699,6 +2889,7 @@ export async function listContractsForAiAction(input: { filter?: "pending" | "al
     const { data: cs } = await supabase
       .from("clients")
       .select("id, full_name, business_name")
+      .eq("user_id", userId)
       .in("id", ids);
     for (const c of (cs as Array<{ id: string; full_name: string | null; business_name: string | null }> | null) ?? []) {
       names.set(c.id, c.business_name || c.full_name || "Client");
@@ -2816,6 +3007,7 @@ export async function listInvoicesForAiAction(input: { filter?: "unpaid" | "over
     const { data: cs } = await supabase
       .from("clients")
       .select("id, full_name, business_name")
+      .eq("user_id", userId)
       .in("id", ids);
     for (const c of (cs as Array<{ id: string; full_name: string | null; business_name: string | null }> | null) ?? []) {
       names.set(c.id, c.business_name || c.full_name || "Client");

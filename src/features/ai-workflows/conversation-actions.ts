@@ -947,6 +947,8 @@ export async function processIvoMessageAction(
         (profile?.displayName || profile?.fullName || "").trim().split(/\s+/)[0] || null,
       currentMode: parsed.data.currentWorkflow ?? "general",
       collected: parsed.data.collected ?? {},
+      clientId: parsed.data.clientId,
+      projectId: parsed.data.projectId,
       pendingField: parsed.data.pendingField,
       activeDraft,
       page: parsed.data.page,

@@ -135,7 +135,7 @@ export function conversationalReply(text: string, userName?: string | null): str
 
   // Greetings — tolerant of common typos (helo, helloo, hii, heyy, gud morning).
   if (/^(hi+|hey+|h(e|a)l+o+|hii+|heyy+|yo+|hiya|hello+|namaste|namaskar|hii?ya|good ?(morning|afternoon|evening|day)|gud ?(morning|mrng|eve))\b/.test(t)) {
-    return `${hey}. I'm Ivo, your Stackivo assistant. I can create invoices, contracts and welcome docs, add clients and projects, log time, or just answer a question. What's on your plate today?`;
+    return `${hey}. I'm Ivo, your Stackivo assistant. I can create invoices, contracts, proposals and welcome docs, add clients and projects, schedule client calls, log time, or just answer a question. What's on your plate today?`;
   }
   if (/^(thanks?|thank ?(you|u)|thnx|thnks|thanx|thx|ty|tysm|great|perfect|awesome|cool|nice|ok+|okay|okey|k|got it|cheers|appreciate it)( (so much|a lot|you|u|man|mate|buddy|bro))?$/.test(t)) {
     return `${name ? `Anytime, ${name}.` : "Anytime."} What would you like to do next?`;
@@ -147,7 +147,7 @@ export function conversationalReply(text: string, userName?: string | null): str
     return "I'm Ivo \u2014 your built-in Stackivo assistant. Think of me as the teammate who handles the invoicing, contracts and admin so you can focus on the actual work. What can I do for you?";
   }
   if (/what can you do|how can you help|what do you do|how do you work/.test(t)) {
-    return "Quite a lot! I can draft and send invoices & contracts, prepare welcome documents, add clients and projects, log billable time, and answer questions about Stackivo or freelancing in general. Just describe what you need \u2014 like \u201cInvoice Acme $1,200 for a landing page, due in 15 days.\u201d";
+    return "Quite a lot! I can draft and send invoices & contracts, prepare proposals and welcome documents, add clients and projects, schedule client calls, log billable time, and answer questions about Stackivo or freelancing in general. Just describe what you need \u2014 like \u201cInvoice Acme $1,200 for a landing page, due in 15 days\u201d or \u201cSchedule a 30-min kickoff call with Acme.\u201d";
   }
   if (/how are you|how'?s it going|how do you do|how have you been|hope you('| a)re (doing )?(well|good)/.test(t)) {
     return `Doing well, thanks for asking. More importantly, ${you}what can I take off your plate today?`;

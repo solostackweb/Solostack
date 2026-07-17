@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 
 import { PageHeader } from "@/components/shared/page-header";
+import { IvoEntryPoint } from "@/features/ai-workflows/components/ivo-entry-point";
 
 export const metadata = { title: "Documents | Stackivo" };
 export const dynamic = "force-dynamic";
@@ -104,6 +105,9 @@ export default function DocumentsPage() {
       <PageHeader
         title="Documents"
         description="One place for everything you send to clients — documents and forms."
+        actions={
+          <IvoEntryPoint prompt="What documents should I send a new client, and in what order?" />
+        }
       />
       <Section title="Client documents" cards={CLIENT_DOCUMENTS} />
       <Section title="Forms" cards={FORMS} />

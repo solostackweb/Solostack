@@ -116,6 +116,7 @@ export const AI_WORKFLOWS = [
   "client",
   "project",
   "time_entry",
+  "meeting",
   "support",
 ] as const;
 
@@ -240,6 +241,11 @@ export const AI_FIELD_SEQUENCE: Record<AiWorkflow, AiFieldSpec[]> = {
   ],
   project: [{ field: "name" }, { field: "clientId" }, { field: "dueDate", optional: true }],
   time_entry: [{ field: "description" }, { field: "duration" }],
+  meeting: [
+    { field: "clientId" },
+    { field: "topic" },
+    { field: "meetingLength", optional: true },
+  ],
   support: [{ field: "question" }],
 };
 

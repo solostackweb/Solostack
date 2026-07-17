@@ -56,6 +56,26 @@ export async function listIvoMemoriesAction(): Promise<
   }
 }
 
+export async function clearIvoMemoriesAction(): Promise<
+  { ok: true; cleared: number } | { ok: false; error: string }
+> {
+  try {
+    const { supabase, userId } = await requireUser();
+    const { data, error } = await supabase
+      .from("ivo_memories")
+      .delete()
+      .eq("user_id", userId)
+      .select("id");
+    if (error) throw error;
+    return { ok: true, cleared: (data as unknown[] | null)?.length ?? 0 };
+  } catch (error) {
+    log.warn("ivo.memories.clear_failed", {
+      error: error instanceof Error ? error.message : "unknown",
+    });
+    return { ok: false, error: "Couldn't clear Ivo's memory right now." };
+  }
+}
+
 const deleteSchema = z.object({ id: z.string().uuid() });
 
 export async function deleteIvoMemoryAction(

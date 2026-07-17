@@ -14,7 +14,9 @@ import {
   createClientFromAiAction,
   createContractFromAiAction,
   createInvoiceFromAiAction,
+  createMeetingFromAiAction,
   createProjectFromAiAction,
+  createProposalFromAiAction,
   createTimeEntryFromAiAction,
   createWelcomeDocFromAiAction,
   emailInvoiceFromAiAction,
@@ -1490,9 +1492,34 @@ export async function createUnbilledTimeInvoiceIvoToolAction(input: {
   );
 }
 
+export async function createMeetingDraftIvoToolAction(input: ToolInput) {
+  const res = await createMeetingFromAiAction({
+    fields: input.fields,
+    clientId: input.clientId,
+    projectId: input.projectId,
+  });
+  if (!res.ok) return res;
+  return { ok: true as const, kind: "meeting" as const, meeting: res.data };
+}
+
 export async function createContractDraftIvoToolAction(
   input: ToolInput,
 ) {
+  // Proposals are their own document type: create a real proposal in the
+  // Proposals feature (its own table + builder) instead of a contract row.
+  const typeField = String(
+    (input.fields as Record<string, string> | undefined)?.type ?? "",
+  );
+  if (/proposal/i.test(typeField)) {
+    const proposal = await createProposalFromAiAction({
+      fields: input.fields,
+      clientId: input.clientId,
+      projectId: input.projectId,
+    });
+    if (!proposal.ok) return proposal;
+    return { ok: true as const, kind: "proposal" as const, proposal: proposal.data };
+  }
+
   const result = await runImmediateDraftTool(
     "contract.draft",
     "contract",

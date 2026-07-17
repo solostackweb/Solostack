@@ -6,11 +6,13 @@ import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import {
   ArrowUp,
+  Eraser,
   Lightbulb,
   Plus,
   Sparkles,
   X,
 } from "lucide-react";
+import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -27,6 +29,7 @@ import {
   listProjectsForAiAction,
   listWelcomeDocsForAiAction,
 } from "@/features/ai-workflows/global-actions";
+import { clearIvoMemoriesAction } from "@/features/ai-workflows/memory-actions";
 import type { AssistantSuggestion } from "@/features/ai-workflows/suggestions";
 import type {
   StackivoAiAssistantProps,
@@ -93,6 +96,7 @@ import {
   approveInvoiceIvoToolAction,
   createClientIvoToolAction,
   createContractDraftIvoToolAction,
+  createMeetingDraftIvoToolAction,
   createInvoiceDraftIvoToolAction,
   createProjectIvoToolAction,
   createTimeEntryIvoToolAction,
@@ -366,6 +370,27 @@ export function StackivoAiAssistant({ clients, projects, user }: StackivoAiAssis
     setMessages([]);
   }, []);
 
+  const [clearingMemory, setClearingMemory] = React.useState(false);
+  const handleClearMemory = React.useCallback(async () => {
+    if (clearingMemory) return;
+    const confirmed = window.confirm(
+      "Reset Ivo's memory? This deletes every preference Ivo has saved. Your conversations, clients, and documents are not affected.",
+    );
+    if (!confirmed) return;
+    setClearingMemory(true);
+    const res = await clearIvoMemoriesAction();
+    setClearingMemory(false);
+    if (!res.ok) {
+      toast.error(res.error);
+      return;
+    }
+    toast.success(
+      res.cleared > 0
+        ? `Cleared ${res.cleared} saved ${res.cleared === 1 ? "memory" : "memories"}.`
+        : "Ivo's memory was already empty.",
+    );
+  }, [clearingMemory]);
+
   const ensureConversation = React.useCallback(() => {
     if (conversationIdRef.current) {
       return Promise.resolve<IvoConversationSnapshot | null>(null);
@@ -537,11 +562,37 @@ export function StackivoAiAssistant({ clients, projects, user }: StackivoAiAssis
     return () => window.cancelAnimationFrame(frame);
   }, [messages, open, pending]);
 
+  const lastPushRef = React.useRef<{ key: string | null; id: string; at: number }>({
+    key: null,
+    id: "",
+    at: 0,
+  });
   const push = React.useCallback((message: Omit<Message, "id">) => {
     const messageId = newId();
     const persistedContent = typeof message.content === "string"
       ? message.content
       : message.persistence?.content;
+
+    // Drop an assistant card that is an exact repeat of the one just pushed
+    // (nothing in between). A re-entrant workflow step can otherwise render the
+    // same question or draft card twice. A legitimate re-ask always has the
+    // user's answer between the two, so its signature differs and it survives.
+    const dedupeKey =
+      message.dedupeKey ??
+      (message.persistence?.block
+        ? `block:${JSON.stringify(message.persistence.block)}`
+        : persistedContent
+          ? `text:${persistedContent}`
+          : null);
+    if (
+      message.role === "assistant" &&
+      dedupeKey &&
+      lastPushRef.current.key === dedupeKey &&
+      Date.now() - lastPushRef.current.at < 6000
+    ) {
+      return lastPushRef.current.id;
+    }
+    lastPushRef.current = { key: dedupeKey, id: messageId, at: Date.now() };
     // Only plain text enters model conversation memory. Rich blocks persist a
     // safe entity reference and a textual fallback, not their rendered data.
     if (typeof message.content === "string") {
@@ -1549,6 +1600,7 @@ export function StackivoAiAssistant({ clients, projects, user }: StackivoAiAssis
         } else if (prompt.type === "question") {
           push({
             role: "assistant",
+            dedupeKey: `ask:${missing.field}:${prompt.content}`,
             content: (
               <>
                 <span className="block">{prompt.content}</span>
@@ -1727,6 +1779,65 @@ export function StackivoAiAssistant({ clients, projects, user }: StackivoAiAssis
           return;
         }
 
+        case "meeting.create": {
+          if (!toolActionInput) {
+            push({ role: "assistant", content: "I couldn't schedule that call. Please try again." });
+            return;
+          }
+          const res = await createMeetingDraftIvoToolAction(toolActionInput);
+          if (!res.ok) {
+            push({ role: "assistant", content: res.error });
+            return;
+          }
+          finish();
+          const m = res.meeting;
+          const shareUrl =
+            typeof window !== "undefined"
+              ? `${window.location.origin}/m/${m.publicToken}`
+              : `/m/${m.publicToken}`;
+          push({
+            role: "assistant",
+            content: (
+              <div className="space-y-3">
+                <p className="font-medium">Call scheduled</p>
+                <div className="rounded-md border bg-background p-3 text-sm">
+                  <p className="font-medium">{m.topic}</p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {m.clientName} · {m.durationMinutes} min
+                  </p>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  Share this link so {m.clientName} can pick a time from your
+                  availability:
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      void navigator.clipboard.writeText(shareUrl);
+                      toast.success("Link copied");
+                    }}
+                  >
+                    Copy link
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={() => router.push(`/dashboard/meetings/${m.id}`)}
+                  >
+                    Open meeting
+                  </Button>
+                </div>
+              </div>
+            ),
+            suggestions: ["What meetings do I have coming up?"],
+          });
+          router.refresh();
+          return;
+        }
+
         case "contract.draft": {
           if (!toolActionInput) {
             push({ role: "assistant", content: "I couldn't start this draft. Please try again." });
@@ -1735,6 +1846,40 @@ export function StackivoAiAssistant({ clients, projects, user }: StackivoAiAssis
           const res = await createContractDraftIvoToolAction(toolActionInput);
           if (!res.ok) {
             push({ role: "assistant", content: res.error });
+            return;
+          }
+          // Proposals are their own document type — the tool created a real
+          // proposal in the Proposals feature. Hand off to the builder (where
+          // packages, pricing, and sending live) instead of a contract card.
+          if ("kind" in res && res.kind === "proposal") {
+            finish();
+            const p = res.proposal;
+            push({
+              role: "assistant",
+              content: (
+                <div className="space-y-3">
+                  <p className="font-medium">Proposal draft created</p>
+                  <div className="rounded-md border bg-background p-3 text-sm">
+                    <p className="font-medium">{p.title}</p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      {p.clientName} · {p.currency} {p.total.toLocaleString("en-IN")}
+                    </p>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    Open it to add packages, adjust pricing, and send.
+                  </p>
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={() => router.push(`/dashboard/proposals/${p.id}`)}
+                  >
+                    Open proposal
+                  </Button>
+                </div>
+              ),
+              suggestions: ["Create an invoice", "Draft a contract"],
+            });
+            router.refresh();
             return;
           }
           finish();
@@ -2799,6 +2944,18 @@ export function StackivoAiAssistant({ clients, projects, user }: StackivoAiAssis
                   <span className="ml-1 text-muted-foreground">AI</span>
                 </span>
               ) : null}
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8"
+                onClick={handleClearMemory}
+                disabled={clearingMemory}
+                aria-label="Reset Ivo's memory"
+                title="Reset Ivo's memory — forget all saved preferences"
+              >
+                <Eraser className="h-4 w-4" />
+              </Button>
               <Button
                 type="button"
                 variant="ghost"

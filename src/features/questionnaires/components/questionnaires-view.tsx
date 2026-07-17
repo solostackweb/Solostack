@@ -4,6 +4,7 @@ import { FileQuestion, Inbox, Pencil, Plus, Send, Trash2, Wand2 } from "lucide-r
 import { PageHeader } from "@/components/shared/page-header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { IvoEntryPoint } from "@/features/ai-workflows/components/ivo-entry-point";
 import { QUESTIONNAIRE_STARTERS } from "../builtin";
 import type { Questionnaire } from "../types";
 import {
@@ -28,11 +29,14 @@ export function QuestionnairesView({
         title="Questionnaires"
         description="Build reusable intake forms and send them to clients to collect scope, brand, and project details."
         actions={
-          <Button asChild size="sm">
-            <Link href="/dashboard/questionnaires/new">
-              <Plus className="h-4 w-4" /> New questionnaire
-            </Link>
-          </Button>
+          <div className="flex items-center gap-2">
+            <IvoEntryPoint prompt="What should I ask a new client before starting a project?" />
+            <Button asChild size="sm">
+              <Link href="/dashboard/questionnaires/new">
+                <Plus className="h-4 w-4" /> New questionnaire
+              </Link>
+            </Button>
+          </div>
         }
       />
 

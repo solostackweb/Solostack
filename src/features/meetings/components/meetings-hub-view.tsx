@@ -17,6 +17,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
+import { IvoEntryPoint } from "@/features/ai-workflows/components/ivo-entry-point";
 import { MEETING_STATUS_LABEL, type Meeting, type MeetingStatus } from "../types";
 import { cancelMeetingAction, completeMeetingAction } from "../actions";
 
@@ -245,6 +246,7 @@ function Header() {
       description="Track every client call from request to wrap-up in one board."
       actions={
         <div className="flex items-center gap-2">
+          <IvoEntryPoint prompt="What meetings do I have coming up, and who still needs to pick a time?" />
           <Button asChild size="sm" variant="outline">
             <Link href="/dashboard/meetings/availability">
               <Settings2 className="h-4 w-4" /> Availability

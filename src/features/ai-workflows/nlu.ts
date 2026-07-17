@@ -27,6 +27,7 @@ const CANONICAL_FIELDS: Record<string, string[]> = {
   client: ["fullName", "businessName", "email", "phone", "billingAddress", "state", "notes"],
   project: ["name", "scope", "status", "dates", "dueDate"],
   time_entry: ["description", "duration", "billable"],
+  meeting: ["topic", "meetingLength"],
   support: ["question", "page"],
 };
 

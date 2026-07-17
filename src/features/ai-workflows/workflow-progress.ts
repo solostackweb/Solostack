@@ -22,6 +22,7 @@ const WORKFLOW_TOOL: Partial<Record<AiWorkflow, IvoWorkflowTool>> = {
   client: "client.create",
   project: "project.create",
   time_entry: "time_entry.create",
+  meeting: "meeting.create",
 };
 
 export const IVO_MISSING_FIELD_QUESTIONS: Record<string, AiMissingField> = {
@@ -61,6 +62,19 @@ export const IVO_MISSING_FIELD_QUESTIONS: Record<string, AiMissingField> = {
     suggestions: ["30m, billable", "1h, billable", "2h 30m, billable", "1h, non-billable"],
   },
   question: { field: "question", question: "What do you need help with?" },
+  topic: {
+    field: "topic",
+    question: "What's the call about?",
+    placeholder: "Example: Project kickoff",
+    suggestions: ["Kickoff call", "Discovery call", "Review call", "Catch-up"],
+  },
+  meetingLength: {
+    field: "meetingLength",
+    question: "How long should the call be? Or reply “skip”.",
+    placeholder: "Example: 30 minutes",
+    optional: true,
+    suggestions: ["15 minutes", "30 minutes", "45 minutes", "1 hour"],
+  },
   projectId: { field: "projectId", question: "Which project should I link this to? Or choose “No project”." },
   type: {
     field: "type",
