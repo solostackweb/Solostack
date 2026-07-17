@@ -9,6 +9,7 @@ import {
   Send,
   Eye,
   EyeOff,
+  Sparkles,
 } from "lucide-react";
 import { useForm, useFieldArray, useWatch, FormProvider } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -27,6 +28,7 @@ import {
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { getClientInitials, getClientDisplayName } from "@/features/clients/utils";
+import { draftInvoiceFieldAction } from "@/features/invoices/ai-assist";
 import type { ClientRecord } from "@/features/clients/server";
 import type { ProjectRecord } from "@/features/projects/server";
 import { getStateName } from "@/features/gst/state-codes";
@@ -208,6 +210,49 @@ export function CreateInvoiceView({
         discount: watched.discount ?? 0,
       }),
     [watched.items, effectiveTaxMode, effectiveGstRate, watched.discount],
+  );
+
+  // ── Inline Ivo drafting for Notes + Terms ─────────────────────────────────
+  const [ivoDrafting, setIvoDrafting] = React.useState<null | "notes" | "terms">(null);
+  const handleIvoDraft = React.useCallback(
+    async (field: "notes" | "terms") => {
+      setIvoDrafting(field);
+      const values = form.getValues();
+      const res = await draftInvoiceFieldAction({
+        field,
+        clientName: selectedClient ? getClientDisplayName(selectedClient) : undefined,
+        currency: selectedCurrency,
+        items: (values.items ?? [])
+          .map((item) => String(item.description ?? "").trim())
+          .filter(Boolean)
+          .slice(0, 25),
+        total: totals.total,
+        dueDate: values.dueDate || undefined,
+        isExport: Boolean(selectedClient?.isForeign),
+      });
+      setIvoDrafting(null);
+      if (!res.ok) {
+        toast.error(res.error);
+        return;
+      }
+      setValue(field, res.text, { shouldValidate: true, shouldDirty: true });
+      toast.success("Drafted — review and tweak before sending.");
+    },
+    [form, selectedClient, selectedCurrency, totals.total, setValue],
+  );
+  const ivoDraftButton = (field: "notes" | "terms") => (
+    <button
+      type="button"
+      onClick={(event) => {
+        event.preventDefault();
+        void handleIvoDraft(field);
+      }}
+      disabled={ivoDrafting !== null}
+      className="inline-flex items-center gap-1 rounded-md border border-primary/20 bg-primary/5 px-2 py-0.5 text-[11px] font-semibold text-primary transition-colors hover:bg-primary/10 disabled:opacity-50"
+    >
+      <Sparkles className="h-3 w-3" />
+      {ivoDrafting === field ? "Drafting…" : "Draft with Ivo"}
+    </button>
   );
 
   // Resolve selected client + project-for-client list
@@ -615,7 +660,11 @@ export function CreateInvoiceView({
 
               {/* Notes + Terms */}
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-6">
-                <SectionCard label="Notes" error={errors.notes?.message}>
+                <SectionCard
+                  label="Notes"
+                  error={errors.notes?.message}
+                  action={ivoDraftButton("notes")}
+                >
                   <Textarea
                     {...register("notes")}
                     rows={4}
@@ -623,7 +672,11 @@ export function CreateInvoiceView({
                     className="resize-none"
                   />
                 </SectionCard>
-                <SectionCard label="Terms" error={errors.terms?.message}>
+                <SectionCard
+                  label="Terms"
+                  error={errors.terms?.message}
+                  action={ivoDraftButton("terms")}
+                >
                   <Textarea
                     {...register("terms")}
                     rows={4}
@@ -708,10 +761,13 @@ function SectionCard({
   label,
   children,
   error,
+  action,
 }: {
   label: string;
   children: React.ReactNode;
   error?: string;
+  /** Optional right-aligned control in the label row (e.g. "Draft with Ivo"). */
+  action?: React.ReactNode;
 }) {
   return (
     <Card>
@@ -720,11 +776,14 @@ function SectionCard({
           <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
             {label}
           </p>
-          {error && (
-            <p className="text-right text-xs font-medium text-destructive">
-              {error}
-            </p>
-          )}
+          <span className="flex items-center gap-2">
+            {error && (
+              <p className="text-right text-xs font-medium text-destructive">
+                {error}
+              </p>
+            )}
+            {action}
+          </span>
         </div>
         {children}
       </CardContent>

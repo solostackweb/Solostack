@@ -21,6 +21,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import {
+  approveAndSendPreparedActionAction,
   refreshIvoPreparedActionsAction,
   resolveIvoPreparedActionAction,
   type IvoPreparedAction,
@@ -69,10 +70,25 @@ export function IvoPreparedActions() {
     [],
   );
 
-  const handleApprove = React.useCallback(
+  const handleApproveAndSend = React.useCallback(
     async (action: IvoPreparedAction) => {
-      // Approving hands the draft off to the user's own mail client — nothing
-      // is ever sent silently on their behalf.
+      setBusyId(action.id);
+      const res = await approveAndSendPreparedActionAction({ id: action.id });
+      setBusyId(null);
+      if (!res.ok) {
+        toast.error(res.error);
+        return;
+      }
+      setActions((current) => (current ?? []).filter((item) => item.id !== action.id));
+      toast.success(`Sent to ${action.recipientName ?? action.recipientEmail}. Replies come to your inbox.`);
+    },
+    [],
+  );
+
+  const handleOpenInMailApp = React.useCallback(
+    async (action: IvoPreparedAction) => {
+      // Hand the draft to the user's own mail client instead of sending
+      // through Stackivo — approving either way, never sending silently.
       if (action.recipientEmail) {
         const mailto = `mailto:${encodeURIComponent(action.recipientEmail)}?subject=${encodeURIComponent(
           action.subject,
@@ -163,21 +179,26 @@ export function IvoPreparedActions() {
                         </p>
                       </div>
                       <div className="flex flex-wrap items-center gap-2">
+                        {action.recipientEmail ? (
+                          <Button
+                            size="sm"
+                            className="h-8 gap-1.5 text-xs"
+                            disabled={busyId === action.id}
+                            onClick={() => handleApproveAndSend(action)}
+                          >
+                            <Check className="h-3.5 w-3.5" />
+                            {busyId === action.id ? "Sending…" : "Approve & send"}
+                          </Button>
+                        ) : null}
                         <Button
                           size="sm"
+                          variant={action.recipientEmail ? "outline" : "default"}
                           className="h-8 gap-1.5 text-xs"
                           disabled={busyId === action.id}
-                          onClick={() => handleApprove(action)}
+                          onClick={() => handleOpenInMailApp(action)}
                         >
-                          {action.recipientEmail ? (
-                            <>
-                              <Mail className="h-3.5 w-3.5" /> Approve & open email
-                            </>
-                          ) : (
-                            <>
-                              <Check className="h-3.5 w-3.5" /> Approve & copy
-                            </>
-                          )}
+                          <Mail className="h-3.5 w-3.5" />
+                          {action.recipientEmail ? "Open in mail app" : "Approve & copy"}
                         </Button>
                         <Button
                           size="sm"

@@ -1,7 +1,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, Download, Pencil, FileText, Send, Eye, CheckCircle2, Clock, Plus, CreditCard } from "lucide-react";
+import { ArrowLeft, Download, Pencil, FileText, Send, Eye, CheckCircle2, Clock, Plus, CreditCard, Sparkles } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -17,6 +17,18 @@ import { DuplicateInvoiceButton } from "@/features/invoices/components/duplicate
 import { CancelInvoiceButton } from "@/features/invoices/components/cancel-invoice-button";
 import { listActivity, type ActivityRecord } from "@/features/activity/server";
 import { IvoContextActions } from "@/features/ai-workflows/components/ivo-context-actions";
+import {
+  getClientBehaviorInsights,
+  type ClientInsightTone,
+} from "@/features/clients/insights";
+
+/** Tone → chip styling for the ambient client-behaviour insights. */
+const INSIGHT_TONE_STYLES: Record<ClientInsightTone, string> = {
+  positive: "border-emerald-500/25 bg-emerald-500/5 text-emerald-700",
+  info: "border-primary/20 bg-primary/5 text-foreground/80",
+  warning: "border-amber-500/30 bg-amber-500/10 text-amber-800",
+  danger: "border-destructive/30 bg-destructive/10 text-destructive",
+};
 
 export const dynamic = "force-dynamic";
 
@@ -46,10 +58,13 @@ export default async function InvoiceDetailPage({
     (invoice as { isExport?: boolean; is_export?: boolean }).isExport ??
     (invoice as { is_export?: boolean }).is_export ??
     false;
-  const [client, activities, payments] = await Promise.all([
+  const [client, activities, payments, insights] = await Promise.all([
     invoice.clientId ? getClient(invoice.clientId) : Promise.resolve(null),
     listActivity({ entityType: "invoice", entityId: id, limit: 20 }),
     listInvoicePayments(id),
+    invoice.clientId
+      ? getClientBehaviorInsights(invoice.clientId).catch(() => [])
+      : Promise.resolve([]),
   ]);
   const ledgerPaid = payments.reduce((sum, payment) => sum + payment.amount, 0);
   const paidAmount = Math.max(ledgerPaid, invoice.paymentAmount ?? 0);
@@ -199,6 +214,20 @@ export default async function InvoiceDetailPage({
           },
         ]}
       />
+
+      {insights.length > 0 ? (
+        <div className="flex flex-wrap gap-2">
+          {insights.map((insight) => (
+            <span
+              key={insight.id}
+              className={`inline-flex items-start gap-1.5 rounded-lg border px-3 py-1.5 text-xs leading-relaxed ${INSIGHT_TONE_STYLES[insight.tone]}`}
+            >
+              <Sparkles className="mt-0.5 h-3 w-3 shrink-0" />
+              {insight.text}
+            </span>
+          ))}
+        </div>
+      ) : null}
 
       <Card>
         <CardContent className="space-y-6 p-4 sm:p-6">

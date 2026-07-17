@@ -21,6 +21,7 @@ import { formatCurrencyAmount } from "@/lib/format";
 import { getServerSupabase } from "@/lib/supabase/server";
 import type { IvoPreparedActionRow } from "@/lib/supabase/types";
 import { getProfile } from "@/features/profile/server";
+import { sendEmail } from "@/features/email/service";
 import { generateStructuredJson } from "./groq";
 
 const MAX_READY = 6;
@@ -432,6 +433,111 @@ export async function refreshIvoPreparedActionsAction(): Promise<
       error: error instanceof Error ? error.message : "unknown",
     });
     return { ok: false, error: "Couldn't prepare actions right now." };
+  }
+}
+
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+function bodyToHtml(body: string): string {
+  const paragraphs = body
+    .split(/\n{2,}/)
+    .map((paragraph) => escapeHtml(paragraph.trim()).replace(/\n/g, "<br />"))
+    .filter(Boolean)
+    .map(
+      (paragraph) =>
+        `<p style="margin: 0 0 12px; font-size: 14px; line-height: 1.6; color: #1e293b;">${paragraph}</p>`,
+    )
+    .join("");
+  return `<div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 560px; margin: 0 auto; padding: 8px 0;">${paragraphs}</div>`;
+}
+
+const sendSchema = z.object({ id: z.string().uuid() });
+
+/**
+ * Approve AND deliver a prepared draft through Stackivo's own email service
+ * (Brevo). Reply-To is the freelancer's address, so client replies come
+ * straight back to them. Only rows still 'ready' can be sent — double-clicks
+ * and races resolve to a friendly no-op.
+ */
+export async function approveAndSendPreparedActionAction(
+  input: z.input<typeof sendSchema>,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const parsed = sendSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: "Invalid action reference." };
+  try {
+    const { supabase, userId } = await requireUser();
+    const { data: rowRaw } = await supabase
+      .from("ivo_prepared_actions")
+      .select("*")
+      .eq("id", parsed.data.id)
+      .eq("user_id", userId)
+      .eq("status", "ready")
+      .maybeSingle();
+    const row = rowRaw as unknown as IvoPreparedActionRow | null;
+    if (!row) return { ok: false, error: "This draft was already handled." };
+    if (!row.recipient_email) {
+      return { ok: false, error: "No email on file for this recipient — use Copy instead." };
+    }
+
+    // Claim before sending so a concurrent click cannot double-send.
+    const { data: claimed } = await supabase
+      .from("ivo_prepared_actions")
+      .update({ status: "approved" } as never)
+      .eq("id", row.id)
+      .eq("user_id", userId)
+      .eq("status", "ready")
+      .select("id");
+    if (!claimed || (claimed as unknown[]).length === 0) {
+      return { ok: false, error: "This draft was already handled." };
+    }
+
+    const [profile, userRes] = await Promise.all([
+      getProfile().catch(() => null),
+      supabase.auth.getUser(),
+    ]);
+    const senderName = profile?.displayName || profile?.fullName || "Stackivo user";
+    const replyTo = userRes.data.user?.email;
+
+    try {
+      await sendEmail({
+        type: "share",
+        to: { email: row.recipient_email, name: row.recipient_name ?? undefined },
+        ...(replyTo ? { replyTo: { email: replyTo, name: senderName } } : {}),
+        subject: row.subject || row.title,
+        html: bodyToHtml(row.body),
+        text: row.body,
+        tags: ["ivo-prepared-action", row.kind],
+      });
+    } catch (error) {
+      // Sending failed — release the claim so the user can retry.
+      await supabase
+        .from("ivo_prepared_actions")
+        .update({ status: "ready" } as never)
+        .eq("id", row.id)
+        .eq("user_id", userId);
+      log.warn("ivo.prepared_actions.send_failed", {
+        error: error instanceof Error ? error.message : "unknown",
+        entity: { type: "ivo_prepared_action", id: row.id },
+      });
+      return { ok: false, error: "Couldn't send just now — try again, or use Copy." };
+    }
+
+    log.info("ivo.prepared_actions.sent", {
+      entity: { type: "ivo_prepared_action", id: row.id },
+      kind: row.kind,
+    });
+    return { ok: true };
+  } catch (error) {
+    log.warn("ivo.prepared_actions.send_failed", {
+      error: error instanceof Error ? error.message : "unknown",
+    });
+    return { ok: false, error: "Couldn't send just now — try again, or use Copy." };
   }
 }
 
