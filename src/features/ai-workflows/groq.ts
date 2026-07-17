@@ -8,10 +8,34 @@ interface GroqChatMessage {
   content: string;
 }
 
+/** Message shape for the tool-calling agent loop (OpenAI-compatible). */
+export interface GroqAgentMessage {
+  role: "system" | "user" | "assistant" | "tool";
+  content: string | null;
+  tool_calls?: GroqToolCall[];
+  tool_call_id?: string;
+}
+
+export interface GroqToolCall {
+  id: string;
+  type: "function";
+  function: { name: string; arguments: string };
+}
+
+export interface GroqToolDefinition {
+  type: "function";
+  function: {
+    name: string;
+    description: string;
+    parameters: Record<string, unknown>;
+  };
+}
+
 interface GroqChatResponse {
   choices?: Array<{
     message?: {
       content?: string;
+      tool_calls?: GroqToolCall[];
     };
   }>;
   usage?: {
@@ -281,5 +305,267 @@ export async function generateStructuredJson({
   // Every candidate failed. Return null so callers fall back gracefully instead
   // of surfacing an exception.
   report(lastOutcome);
+  return null;
+}
+
+export interface GroqToolChatResult {
+  content: string | null;
+  toolCalls: GroqToolCall[];
+  model: string;
+  promptTokens: number | null;
+  completionTokens: number | null;
+}
+
+interface GroqStreamDelta {
+  choices?: Array<{
+    delta?: {
+      content?: string | null;
+      tool_calls?: Array<{
+        index?: number;
+        id?: string;
+        function?: { name?: string; arguments?: string };
+      }>;
+    };
+  }>;
+  usage?: { prompt_tokens?: number; completion_tokens?: number };
+  x_groq?: { usage?: { prompt_tokens?: number; completion_tokens?: number } };
+}
+
+/**
+ * Consume an OpenAI-compatible SSE completion stream: forward text deltas,
+ * assemble tool calls from their argument fragments, and capture usage from
+ * the final chunk. Aborts via the shared controller if chunks stop arriving.
+ */
+async function readGroqStream(
+  body: ReadableStream<Uint8Array>,
+  controller: AbortController,
+  onDelta: (text: string) => void,
+): Promise<Omit<GroqToolChatResult, "model"> | null> {
+  const reader = body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+  let content = "";
+  const toolCalls = new Map<number, GroqToolCall>();
+  let promptTokens: number | null = null;
+  let completionTokens: number | null = null;
+
+  let idle: ReturnType<typeof setTimeout> | null = setTimeout(
+    () => controller.abort(),
+    GROQ_TIMEOUT_MS,
+  );
+  const resetIdle = () => {
+    if (idle) clearTimeout(idle);
+    idle = setTimeout(() => controller.abort(), GROQ_TIMEOUT_MS);
+  };
+
+  try {
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      resetIdle();
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split("\n");
+      buffer = lines.pop() ?? "";
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed.startsWith("data:")) continue;
+        const payload = trimmed.slice(5).trim();
+        if (!payload || payload === "[DONE]") continue;
+        let chunk: GroqStreamDelta;
+        try {
+          chunk = JSON.parse(payload) as GroqStreamDelta;
+        } catch {
+          continue; // partial/malformed frame
+        }
+        const delta = chunk.choices?.[0]?.delta;
+        if (typeof delta?.content === "string" && delta.content) {
+          content += delta.content;
+          onDelta(delta.content);
+        }
+        if (Array.isArray(delta?.tool_calls)) {
+          for (const fragment of delta.tool_calls) {
+            const index = Number(fragment.index ?? 0);
+            const existing = toolCalls.get(index) ?? {
+              id: "",
+              type: "function" as const,
+              function: { name: "", arguments: "" },
+            };
+            if (typeof fragment.id === "string" && fragment.id) existing.id = fragment.id;
+            if (typeof fragment.function?.name === "string" && fragment.function.name) {
+              existing.function.name = fragment.function.name;
+            }
+            if (typeof fragment.function?.arguments === "string") {
+              existing.function.arguments += fragment.function.arguments;
+            }
+            toolCalls.set(index, existing);
+          }
+        }
+        const usage = chunk.usage ?? chunk.x_groq?.usage;
+        if (usage) {
+          promptTokens = usage.prompt_tokens ?? promptTokens;
+          completionTokens = usage.completion_tokens ?? completionTokens;
+        }
+      }
+    }
+  } catch (err) {
+    log.warn("ai.provider.stream_error", {
+      provider: "groq",
+      reason: err instanceof Error ? err.name : "unknown",
+    });
+    return null;
+  } finally {
+    if (idle) clearTimeout(idle);
+    reader.releaseLock();
+  }
+
+  return {
+    content: content || null,
+    toolCalls: [...toolCalls.values()].filter((call) => call.id && call.function.name),
+    promptTokens,
+    completionTokens,
+  };
+}
+
+/**
+ * One tool-calling chat round for the Ivo agent loop. Unlike
+ * `generateStructuredJson`, the model may either answer in natural language
+ * or request one/more tool invocations; the caller owns the loop.
+ * Returns null when Groq is unavailable so callers can fall back to the
+ * deterministic router.
+ */
+export async function generateToolChat({
+  messages,
+  tools,
+  temperature = 0.3,
+  maxTokens = 2000,
+  operation = "agent_chat",
+  onDelta,
+}: {
+  messages: GroqAgentMessage[];
+  tools: GroqToolDefinition[];
+  temperature?: number;
+  maxTokens?: number;
+  operation?: string;
+  /**
+   * When provided, the request streams and text deltas are forwarded as they
+   * arrive (tool-call rounds usually produce no text). The resolved result is
+   * identical to the non-streaming shape.
+   */
+  onDelta?: (text: string) => void;
+}): Promise<GroqToolChatResult | null> {
+  const serverEnv = requireServerEnv();
+  if (!serverEnv.groqApiKey) {
+    log.debug("ai.provider.skipped", { provider: "groq", operation, reason: "not_configured" });
+    return null;
+  }
+
+  const models =
+    serverEnv.groqModel === GROQ_FALLBACK_MODEL
+      ? [serverEnv.groqModel]
+      : [serverEnv.groqModel, GROQ_FALLBACK_MODEL];
+
+  for (const model of models) {
+    const isGptOss = /gpt-oss|oss-120|oss-20/i.test(model);
+    const isReasoningModel =
+      isGptOss || /qwen3|qwq|deepseek-r1|-r1\b|reason/i.test(model);
+    const body = JSON.stringify({
+      model,
+      messages,
+      ...(tools.length > 0 ? { tools, tool_choice: "auto" } : {}),
+      temperature,
+      max_tokens: isReasoningModel ? Math.max(maxTokens, 3000) : maxTokens,
+      ...(isReasoningModel ? { reasoning_format: "hidden" } : {}),
+      ...(isGptOss ? { reasoning_effort: "low" } : {}),
+      ...(onDelta ? { stream: true, stream_options: { include_usage: true } } : {}),
+    });
+
+    let modelRejected = false;
+    for (let attempt = 1; attempt <= GROQ_MAX_ATTEMPTS; attempt++) {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), GROQ_TIMEOUT_MS);
+      const startedAt = Date.now();
+      try {
+        const res = await fetch(
+          "https://api.groq.com/openai/v1/chat/completions",
+          {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${serverEnv.groqApiKey}`,
+              "Content-Type": "application/json",
+            },
+            body,
+            signal: controller.signal,
+          },
+        );
+        if (res.status === 429 || res.status >= 500) {
+          if (attempt < GROQ_MAX_ATTEMPTS) {
+            await sleep(300 * attempt);
+            continue;
+          }
+          break;
+        }
+        if (res.status === 400 || res.status === 404) {
+          log.warn("ai.provider.model_rejected", {
+            provider: "groq", operation, model, status: res.status,
+            latencyMs: Date.now() - startedAt,
+          });
+          modelRejected = true;
+          break;
+        }
+        if (!res.ok) break;
+
+        if (onDelta && res.body) {
+          // Streaming mode. The initial timer guarded time-to-first-byte;
+          // from here an idle timer aborts if chunks stop arriving.
+          clearTimeout(timer);
+          const streamed = await readGroqStream(res.body, controller, onDelta);
+          if (!streamed) return null;
+          log.info("ai.provider.succeeded", {
+            provider: "groq", operation, model, attempt, streamed: true,
+            latencyMs: Date.now() - startedAt,
+            promptTokens: streamed.promptTokens,
+            completionTokens: streamed.completionTokens,
+            toolCalls: streamed.toolCalls.length,
+          });
+          return { ...streamed, model };
+        }
+
+        const json = (await res.json()) as GroqChatResponse;
+        const message = json.choices?.[0]?.message;
+        if (!message) return null;
+        log.info("ai.provider.succeeded", {
+          provider: "groq", operation, model, attempt,
+          latencyMs: Date.now() - startedAt,
+          promptTokens: json.usage?.prompt_tokens,
+          completionTokens: json.usage?.completion_tokens,
+          toolCalls: message.tool_calls?.length ?? 0,
+        });
+        return {
+          content: typeof message.content === "string" ? message.content : null,
+          toolCalls: Array.isArray(message.tool_calls) ? message.tool_calls : [],
+          model,
+          promptTokens: json.usage?.prompt_tokens ?? null,
+          completionTokens: json.usage?.completion_tokens ?? null,
+        };
+      } catch (err) {
+        const retriable =
+          err instanceof Error &&
+          (err.name === "AbortError" || err.name === "TypeError");
+        if (retriable && attempt < GROQ_MAX_ATTEMPTS) {
+          await sleep(300 * attempt);
+          continue;
+        }
+        log.warn("ai.provider.network_error", {
+          provider: "groq", operation, model,
+          reason: err instanceof Error ? err.name : "unknown",
+          latencyMs: Date.now() - startedAt,
+        });
+        break;
+      } finally {
+        clearTimeout(timer);
+      }
+    }
+    if (!modelRejected) break;
+  }
   return null;
 }

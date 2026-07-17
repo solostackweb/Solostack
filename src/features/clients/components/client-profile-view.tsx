@@ -17,6 +17,7 @@ import {
   FileSignature,
   BookOpen,
   ShieldAlert,
+  Sparkles,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -39,6 +40,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { EmptyState } from "@/components/shared/empty-state";
 import { formatINR, formatMoney } from "@/lib/format";
+import { cn } from "@/lib/utils";
+import type { ClientInsight } from "@/features/clients/insights";
 import { getStateName } from "@/features/gst/state-codes";
 import { IvoContextActions } from "@/features/ai-workflows/components/ivo-context-actions";
 
@@ -60,7 +63,16 @@ interface ClientProfileViewProps {
   recentInvoices?: InvoiceRecord[];
   /** All non-invoice documents for this client (proposals, contracts, welcome). */
   documents?: ClientDocument[];
+  /** Ambient behaviour insights (payment speed, receivables, value) — server-computed. */
+  insights?: ClientInsight[];
 }
+
+const INSIGHT_TONES: Record<ClientInsight["tone"], string> = {
+  positive: "border-emerald-500/25 bg-emerald-500/5 text-emerald-700",
+  info: "border-primary/20 bg-primary/5 text-foreground/80",
+  warning: "border-amber-500/30 bg-amber-500/10 text-amber-800",
+  danger: "border-destructive/30 bg-destructive/10 text-destructive",
+};
 
 export interface ClientDocument {
   id: string;
@@ -85,6 +97,7 @@ export function ClientProfileView({
   metrics,
   recentInvoices = [],
   documents = [],
+  insights = [],
 }: ClientProfileViewProps) {
   const router = useRouter();
   const [editOpen, setEditOpen] = React.useState(false);
@@ -269,6 +282,23 @@ export function ClientProfileView({
           subtle={metrics.invoiceCount === 0}
         />
       </div>
+
+      {insights.length > 0 ? (
+        <div className="flex flex-wrap gap-2">
+          {insights.map((insight) => (
+            <span
+              key={insight.id}
+              className={cn(
+                "inline-flex items-start gap-1.5 rounded-lg border px-3 py-1.5 text-xs leading-relaxed",
+                INSIGHT_TONES[insight.tone],
+              )}
+            >
+              <Sparkles className="mt-0.5 h-3 w-3 shrink-0" />
+              {insight.text}
+            </span>
+          ))}
+        </div>
+      ) : null}
 
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="space-y-6 lg:col-span-2">

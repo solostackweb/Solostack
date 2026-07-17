@@ -92,22 +92,24 @@ function InviteAccessBox({
   };
 }) {
   return (
-    <Card className="mx-auto w-full max-w-md">
+    <Card className="mx-auto w-full max-w-md overflow-hidden border-black/5 shadow-[0_1px_2px_rgba(15,23,42,0.05),0_12px_32px_-12px_rgba(15,23,42,0.12)]">
+      <div className="h-1.5 w-full bg-primary" />
       <CardContent className="space-y-5 p-5 sm:p-6">
-        <div className="flex items-start gap-3">
+        <div className="flex items-start gap-3.5">
           <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
             <Workflow className="h-5 w-5" />
           </div>
           <div className="min-w-0">
-            <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
               Stackivo Portal
             </p>
-            <h1 className="mt-1 text-lg font-semibold tracking-tight">
+            <h1 className="mt-1 text-xl font-semibold tracking-tight">
               {invite.portalName} is ready
             </h1>
             <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
-              We will send a one-time code to {invite.email}. Enter it here
-              and you will go straight into the client portal.
+              We will send a one-time code to{" "}
+              <span className="font-medium text-foreground">{invite.email}</span>.
+              Enter it here and you will go straight into the client portal.
             </p>
           </div>
         </div>
@@ -130,7 +132,7 @@ function InviteAccessBox({
 
 function ErrorBox({ title, message }: { title: string; message: string }) {
   return (
-    <Card className="mx-auto max-w-md">
+    <Card className="mx-auto max-w-md border-black/5 shadow-[0_1px_2px_rgba(15,23,42,0.05),0_12px_32px_-12px_rgba(15,23,42,0.12)]">
       <CardContent className="space-y-4 p-5 text-center sm:p-6">
         <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-destructive/10">
           <AlertTriangle className="h-5 w-5 text-destructive" />

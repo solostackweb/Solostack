@@ -72,25 +72,36 @@ export function QuestionnaireFillView({
   } as React.CSSProperties;
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900" style={lightVars}>
-      <header
-        className="px-5 pb-16 pt-12 text-white sm:px-10 sm:pt-16"
-        style={{ background: "linear-gradient(135deg, #2563EB, #0F172A)" }}
-      >
-        <div className="mx-auto max-w-2xl">
-          <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.2em] opacity-80">
-            <ClipboardList className="h-3.5 w-3.5" />
+    <div
+      className="relative min-h-screen bg-slate-50 text-slate-900"
+      style={lightVars}
+    >
+      {/* Soft brand wash at the top of the canvas */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-x-0 top-0 h-64"
+        style={{
+          background: "linear-gradient(to bottom, #2563EB14, transparent)",
+        }}
+      />
+
+      <main className="relative mx-auto max-w-2xl px-4 py-8 sm:px-6 sm:py-12">
+        <header className="mb-6">
+          <div className="inline-flex items-center gap-2 rounded-full border bg-white px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500 shadow-sm">
+            <ClipboardList className="h-3.5 w-3.5 text-primary" />
             Questionnaire
           </div>
-          <h1 className="mt-3 text-2xl font-bold leading-tight tracking-tight sm:text-3xl">
+          <h1 className="mt-4 text-balance text-2xl font-bold leading-tight tracking-tight sm:text-3xl">
             {send.title}
           </h1>
-          <p className="mt-1 text-sm opacity-90">from {hostName}</p>
-        </div>
-      </header>
+          <p className="mt-1.5 text-sm text-slate-500">
+            from <span className="font-medium text-slate-700">{hostName}</span>
+          </p>
+        </header>
 
-      <main className="mx-auto -mt-8 max-w-2xl px-5 pb-16 sm:px-10">
-        <div className="rounded-2xl border bg-white p-6 shadow-sm sm:p-8">
+        <div className="overflow-hidden rounded-2xl border border-black/5 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.05),0_12px_32px_-12px_rgba(15,23,42,0.12)]">
+          <div className="h-1.5 w-full bg-primary" />
+          <div className="p-6 sm:p-8">
           {done ? (
             <div className="space-y-3 py-8 text-center">
               <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-emerald-100 text-emerald-600">
@@ -104,16 +115,18 @@ export function QuestionnaireFillView({
           ) : (
             <>
               {/* Progress */}
-              <div className="mb-6">
-                <div className="mb-1.5 flex items-center justify-between text-xs text-slate-500">
+              <div className="mb-7">
+                <div className="mb-2 flex items-center justify-between text-xs text-slate-500">
                   <span>
                     {answered} of {send.questions.length} answered
                   </span>
-                  <span>{progress}%</span>
+                  <span className="font-semibold tabular-nums text-slate-700">
+                    {progress}%
+                  </span>
                 </div>
-                <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
+                <div className="h-2 w-full overflow-hidden rounded-full bg-slate-100">
                   <div
-                    className="h-full rounded-full bg-primary transition-all"
+                    className="h-full rounded-full bg-primary transition-all duration-300"
                     style={{ width: `${progress}%` }}
                   />
                 </div>
@@ -145,13 +158,14 @@ export function QuestionnaireFillView({
                   type="button"
                   onClick={submit}
                   disabled={submitting}
-                  className="w-full rounded-lg bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground disabled:opacity-60"
+                  className="w-full rounded-xl bg-primary px-4 py-3.5 text-sm font-semibold text-primary-foreground shadow-sm transition hover:opacity-95 disabled:opacity-60"
                 >
                   {submitting ? "Submitting…" : "Submit answers"}
                 </button>
               </div>
             </>
           )}
+          </div>
         </div>
 
         <p className="mt-6 text-center text-xs text-slate-400">

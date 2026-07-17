@@ -3,7 +3,7 @@
 import * as React from "react";
 import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
-import { CheckCircle2, Mail, Send, Sparkles } from "lucide-react";
+import { CheckCircle2, Lock, Send, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -37,25 +37,30 @@ export function PublicLeadFormView({ form }: { form: LeadFormRecord }) {
 
   return (
     <main
-      className="min-h-screen overflow-hidden bg-background px-4 py-6 text-foreground sm:px-6 lg:px-8"
-      style={{
-        backgroundImage: `linear-gradient(135deg, ${form.brand_color}12, transparent 38%), radial-gradient(circle at 12px 12px, ${form.brand_color}18 1px, transparent 0)`,
-        backgroundSize: "auto, 28px 28px",
-      }}
+      className="relative min-h-screen overflow-hidden bg-muted/40 px-4 py-6 text-foreground sm:px-6 lg:px-8"
     >
-      <div className="mx-auto grid min-h-[calc(100vh-3rem)] max-w-6xl gap-8 lg:grid-cols-[0.88fr_1.12fr] lg:items-center">
+      {/* Soft brand wash at the top of the canvas */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-x-0 top-0 h-80"
+        style={{
+          background: `linear-gradient(to bottom, ${form.brand_color}14, transparent)`,
+        }}
+      />
+
+      <div className="relative mx-auto grid min-h-[calc(100vh-3rem)] max-w-6xl gap-8 lg:grid-cols-[0.88fr_1.12fr] lg:items-center">
         <section className="py-6 lg:py-10">
-          <div className="inline-flex items-center gap-2 rounded-full border bg-background/70 px-3 py-1 text-xs font-semibold text-muted-foreground shadow-sm backdrop-blur">
+          <div className="inline-flex items-center gap-2 rounded-full border bg-background px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground shadow-sm">
             <Sparkles className="h-3.5 w-3.5" style={{ color: form.brand_color }} />
             Project inquiry
           </div>
           <div
-            className="mt-8 flex h-16 w-16 items-center justify-center rounded-2xl text-xl font-bold text-white shadow-xl"
+            className="mt-8 flex h-14 w-14 items-center justify-center rounded-2xl text-lg font-bold text-white shadow-lg"
             style={{ background: form.brand_color }}
           >
             {initials(form.name)}
           </div>
-          <h1 className="mt-6 max-w-2xl text-4xl font-bold tracking-tight sm:text-5xl">
+          <h1 className="mt-6 max-w-2xl text-balance text-4xl font-bold tracking-tight sm:text-5xl">
             {form.title}
           </h1>
           <p className="mt-4 max-w-xl text-lg leading-relaxed text-muted-foreground">
@@ -69,24 +74,31 @@ export function PublicLeadFormView({ form }: { form: LeadFormRecord }) {
               ["2", "Get a direct response"],
               ["3", "Move into proposal or discovery"],
             ].map(([step, text]) => (
-              <div key={step} className="rounded-xl border bg-card/80 p-3 shadow-sm backdrop-blur">
+              <div
+                key={step}
+                className="rounded-xl border border-black/5 bg-card p-3.5 shadow-sm"
+              >
                 <span
                   className="flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold text-white"
                   style={{ background: form.brand_color }}
                 >
                   {step}
                 </span>
-                <p className="mt-2 text-sm font-medium leading-snug">{text}</p>
+                <p className="mt-2.5 text-sm font-medium leading-snug">{text}</p>
               </div>
             ))}
           </div>
         </section>
 
-        <section className="rounded-2xl border bg-card/95 p-5 shadow-2xl shadow-slate-950/10 backdrop-blur sm:p-7">
+        <section className="overflow-hidden rounded-2xl border border-black/5 bg-card shadow-[0_1px_2px_rgba(15,23,42,0.05),0_16px_40px_-16px_rgba(15,23,42,0.18)]">
+          <div className="h-1.5 w-full" style={{ background: form.brand_color }} />
+          <div className="p-5 sm:p-7">
           {state?.ok ? (
             <div className="flex min-h-[34rem] flex-col items-center justify-center text-center">
-              <CheckCircle2 className="h-12 w-12 text-emerald-500" />
-              <h2 className="mt-4 text-2xl font-bold tracking-tight">Inquiry sent</h2>
+              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-emerald-500/10">
+                <CheckCircle2 className="h-8 w-8 text-emerald-500" />
+              </div>
+              <h2 className="mt-5 text-2xl font-bold tracking-tight">Inquiry sent</h2>
               <p className="mt-2 max-w-sm text-sm leading-relaxed text-muted-foreground">
                 Thanks. Your details are with the freelancer, and they can now respond
                 from their Stackivo workspace.
@@ -138,11 +150,12 @@ export function PublicLeadFormView({ form }: { form: LeadFormRecord }) {
 
               <SubmitButton brandColor={form.brand_color} />
               <p className="flex items-center justify-center gap-1.5 text-center text-[11px] text-muted-foreground">
-                <Mail className="h-3 w-3" />
-                Powered by Stackivo
+                <Lock className="h-3 w-3" />
+                Your details stay private · Powered by Stackivo
               </p>
             </form>
           )}
+          </div>
         </section>
       </div>
     </main>

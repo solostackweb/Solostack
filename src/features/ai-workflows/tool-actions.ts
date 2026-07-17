@@ -391,7 +391,13 @@ async function runImmediateDraftTool<T extends { ok: true; data: unknown; messag
   readCached: (entityId: string, userId: string) => Promise<T | null>,
 ): Promise<T | DraftToolError> {
   const parsed = toolInputSchema.safeParse(rawInput);
-  if (!parsed.success) return { ok: false, error: "The Ivo draft request is invalid." };
+  if (!parsed.success) {
+    return {
+      ok: false,
+      error:
+        "I couldn't set that draft up from the details I have. Try rephrasing in one line — for example: “Invoice Acme ₹25,000 for the landing page, due in 15 days.”",
+    };
+  }
   const context = await requireOwnedContext(parsed.data.conversationId, parsed.data.runId);
   if (!context) return { ok: false, error: "This Ivo draft action is no longer available." };
   const { supabase, userId } = context;

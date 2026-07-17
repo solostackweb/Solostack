@@ -94,24 +94,24 @@ export function ContractPublicView({ data }: Props) {
         </Party>
       </section>
 
-      <section className="px-5 py-7 sm:px-8 sm:py-9">
-        <div className="mx-auto max-w-3xl space-y-6 text-sm leading-7">
+      <section className="px-5 py-8 sm:px-8 sm:py-10">
+        <div className="mx-auto max-w-3xl space-y-8 text-[15px] leading-7">
           {parsedContent.sections.length > 0
             ? parsedContent.sections.map((section, i) => (
-                <section key={i} className="space-y-2">
+                <section key={i} className="space-y-2.5">
                   <h3 className="flex items-baseline gap-3 text-base font-semibold tracking-tight">
-                    <span className="font-mono text-xs text-muted-foreground">
+                    <span className="font-mono text-xs tabular-nums text-muted-foreground">
                       {String(i + 1).padStart(2, "0")}
                     </span>
                     {section.heading}
                   </h3>
-                  <p className="whitespace-pre-wrap text-muted-foreground">
+                  <p className="whitespace-pre-wrap pl-8 text-foreground/75 sm:pl-9">
                     {section.body}
                   </p>
                 </section>
               ))
             : parsedContent.paragraphs.map((p, i) => (
-                <p key={i} className="whitespace-pre-wrap text-muted-foreground">
+                <p key={i} className="whitespace-pre-wrap text-foreground/75">
                   {p}
                 </p>
               ))}
@@ -119,10 +119,15 @@ export function ContractPublicView({ data }: Props) {
       </section>
 
       {data.kind === "contract" && (
-        <section className="border-t bg-muted/20 px-5 py-6 sm:px-8">
-          <div className="mb-5 flex items-center gap-2 text-sm font-semibold">
-            <ShieldCheck className="h-4 w-4 text-success" />
-            Signature record
+        <section className="border-t bg-muted/20 px-5 py-7 sm:px-8 sm:py-8">
+          <div className="mb-5 flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 text-sm font-semibold">
+              <ShieldCheck className="h-4 w-4 text-success" />
+              Signature record
+            </div>
+            <p className="hidden text-xs text-muted-foreground sm:block">
+              Every signature is timestamped and stored for both parties.
+            </p>
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
             <SignatureBlock

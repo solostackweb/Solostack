@@ -335,6 +335,39 @@ export interface IvoConversationRow {
   updated_at: string;
 }
 
+export interface IvoMemoryRow {
+  id: string;
+  user_id: string;
+  content: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface IvoPreparedActionRow {
+  id: string;
+  user_id: string;
+  kind:
+    | "payment_reminder"
+    | "due_soon_reminder"
+    | "proposal_followup"
+    | "contract_followup"
+    | "lead_reply";
+  dedupe_key: string;
+  title: string;
+  description: string;
+  subject: string;
+  body: string;
+  recipient_name: string | null;
+  recipient_email: string | null;
+  entity_type: string | null;
+  entity_id: string | null;
+  href: string | null;
+  tone: "info" | "warning" | "danger";
+  status: "ready" | "approved" | "dismissed";
+  created_at: string;
+  updated_at: string;
+}
+
 export interface IvoMessageRow {
   id: string;
   conversation_id: string;
@@ -1481,6 +1514,19 @@ export interface Database {
         Row: IvoConversationRow;
         Insert: Partial<IvoConversationRow> & Pick<IvoConversationRow, "user_id">;
         Update: Partial<IvoConversationRow>;
+        Relationships: [];
+      };
+      ivo_memories: {
+        Row: IvoMemoryRow;
+        Insert: Partial<IvoMemoryRow> & Pick<IvoMemoryRow, "user_id" | "content">;
+        Update: Partial<IvoMemoryRow>;
+        Relationships: [];
+      };
+      ivo_prepared_actions: {
+        Row: IvoPreparedActionRow;
+        Insert: Partial<IvoPreparedActionRow> &
+          Pick<IvoPreparedActionRow, "user_id" | "kind" | "dedupe_key" | "title" | "body">;
+        Update: Partial<IvoPreparedActionRow>;
         Relationships: [];
       };
       ivo_messages: {

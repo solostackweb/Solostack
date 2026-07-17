@@ -262,12 +262,22 @@ export function nextIvoMissingField(input: {
 export function buildIvoFieldPrompt(
   workflow: AiWorkflow,
   missing: AiMissingField,
+  fields?: AiFields,
 ): IvoRuntimePromptBlock {
   if (missing.field === "clientId") {
+    // A contract flow started as a proposal/NDA/retainer should say so — the
+    // recipient asked for a proposal and must never be told "contract".
+    const contractKind = /proposal/i.test(fields?.type ?? "")
+      ? "proposal"
+      : /nda/i.test(fields?.type ?? "")
+        ? "NDA"
+        : /retainer/i.test(fields?.type ?? "")
+          ? "retainer"
+          : "contract";
     const subject = workflow === "invoice"
       ? "invoice"
       : workflow === "contract"
-        ? "contract"
+        ? contractKind
         : workflow === "project"
           ? "project"
           : workflow === "welcome_document"
@@ -339,7 +349,7 @@ export function planIvoWorkflowNextAction(input: {
     return {
       kind: "ask_field",
       field: missing,
-      prompt: buildIvoFieldPrompt(input.workflow, missing),
+      prompt: buildIvoFieldPrompt(input.workflow, missing, input.fields),
     };
   }
   const tool = WORKFLOW_TOOL[input.workflow];

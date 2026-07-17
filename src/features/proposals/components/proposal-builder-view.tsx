@@ -18,6 +18,7 @@ import {
   Plus,
   ReceiptText,
   Save,
+  Sparkles,
   Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -34,6 +35,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { formatMoney } from "@/lib/format";
+import { draftProposalFieldAction } from "@/features/proposals/ai-assist";
 import { cn } from "@/lib/utils";
 import { IvoContextActions } from "@/features/ai-workflows/components/ivo-context-actions";
 
@@ -320,6 +322,61 @@ export function ProposalBuilderView({
   };
 
   const selectedClient = clients.find((client) => client.id === clientId) ?? null;
+
+  // ── Inline Ivo drafting for the narrative fields ──────────────────────────
+  const [ivoDrafting, setIvoDrafting] = React.useState<
+    null | "scope" | "deliverables" | "timeline" | "terms"
+  >(null);
+  const handleIvoDraft = React.useCallback(
+    async (field: "scope" | "deliverables" | "timeline" | "terms") => {
+      setIvoDrafting(field);
+      const res = await draftProposalFieldAction({
+        field,
+        title:
+          (formRef.current?.elements.namedItem("title") as HTMLInputElement | null)?.value ??
+          proposal.title ??
+          "",
+        clientName: selectedClient?.name,
+        currency,
+        items: draftItems
+          .map((item) => item.description.trim())
+          .filter(Boolean)
+          .slice(0, 25),
+        context: { scope, deliverables, timeline, terms },
+      });
+      setIvoDrafting(null);
+      if (!res.ok) {
+        toast.error(res.error);
+        return;
+      }
+      const setters = {
+        scope: setScope,
+        deliverables: setDeliverables,
+        timeline: setTimeline,
+        terms: setTerms,
+      } as const;
+      setters[field](res.text);
+      toast.success("Drafted — review and tweak before sending.");
+    },
+    [proposal.title, selectedClient, currency, draftItems, scope, deliverables, timeline, terms],
+  );
+  const ivoDraftButton = (
+    field: "scope" | "deliverables" | "timeline" | "terms",
+  ) => (
+    <button
+      type="button"
+      onClick={(event) => {
+        event.preventDefault();
+        void handleIvoDraft(field);
+      }}
+      disabled={ivoDrafting !== null}
+      className="inline-flex items-center gap-1 rounded-md border border-primary/20 bg-primary/5 px-2 py-0.5 text-[11px] font-semibold text-primary transition-colors hover:bg-primary/10 disabled:opacity-50"
+    >
+      <Sparkles className="h-3 w-3" />
+      {ivoDrafting === field ? "Drafting…" : "Draft with Ivo"}
+    </button>
+  );
+
   const availableProjects = React.useMemo(
     () => (clientId ? projects.filter((project) => project.clientId === clientId) : []),
     [clientId, projects],
@@ -702,17 +759,17 @@ export function ProposalBuilderView({
 
           <Card>
             <CardContent className="grid gap-4 p-5">
-              <Field label="Scope">
+              <Field label="Scope" action={ivoDraftButton("scope")}>
                 <Textarea name="scope" value={scope} onChange={(event) => setScope(event.target.value)} rows={5} />
               </Field>
-              <Field label="Deliverables">
+              <Field label="Deliverables" action={ivoDraftButton("deliverables")}>
                 <Textarea name="deliverables" value={deliverables} onChange={(event) => setDeliverables(event.target.value)} rows={5} />
               </Field>
               <div className="grid gap-4 sm:grid-cols-2">
-                <Field label="Timeline">
+                <Field label="Timeline" action={ivoDraftButton("timeline")}>
                   <Textarea name="timeline" value={timeline} onChange={(event) => setTimeline(event.target.value)} rows={5} />
                 </Field>
-                <Field label="Terms">
+                <Field label="Terms" action={ivoDraftButton("terms")}>
                   <Textarea name="terms" value={terms} onChange={(event) => setTerms(event.target.value)} rows={5} />
                 </Field>
               </div>
@@ -788,16 +845,22 @@ export function ProposalBuilderView({
 function Field({
   label,
   className,
+  action,
   children,
 }: {
   label: string;
   className?: string;
+  /** Optional right-aligned control in the label row (e.g. "Draft with Ivo"). */
+  action?: React.ReactNode;
   children: React.ReactNode;
 }) {
   return (
     <label className={cn("space-y-1.5", className)}>
-      <span className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-        {label}
+      <span className="flex items-center justify-between gap-2">
+        <span className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+          {label}
+        </span>
+        {action}
       </span>
       {children}
     </label>

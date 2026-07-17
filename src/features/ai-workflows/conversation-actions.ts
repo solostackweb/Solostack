@@ -12,8 +12,10 @@ import { listProjects } from "@/features/projects/server";
 import { getUsageSnapshot, getCurrentSubscription } from "@/features/subscription/server";
 import { incrementUsage } from "@/features/subscription/usage";
 import { effectivePlan } from "@/features/subscription/features";
-import { AI_WORKFLOWS } from "./types";
+import { getProfile } from "@/features/profile/server";
+import { AI_WORKFLOWS, type AiInterpretation } from "./types";
 import { interpretMessageDetailed } from "./nlu";
+import { runIvoAgent } from "./agent";
 import { ivoRuntimeDecisionSchema, planIvoRuntime } from "./runtime-planner";
 import { planIvoWorkflowNextAction } from "./workflow-progress";
 import {
@@ -122,6 +124,8 @@ const processMessageSchema = z.object({
     .array(z.object({ role: z.enum(["user", "assistant"]), content: z.string().max(4000) }))
     .max(20)
     .optional(),
+  /** Dashboard route the message was sent from, for page-aware answers. */
+  page: z.string().max(200).optional(),
 });
 const workflowProgressInputSchema = z.object({
   conversationId: conversationIdSchema,
@@ -791,6 +795,14 @@ export async function planIvoWorkflowProgressAction(
  */
 export async function processIvoMessageAction(
   input: z.input<typeof processMessageSchema>,
+  /**
+   * Server-side hooks (streaming route handler only). Never populated when the
+   * client invokes this as a server action — callbacks are not serializable.
+   */
+  hooks?: {
+    onStatus?: (status: string) => void;
+    onDelta?: (text: string) => void;
+  },
 ) {
   const parsed = processMessageSchema.safeParse(input);
   if (!parsed.success) {
@@ -908,10 +920,102 @@ export async function processIvoMessageAction(
       if (draft) activeDraft = requestedDraft;
     }
 
-    const [clients, projects] = await Promise.all([
+    const [clients, projects, profile] = await Promise.all([
       listClients({ limit: 200 }),
       listProjects({ limit: 200 }),
+      getProfile().catch(() => null),
     ]);
+
+    // ---- Primary path: the model-driven agent loop ----------------------
+    // The agent reads the workspace through tools, chooses the action, and
+    // writes the reply itself. All create/send operations still flow through
+    // the same approval-gated decisions the client already enforces.
+    const agent = await runIvoAgent({
+      message: parsed.data.message,
+      history: parsed.data.history?.slice(-10) ?? [],
+      userId,
+      firstName:
+        (profile?.displayName || profile?.fullName || "").trim().split(/\s+/)[0] || null,
+      currentMode: parsed.data.currentWorkflow ?? "general",
+      collected: parsed.data.collected ?? {},
+      pendingField: parsed.data.pendingField,
+      activeDraft,
+      page: parsed.data.page,
+      clients,
+      projects,
+      requestId: runId,
+      onStatus: hooks?.onStatus,
+      onDelta: hooks?.onDelta,
+    }).catch((error) => {
+      log.warn("ivo.agent.failed", {
+        error: error instanceof Error ? error.message : "unknown",
+        entity: { type: "ivo_conversation", id: parsed.data.conversationId },
+      });
+      return null;
+    });
+
+    if (agent) {
+      const decisionParsed = ivoRuntimeDecisionSchema.safeParse(agent.decision);
+      if (decisionParsed.success) {
+        const decision = decisionParsed.data;
+        // Synthetic interpretation keeps older client logic (chit-chat guard,
+        // confidence checks) working without a second NLU round-trip.
+        const interpretation: AiInterpretation = {
+          intent:
+            decision.kind === "workflow"
+              ? decision.targetMode === "general"
+                ? "general"
+                : decision.targetMode
+              : decision.kind === "reply"
+                ? "general"
+                : "query",
+          confident: decision.kind !== "reply",
+          fields: decision.kind === "workflow" ? decision.fields : {},
+          ...(decision.kind === "workflow" && decision.clientId
+            ? { clientId: decision.clientId }
+            : {}),
+          ...(decision.kind === "workflow" && decision.projectId
+            ? { projectId: decision.projectId }
+            : {}),
+          provider: "groq",
+        };
+        await supabase
+          .from("ivo_runs")
+          .update({
+            provider: "groq",
+            model: agent.model,
+            status: "succeeded",
+            outcome: "agent_succeeded",
+            prompt_tokens: agent.promptTokens || null,
+            completion_tokens: agent.completionTokens || null,
+            duration_ms: Date.now() - startedAt,
+            finished_at: new Date().toISOString(),
+            metadata: {
+              route: decision.kind,
+              rounds: agent.rounds,
+              nextAction: decision.kind === "workflow" ? decision.nextAction.kind : null,
+            },
+          } as never)
+          .eq("id", runId)
+          .eq("user_id", userId);
+        return {
+          ok: true as const,
+          data: {
+            interpretation,
+            decision,
+            say: agent.say || undefined,
+            suggestions: agent.suggestions.length > 0 ? agent.suggestions : undefined,
+            runId,
+            usageConsumed,
+          },
+        };
+      }
+      log.warn("ivo.agent.invalid_decision", {
+        entity: { type: "ivo_conversation", id: parsed.data.conversationId },
+      });
+    }
+
+    // ---- Fallback: deterministic NLU + planner (Groq degraded/offline) ---
     const result = await interpretMessageDetailed({
       message: parsed.data.message,
       currentWorkflow: parsed.data.currentWorkflow,
@@ -977,7 +1081,14 @@ export async function processIvoMessageAction(
 
     return {
       ok: true as const,
-      data: { interpretation: result.interpretation, decision, runId, usageConsumed },
+      data: {
+        interpretation: result.interpretation,
+        decision,
+        say: undefined as string | undefined,
+        suggestions: undefined as string[] | undefined,
+        runId,
+        usageConsumed,
+      },
     };
   } catch (error) {
     try {

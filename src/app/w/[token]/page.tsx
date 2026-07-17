@@ -110,48 +110,63 @@ function WelcomeViewer({
   } as React.CSSProperties;
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900" style={lightVars}>
-      {/* Hero */}
-      <header
-        className="px-5 pb-12 pt-12 text-white sm:px-10 sm:pt-16"
-        style={{ background: `linear-gradient(135deg, ${brand}, #0F172A)` }}
-      >
-        <div className="mx-auto flex max-w-3xl items-center gap-2 text-xs font-semibold uppercase tracking-[0.2em] opacity-80">
-            <BookOpen className="h-3.5 w-3.5" />
-          Welcome guide
-        </div>
-        <h1 className="mx-auto mt-3 max-w-3xl text-3xl font-bold leading-tight tracking-tight sm:text-4xl">
-          {doc.title}
-        </h1>
-        {doc.intro && (
-          <p className="mx-auto mt-4 max-w-3xl text-base leading-relaxed opacity-90">
-            {doc.intro}
-          </p>
-        )}
-      </header>
+    <div
+      className="relative min-h-screen bg-slate-50 text-slate-900"
+      style={lightVars}
+    >
+      {/* Soft brand wash at the top of the canvas */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-x-0 top-0 h-72"
+        style={{
+          background: `linear-gradient(to bottom, ${brand}14, transparent)`,
+        }}
+      />
 
-      {/* Body */}
-      <main className="mx-auto max-w-3xl px-5 py-10 sm:px-10">
-        <article className="space-y-10 rounded-xl border bg-white p-6 shadow-sm sm:p-10">
-          {sections.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
-              This guide is empty.
+      <main className="relative mx-auto max-w-3xl px-4 py-8 sm:px-6 sm:py-12">
+        {/* Eyebrow + title on the canvas */}
+        <header className="mb-6 sm:mb-8">
+          <div className="inline-flex items-center gap-2 rounded-full border bg-white px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500 shadow-sm">
+            <BookOpen className="h-3.5 w-3.5" style={{ color: brand }} />
+            Welcome guide
+          </div>
+          <h1 className="mt-4 text-balance text-3xl font-bold leading-tight tracking-tight sm:text-4xl">
+            {doc.title}
+          </h1>
+          {doc.intro && (
+            <p className="mt-3 max-w-2xl text-base leading-relaxed text-slate-600">
+              {doc.intro}
             </p>
-          ) : (
-            sections.map((section, i) => (
-              <section key={section.id} className="space-y-3">
-                <h2
-                  className="text-lg font-semibold tracking-tight"
-                  style={{ color: brand }}
-                >
-                  {i + 1}. {section.heading}
-                </h2>
-                <div className="text-[15px] leading-relaxed text-slate-700">
-                  <WelcomeMarkdown source={section.body} />
-                </div>
-              </section>
-            ))
           )}
+        </header>
+
+        <article className="overflow-hidden rounded-2xl border border-black/5 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.05),0_12px_32px_-12px_rgba(15,23,42,0.12)]">
+          {/* Brand accent bar */}
+          <div className="h-1.5 w-full" style={{ backgroundColor: brand }} />
+          <div className="space-y-10 p-6 sm:p-10">
+            {sections.length === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                This guide is empty.
+              </p>
+            ) : (
+              sections.map((section, i) => (
+                <section key={section.id} className="space-y-3">
+                  <h2 className="flex items-baseline gap-3 text-lg font-semibold tracking-tight">
+                    <span
+                      className="font-mono text-xs tabular-nums"
+                      style={{ color: brand }}
+                    >
+                      {String(i + 1).padStart(2, "0")}
+                    </span>
+                    {section.heading}
+                  </h2>
+                  <div className="pl-8 text-[15px] leading-relaxed text-slate-700 sm:pl-9">
+                    <WelcomeMarkdown source={section.body} />
+                  </div>
+                </section>
+              ))
+            )}
+          </div>
         </article>
 
         <div className="mt-6 flex flex-wrap items-center justify-between gap-3 text-xs text-slate-500">
@@ -160,12 +175,11 @@ function WelcomeViewer({
             href={`/api/share/welcome/${doc.public_token}/pdf`}
             target="_blank"
             rel="noreferrer"
-            className="inline-flex items-center gap-1.5 rounded-md border bg-white px-3 py-1.5 font-medium text-slate-700 hover:bg-slate-50"
+            className="inline-flex items-center gap-1.5 rounded-lg border bg-white px-3 py-1.5 font-medium text-slate-700 shadow-sm transition-colors hover:bg-slate-50"
           >
             <Download className="h-3.5 w-3.5" /> Download PDF
           </a>
         </div>
-
       </main>
     </div>
   );

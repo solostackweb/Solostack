@@ -103,32 +103,44 @@ export function ProposalPublicView({
             </div>
           </div>
 
-          <aside className="flex flex-col justify-between rounded-2xl border bg-muted/20 p-5 shadow-sm">
+          <aside className="flex flex-col justify-between rounded-2xl bg-slate-900 p-6 text-slate-50 shadow-lg shadow-slate-900/10">
             <div>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">
                 Total proposal value
               </p>
-              <p className="mt-3 text-4xl font-bold tracking-tight">
+              <p className="mt-3 text-4xl font-bold tracking-tight tabular-nums">
                 {formatMoney(total, proposal.currency)}
               </p>
-              <p className="mt-3 text-sm leading-6 text-muted-foreground">
+              <p className="mt-3 text-sm leading-6 text-slate-400">
                 {guidance.publicNote}
               </p>
             </div>
-            <div className="mt-6 grid gap-2 border-t pt-4 text-sm">
-              <SummaryRow label="Subtotal" value={formatMoney(subtotal, proposal.currency)} />
-              <SummaryRow
-                label="Tax / charges"
-                value={formatMoney(taxAmount, proposal.currency)}
-              />
-              <SummaryRow
-                label="Total"
-                value={formatMoney(total, proposal.currency)}
-                strong
-              />
+            <div className="mt-6 grid gap-2 border-t border-white/10 pt-4 text-sm">
+              <div className="flex justify-between text-slate-400">
+                <span>Subtotal</span>
+                <span className="tabular-nums text-slate-200">
+                  {formatMoney(subtotal, proposal.currency)}
+                </span>
+              </div>
+              <div className="flex justify-between text-slate-400">
+                <span>Tax / charges</span>
+                <span className="tabular-nums text-slate-200">
+                  {formatMoney(taxAmount, proposal.currency)}
+                </span>
+              </div>
+              <div className="flex justify-between border-t border-white/10 pt-2 text-base font-bold">
+                <span>Total</span>
+                <span className="tabular-nums">
+                  {formatMoney(total, proposal.currency)}
+                </span>
+              </div>
             </div>
             {pdfUrl ? (
-              <Button asChild variant="outline" className="mt-5 w-full">
+              <Button
+                asChild
+                variant="outline"
+                className="mt-5 w-full border-white/15 bg-white/5 text-slate-100 hover:bg-white/10 hover:text-white"
+              >
                 <a href={pdfUrl} target="_blank" rel="noreferrer">
                   <Download className="h-4 w-4" /> Download PDF
                 </a>
@@ -451,9 +463,9 @@ function NextSteps() {
 }
 
 function AcceptancePanel({ proposal }: { proposal: PublicProposalData["proposal"] }) {
-  return (
-    <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-5 text-sm text-muted-foreground">
-      {proposal.status === "accepted" ? (
+  if (proposal.status === "accepted") {
+    return (
+      <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-6 text-sm text-muted-foreground">
         <div className="flex gap-3">
           <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-emerald-500" />
           <div>
@@ -464,26 +476,33 @@ function AcceptancePanel({ proposal }: { proposal: PublicProposalData["proposal"
             </p>
           </div>
         </div>
-      ) : (
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-          <div className="flex gap-3">
-            <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-emerald-500" />
-            <div>
-              <p className="font-semibold text-foreground">Ready to move ahead?</p>
-              <p className="mt-1 max-w-2xl leading-6">
-                Accepting this proposal acknowledges the offer so the freelancer can prepare the
-                next step. This is not an e-signature contract.
-              </p>
-            </div>
-          </div>
-          <form action={acceptPublicProposalAction}>
-            <input type="hidden" name="token" value={proposal.public_token} />
-            <Button type="submit" className="w-full sm:w-auto">
-              <CheckCircle2 className="h-4 w-4" /> Accept proposal
-            </Button>
-          </form>
+      </div>
+    );
+  }
+
+  return (
+    <div className="rounded-2xl bg-slate-900 p-6 text-slate-50 shadow-lg shadow-slate-900/10 sm:p-8">
+      <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+        <div className="min-w-0">
+          <p className="text-xl font-semibold tracking-tight sm:text-2xl">
+            Ready to move ahead?
+          </p>
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-400">
+            Accepting lets the freelancer prepare the next step — contract, project, or
+            invoice. It takes one click and is not an e-signature contract.
+          </p>
         </div>
-      )}
+        <form action={acceptPublicProposalAction} className="shrink-0">
+          <input type="hidden" name="token" value={proposal.public_token} />
+          <Button
+            type="submit"
+            size="lg"
+            className="w-full bg-white text-slate-900 shadow-sm hover:bg-slate-100 sm:w-auto sm:px-8"
+          >
+            <CheckCircle2 className="h-4 w-4" /> Accept proposal
+          </Button>
+        </form>
+      </div>
     </div>
   );
 }

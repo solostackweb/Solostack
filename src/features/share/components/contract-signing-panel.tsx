@@ -64,37 +64,37 @@ export function ContractSigningPanel({
 
   return (
     <>
-      <Card className="mx-5 mb-8 border-dashed bg-muted/20 sm:mx-8 sm:mb-10">
-        <CardContent className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
-          <div className="flex gap-3">
-            <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+      <Card className="mx-5 mb-8 overflow-hidden border-primary/15 bg-primary/[0.03] shadow-sm sm:mx-8 sm:mb-10">
+        <CardContent className="flex flex-col gap-5 p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6">
+          <div className="flex gap-3.5">
+            <div className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
               {signed ? <LockKeyhole className="h-4 w-4" /> : <PenLine className="h-4 w-4" />}
             </div>
             <div className="space-y-1">
-              <p className="text-sm font-semibold">
-                {signed ? "Already signed" : "Ready to sign"}
+              <p className="text-base font-semibold tracking-tight">
+                {signed ? "Already signed" : "Ready to sign?"}
               </p>
-              <p className="text-xs text-muted-foreground">
+              <p className="max-w-md text-sm leading-6 text-muted-foreground">
                 {signed
                   ? "This agreement has already been signed and is locked for recordkeeping."
-                  : "Review the agreement and sign it securely using the button below."}
+                  : "It takes under a minute — draw, type, or upload your signature. Both parties get a timestamped record."}
               </p>
             </div>
           </div>
 
           {signed ? (
-            <div className="inline-flex items-center justify-center gap-2 rounded-md bg-success/10 px-3 py-2 text-sm font-medium text-success">
+            <div className="inline-flex items-center justify-center gap-2 rounded-lg bg-success/10 px-4 py-2.5 text-sm font-semibold text-success">
               <CheckCircle2 className="h-4 w-4" />
               Signed and recorded
             </div>
           ) : (
-            <div className="flex w-full flex-col gap-2 sm:w-auto sm:items-end">
-              <label className="flex cursor-pointer items-start gap-2 text-xs text-muted-foreground">
+            <div className="flex w-full flex-col gap-3 sm:w-72 sm:shrink-0">
+              <label className="flex cursor-pointer items-start gap-2.5 text-xs leading-5 text-muted-foreground">
                 <input
                   type="checkbox"
                   checked={agreed}
                   onChange={(e) => setAgreed(e.target.checked)}
-                  className="mt-0.5 h-4 w-4 shrink-0 cursor-pointer"
+                  className="mt-0.5 h-4 w-4 shrink-0 cursor-pointer accent-primary"
                 />
                 <span>
                   I consent to signing this document electronically under the
@@ -103,12 +103,13 @@ export function ContractSigningPanel({
                 </span>
               </label>
               <Button
+                size="lg"
                 onClick={() => setIsModalOpen(true)}
                 disabled={isPending || !agreed}
-                className="w-full sm:w-auto"
+                className="w-full shadow-sm"
               >
                 <PenLine className="h-4 w-4" />
-                {isPending ? "Signing…" : "Sign contract"}
+                {isPending ? "Signing…" : "Review & sign contract"}
               </Button>
             </div>
           )}

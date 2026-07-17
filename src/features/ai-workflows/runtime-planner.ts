@@ -45,6 +45,7 @@ const workflowNextActionSchema = z.discriminatedUnion("kind", [
 ]);
 
 export const ivoRuntimeDecisionSchema = z.union([
+  z.object({ kind: z.literal("reply") }),
   z.object({ kind: z.literal("list"), entityType: z.literal("invoice"), filter: z.enum(["unpaid", "overdue", "all"]) }),
   z.object({ kind: z.literal("list"), entityType: z.literal("contract"), filter: z.enum(["pending", "all"]) }),
   z.object({ kind: z.literal("list"), entityType: z.literal("client"), filter: z.literal("all") }),

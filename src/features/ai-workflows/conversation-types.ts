@@ -129,6 +129,8 @@ export interface IvoConversationSnapshot {
 }
 
 export type IvoRuntimeDecision =
+  /** The agent already answered in `say` — nothing further to execute. */
+  | { kind: "reply" }
   | { kind: "list"; entityType: "invoice"; filter: "unpaid" | "overdue" | "all" }
   | { kind: "list"; entityType: "contract"; filter: "pending" | "all" }
   | { kind: "list"; entityType: "client"; filter: "all" }

@@ -9,6 +9,7 @@ import { RecentClients } from "@/components/dashboard/recent-clients";
 import { RecentInvoices } from "@/components/dashboard/recent-invoices";
 import { UpcomingReminders } from "@/components/dashboard/upcoming-reminders";
 import { AutomationSuggestions } from "@/components/dashboard/automation-suggestions";
+import { IvoPreparedActions } from "@/components/dashboard/ivo-prepared-actions";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/shared/page-header";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -76,7 +77,13 @@ async function FeedSection() {
 
 async function AutomationSection() {
   const { suggestions } = await getAutomationLiteSnapshot();
-  return <AutomationSuggestions suggestions={suggestions} />;
+  return (
+    <div className="space-y-4">
+      {/* Artifacts Ivo already drafted, awaiting one-click approval. */}
+      <IvoPreparedActions />
+      <AutomationSuggestions suggestions={suggestions} />
+    </div>
+  );
 }
 
 async function BottomGridSection() {

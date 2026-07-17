@@ -6,6 +6,7 @@ import {
   getClient,
   getClientInvoiceMetrics,
 } from "@/features/clients/server";
+import { getClientBehaviorInsights } from "@/features/clients/insights";
 import { listInvoices } from "@/features/invoices/server";
 import { listProposals } from "@/features/proposals/server";
 import { listContracts } from "@/features/contracts/server";
@@ -29,13 +30,14 @@ export default async function ClientProfilePage({ params }: PageProps) {
   const client = await getClient(id);
   if (!client) notFound();
 
-  const [metrics, recentInvoices, proposals, contracts, welcomeDocs] =
+  const [metrics, recentInvoices, proposals, contracts, welcomeDocs, insights] =
     await Promise.all([
       getClientInvoiceMetrics(client.id),
       listInvoices({ clientId: client.id, limit: 6 }),
       listProposals({ clientId: client.id, limit: 50 }),
       listContracts({ clientId: client.id, limit: 50 }),
       listWelcomeDocuments({ clientId: client.id }),
+      getClientBehaviorInsights(client.id).catch(() => []),
     ]);
 
   const documents = [
@@ -68,6 +70,7 @@ export default async function ClientProfilePage({ params }: PageProps) {
       metrics={metrics}
       recentInvoices={recentInvoices}
       documents={documents}
+      insights={insights}
     />
   );
 }

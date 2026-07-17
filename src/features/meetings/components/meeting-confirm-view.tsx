@@ -159,38 +159,50 @@ export function MeetingConfirmView({
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900" style={lightVars}>
-      <header
-        className="px-5 pb-14 pt-12 text-white sm:px-10 sm:pt-16"
-        style={{ background: "linear-gradient(135deg, #2563EB, #0F172A)" }}
-      >
-        <div className="mx-auto max-w-xl">
-          <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.2em] opacity-80">
-            <CalendarClock className="h-3.5 w-3.5" />
+    <div
+      className="relative min-h-screen bg-slate-50 text-slate-900"
+      style={lightVars}
+    >
+      {/* Soft brand wash at the top of the canvas */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-x-0 top-0 h-64"
+        style={{
+          background: "linear-gradient(to bottom, #2563EB14, transparent)",
+        }}
+      />
+
+      <main className="relative mx-auto max-w-xl px-4 py-8 sm:px-6 sm:py-12">
+        <header className="mb-6">
+          <div className="inline-flex items-center gap-2 rounded-full border bg-white px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500 shadow-sm">
+            <CalendarClock className="h-3.5 w-3.5 text-primary" />
             Book a call
           </div>
-          <div className="mt-4 flex items-center gap-3">
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white/15 text-sm font-bold backdrop-blur">
+          <div className="mt-4 flex items-center gap-3.5">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary">
               {initials(hostName)}
             </div>
-            <div>
-              <h1 className="text-2xl font-bold leading-tight tracking-tight sm:text-3xl">
+            <div className="min-w-0">
+              <h1 className="text-balance text-2xl font-bold leading-tight tracking-tight sm:text-3xl">
                 {meeting.topic}
               </h1>
-              <p className="mt-0.5 flex items-center gap-2 text-sm opacity-90">
-                <span>with {hostName}</span>
-                <span className="opacity-60">·</span>
+              <p className="mt-1 flex items-center gap-2 text-sm text-slate-500">
+                <span>
+                  with{" "}
+                  <span className="font-medium text-slate-700">{hostName}</span>
+                </span>
+                <span className="text-slate-300">·</span>
                 <span className="inline-flex items-center gap-1">
                   <Clock className="h-3.5 w-3.5" /> {meeting.durationMinutes} min
                 </span>
               </p>
             </div>
           </div>
-        </div>
-      </header>
+        </header>
 
-      <main className="mx-auto -mt-6 max-w-xl px-5 pb-12 sm:px-10">
-        <article className="rounded-2xl border bg-white p-6 shadow-sm sm:p-8">
+        <article className="overflow-hidden rounded-2xl border border-black/5 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.05),0_12px_32px_-12px_rgba(15,23,42,0.12)]">
+          <div className="h-1.5 w-full bg-primary" />
+          <div className="p-6 sm:p-8">
           {cancelled ? (
             <p className="text-center text-sm text-slate-600">
               This meeting has been cancelled. Please reach out to {hostName} to
@@ -264,23 +276,23 @@ export function MeetingConfirmView({
               </p>
             </div>
           ) : (
-            <div className="space-y-5">
-              <p className="text-sm font-medium text-slate-700">
+            <div className="space-y-6">
+              <p className="text-base font-semibold tracking-tight text-slate-900">
                 Pick a time that works for you
               </p>
               {grouped.map(([day, slots]) => (
                 <div key={day}>
-                  <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-slate-400">
+                  <p className="mb-2.5 text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">
                     {day}
                   </p>
-                  <div className="flex flex-wrap gap-2">
+                  <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
                     {slots.map((slot) => (
                       <button
                         key={slot}
                         type="button"
                         onClick={() => pick(slot)}
                         disabled={busy}
-                        className="rounded-lg border px-4 py-2 text-sm font-medium text-slate-800 transition hover:border-primary hover:bg-primary/5 disabled:opacity-50"
+                        className="rounded-xl border px-3 py-2.5 text-sm font-semibold tabular-nums text-slate-800 shadow-sm transition hover:border-primary hover:bg-primary/5 hover:text-primary disabled:opacity-50"
                       >
                         {pendingSlot === slot ? "Booking…" : fmtTime(slot)}
                       </button>
@@ -299,6 +311,7 @@ export function MeetingConfirmView({
               {meeting.notes}
             </div>
           ) : null}
+          </div>
         </article>
 
         <p className="mt-6 text-center text-xs text-slate-400">

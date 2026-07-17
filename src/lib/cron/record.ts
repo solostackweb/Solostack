@@ -22,6 +22,7 @@ export type CronJob =
   | "monitor"
   | "portal-digest"
   | "retention"
+  | "ivo-retention"
   | "account-purge";
 
 export async function recordCronRun(input: {

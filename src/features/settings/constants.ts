@@ -11,6 +11,7 @@ import {
   Wallet,
   Gift,
   Plug,
+  Sparkles,
 } from "lucide-react";
 
 export interface SettingsNavItem {
@@ -97,6 +98,12 @@ export const SETTINGS_NAV_GROUPS: SettingsNavGroup[] = [
         label: "Appearance",
         description: "Theme & density",
         icon: Monitor,
+      },
+      {
+        href: "/dashboard/settings/ivo",
+        label: "Ivo",
+        description: "What your assistant remembers",
+        icon: Sparkles,
       },
       {
         href: "/dashboard/settings/referral",

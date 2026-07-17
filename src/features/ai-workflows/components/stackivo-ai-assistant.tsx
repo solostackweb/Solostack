@@ -144,6 +144,62 @@ function formatAssistantMessageContent(content: string): string {
     .trim();
 }
 
+type ProcessIvoResult = Awaited<ReturnType<typeof processIvoMessageAction>>;
+
+/**
+ * Send a message through the streaming endpoint, surfacing live progress
+ * ("Reading your invoices…") while the agent works. Returns null when the
+ * stream is unavailable so callers can fall back to the plain server action —
+ * streaming is progressive enhancement, never a hard dependency.
+ */
+async function processIvoMessageStreaming(
+  payload: Parameters<typeof processIvoMessageAction>[0],
+  onStatus: (status: string) => void,
+  onDelta: (text: string) => void,
+): Promise<ProcessIvoResult | null> {
+  try {
+    const res = await fetch("/api/ivo/message", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok || !res.body) return null;
+
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+    let result: ProcessIvoResult | null = null;
+
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const frames = buffer.split("\n\n");
+      buffer = frames.pop() ?? "";
+      for (const frame of frames) {
+        const event = frame.match(/^event: (.+)$/m)?.[1];
+        const data = frame.match(/^data: (.+)$/m)?.[1];
+        if (!event || !data) continue;
+        try {
+          const parsed = JSON.parse(data);
+          if (event === "status" && typeof parsed?.text === "string") {
+            onStatus(parsed.text);
+          } else if (event === "delta" && typeof parsed?.text === "string") {
+            onDelta(parsed.text);
+          } else if (event === "result") {
+            result = parsed as ProcessIvoResult;
+          }
+        } catch {
+          /* skip malformed frame */
+        }
+      }
+    }
+    return result;
+  } catch {
+    return null;
+  }
+}
+
 export function StackivoAiAssistant({ clients, projects, user }: StackivoAiAssistantProps) {
   const router = useRouter();
   const [mounted, setMounted] = React.useState(false);
@@ -190,6 +246,10 @@ export function StackivoAiAssistant({ clients, projects, user }: StackivoAiAssis
   // acts on it (in addition to the buttons).
   const [pendingConfirm, setPendingConfirm] = React.useState<IvoPendingConfirmation | null>(null);
   const [pendingProposal, setPendingProposal] = React.useState<"overdue_reminders" | null>(null);
+  /** Live progress line from the streaming endpoint ("Reading your invoices…"). */
+  const [agentStatus, setAgentStatus] = React.useState<string | null>(null);
+  /** The reply text growing token-by-token while the model writes it. */
+  const [liveReply, setLiveReply] = React.useState<string>("");
   // Mobile/PWA: the desktop panel lives in a hidden md-only rail, so on small
   // screens we portal the panel to document.body and render it full-screen.
   const [isMobile, setIsMobile] = React.useState(false);
@@ -2023,7 +2083,7 @@ export function StackivoAiAssistant({ clients, projects, user }: StackivoAiAssis
         push({ role: "assistant", content: "I couldn't start the conversation just now. Please try again." });
         return;
       }
-      const processed = await processIvoMessageAction({
+      const payload: Parameters<typeof processIvoMessageAction>[0] = {
         conversationId: activeConversationId,
         clientMessageId: userMessageId,
         message: text,
@@ -2043,7 +2103,18 @@ export function StackivoAiAssistant({ clients, projects, user }: StackivoAiAssis
         clientId,
         projectId,
         history: transcriptRef.current.slice(0, -1),
-      });
+        page: typeof window !== "undefined" ? window.location.pathname : undefined,
+      };
+      // Stream-first (live progress + token streaming), server action as the
+      // resilient fallback.
+      const streamed = await processIvoMessageStreaming(
+        payload,
+        setAgentStatus,
+        (delta) => setLiveReply((current) => current + delta),
+      );
+      setAgentStatus(null);
+      setLiveReply("");
+      const processed = streamed ?? (await processIvoMessageAction(payload));
       if (!processed.ok && processed.reason === "quota") {
         const nextTier =
           processed.plan === "free"
@@ -2071,6 +2142,30 @@ export function StackivoAiAssistant({ clients, projects, user }: StackivoAiAssis
       activeRunIdRef.current = processed.data.runId;
       const nlu: AiInterpretation = processed.data.interpretation;
       const decision = processed.data.decision;
+      // The agent loop writes its own reply (`say`) and optional quick-reply
+      // chips. A `reply` decision means the text IS the complete answer.
+      const say = processed.data.say;
+      const sayChips = processed.data.suggestions;
+
+      if (decision.kind === "reply") {
+        if (pendingProposal) setPendingProposal(null);
+        push({ role: "assistant", content: say || "Okay.", suggestions: sayChips });
+        return;
+      }
+      if (decision.kind === "overdue_reminders" && decision.action === "propose") {
+        setPendingProposal("overdue_reminders");
+        push({
+          role: "assistant",
+          content:
+            say ||
+            "Want me to email a payment reminder to every client with an overdue invoice? (Safe to run once a day — it won't double-send.)",
+          suggestions: ["Yes, send reminders", "Not now"],
+        });
+        return;
+      }
+      if (say) {
+        push({ role: "assistant", content: say, suggestions: sayChips });
+      }
 
       if (decision.kind === "overdue_reminders") {
         if (decision.action === "execute") {
@@ -2892,19 +2987,31 @@ export function StackivoAiAssistant({ clients, projects, user }: StackivoAiAssis
               );
             })}
 
-            {/* Typing indicator */}
+            {/* Typing indicator — live progress, then the reply streaming in */}
             {pending && (
               <div className="flex justify-start">
-                <div className="rounded-2xl rounded-bl-md border border-border/70 bg-background px-4 py-3 shadow-sm">
-                  <span className="flex items-center gap-1">
-                    {[0, 1, 2].map((item) => (
-                      <span
-                        key={item}
-                        className="h-1.5 w-1.5 animate-bounce rounded-full bg-primary/70"
-                        style={{ animationDelay: `${item * 120}ms` }}
-                      />
-                    ))}
-                  </span>
+                <div className="max-w-[85%] rounded-2xl rounded-bl-md border border-border/70 bg-background px-4 py-3 shadow-sm">
+                  {liveReply ? (
+                    <p className="whitespace-pre-wrap text-sm leading-relaxed">
+                      {liveReply.replace(/\n?\s*\[chips\][\s\S]*$/i, "")}
+                      <span className="ml-0.5 inline-block h-3.5 w-[2px] animate-pulse rounded bg-primary/70 align-middle" />
+                    </p>
+                  ) : (
+                    <span className="flex items-center gap-2">
+                      <span className="flex items-center gap-1">
+                        {[0, 1, 2].map((item) => (
+                          <span
+                            key={item}
+                            className="h-1.5 w-1.5 animate-bounce rounded-full bg-primary/70"
+                            style={{ animationDelay: `${item * 120}ms` }}
+                          />
+                        ))}
+                      </span>
+                      {agentStatus ? (
+                        <span className="text-xs text-muted-foreground">{agentStatus}</span>
+                      ) : null}
+                    </span>
+                  )}
                 </div>
               </div>
             )}
