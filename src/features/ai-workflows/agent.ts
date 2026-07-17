@@ -59,6 +59,8 @@ export interface IvoAgentInput {
   onStatus?: (status: string) => void;
   /** Token-level callback forwarding the model's text as it is generated. */
   onDelta?: (text: string) => void;
+  /** Pre-loaded memories (lets callers parallelise the fetch); loaded here if absent. */
+  memories?: string[];
 }
 
 export interface IvoAgentResult {
@@ -492,7 +494,7 @@ async function execListMeetings(userId: string, scope: string): Promise<unknown>
 /** Cap stored memories per user so the prompt stays lean and abuse-proof. */
 const MAX_MEMORIES = 40;
 
-async function loadMemories(userId: string): Promise<string[]> {
+export async function loadMemories(userId: string): Promise<string[]> {
   try {
     const supabase = await getServerSupabase();
     const { data } = await supabase
@@ -816,7 +818,7 @@ function buildSystemPrompt(input: IvoAgentInput, memories: string[]): string {
     "- Ground every number in tool data. NEVER invent figures, invoice numbers, names, or dates. If a tool returns nothing relevant, say so plainly.",
     "- Questions about the user's business (revenue, overdue, follow-ups, priorities, risk, unbilled time) → call get_business_snapshot (plus list_records/find_invoice/list_leads/list_meetings for specifics), then answer SPECIFICALLY for what was asked. Do not recite a generic plan.",
     "- Anything about one specific client (briefing, history, 'has X paid?', drafting for them) → get_client_profile first.",
-    "- Creation requests (invoice / contract / proposal / NDA / retainer / welcome doc / client / project / time entry) → call start_task with everything the user already provided in fields. A 'proposal' is task='contract' with fields.type='proposal' — call it a proposal in your reply, never a contract.",
+    "- Creation requests (invoice / contract / proposal / NDA / retainer / welcome doc / client / project / time entry) → call start_task IMMEDIATELY, even if the user gave no details yet — pass whatever they DID provide in fields and leave the rest out. NEVER ask for the client, scope, amount, or any other detail in a plain-text reply: after start_task the UI shows a client picker dropdown and asks each remaining question one at a time with suggestions. Asking in text instead of calling start_task is a mistake. Example: 'help me generate a proposal' → start_task {task:'contract', fields:{type:'proposal'}, reply:'Starting your proposal.'}. A 'proposal' is task='contract' with fields.type='proposal' — call it a proposal in your reply, never a contract.",
     "- Drafting text (payment reminder, lead reply, follow-up email, client message) → look up the real record first (find_invoice / list_leads / list_records), then WRITE THE FULL DRAFT yourself in the chat for review: greeting, body, sign-off, ready to copy. Do not start a creation task for this, and never claim anything was sent.",
     "- Knowledge/how-to/checklist questions (e.g. 'what should a client portal include?') → just answer well in text. Do not start any task.",
     "- Only call ROUTE tools (start_task, show_records, propose_overdue_reminders, invoice_unbilled_time, refine_active_draft) when the user's message actually asks for that action.",
@@ -919,7 +921,7 @@ function clip(value: unknown): string {
 
 export async function runIvoAgent(input: IvoAgentInput): Promise<IvoAgentResult | null> {
   const tools = buildTools(input);
-  const memories = await loadMemories(input.userId);
+  const memories = input.memories ?? (await loadMemories(input.userId));
   const messages: GroqAgentMessage[] = [
     { role: "system", content: buildSystemPrompt(input, memories) },
     ...input.history.slice(-10).map((entry) => ({

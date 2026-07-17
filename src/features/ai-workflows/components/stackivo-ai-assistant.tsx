@@ -2041,6 +2041,18 @@ export function StackivoAiAssistant({ clients, projects, user }: StackivoAiAssis
       return;
     }
 
+    // Small-talk fast path — greetings, thanks, "who are you", goodbyes answer
+    // INSTANTLY on-device instead of paying a full server + model round-trip
+    // (and an AI-quota message). Short messages only, so "hi, invoice Acme
+    // 5000" still reaches the agent intact.
+    if (!pendingField && text.trim().length <= 40) {
+      const chat = conversationalReply(text, userFirstName);
+      if (chat) {
+        push({ role: "assistant", content: chat });
+        return;
+      }
+    }
+
     // Local short-circuit for conversational remarks while a field is pending.
     // Field answers — including optional skips — go through the server runtime
     // so persisted state and the rendered workflow cannot disagree.

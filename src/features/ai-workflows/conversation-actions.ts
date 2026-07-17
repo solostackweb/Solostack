@@ -15,7 +15,7 @@ import { effectivePlan } from "@/features/subscription/features";
 import { getProfile } from "@/features/profile/server";
 import { AI_WORKFLOWS, type AiInterpretation } from "./types";
 import { interpretMessageDetailed } from "./nlu";
-import { runIvoAgent } from "./agent";
+import { loadMemories, runIvoAgent } from "./agent";
 import { ivoRuntimeDecisionSchema, planIvoRuntime } from "./runtime-planner";
 import { planIvoWorkflowNextAction } from "./workflow-progress";
 import {
@@ -814,6 +814,19 @@ export async function processIvoMessageAction(
   let usageConsumed = false;
   try {
     const { supabase, userId } = await requireUser();
+
+    // Kick off the workspace context loads immediately so they overlap with
+    // the sequential policy checks (ownership, persistence, quota, rate
+    // limit) below — shaves several DB round-trips off perceived latency.
+    const workspacePromise = Promise.all([
+      listClients({ limit: 200 }),
+      listProjects({ limit: 200 }),
+      getProfile().catch(() => null),
+      loadMemories(userId).catch(() => [] as string[]),
+    ]);
+    // Swallow late rejections if we bail out before awaiting (quota, dupes…).
+    workspacePromise.catch(() => undefined);
+
     const { data: conversation } = await supabase
       .from("ivo_conversations")
       .select("id")
@@ -920,11 +933,7 @@ export async function processIvoMessageAction(
       if (draft) activeDraft = requestedDraft;
     }
 
-    const [clients, projects, profile] = await Promise.all([
-      listClients({ limit: 200 }),
-      listProjects({ limit: 200 }),
-      getProfile().catch(() => null),
-    ]);
+    const [clients, projects, profile, memories] = await workspacePromise;
 
     // ---- Primary path: the model-driven agent loop ----------------------
     // The agent reads the workspace through tools, chooses the action, and
@@ -946,6 +955,7 @@ export async function processIvoMessageAction(
       requestId: runId,
       onStatus: hooks?.onStatus,
       onDelta: hooks?.onDelta,
+      memories,
     }).catch((error) => {
       log.warn("ivo.agent.failed", {
         error: error instanceof Error ? error.message : "unknown",
