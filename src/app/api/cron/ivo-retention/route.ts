@@ -72,6 +72,16 @@ export async function GET(req: Request): Promise<Response> {
       if (ids.length < BATCH_SIZE) break;
     }
 
+    // Resolved prepared actions (approved/dismissed drafts) are transient by
+    // nature — prune them after 30 days so the queue table stays small.
+    const preparedCutoff = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+    const { error: preparedError } = await admin
+      .from("ivo_prepared_actions")
+      .delete()
+      .in("status", ["approved", "dismissed"])
+      .lt("updated_at", preparedCutoff);
+    if (preparedError) throw preparedError;
+
     await recordCronRun({
       job: "ivo-retention",
       status: "ok",

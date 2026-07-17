@@ -7,6 +7,12 @@ import { z } from "zod";
 import { getServerSupabase } from "@/lib/supabase/server";
 import { getAdminSupabase } from "@/lib/supabase/admin";
 import { sendEmail } from "@/features/email/service";
+import {
+  buildEmailBrand,
+  renderMeetingConfirmedEmail,
+  renderMeetingInviteEmail,
+  type EmailBrand,
+} from "@/features/email/templates";
 import { getPublicAppUrl } from "@/features/documents/urls";
 import {
   accessTokenForBooking,
@@ -261,10 +267,12 @@ export async function confirmMeetingSlotAction(
     attachment,
   }).catch(() => undefined);
   await notifyClientOfConfirm({
+    userId: meeting.user_id,
     clientId: meeting.client_id,
     topic: meeting.topic,
     timezone: meeting.timezone,
     slot: parsed.data.slot,
+    durationMinutes: meeting.duration_minutes,
     meetLink,
     attachment,
   }).catch(() => undefined);
@@ -343,14 +351,6 @@ export async function completeMeetingAction(input: {
 // Email comms (best-effort — never block or fail the primary action)
 // ---------------------------------------------------------------------------
 
-function escapeHtml(value: string): string {
-  return value
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
-}
-
 async function lookupClientEmail(
   clientId: string | null,
 ): Promise<string | null> {
@@ -366,11 +366,11 @@ async function lookupClientEmail(
 
 async function ownerContact(
   userId: string,
-): Promise<{ email: string | null; name: string }> {
+): Promise<{ email: string | null; name: string; brand: EmailBrand }> {
   const admin = getAdminSupabase();
   const { data } = await admin
     .from("user_profiles")
-    .select("email, business_name, full_name")
+    .select("email, business_name, full_name, brand_color, business_email, business_phone, website")
     .eq("id", userId)
     .maybeSingle();
   const p = data as
@@ -378,11 +378,24 @@ async function ownerContact(
         email: string | null;
         business_name: string | null;
         full_name: string | null;
+        brand_color: string | null;
+        business_email: string | null;
+        business_phone: string | null;
+        website: string | null;
       }
     | null;
   return {
     email: p?.email ?? null,
     name: p?.business_name || p?.full_name || "Your freelancer",
+    brand: buildEmailBrand({
+      businessName: p?.business_name ?? null,
+      fullName: p?.full_name ?? null,
+      brandColor: p?.brand_color ?? null,
+      businessEmail: p?.business_email ?? null,
+      email: p?.email ?? null,
+      businessPhone: p?.business_phone ?? null,
+      website: p?.website ?? null,
+    }),
   };
 }
 
@@ -410,18 +423,22 @@ async function notifyClientOfInvite(args: {
   const url = `${getPublicAppUrl()}/m/${args.token}`;
   const clientName = client.business_name || client.full_name || "there";
 
+  const rendered = renderMeetingInviteEmail({
+    topic: args.topic,
+    durationMinutes: args.durationMinutes,
+    clientName,
+    hostName: owner.name,
+    publicUrl: url,
+    brand: owner.brand,
+  });
+
   await sendEmail({
     type: "share",
     to: { email: client.email, name: clientName },
-    subject: `${owner.name} would like to schedule a call: ${args.topic}`,
-    html: `<div style="font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:#0f172a;line-height:1.6">
-        <p>Hi ${escapeHtml(clientName)},</p>
-        <p><strong>${escapeHtml(owner.name)}</strong> would like to schedule a call &mdash; <strong>${escapeHtml(args.topic)}</strong> (${args.durationMinutes} minutes).</p>
-        <p>Pick the time that works best for you:</p>
-        <p><a href="${url}" style="display:inline-block;background:#2563eb;color:#ffffff;padding:10px 18px;border-radius:8px;text-decoration:none;font-weight:600">Choose a time</a></p>
-        <p style="color:#64748b;font-size:12px">Or open this link: ${url}</p>
-      </div>`,
-    text: `${owner.name} would like to schedule "${args.topic}" (${args.durationMinutes} min). Pick a time: ${url}`,
+    ...(owner.email ? { replyTo: { email: owner.email, name: owner.name } } : {}),
+    subject: rendered.subject,
+    html: rendered.html,
+    text: rendered.text,
     tags: ["meeting-invite"],
   });
 }
@@ -447,26 +464,33 @@ async function notifyOwnerOfConfirm(args: {
     /* fall back to the raw ISO string */
   }
 
+  const rendered = renderMeetingConfirmedEmail({
+    audience: "host",
+    topic: args.topic,
+    whenFormatted: when,
+    hostName: owner.name,
+    hasCalendarAttachment: Boolean(args.attachment),
+    brand: owner.brand,
+  });
+
   await sendEmail({
     type: "share",
     to: { email: owner.email, name: owner.name },
-    subject: `Confirmed: ${args.topic}`,
-    html: `<div style="font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:#0f172a;line-height:1.6">
-        <p>Your client picked a time for <strong>${escapeHtml(args.topic)}</strong>.</p>
-        <p><strong>${escapeHtml(when)}</strong></p>
-        <p style="color:#64748b;font-size:12px">Add the video link from your Stackivo meetings page so they can join.</p>
-      </div>`,
-    text: `Your client confirmed "${args.topic}" for ${when}.`,
+    subject: rendered.subject,
+    html: rendered.html,
+    text: rendered.text,
     attachments: args.attachment ? [args.attachment] : undefined,
     tags: ["meeting-confirmed"],
   });
 }
 
 async function notifyClientOfConfirm(args: {
+  userId: string;
   clientId: string | null;
   topic: string;
   timezone: string;
   slot: string;
+  durationMinutes?: number;
   meetLink: string | null;
   attachment?: { name: string; content: Buffer };
 }): Promise<void> {
@@ -483,6 +507,7 @@ async function notifyClientOfConfirm(args: {
     | null;
   if (!client?.email) return;
 
+  const owner = await ownerContact(args.userId);
   const clientName = client.business_name || client.full_name || "there";
   let when = args.slot;
   try {
@@ -495,22 +520,25 @@ async function notifyClientOfConfirm(args: {
     /* fall back to the raw ISO string */
   }
 
-  const joinLine = args.meetLink
-    ? `<p><a href="${args.meetLink}">Join link</a></p>`
-    : "";
+  const rendered = renderMeetingConfirmedEmail({
+    audience: "client",
+    topic: args.topic,
+    whenFormatted: when,
+    durationMinutes: args.durationMinutes,
+    clientName,
+    hostName: owner.name,
+    meetLink: args.meetLink,
+    hasCalendarAttachment: Boolean(args.attachment),
+    brand: owner.brand,
+  });
 
   await sendEmail({
     type: "share",
     to: { email: client.email, name: clientName },
-    subject: `Confirmed: ${args.topic}`,
-    html: `<div style="font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:#0f172a;line-height:1.6">
-        <p>Hi ${escapeHtml(clientName)},</p>
-        <p>Your call <strong>${escapeHtml(args.topic)}</strong> is confirmed:</p>
-        <p><strong>${escapeHtml(when)}</strong></p>
-        ${joinLine}
-        <p style="color:#64748b;font-size:12px">A calendar invite is attached.</p>
-      </div>`,
-    text: `Your call "${args.topic}" is confirmed for ${when}.`,
+    ...(owner.email ? { replyTo: { email: owner.email, name: owner.name } } : {}),
+    subject: rendered.subject,
+    html: rendered.html,
+    text: rendered.text,
     attachments: args.attachment ? [args.attachment] : undefined,
     tags: ["meeting-confirmed-client"],
   });

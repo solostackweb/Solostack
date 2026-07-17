@@ -266,7 +266,7 @@ async function detectMoments(): Promise<DetectedMoment[]> {
       recipientEmail: lead.email ? String(lead.email) : null,
       entityType: "lead",
       entityId: String(lead.id),
-      href: "/dashboard/leads",
+      href: "/dashboard/lead-forms",
       facts: {
         leadName: String(lead.name),
         company: lead.company ? String(lead.company) : "",

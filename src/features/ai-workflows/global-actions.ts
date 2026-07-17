@@ -31,7 +31,10 @@ import {
 import { parseWelcomeContent } from "@/features/welcome-documents/content";
 import { getBusinessFacts } from "./business-context";
 import { getAssistantSuggestions } from "./suggestions";
-import { dispatchDelivery } from "@/features/email/send";
+import { dispatchDelivery, pdfAttachment } from "@/features/email/send";
+import { buildInvoicePdfData } from "@/features/documents/builders";
+import { renderPdfToBuffer } from "@/features/documents/pdf/render";
+import { InvoicePdf } from "@/features/documents/pdf/invoice-pdf";
 import { getEmailSender } from "@/features/email/senders";
 import { renderInvoiceReminderEmail } from "@/features/email/templates";
 import { getInvoiceShareUrl } from "@/features/documents/urls";
@@ -2620,6 +2623,22 @@ export async function remindOverdueInvoicesFromAiAction() {
       daysOverdue,
     });
 
+    // Attach the invoice PDF so the client can pay without hunting for the
+    // original email. Best-effort: a PDF render failure never blocks the
+    // reminder itself.
+    let reminderAttachments: Array<{ name: string; content: Buffer }> | undefined;
+    try {
+      const pdfData = await buildInvoicePdfData(inv.id);
+      if (pdfData) {
+        const pdfBuffer = await renderPdfToBuffer(InvoicePdf({ data: pdfData }));
+        reminderAttachments = [
+          pdfAttachment(`invoice-${inv.invoice_number}.pdf`, pdfBuffer),
+        ];
+      }
+    } catch {
+      /* send without attachment */
+    }
+
     const dispatch = await dispatchDelivery({
       userId,
       kind: "invoice_reminder",
@@ -2631,6 +2650,7 @@ export async function remindOverdueInvoicesFromAiAction() {
       subject: rendered.subject,
       html: rendered.html,
       text: rendered.text,
+      attachments: reminderAttachments,
       metadata: { invoiceId: inv.id, daysOverdue, via: "assistant" },
       tags: ["invoice_reminder", "assistant"],
       idempotencyKey: `invoice-reminder-manual:${inv.id}:${todayIso}`,

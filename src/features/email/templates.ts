@@ -510,6 +510,290 @@ export function renderContractSentEmail(
   };
 }
 
+// --- Proposal sent -------------------------------------------------------
+
+export interface ProposalSentInput {
+  title: string;
+  clientName: string;
+  senderName: string;
+  senderEmail?: string;
+  /** Pre-formatted total (e.g. "₹1,50,000"). */
+  amountFormatted: string;
+  /** Pre-formatted validity date, when set. */
+  validUntil?: string | null;
+  message?: string | null;
+  publicUrl: string;
+  brand?: EmailBrand;
+}
+
+export function renderProposalSentEmail(input: ProposalSentInput): EmailRender {
+  const subject = `${input.senderName} sent you a proposal: ${input.title}`;
+  const paragraphs: string[] = [
+    `Hi ${input.clientName},`,
+    `${input.senderName} has put together a proposal for you — the scope, deliverables, timeline, and investment are all laid out for review. A PDF copy is attached for your records.`,
+  ];
+  if (input.message?.trim()) paragraphs.push(input.message.trim());
+
+  const facts = [
+    { label: "Proposal", value: input.title },
+    { label: "Investment", value: input.amountFormatted },
+    ...(input.validUntil ? [{ label: "Valid until", value: input.validUntil }] : []),
+  ];
+
+  return {
+    subject,
+    html: envelope({
+      preheader: `Proposal · ${input.title} · ${input.amountFormatted}`,
+      eyebrow: "Proposal",
+      heading: input.title,
+      subheading: `${input.amountFormatted}${input.validUntil ? ` · valid until ${input.validUntil}` : ""}`,
+      paragraphs,
+      facts,
+      cta: { label: "Review proposal", href: input.publicUrl },
+      secondaryParagraphs: [
+        "Accepting online takes one click and simply confirms the direction — it is not an e-signature contract.",
+        "Questions or change requests? Just reply to this email.",
+      ],
+      signature: formatSenderSignature(input.senderName, input.senderEmail),
+      brand: input.brand,
+    }),
+    text: plain(
+      paragraphs,
+      { label: "Review proposal", href: input.publicUrl },
+      formatSenderSignature(input.senderName, input.senderEmail),
+      facts,
+    ),
+  };
+}
+
+// --- Meeting invite (pick a time) ----------------------------------------
+
+export interface MeetingInviteInput {
+  topic: string;
+  durationMinutes: number;
+  clientName: string;
+  hostName: string;
+  /** Optional context from the host shown as a body paragraph. */
+  notes?: string | null;
+  publicUrl: string;
+  brand?: EmailBrand;
+}
+
+export function renderMeetingInviteEmail(input: MeetingInviteInput): EmailRender {
+  const subject = `${input.hostName} invites you to book a call — ${input.topic}`;
+  const paragraphs: string[] = [
+    `Hi ${input.clientName},`,
+    `${input.hostName} would like to get on a call with you and has opened up their calendar. Pick whichever time suits you best — it takes a few seconds and you'll get a confirmation right away.`,
+  ];
+  if (input.notes?.trim()) paragraphs.push(input.notes.trim());
+
+  const facts = [
+    { label: "Topic", value: input.topic },
+    { label: "Duration", value: `${input.durationMinutes} minutes` },
+  ];
+
+  return {
+    subject,
+    html: envelope({
+      preheader: `Book a time for “${input.topic}” (${input.durationMinutes} min)`,
+      eyebrow: "Meeting invite",
+      heading: input.topic,
+      subheading: `${input.durationMinutes}-minute call with ${input.hostName}`,
+      paragraphs,
+      facts,
+      cta: { label: "Choose a time", href: input.publicUrl },
+      secondaryParagraphs: [
+        "Times are shown in your local timezone on the booking page.",
+      ],
+      signature: input.hostName,
+      brand: input.brand,
+    }),
+    text: plain(
+      paragraphs,
+      { label: "Choose a time", href: input.publicUrl },
+      input.hostName,
+      facts,
+    ),
+  };
+}
+
+// --- Meeting confirmed ----------------------------------------------------
+
+export interface MeetingConfirmedInput {
+  /** Who this copy goes to — wording adapts. */
+  audience: "client" | "host";
+  topic: string;
+  /** Pre-formatted local date + time. */
+  whenFormatted: string;
+  durationMinutes?: number;
+  /** Recipient's name (client) — unused for host copies. */
+  clientName?: string;
+  hostName: string;
+  meetLink?: string | null;
+  /** True when an .ics calendar file is attached. */
+  hasCalendarAttachment?: boolean;
+  brand?: EmailBrand;
+}
+
+export function renderMeetingConfirmedEmail(
+  input: MeetingConfirmedInput,
+): EmailRender {
+  const isClient = input.audience === "client";
+  const subject = isClient
+    ? `You're booked: ${input.topic} — ${input.whenFormatted}`
+    : `Client confirmed: ${input.topic} — ${input.whenFormatted}`;
+
+  const paragraphs: string[] = isClient
+    ? [
+        `Hi ${input.clientName ?? "there"},`,
+        `Your call with ${input.hostName} is locked in. We look forward to speaking with you!`,
+      ]
+    : [
+        `Good news — your client just picked a time for “${input.topic}”.`,
+        input.meetLink
+          ? "The video link is already on the booking, so you're all set."
+          : "Add a video link from your Stackivo meetings page so your client can join with one click.",
+      ];
+
+  const facts = [
+    { label: "Topic", value: input.topic },
+    { label: "When", value: input.whenFormatted },
+    ...(input.durationMinutes
+      ? [{ label: "Duration", value: `${input.durationMinutes} minutes` }]
+      : []),
+  ];
+
+  return {
+    subject,
+    html: envelope({
+      preheader: `${input.topic} · ${input.whenFormatted}`,
+      eyebrow: "Meeting confirmed",
+      heading: input.topic,
+      subheading: input.whenFormatted,
+      successBanner: isClient ? "You're booked" : "Time confirmed",
+      paragraphs,
+      facts,
+      ...(input.meetLink
+        ? { cta: { label: "Join the call", href: input.meetLink } }
+        : {}),
+      secondaryParagraphs: [
+        ...(input.hasCalendarAttachment
+          ? ["A calendar invite (.ics) is attached — add it so you get a reminder."]
+          : []),
+        ...(isClient && !input.meetLink
+          ? [`${input.hostName} will share the video link before the call.`]
+          : []),
+      ],
+      signature: isClient ? input.hostName : undefined,
+      brand: input.brand,
+    }),
+    text: plain(
+      paragraphs,
+      input.meetLink ? { label: "Join the call", href: input.meetLink } : undefined,
+      isClient ? input.hostName : undefined,
+      facts,
+    ),
+  };
+}
+
+// --- Questionnaire invite -------------------------------------------------
+
+export interface QuestionnaireInviteInput {
+  title: string;
+  clientName: string;
+  hostName: string;
+  questionCount?: number;
+  publicUrl: string;
+  brand?: EmailBrand;
+}
+
+export function renderQuestionnaireInviteEmail(
+  input: QuestionnaireInviteInput,
+): EmailRender {
+  const subject = `${input.hostName} needs a few answers: ${input.title}`;
+  const count = input.questionCount && input.questionCount > 0
+    ? `${input.questionCount} quick question${input.questionCount === 1 ? "" : "s"}`
+    : "a few quick questions";
+  const paragraphs = [
+    `Hi ${input.clientName},`,
+    `To keep your project moving, ${input.hostName} has put together ${count} for you. Your answers go straight to them — no account or sign-in needed.`,
+  ];
+
+  return {
+    subject,
+    html: envelope({
+      preheader: `${input.title} · ${count}`,
+      eyebrow: "Questionnaire",
+      heading: input.title,
+      subheading: `${count} from ${input.hostName}`,
+      paragraphs,
+      cta: { label: "Open the questionnaire", href: input.publicUrl },
+      secondaryParagraphs: [
+        "Your progress is saved as you answer, and the page is private to you.",
+      ],
+      signature: input.hostName,
+      brand: input.brand,
+    }),
+    text: plain(
+      paragraphs,
+      { label: "Open the questionnaire", href: input.publicUrl },
+      input.hostName,
+    ),
+  };
+}
+
+// --- Lead captured (to the freelancer) ------------------------------------
+
+export interface LeadCapturedInput {
+  formTitle: string;
+  leadName: string;
+  leadEmail: string;
+  company?: string | null;
+  projectSummary: string;
+  budget?: string | null;
+  timeline?: string | null;
+  dashboardUrl: string;
+}
+
+export function renderLeadCapturedEmail(input: LeadCapturedInput): EmailRender {
+  const subject = `New lead: ${input.leadName}${input.company ? ` (${input.company})` : ""} — ${input.formTitle}`;
+  const paragraphs = [
+    `${input.leadName} just reached out through your “${input.formTitle}” form. Their project, in their words:`,
+    `“${input.projectSummary.slice(0, 600)}”`,
+    "Leads cool off fast — a reply within a few hours dramatically improves conversion. Hit reply on this email to answer them directly, or open Stackivo to let Ivo draft the response.",
+  ];
+
+  const facts = [
+    { label: "Name", value: input.leadName },
+    { label: "Email", value: input.leadEmail },
+    ...(input.company ? [{ label: "Company", value: input.company }] : []),
+    ...(input.budget ? [{ label: "Budget", value: input.budget }] : []),
+    ...(input.timeline ? [{ label: "Timeline", value: input.timeline }] : []),
+  ];
+
+  return {
+    subject,
+    html: envelope({
+      preheader: `${input.leadName} · ${input.projectSummary.slice(0, 90)}`,
+      eyebrow: "New lead",
+      heading: `${input.leadName} wants to work with you`,
+      subheading: `via ${input.formTitle}`,
+      paragraphs,
+      facts,
+      cta: { label: "Open in Stackivo", href: input.dashboardUrl },
+      secondaryParagraphs: [
+        "Replying to this email goes straight to the lead — the Reply-To is set to their address.",
+      ],
+    }),
+    text: plain(
+      paragraphs,
+      { label: "Open in Stackivo", href: input.dashboardUrl },
+      undefined,
+      facts,
+    ),
+  };
+}
+
 // --- Contract signed copy ------------------------------------------------
 
 export interface ContractSignedCopyInput {

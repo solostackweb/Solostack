@@ -8,6 +8,10 @@ import { z } from "zod";
 import { getServerSupabase } from "@/lib/supabase/server";
 import { getAdminSupabase } from "@/lib/supabase/admin";
 import { sendEmail } from "@/features/email/service";
+import {
+  buildEmailBrand,
+  renderQuestionnaireInviteEmail,
+} from "@/features/email/templates";
 import { getPublicAppUrl } from "@/features/documents/urls";
 import { normalizeQuestions } from "./types";
 import { getStarter } from "./builtin";
@@ -29,14 +33,6 @@ function makeToken(): string {
     crypto.randomUUID().replace(/-/g, "") +
     crypto.randomUUID().replace(/-/g, "")
   );
-}
-
-function escapeHtml(value: string): string {
-  return value
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
 }
 
 const questionSchema = z.object({
@@ -225,6 +221,7 @@ export async function sendQuestionnaireAction(
     userId,
     clientId: parsed.data.clientId,
     title: questionnaire.title,
+    questionCount: normalizeQuestions(questionnaire.questions).length,
     token: publicToken,
   }).catch(() => undefined);
 
@@ -285,6 +282,7 @@ async function notifyClientOfQuestionnaire(args: {
   userId: string;
   clientId: string;
   title: string;
+  questionCount?: number;
   token: string;
 }): Promise<void> {
   const admin = getAdminSupabase();
@@ -300,27 +298,49 @@ async function notifyClientOfQuestionnaire(args: {
 
   const { data: profile } = await admin
     .from("user_profiles")
-    .select("business_name, full_name")
+    .select("business_name, full_name, email, brand_color, business_email, business_phone, website")
     .eq("id", args.userId)
     .maybeSingle();
   const p = profile as
-    | { business_name: string | null; full_name: string | null }
+    | {
+        business_name: string | null;
+        full_name: string | null;
+        email: string | null;
+        brand_color: string | null;
+        business_email: string | null;
+        business_phone: string | null;
+        website: string | null;
+      }
     | null;
   const hostName = p?.business_name || p?.full_name || "Your freelancer";
+  const hostEmail = p?.business_email || p?.email || null;
   const clientName = client.business_name || client.full_name || "there";
   const url = `${getPublicAppUrl()}/q/${args.token}`;
+
+  const rendered = renderQuestionnaireInviteEmail({
+    title: args.title,
+    clientName,
+    hostName,
+    questionCount: args.questionCount,
+    publicUrl: url,
+    brand: buildEmailBrand({
+      businessName: p?.business_name ?? null,
+      fullName: p?.full_name ?? null,
+      brandColor: p?.brand_color ?? null,
+      businessEmail: p?.business_email ?? null,
+      email: p?.email ?? null,
+      businessPhone: p?.business_phone ?? null,
+      website: p?.website ?? null,
+    }),
+  });
 
   await sendEmail({
     type: "share",
     to: { email: client.email, name: clientName },
-    subject: `${hostName} sent you a questionnaire: ${args.title}`,
-    html: `<div style="font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:#0f172a;line-height:1.6">
-        <p>Hi ${escapeHtml(clientName)},</p>
-        <p><strong>${escapeHtml(hostName)}</strong> would like you to fill out a short questionnaire &mdash; <strong>${escapeHtml(args.title)}</strong>.</p>
-        <p><a href="${url}" style="display:inline-block;background:#2563eb;color:#ffffff;padding:10px 18px;border-radius:8px;text-decoration:none;font-weight:600">Open the questionnaire</a></p>
-        <p style="color:#64748b;font-size:12px">Or open this link: ${url}</p>
-      </div>`,
-    text: `${hostName} sent you a questionnaire "${args.title}". Fill it here: ${url}`,
+    ...(hostEmail ? { replyTo: { email: hostEmail, name: hostName } } : {}),
+    subject: rendered.subject,
+    html: rendered.html,
+    text: rendered.text,
     tags: ["questionnaire"],
   });
 }

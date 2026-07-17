@@ -5,6 +5,8 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { getAdminSupabase } from "@/lib/supabase/admin";
 import { getPublicAppUrl } from "@/features/documents/urls";
+import { sendEmail } from "@/features/email/service";
+import { renderLeadCapturedEmail } from "@/features/email/templates";
 import { getServerSupabase } from "@/lib/supabase/server";
 import { coerceFormValues } from "@/lib/form";
 import { getClientIp, leadSubmitLimit } from "@/lib/rate-limit";
@@ -388,6 +390,53 @@ export async function submitPublicLeadAction(
   } as never);
 
   const formTitle = (form as { title: string }).title;
+
+  // Email the freelancer immediately — leads cool off fast. Best-effort:
+  // an email failure never blocks the submission. Reply-To is the LEAD's
+  // address so hitting reply answers them directly.
+  try {
+    const { data: ownerProfile } = await admin
+      .from("user_profiles")
+      .select("email, business_email, business_name, full_name")
+      .eq("id", ownerId)
+      .maybeSingle();
+    const owner = ownerProfile as
+      | {
+          email: string | null;
+          business_email: string | null;
+          business_name: string | null;
+          full_name: string | null;
+        }
+      | null;
+    const ownerEmail = owner?.business_email || owner?.email;
+    if (ownerEmail) {
+      const rendered = renderLeadCapturedEmail({
+        formTitle,
+        leadName: parsed.data.name,
+        leadEmail: parsed.data.email,
+        company: parsed.data.company || null,
+        projectSummary: parsed.data.project,
+        budget: parsed.data.budget || null,
+        timeline: parsed.data.timeline || null,
+        dashboardUrl: `${getPublicAppUrl()}/dashboard/lead-forms`,
+      });
+      await sendEmail({
+        type: "share",
+        to: {
+          email: ownerEmail,
+          name: owner?.business_name || owner?.full_name || undefined,
+        },
+        replyTo: { email: parsed.data.email, name: parsed.data.name },
+        subject: rendered.subject,
+        html: rendered.html,
+        text: rendered.text,
+        tags: ["lead-captured"],
+      });
+    }
+  } catch {
+    /* in-app notification below still lands */
+  }
+
   await admin.from("notifications").insert({
     user_id: ownerId,
     title: clientIsNew
