@@ -5,6 +5,7 @@ export const IVO_MODES = [
   "general",
   "invoice",
   "contract",
+  "proposal",
   "welcome_document",
   "client",
   "project",
@@ -23,6 +24,7 @@ export const IVO_WORKFLOW_TOOLS = [
   "project.create",
   "time_entry.create",
   "meeting.create",
+  "proposal.create",
 ] as const;
 
 export type IvoWorkflowTool = (typeof IVO_WORKFLOW_TOOLS)[number];

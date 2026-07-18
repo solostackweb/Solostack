@@ -112,6 +112,7 @@ export type AiWorkflowResult<T> =
 export const AI_WORKFLOWS = [
   "invoice",
   "contract",
+  "proposal",
   "welcome_document",
   "client",
   "project",
@@ -224,6 +225,13 @@ export const AI_FIELD_SEQUENCE: Record<AiWorkflow, AiFieldSpec[]> = {
     { field: "commercials", optional: true },
     { field: "timeline", optional: true },
     { field: "clauses", optional: true },
+  ],
+  proposal: [
+    { field: "clientId" },
+    { field: "projectId", optional: true },
+    { field: "scope" },
+    { field: "commercials", optional: true },
+    { field: "timeline", optional: true },
   ],
   welcome_document: [
     { field: "process" },

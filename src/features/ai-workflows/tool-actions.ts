@@ -1502,6 +1502,16 @@ export async function createMeetingDraftIvoToolAction(input: ToolInput) {
   return { ok: true as const, kind: "meeting" as const, meeting: res.data };
 }
 
+export async function createProposalDraftIvoToolAction(input: ToolInput) {
+  const res = await createProposalFromAiAction({
+    fields: input.fields,
+    clientId: input.clientId,
+    projectId: input.projectId,
+  });
+  if (!res.ok) return res;
+  return { ok: true as const, kind: "proposal" as const, proposal: res.data };
+}
+
 export async function createContractDraftIvoToolAction(
   input: ToolInput,
 ) {

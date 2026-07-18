@@ -31,8 +31,14 @@ export const QUICK_ACTIONS: Array<{
   {
     mode: "contract",
     title: "Draft contract",
-    description: "Generate a full agreement or proposal with all clauses.",
+    description: "Generate a full agreement, NDA, or retainer with all clauses.",
     icon: FileSignature,
+  },
+  {
+    mode: "proposal",
+    title: "Draft proposal",
+    description: "Create a client-ready proposal with scope and pricing.",
+    icon: FileText,
   },
   {
     mode: "welcome_document",
@@ -102,7 +108,9 @@ export function modeIntro(mode: AiMode): string {
     case "invoice":
       return "Let's create an invoice. Describe the client, work, amount, and due date.";
     case "contract":
-      return "Let's draft a contract or proposal. I'll walk you through it.";
+      return "Let's draft a contract. I'll walk you through it.";
+    case "proposal":
+      return "Let's put together a proposal. I'll collect the scope and pricing, then open it in the builder to finish and send.";
     case "welcome_document":
       return "Let's prepare a welcome document. A few questions and I'll generate the full guide.";
     case "client":

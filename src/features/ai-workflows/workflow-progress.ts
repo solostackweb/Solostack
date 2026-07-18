@@ -23,6 +23,7 @@ const WORKFLOW_TOOL: Partial<Record<AiWorkflow, IvoWorkflowTool>> = {
   project: "project.create",
   time_entry: "time_entry.create",
   meeting: "meeting.create",
+  proposal: "proposal.create",
 };
 
 export const IVO_MISSING_FIELD_QUESTIONS: Record<string, AiMissingField> = {
@@ -292,11 +293,13 @@ export function buildIvoFieldPrompt(
       ? "invoice"
       : workflow === "contract"
         ? contractKind
-        : workflow === "project"
-          ? "project"
-          : workflow === "welcome_document"
-            ? "welcome document"
-            : "";
+        : workflow === "proposal"
+          ? "proposal"
+          : workflow === "project"
+            ? "project"
+            : workflow === "welcome_document"
+              ? "welcome document"
+              : "";
     return {
       type: "picker",
       pickerType: "client",

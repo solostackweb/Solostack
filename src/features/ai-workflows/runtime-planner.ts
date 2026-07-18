@@ -70,7 +70,7 @@ export const ivoRuntimeDecisionSchema = z.union([
   z.object({ kind: z.literal("field_error"), message: z.string().min(1).max(2000) }),
   z.object({
     kind: z.literal("workflow"),
-    targetMode: z.enum(["general", "invoice", "contract", "welcome_document", "client", "project", "time_entry", "support"]),
+    targetMode: z.enum(["general", "invoice", "contract", "proposal", "welcome_document", "client", "project", "time_entry", "meeting", "support"]),
     switching: z.boolean(),
     fields: z.record(z.string()),
     clientId: z.string().max(100),

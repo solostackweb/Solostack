@@ -97,6 +97,7 @@ import {
   createClientIvoToolAction,
   createContractDraftIvoToolAction,
   createMeetingDraftIvoToolAction,
+  createProposalDraftIvoToolAction,
   createInvoiceDraftIvoToolAction,
   createProjectIvoToolAction,
   createTimeEntryIvoToolAction,
@@ -1774,6 +1775,47 @@ export function StackivoAiAssistant({ clients, projects, user }: StackivoAiAssis
                 onAction={() => router.push("/dashboard/projects")}
               />
             ),
+          });
+          router.refresh();
+          return;
+        }
+
+        case "proposal.create": {
+          if (!toolActionInput) {
+            push({ role: "assistant", content: "I couldn't start this proposal. Please try again." });
+            return;
+          }
+          const res = await createProposalDraftIvoToolAction(toolActionInput);
+          if (!res.ok) {
+            push({ role: "assistant", content: res.error });
+            return;
+          }
+          finish();
+          const p = res.proposal;
+          push({
+            role: "assistant",
+            content: (
+              <div className="space-y-3">
+                <p className="font-medium">Proposal draft created</p>
+                <div className="rounded-md border bg-background p-3 text-sm">
+                  <p className="font-medium">{p.title}</p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {p.clientName} · {p.currency} {p.total.toLocaleString("en-IN")}
+                  </p>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  Open it to add packages, adjust pricing, and send.
+                </p>
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={() => router.push(`/dashboard/proposals/${p.id}`)}
+                >
+                  Open proposal
+                </Button>
+              </div>
+            ),
+            suggestions: ["Create an invoice", "Draft a contract"],
           });
           router.refresh();
           return;

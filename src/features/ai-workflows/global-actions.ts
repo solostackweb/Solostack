@@ -1550,7 +1550,7 @@ export async function createProposalFromAiAction(input: AiCreateInput) {
   const projectSkipped = rawProjectId === NO_PROJECT_SENTINEL;
   const projectId = projectSkipped ? "" : rawProjectId;
 
-  const missing = nextMissingField("contract", fields, {
+  const missing = nextMissingField("proposal", fields, {
     clientId,
     projectId,
     projectSkipped,

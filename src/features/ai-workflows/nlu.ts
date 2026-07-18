@@ -23,6 +23,7 @@ interface InterpretContext {
 const CANONICAL_FIELDS: Record<string, string[]> = {
   invoice: ["workDescription", "amount", "quantity", "dueDate", "discount", "notes"],
   contract: ["scope", "type", "commercials", "clauses", "amount"],
+  proposal: ["scope", "commercials", "timeline", "amount"],
   welcome_document: ["relationship", "process", "operations", "tone"],
   client: ["fullName", "businessName", "email", "phone", "billingAddress", "state", "notes"],
   project: ["name", "scope", "status", "dates", "dueDate"],

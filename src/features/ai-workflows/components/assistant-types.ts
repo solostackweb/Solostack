@@ -33,6 +33,7 @@ export type AiMode =
   | "general"
   | "invoice"
   | "contract"
+  | "proposal"
   | "welcome_document"
   | "client"
   | "project"
