@@ -18,6 +18,13 @@ const hrs = (seconds: number) => Math.round(((seconds || 0) / 3600) * 10) / 10;
 
 export interface BusinessFacts {
   today: string;
+  /**
+   * ISO timestamp of when this snapshot was computed. `today` is only a date,
+   * which cannot express how current a live figure is — receivables in
+   * particular are "right now" rather than period-bound, so an answer quoting
+   * them needs a time, not a day.
+   */
+  asOf: string;
   currency: "INR";
   revenue: {
     last12mPaid: number;
@@ -98,6 +105,7 @@ export async function getBusinessFacts(): Promise<BusinessFacts> {
 
   return {
     today: to,
+    asOf: new Date().toISOString(),
     currency: "INR",
     revenue: {
       last12mPaid: r2(a12.revenue.paid),

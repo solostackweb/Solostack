@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "eslint .",
     "type-check": "tsc --noEmit",
+    "eval": "node --experimental-strip-types --conditions=react-server --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --import ./scripts/eval-register.mjs --test \"src/features/ai-workflows/evals/*.eval.ts\"",
     "security:client-env": "node scripts/verify-client-env.mjs",
     "verify:admin-actions": "node scripts/verify-admin-actions.mjs"
   },

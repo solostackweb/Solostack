@@ -19,11 +19,10 @@ import "server-only";
  */
 
 import { redirect } from "next/navigation";
-import { readFile } from "node:fs/promises";
 import { randomUUID } from "node:crypto";
-import path from "node:path";
 import { z } from "zod";
 
+import { log } from "@/lib/logger";
 import { AUTH_LOGIN_ROUTE } from "@/features/auth/routes";
 import { env } from "@/config/env";
 import { aiGenerateLimit } from "@/lib/rate-limit";
@@ -49,6 +48,7 @@ import {
 } from "@/features/welcome-documents/actions";
 import { parseWelcomeContent } from "@/features/welcome-documents/content";
 import { getBusinessFacts } from "./business-context";
+import { KNOWLEDGE_VERSION, retrieveKnowledge } from "./knowledge";
 import { getAssistantSuggestions } from "./suggestions";
 import { dispatchDelivery, pdfAttachment } from "@/features/email/send";
 import { buildInvoicePdfData } from "@/features/documents/builders";
@@ -2175,25 +2175,6 @@ export async function refineWelcomeDocFromAiAction(
  * metadata, and noisy attributes (className/href) so the token budget is spent
  * on real content — section titles, headings, body copy.
  */
-async function readDocsPageText(relPath: string, limit: number): Promise<string> {
-  try {
-    const raw = await readFile(path.join(process.cwd(), "src", "app", relPath), "utf8");
-    return raw
-      .replace(/import[\s\S]*?from\s*["'][^"']*["'];?/g, " ")
-      .replace(/export const (metadata|dynamic|NAV)[\s\S]*?;\n/g, " ")
-      .replace(/className=\{?["'`][^"'`]*["'`]\}?/g, " ")
-      .replace(/href=\{?["'][^"']*["']\}?/g, " ")
-      .replace(/&apos;/g, "'")
-      .replace(/&amp;/g, "&")
-      .replace(/&quot;/g, '"')
-      .replace(/[{}()<>=`"'$]/g, " ")
-      .replace(/\s+/g, " ")
-      .trim()
-      .slice(0, limit);
-  } catch {
-    return "";
-  }
-}
 
 // The docs/privacy/terms pages are static, so the trimmed context is identical
 // for every question. Build it once per server instance and reuse it — this
@@ -2207,48 +2188,7 @@ async function readDocsPageText(relPath: string, limit: number): Promise<string>
  * treats it as an authoritative source, so never state a plan price or feature
  * here that isn't confirmed on those pages.
  */
-const EMBEDDED_DOCS_FALLBACK = [
-  "--- STACKIVO CORE KNOWLEDGE ---",
-  "Stackivo is an all-in-one business OS for Indian freelancers and small agencies: invoicing (GST-ready), contracts with e-signatures, client portals, welcome documents, time tracking, and a Pulse analytics dashboard.",
-  "",
-  "REFUND POLICY: You can request a full refund within 30 days of any payment. After 30 days payments are non-refundable, except where required by law. Refunds are processed to the original payment method via Razorpay. If we make a material price change, you can cancel before it applies and request a prorated refund. Repeated refund abuse may lead to account restriction.",
-  "",
-  "SUBSCRIPTIONS & CANCELLATION: Paid plans renew automatically at the end of each billing period unless you cancel first. Cancellation takes effect at the end of the current paid period (you keep access until then). Manage or cancel anytime in Settings → Billing.",
-  "",
-  "PAYMENTS: Clients can pay invoices online via Razorpay (cards, UPI, netbanking). Stackivo is a software platform and does not hold or process your clients' money on your behalf — funds settle through your own connected payment provider.",
-  "",
-  "GST & TAX: Stackivo gives you GST-ready invoicing tools, but you remain responsible for your own tax registration, rates, collection, and filing. For exports, invoices can be issued under LUT without IGST where applicable.",
-  "",
-  "DATA & PRIVACY: Your data belongs to you. You can export or delete your account from Settings; deletion runs after a short grace period, then data is permanently purged. See the Privacy Policy for details.",
-  "",
-  "SUPPORT: Email support@stackivo.me or use the in-app chat bubble (bottom-right). For anything about specific plan prices or features, point the user to the Pricing and Docs pages in the app.",
-].join("\n");
 
-let cachedDocsContext: string | null = null;
-async function getDocsContext(): Promise<string> {
-  // Only treat a non-empty context as cached, so a transient read miss can
-  // recover on a later request instead of being frozen empty forever.
-  if (cachedDocsContext) return cachedDocsContext;
-  const [docsText, privacyText, termsText] = await Promise.all([
-    readDocsPageText("(marketing)/docs/page.tsx", 28000),
-    readDocsPageText("(marketing)/privacy/page.tsx", 8000),
-    readDocsPageText("(marketing)/terms/page.tsx", 8000),
-  ]);
-  const combined = [
-    docsText ? `--- DOCS ---\n${docsText}` : "",
-    privacyText ? `--- PRIVACY POLICY ---\n${privacyText}` : "",
-    termsText ? `--- TERMS & CONDITIONS ---\n${termsText}` : "",
-  ]
-    .filter(Boolean)
-    .join("\n\n");
-  // If we couldn't read the real pages (common on serverless where src/** isn't
-  // shipped), fall back to embedded knowledge so the assistant is never blank.
-  if (combined.trim().length > 200) {
-    cachedDocsContext = combined;
-    return cachedDocsContext;
-  }
-  return EMBEDDED_DOCS_FALLBACK;
-}
 
 function localSupportAnswer(question: string, userName?: string | null): { answer: string; usedDocs: boolean } | null {
   const q = question.toLowerCase();
@@ -2410,10 +2350,15 @@ export async function answerFromDocsAction(input: z.infer<typeof aiDocsQuestionS
     };
   }
 
-  const [combinedContext, profile] = await Promise.all([getDocsContext(), getProfile()]);
+  const profile = await getProfile();
   const userName = profile?.displayName || profile?.fullName || "";
   const local = localSupportAnswer(parsed.data.question, userName);
   if (local) return { ok: true as const, data: local };
+
+  // Versioned, citable knowledge rather than a scraped page dump. `retrieved`
+  // is the standard envelope, so "no article covers this" is distinguishable
+  // from "the lookup failed" — and both are distinguishable from an answer.
+  const retrieved = retrieveKnowledge(parsed.data.question);
 
   const ai = await generateStructuredJson({
     operation: "support_answer",
@@ -2425,15 +2370,18 @@ export async function answerFromDocsAction(input: z.infer<typeof aiDocsQuestionS
         content: [
           "You are Ivo, Stackivo's friendly in-app assistant, talking directly to a Stackivo user (an Indian freelancer or agency owner).",
           "Talk like a warm, encouraging human teammate — natural, concise and a little personable, never stiff, corporate, or robotic. Use the user's first name occasionally when it feels natural, but do not force it into every reply. Vary your phrasing; don't sound scripted. If the user seems stressed or stuck, acknowledge it briefly before helping. Only introduce yourself as Ivo if they ask who you are.",
-          "Your source of truth is the provided Stackivo documentation, privacy policy, and terms.",
+          "Your source of truth is `knowledge`, a versioned set of Stackivo help articles. Each article has an id, title, url, and body.",
+          "`knowledge.status` tells you what you got: 'ok' means articles are in `knowledge.data`; 'empty' means NO article covers this question; 'unavailable' means the lookup failed.",
+          "- When status is 'ok', prefer those articles over your own recollection for anything about Stackivo, and set citedArticleIds to the ids you actually relied on.",
+          "- When status is 'empty' or 'unavailable', you MUST NOT state a Stackivo feature, price, refund term, tax position, or data-handling claim from memory. Say you don't want to give a wrong answer on that and point them to support@stackivo.me or the in-app chat bubble. You may still help with general freelancing questions.",
           "Guidelines:",
           "- Understand casual, natural phrasing and map it to the right topic (e.g. 'what about billing' → Plans & Billing; 'how do I get paid' / 'can clients pay online' → Payments/Razorpay; 'is my data safe' → privacy).",
           "- When the docs cover it, answer directly and confidently in your own words. Be concise (usually 1–4 short sentences); add clear step-by-step instructions only when they genuinely help. Don't paste raw doc text.",
           "- If the exact answer isn't in the docs, still give the closest helpful information you can, then point them to email support@stackivo.me or the in-app chat bubble. NEVER reply with a blunt 'I don't know' or 'not found in the docs'.",
-          "- You may also help with general freelancing, invoicing, GST, contracts, and small-business questions from your own knowledge — be a genuinely useful assistant. But any claim about a Stackivo FEATURE, PRICE, or POLICY must be supported by the provided documentation; never invent those.",
+          "- You may also help with general freelancing, invoicing, GST, contracts, and small-business questions from your own knowledge — be a genuinely useful assistant. But any claim about a Stackivo FEATURE, PRICE, or POLICY must be supported by a retrieved article; never invent those.",
           "- Use recentMessages to understand follow-up questions and references (e.g. after 'what are the plans?' a follow-up 'what about the business one?' means the Business plan).",
           "- For things that depend on their own account/data (their billing status, their numbers), explain how they can find or do it themselves.",
-          "Set usedDocs to true when your answer relies on the provided documentation. Return JSON: { answer: string, usedDocs: boolean }.",
+          "Set usedDocs to true when your answer relies on a retrieved article. Return JSON: { answer: string, usedDocs: boolean, citedArticleIds?: string[] }.",
         ].join("\n"),
       },
       {
@@ -2445,10 +2393,11 @@ export async function answerFromDocsAction(input: z.infer<typeof aiDocsQuestionS
             name: userName,
             businessName: profile?.businessName ?? "",
           },
-          context: combinedContext,
+          knowledge: retrieved,
           requiredShape: {
             answer: "string",
             usedDocs: "boolean",
+            citedArticleIds: ["string"],
           },
         }),
       },
@@ -2459,6 +2408,7 @@ export async function answerFromDocsAction(input: z.infer<typeof aiDocsQuestionS
     .object({
       answer: z.string().min(1).max(3000),
       usedDocs: z.boolean(),
+      citedArticleIds: z.array(z.string()).max(6).optional(),
     })
     .safeParse(ai);
 
@@ -2473,7 +2423,34 @@ export async function answerFromDocsAction(input: z.infer<typeof aiDocsQuestionS
     };
   }
 
-  return { ok: true as const, data: shaped.data };
+  // Only echo citations the model actually had. A hallucinated id would
+  // otherwise become a source label the user could not verify.
+  const available = new Set(
+    retrieved.status === "ok"
+      ? (retrieved.data as Array<{ id: string; title: string; url: string }>).map((a) => a.id)
+      : [],
+  );
+  const byId = new Map(
+    retrieved.status === "ok"
+      ? (retrieved.data as Array<{ id: string; title: string; url: string }>).map((a) => [a.id, a])
+      : [],
+  );
+  const citations = (shaped.data.citedArticleIds ?? [])
+    .filter((id) => available.has(id))
+    .map((id) => {
+      const article = byId.get(id)!;
+      return { id: article.id, title: article.title, url: article.url };
+    });
+
+  return {
+    ok: true as const,
+    data: {
+      answer: shaped.data.answer,
+      usedDocs: shaped.data.usedDocs,
+      citations,
+      knowledgeVersion: KNOWLEDGE_VERSION,
+    },
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -2871,6 +2848,42 @@ export async function listClientsForAiAction() {
   return { ok: true as const, data: { rows } };
 }
 
+/**
+ * Client and project options for Ivo's in-conversation pickers.
+ *
+ * These lists used to be loaded by the dashboard group layout and serialised
+ * into the HTML of every authenticated page, so every navigation paid for two
+ * extra queries and a payload that most page views never used — the panel has
+ * to be opened before a picker can appear. They are now fetched once, when the
+ * panel first opens.
+ *
+ * `asOf` is returned so a caller can tell how stale the option list is; the
+ * canonical ownership check still happens in the tool that consumes the choice,
+ * so a record deleted after this read fails there rather than here.
+ */
+export async function listIvoPickerOptionsAction() {
+  await requireUserId();
+  const [clients, projects] = await Promise.all([
+    listClients({ limit: 200 }),
+    listProjects({ limit: 200 }),
+  ]);
+  return {
+    asOf: new Date().toISOString(),
+    clients: clients.map((client) => ({
+      id: client.id,
+      name: client.businessName || client.fullName || "Client",
+      currency: client.currency,
+      isForeign: client.isForeign,
+      country: client.country,
+    })),
+    projects: projects.map((project) => ({
+      id: project.id,
+      name: project.name,
+      clientId: project.clientId,
+    })),
+  };
+}
+
 /** List projects for the assistant's interactive workspace list. */
 export async function listProjectsForAiAction(input: { filter?: "active" | "all" } = {}) {
   const userId = await requireUserId();
@@ -3031,7 +3044,33 @@ export async function answerBusinessQuestionAction(
     };
   }
 
-  const [facts, profile] = await Promise.all([getBusinessFacts(), getProfile()]);
+  // A failed analytics read must not become an answer. Previously any throw
+  // inside getBusinessFacts propagated out of the action as an opaque error;
+  // worse would be answering anyway, since every figure in the reply is
+  // supposed to come from this snapshot. Say plainly that it could not be read.
+  const [factsResult, profile] = await Promise.all([
+    getBusinessFacts().then(
+      (value) => ({ ok: true as const, value }),
+      (error: unknown) => {
+        log.warn("ivo.business_facts.unavailable", {
+          error: error instanceof Error ? error.message : "unknown",
+        });
+        return { ok: false as const };
+      },
+    ),
+    getProfile(),
+  ]);
+  if (!factsResult.ok) {
+    return {
+      ok: true as const,
+      data: {
+        answer:
+          "I couldn't read your business numbers just now, so I don't want to guess. Try again in a moment, or open Pulse for the full picture.",
+        suggestions: [],
+      },
+    };
+  }
+  const facts = factsResult.value;
   const userName = profile?.displayName || profile?.fullName || "";
   const localAnswer = localBusinessAnswer(facts, parsed.data.question, userName);
   if (localAnswer) {
@@ -3051,6 +3090,7 @@ export async function answerBusinessQuestionAction(
           "GROUNDING — this is critical:",
           "- Never invent, guess, or estimate a number that isn't in `facts`. If the exact figure isn't present, say you don't have that specific number and point them to the right place: Pulse (revenue, receivables, collection, GST), Time (hours, unbilled), or the Invoices/Clients pages for a specific record.",
           "- The snapshot covers roughly the last 12 months, plus this month, plus a LIVE receivables snapshot (outstanding/overdue are 'right now', not period-bound). If they ask about a period you don't have, say so.",
+          "- `facts.asOf` is the timestamp these figures were read at. If the user asks how current a number is, or whether it reflects something they just did, quote it rather than implying the figures are live.",
           "FORMAT:",
           "- Money is INR — write it as ₹ with Indian digit grouping (e.g. ₹1,23,456). Round sensibly; don't show paise unless meaningful.",
           "- Be concise and concrete: lead with the exact number they asked for in 1-3 sentences. Do NOT end with a vague yes/no question the user can't act on (e.g. avoid 'Want to check their invoices?').",

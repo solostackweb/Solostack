@@ -20,9 +20,14 @@ export interface AiEntityOption {
   country?: string | null;
 }
 
+/**
+ * Picker options are deliberately absent here. They used to arrive as props
+ * from the dashboard group layout, which meant every authenticated page paid
+ * two queries and shipped the serialised lists in its HTML even though a picker
+ * cannot appear until the panel is opened. The panel now fetches them itself on
+ * first open.
+ */
 export interface StackivoAiAssistantProps {
-  clients: AiEntityOption[];
-  projects: AiEntityOption[];
   user?: {
     name?: string | null;
     businessName?: string | null;

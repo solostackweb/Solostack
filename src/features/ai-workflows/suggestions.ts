@@ -9,6 +9,7 @@ import "server-only";
  * action that routes through the existing intent handlers.
  */
 
+import { log } from "@/lib/logger";
 import { getBusinessFacts } from "./business-context";
 
 export interface AssistantSuggestion {
@@ -26,7 +27,17 @@ function inr(n: number): string {
 const plural = (n: number) => (n === 1 ? "" : "s");
 
 export async function getAssistantSuggestions(): Promise<AssistantSuggestion[]> {
-  const f = await getBusinessFacts();
+  // Every suggestion quotes a real figure, so a failed snapshot must produce no
+  // suggestions rather than an error or a nudge built on missing data. Showing
+  // nothing is the honest degradation here: the panel simply opens without
+  // chips.
+  const f = await getBusinessFacts().catch((error: unknown) => {
+    log.warn("ivo.suggestions.facts_unavailable", {
+      error: error instanceof Error ? error.message : "unknown",
+    });
+    return null;
+  });
+  if (!f) return [];
   const out: AssistantSuggestion[] = [];
 
   if (f.invoices.overdueTotal > 0) {

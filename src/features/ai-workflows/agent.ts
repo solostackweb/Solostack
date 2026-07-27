@@ -28,6 +28,11 @@ import type { ProjectRecord } from "@/features/projects/server";
 import { getClientDisplayName } from "@/features/clients/utils";
 import { getBusinessFacts } from "./business-context";
 import {
+  asRetrieval,
+  retrievalUnavailable,
+  type IvoRetrieval,
+} from "./retrieval";
+import {
   generateToolChat,
   type GroqAgentMessage,
   type GroqToolCall,
@@ -39,7 +44,8 @@ import { AI_WORKFLOWS, NO_CLIENT_SENTINEL, NO_PROJECT_SENTINEL } from "./types";
 import type { IvoMode, IvoRuntimeDecision } from "./conversation-types";
 
 const MAX_ROUNDS = 4;
-const MAX_TOOL_RESULT_CHARS = 6000;
+// Tool-result size is now budgeted in `retrieval.ts`, which drops whole
+// records rather than slicing the serialised payload mid-token.
 
 export interface IvoAgentInput {
   message: string;
@@ -858,6 +864,13 @@ function buildSystemPrompt(input: IvoAgentInput, memories: string[]): string {
     "",
     "HOW TO WORK:",
     "- Ground every number in tool data. NEVER invent figures, invoice numbers, names, or dates. If a tool returns nothing relevant, say so plainly.",
+    "",
+    "READING TOOL RESULTS — every read tool returns {status, source, scope, ...}:",
+    "- status 'ok' → the records are in `data`. `scope` says what filter produced them, so never describe a filtered result as the user's complete set. If `truncated` is true, say you are showing the first `count` and offer to narrow the search.",
+    "- status 'empty' → there genuinely are no matching records. Safe to say 'you have none'.",
+    "- status 'unavailable' → the read FAILED. This is NOT the same as having no records. Never say 'you have no overdue invoices' or any equivalent when a read came back unavailable — say you could not read that data right now and, if useful, offer to retry. Do not substitute a figure from memory or from an earlier turn.",
+    "- `asOf` is when the data was read. If the user asks how current a number is, quote it.",
+    "",
     "- Questions about the user's business (revenue, overdue, follow-ups, priorities, risk, unbilled time) → call get_business_snapshot (plus list_records/find_invoice/list_leads/list_meetings for specifics), then answer SPECIFICALLY for what was asked. Do not recite a generic plan.",
     "- Anything about one specific client (briefing, history, 'has X paid?', drafting for them) → get_client_profile first.",
     "- Creation requests (invoice / contract / proposal / NDA / retainer / welcome doc / client / project / time entry / meeting or call) → call start_task IMMEDIATELY, even if the user gave no details yet — pass whatever they DID provide in fields and leave the rest out. NEVER ask for the client, scope, amount, or any other detail in a plain-text reply: after start_task the UI shows a client picker dropdown and asks each remaining question one at a time with suggestions. Asking in text instead of calling start_task is a mistake. Example: 'help me generate a proposal' → start_task {task:'proposal', reply:'Starting your proposal.'}. A proposal is its OWN task (task='proposal') — never use task='contract' for a proposal.",
@@ -955,11 +968,27 @@ function parseArgs(call: GroqToolCall): Record<string, unknown> {
   }
 }
 
-function clip(value: unknown): string {
-  const text = JSON.stringify(value);
-  return text.length > MAX_TOOL_RESULT_CHARS
-    ? `${text.slice(0, MAX_TOOL_RESULT_CHARS)}…(truncated)`
-    : text;
+/**
+ * The scope label recorded on a read, so a filtered result is not mistaken for
+ * the complete set when the model summarises it.
+ */
+function retrievalScope(tool: string, args: Record<string, unknown>): string {
+  switch (tool) {
+    case "list_records":
+      return `entityType=${String(args.entityType ?? "?")}, filter=${String(args.filter ?? "all")}`;
+    case "find_invoice":
+      return `query=${String(args.query ?? "").slice(0, 60)}`;
+    case "list_leads":
+      return `status=${String(args.status ?? "open")}`;
+    case "list_meetings":
+      return `scope=${String(args.scope ?? "all")}`;
+    case "get_client_profile":
+      return `client=${String(args.clientName ?? "").slice(0, 60)}`;
+    case "get_business_snapshot":
+      return "trailing 12 months plus current month";
+    default:
+      return "all";
+  }
 }
 
 export async function runIvoAgent(input: IvoAgentInput): Promise<IvoAgentResult | null> {
@@ -1038,6 +1067,7 @@ export async function runIvoAgent(input: IvoAgentInput): Promise<IvoAgentResult 
         const args = parseArgs(call);
         input.onStatus?.(statusLabel(call.function.name, args));
         let output: unknown;
+        let envelope: IvoRetrieval;
         try {
           if (call.function.name === "get_business_snapshot") {
             output = await getBusinessFacts();
@@ -1064,14 +1094,30 @@ export async function runIvoAgent(input: IvoAgentInput): Promise<IvoAgentResult 
           } else {
             output = { error: `Unknown tool ${call.function.name}` };
           }
+          // A read that succeeded is wrapped with its provenance; a read that
+          // threw becomes `unavailable`, which the model is instructed never to
+          // report as an absence of records.
+          envelope = asRetrieval(
+            call.function.name,
+            retrievalScope(call.function.name, args),
+            output,
+          );
         } catch (error) {
           log.warn("ivo.agent.tool_failed", {
             tool: call.function.name,
             error: error instanceof Error ? error.message : "unknown",
           });
-          output = { error: "The data source failed — answer with what you have or say you couldn't read it." };
+          envelope = retrievalUnavailable(
+            call.function.name,
+            retrievalScope(call.function.name, args),
+            "The data source could not be read.",
+          );
         }
-        messages.push({ role: "tool", tool_call_id: call.id, content: clip(output) });
+        messages.push({
+          role: "tool",
+          tool_call_id: call.id,
+          content: JSON.stringify(envelope),
+        });
       }
       continue;
     }

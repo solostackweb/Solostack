@@ -28,6 +28,7 @@ import {
   listClientsForAiAction,
   listProjectsForAiAction,
   listWelcomeDocsForAiAction,
+  listIvoPickerOptionsAction,
 } from "@/features/ai-workflows/read-actions";
 import { clearIvoMemoriesAction } from "@/features/ai-workflows/memory-actions";
 import { useIvoTools } from "@/features/ai-workflows/components/use-ivo-tools";
@@ -196,7 +197,17 @@ async function processIvoMessageStreaming(
   }
 }
 
-export function StackivoAiAssistant({ clients, projects, user }: StackivoAiAssistantProps) {
+export function StackivoAiAssistant({ user }: StackivoAiAssistantProps) {
+  // Picker options are fetched on first open rather than shipped with every
+  // dashboard page. Empty until then, which is safe: a picker can only be
+  // rendered in response to a message sent after the panel is open.
+  const [pickerOptions, setPickerOptions] = React.useState<{
+    clients: AiEntityOption[];
+    projects: AiEntityOption[];
+  }>({ clients: [], projects: [] });
+  const clients = pickerOptions.clients;
+  const projects = pickerOptions.projects;
+  const pickerOptionsLoadedRef = React.useRef(false);
   const router = useRouter();
   const [mounted, setMounted] = React.useState(false);
   const [panelSlot, setPanelSlot] = React.useState<HTMLElement | null>(null);
@@ -382,6 +393,24 @@ export function StackivoAiAssistant({ clients, projects, user }: StackivoAiAssis
   const tools = useIvoTools({ conversationIdRef, activeRunIdRef, ensureConversation });
 
   React.useEffect(() => { setMounted(true); }, []);
+
+  // Load picker options the first time the panel opens. Deliberately not
+  // awaited by anything: a picker cannot be rendered until the user has sent a
+  // message, so this always resolves well before the options are needed.
+  React.useEffect(() => {
+    if (!open || pickerOptionsLoadedRef.current) return;
+    pickerOptionsLoadedRef.current = true;
+    void listIvoPickerOptionsAction()
+      .then((options) => {
+        setPickerOptions({ clients: options.clients, projects: options.projects });
+      })
+      .catch(() => {
+        // Leave the lists empty and allow a retry on the next open. The picker
+        // renders its own empty state, and the tool that consumes the choice
+        // re-checks ownership regardless.
+        pickerOptionsLoadedRef.current = false;
+      });
+  }, [open]);
 
   // Restore the active textual conversation and resumable workflow state once.
   React.useEffect(() => {

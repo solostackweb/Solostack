@@ -21,6 +21,7 @@ import {
   getAiUsageAction as getAiUsage,
   getAssistantSuggestionsAction as getAssistantSuggestionsInternal,
   listClientsForAiAction as listClientsForAi,
+  listIvoPickerOptionsAction as listIvoPickerOptions,
   listContractsForAiAction as listContractsForAi,
   listInvoicesForAiAction as listInvoicesForAi,
   listProjectsForAiAction as listProjectsForAi,
@@ -52,6 +53,11 @@ export async function getAssistantSuggestionsAction() {
 
 export async function listClientsForAiAction() {
   return listClientsForAi();
+}
+
+/** Client and project options for the panel's pickers, fetched once on open. */
+export async function listIvoPickerOptionsAction() {
+  return listIvoPickerOptions();
 }
 
 export async function listContractsForAiAction(input: { filter?: "pending" | "all" } = {}) {

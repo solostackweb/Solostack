@@ -27,20 +27,10 @@ export function DashboardShell({
   children,
   profile,
   subscription,
-  aiClients = [],
-  aiProjects = [],
 }: {
   children: React.ReactNode;
   profile: BusinessProfile;
   subscription: CurrentSubscription | null;
-  aiClients?: Array<{
-    id: string;
-    name: string;
-    currency?: string | null;
-    isForeign?: boolean | null;
-    country?: string | null;
-  }>;
-  aiProjects?: Array<{ id: string; name: string; clientId: string | null }>;
 }) {
   return (
     <DashboardShellProviders profile={profile} subscription={subscription}>
@@ -52,8 +42,6 @@ export function DashboardShell({
           className="flex min-w-0 flex-1 flex-col"
         >
           <TopNav
-            aiClients={aiClients}
-            aiProjects={aiProjects}
             aiUser={{
               name: profile.displayName || profile.fullName,
               businessName: profile.businessName,
