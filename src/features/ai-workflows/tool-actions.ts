@@ -31,7 +31,7 @@ import {
   sendWelcomeDocFromAiAction,
   contractWhatsappFromAiAction,
   welcomeDocWhatsappFromAiAction,
-} from "./global-actions";
+} from "./domain-operations";
 import type { AiMissingField } from "./types";
 import type { IvoToolResponseDescriptor } from "./conversation-types";
 
@@ -178,6 +178,26 @@ function entityResponse(
   block: IvoToolResponseDescriptor["block"],
 ): IvoToolResponseDescriptor {
   return { kind, content, block };
+}
+
+/** A completed outcome with no resumable card — delivery, publish, share prep. */
+function outcomeResponse(content: string): IvoToolResponseDescriptor {
+  return { kind: "result", content };
+}
+
+/**
+ * Attaches the canonical response descriptor to a successful tool outcome.
+ *
+ * Only successes carry a descriptor: a failure is surfaced as an error string
+ * and must never be persisted as an actionable conversation block. `describe`
+ * runs after the mutation so it may reread canonical records for its copy.
+ */
+async function withResponse<T extends { ok: boolean }>(
+  result: T,
+  describe: () => IvoToolResponseDescriptor | Promise<IvoToolResponseDescriptor>,
+): Promise<T & { response?: IvoToolResponseDescriptor }> {
+  if (!result.ok) return result;
+  return { ...result, response: await describe() };
 }
 
 const cachedClientSchema = z.object({
@@ -1681,8 +1701,8 @@ export async function refineInvoiceIvoToolAction(input: {
   invoiceId: string;
   requestId: string;
   instruction: string;
-}): Promise<InvoiceRefinementToolResult> {
-  return runRefinementTool<InvoiceRefinementSuccess>(
+}): Promise<InvoiceRefinementToolResult & { response?: IvoToolResponseDescriptor }> {
+  const result = await runRefinementTool<InvoiceRefinementSuccess>(
     "invoice.refine",
     "invoice",
     {
@@ -1703,6 +1723,14 @@ export async function refineInvoiceIvoToolAction(input: {
     },
     readInvoicePreview,
   );
+  return withResponse(result, () =>
+    entityResponse("preview", "Invoice updated.", {
+      type: "entity_preview",
+      entityType: "invoice",
+      entityId: input.invoiceId,
+      variant: "draft",
+    }),
+  );
 }
 
 export async function refineContractIvoToolAction(input: {
@@ -1711,8 +1739,8 @@ export async function refineContractIvoToolAction(input: {
   contractId: string;
   requestId: string;
   instruction: string;
-}): Promise<ContractRefinementToolResult> {
-  return runRefinementTool<ContractRefinementSuccess>(
+}): Promise<ContractRefinementToolResult & { response?: IvoToolResponseDescriptor }> {
+  const result = await runRefinementTool<ContractRefinementSuccess>(
     "contract.refine",
     "contract",
     {
@@ -1733,6 +1761,18 @@ export async function refineContractIvoToolAction(input: {
     },
     readContractPreview,
   );
+  return withResponse(result, () =>
+    entityResponse(
+      "preview",
+      result.ok && result.data.kind === "proposal" ? "Proposal updated." : "Contract updated.",
+      {
+        type: "entity_preview",
+        entityType: "contract",
+        entityId: input.contractId,
+        variant: "draft",
+      },
+    ),
+  );
 }
 
 export async function refineWelcomeDocumentIvoToolAction(input: {
@@ -1741,8 +1781,8 @@ export async function refineWelcomeDocumentIvoToolAction(input: {
   welcomeDocId: string;
   requestId: string;
   instruction: string;
-}): Promise<WelcomeRefinementToolResult> {
-  return runRefinementTool<WelcomeRefinementSuccess>(
+}): Promise<WelcomeRefinementToolResult & { response?: IvoToolResponseDescriptor }> {
+  const result = await runRefinementTool<WelcomeRefinementSuccess>(
     "welcome_document.refine",
     "welcome_document",
     {
@@ -1763,6 +1803,14 @@ export async function refineWelcomeDocumentIvoToolAction(input: {
     },
     readWelcomePreview,
   );
+  return withResponse(result, () =>
+    entityResponse("preview", "Welcome document updated.", {
+      type: "entity_preview",
+      entityType: "welcome_document",
+      entityId: input.welcomeDocId,
+      variant: "draft",
+    }),
+  );
 }
 
 export async function approveInvoiceIvoToolAction(input: {
@@ -1770,7 +1818,7 @@ export async function approveInvoiceIvoToolAction(input: {
   runId?: string;
   invoiceId: string;
 }) {
-  return runApprovedStatusTool(
+  const result = await runApprovedStatusTool(
     "invoice.approve",
     "invoice",
     "explicit_user_status_action",
@@ -1814,6 +1862,14 @@ export async function approveInvoiceIvoToolAction(input: {
       };
     },
   );
+  return withResponse(result, () =>
+    entityResponse("preview", "Invoice approved and ready for delivery.", {
+      type: "entity_preview",
+      entityType: "invoice",
+      entityId: input.invoiceId,
+      variant: "delivery",
+    }),
+  );
 }
 
 export async function emailInvoiceIvoToolAction(input: {
@@ -1822,7 +1878,7 @@ export async function emailInvoiceIvoToolAction(input: {
   invoiceId: string;
   requestId: string;
 }) {
-  return runApprovedEmailTool(
+  const result = await runApprovedEmailTool(
     "invoice.email",
     "invoice",
     {
@@ -1833,6 +1889,7 @@ export async function emailInvoiceIvoToolAction(input: {
     },
     (invoiceId, requestId) => emailInvoiceFromAiAction({ invoiceId, idempotencyKey: requestId }),
   );
+  return withResponse(result, () => outcomeResponse("Done. Invoice emailed to the client."));
 }
 
 export async function emailContractIvoToolAction(input: {
@@ -1841,7 +1898,7 @@ export async function emailContractIvoToolAction(input: {
   contractId: string;
   requestId: string;
 }) {
-  return runApprovedEmailTool(
+  const result = await runApprovedEmailTool(
     "contract.email",
     "contract",
     {
@@ -1852,6 +1909,37 @@ export async function emailContractIvoToolAction(input: {
     },
     (contractId, requestId) => sendContractFromAiAction({ contractId, idempotencyKey: requestId }),
   );
+  return withResponse(result, async () =>
+    outcomeResponse(await describeContractDelivery(input.conversationId, input.contractId)),
+  );
+}
+
+/**
+ * Builds contract delivery copy from the canonical record, so the panel never
+ * has to infer proposal-vs-contract wording or the recipient from a preview it
+ * may have been holding since before the document was edited.
+ */
+async function describeContractDelivery(conversationId: string, contractId: string) {
+  const context = await requireOwnedContext(conversationId);
+  if (!context) return "Contract sent to the client.";
+  const { supabase, userId } = context;
+  const { data } = await supabase
+    .from("contracts")
+    .select("kind, client_id")
+    .eq("id", contractId)
+    .eq("user_id", userId)
+    .maybeSingle();
+  const contract = data as { kind?: string | null; client_id?: string | null } | null;
+  const label = contract?.kind === "proposal" ? "Proposal" : "Contract";
+  if (!contract?.client_id) return `${label} sent to the client.`;
+  const { data: clientRaw } = await supabase
+    .from("clients")
+    .select("email")
+    .eq("id", contract.client_id)
+    .eq("user_id", userId)
+    .maybeSingle();
+  const email = (clientRaw as { email?: string | null } | null)?.email;
+  return `${label} sent to ${email || "the client"}.`;
 }
 
 export async function emailWelcomeDocumentIvoToolAction(input: {
@@ -1860,7 +1948,7 @@ export async function emailWelcomeDocumentIvoToolAction(input: {
   welcomeDocId: string;
   requestId: string;
 }) {
-  return runApprovedEmailTool(
+  const result = await runApprovedEmailTool(
     "welcome_document.email",
     "welcome_document",
     {
@@ -1874,6 +1962,9 @@ export async function emailWelcomeDocumentIvoToolAction(input: {
       idempotencyKey: requestId,
     }),
   );
+  return withResponse(result, () =>
+    outcomeResponse("Done. Welcome document emailed to the client."),
+  );
 }
 
 export async function markInvoicePaidIvoToolAction(input: {
@@ -1881,7 +1972,7 @@ export async function markInvoicePaidIvoToolAction(input: {
   runId?: string;
   invoiceId: string;
 }) {
-  return runApprovedStatusTool(
+  const result = await runApprovedStatusTool(
     "invoice.mark_paid",
     "invoice",
     "explicit_user_status_action",
@@ -1901,6 +1992,7 @@ export async function markInvoicePaidIvoToolAction(input: {
         : null;
     },
   );
+  return withResponse(result, () => outcomeResponse("Invoice marked as paid."));
 }
 
 export async function publishWelcomeDocumentIvoToolAction(input: {
@@ -1908,7 +2000,7 @@ export async function publishWelcomeDocumentIvoToolAction(input: {
   runId?: string;
   welcomeDocId: string;
 }) {
-  return runApprovedStatusTool(
+  const result = await runApprovedStatusTool(
     "welcome_document.publish",
     "welcome_document",
     "explicit_user_status_action",
@@ -1932,6 +2024,14 @@ export async function publishWelcomeDocumentIvoToolAction(input: {
         : null;
     },
   );
+  return withResponse(result, () =>
+    entityResponse("preview", "Welcome document published and ready for delivery.", {
+      type: "entity_preview",
+      entityType: "welcome_document",
+      entityId: input.welcomeDocId,
+      variant: "delivery",
+    }),
+  );
 }
 
 export async function prepareInvoiceWhatsAppIvoToolAction(input: {
@@ -1939,7 +2039,7 @@ export async function prepareInvoiceWhatsAppIvoToolAction(input: {
   runId?: string;
   invoiceId: string;
 }) {
-  return runApprovedStatusTool(
+  const result = await runApprovedStatusTool(
     "invoice.whatsapp_prepare",
     "invoice",
     "explicit_user_share_preparation",
@@ -1947,6 +2047,66 @@ export async function prepareInvoiceWhatsAppIvoToolAction(input: {
     (invoiceId) => invoiceWhatsappFromAiAction({ invoiceId }),
     async (invoiceId) => invoiceWhatsappFromAiAction({ invoiceId }),
   );
+  return withResponse(result, () =>
+    outcomeResponse("WhatsApp is open with the invoice link ready to send."),
+  );
+}
+
+/**
+ * Delivers an approved invoice over one or both channels.
+ *
+ * The panel used to run this sequence itself: email, check, then prepare the
+ * WhatsApp share, then stitch the two outcome sentences together. That put a
+ * domain ordering decision — the formal emailed record goes out before the
+ * informal nudge — in the client, where a partial failure between the two steps
+ * had no single owner. Sequencing and the merged outcome copy now live here.
+ *
+ * This composes the two audited tools rather than replacing them, so each
+ * channel keeps its own ledger attempt and idempotency barrier. Opening the
+ * WhatsApp window is still the caller's job; only the URL crosses back.
+ */
+export async function deliverInvoiceIvoToolAction(input: {
+  conversationId: string;
+  runId?: string;
+  invoiceId: string;
+  channel: "email" | "whatsapp" | "both";
+  requestId: string;
+}): Promise<
+  | { ok: true; whatsappUrl?: string; response: IvoToolResponseDescriptor }
+  | { ok: false; error: string }
+> {
+  const outcomes: string[] = [];
+
+  if (input.channel === "email" || input.channel === "both") {
+    const emailed = await emailInvoiceIvoToolAction({
+      conversationId: input.conversationId,
+      runId: input.runId,
+      invoiceId: input.invoiceId,
+      requestId: input.requestId,
+    });
+    // A failed email stops the sequence. Opening WhatsApp after the client was
+    // told the invoice went out would misreport what actually happened.
+    if (!emailed.ok) return { ok: false, error: emailed.error };
+    if (emailed.response) outcomes.push(emailed.response.content);
+  }
+
+  let whatsappUrl: string | undefined;
+  if (input.channel === "whatsapp" || input.channel === "both") {
+    const shared = await prepareInvoiceWhatsAppIvoToolAction({
+      conversationId: input.conversationId,
+      runId: input.runId,
+      invoiceId: input.invoiceId,
+    });
+    if (!shared.ok) return { ok: false, error: shared.error };
+    whatsappUrl = shared.data.url;
+    if (shared.response) outcomes.push(shared.response.content);
+  }
+
+  return {
+    ok: true,
+    whatsappUrl,
+    response: outcomeResponse(outcomes.join(" ") || "Invoice delivery completed."),
+  };
 }
 
 export async function prepareContractWhatsAppIvoToolAction(input: {
@@ -1954,7 +2114,7 @@ export async function prepareContractWhatsAppIvoToolAction(input: {
   runId?: string;
   contractId: string;
 }) {
-  return runApprovedStatusTool(
+  const result = await runApprovedStatusTool(
     "contract.whatsapp_prepare",
     "contract",
     "explicit_user_share_preparation",
@@ -1962,6 +2122,23 @@ export async function prepareContractWhatsAppIvoToolAction(input: {
     (contractId) => contractWhatsappFromAiAction({ contractId }),
     async (contractId) => contractWhatsappFromAiAction({ contractId }),
   );
+  return withResponse(result, async () => {
+    const label = await readContractLabel(input.conversationId, input.contractId);
+    return outcomeResponse(`WhatsApp is open with the ${label} link ready to send.`);
+  });
+}
+
+/** Resolves proposal-vs-contract wording from the canonical record. */
+async function readContractLabel(conversationId: string, contractId: string) {
+  const context = await requireOwnedContext(conversationId);
+  if (!context) return "contract";
+  const { data } = await context.supabase
+    .from("contracts")
+    .select("kind")
+    .eq("id", contractId)
+    .eq("user_id", context.userId)
+    .maybeSingle();
+  return (data as { kind?: string | null } | null)?.kind === "proposal" ? "proposal" : "contract";
 }
 
 export async function prepareWelcomeWhatsAppIvoToolAction(input: {
@@ -1969,7 +2146,7 @@ export async function prepareWelcomeWhatsAppIvoToolAction(input: {
   runId?: string;
   welcomeDocId: string;
 }) {
-  return runApprovedStatusTool(
+  const result = await runApprovedStatusTool(
     "welcome_document.whatsapp_prepare",
     "welcome_document",
     "explicit_user_share_preparation",
@@ -1980,6 +2157,9 @@ export async function prepareWelcomeWhatsAppIvoToolAction(input: {
     },
     (welcomeDocId) => welcomeDocWhatsappFromAiAction({ welcomeDocId }),
     async (welcomeDocId) => welcomeDocWhatsappFromAiAction({ welcomeDocId }),
+  );
+  return withResponse(result, () =>
+    outcomeResponse("WhatsApp is open with the welcome document link ready to send."),
   );
 }
 
@@ -2149,7 +2329,7 @@ export async function saveWelcomeTemplateIvoToolAction(input: {
     title: z.string().trim().min(1).max(120),
   }).safeParse({ welcomeDocId: input.welcomeDocId, title: input.title });
   if (!details.success) return { ok: false as const, error: "The template request is invalid." };
-  return runExplicitCreationTool(
+  const result = await runExplicitCreationTool(
     "welcome_document.save_template",
     "welcome_document_template",
     {
@@ -2180,6 +2360,11 @@ export async function saveWelcomeTemplateIvoToolAction(input: {
         ? { ok: true, data: { id: template.id }, message: "Template already saved." }
         : null;
     },
+  );
+  return withResponse(result, () =>
+    outcomeResponse(
+      "Saved as a reusable template — you'll see it next time you create a welcome document.",
+    ),
   );
 }
 

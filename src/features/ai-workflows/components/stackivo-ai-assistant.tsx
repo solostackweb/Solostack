@@ -28,8 +28,9 @@ import {
   listClientsForAiAction,
   listProjectsForAiAction,
   listWelcomeDocsForAiAction,
-} from "@/features/ai-workflows/global-actions";
+} from "@/features/ai-workflows/read-actions";
 import { clearIvoMemoriesAction } from "@/features/ai-workflows/memory-actions";
+import { useIvoTools } from "@/features/ai-workflows/components/use-ivo-tools";
 import type { AssistantSuggestion } from "@/features/ai-workflows/suggestions";
 import type {
   StackivoAiAssistantProps,
@@ -93,7 +94,6 @@ import {
   startNewIvoConversationAction,
 } from "@/features/ai-workflows/conversation-actions";
 import {
-  approveInvoiceIvoToolAction,
   createClientIvoToolAction,
   createContractDraftIvoToolAction,
   createMeetingDraftIvoToolAction,
@@ -103,21 +103,12 @@ import {
   createTimeEntryIvoToolAction,
   createUnbilledTimeInvoiceIvoToolAction,
   createWelcomeDraftIvoToolAction,
-  emailContractIvoToolAction,
-  emailInvoiceIvoToolAction,
-  emailWelcomeDocumentIvoToolAction,
   forwardToSupportIvoToolAction,
-  markInvoicePaidIvoToolAction,
-  prepareContractWhatsAppIvoToolAction,
-  prepareInvoiceWhatsAppIvoToolAction,
-  prepareWelcomeWhatsAppIvoToolAction,
-  publishWelcomeDocumentIvoToolAction,
   refineContractIvoToolAction,
   refineInvoiceIvoToolAction,
   refineWelcomeDocumentIvoToolAction,
   rejectIvoToolAction,
   remindOverdueInvoicesIvoToolAction,
-  saveWelcomeTemplateIvoToolAction,
 } from "@/features/ai-workflows/tool-actions";
 import type {
   IvoConversationSnapshot,
@@ -306,30 +297,6 @@ export function StackivoAiAssistant({ clients, projects, user }: StackivoAiAssis
   const conversationHydratedRef = React.useRef(false);
   const conversationWriteQueueRef = React.useRef<Promise<void>>(Promise.resolve());
   const activeRunIdRef = React.useRef<string | null>(null);
-  const deliveryRequestKeysRef = React.useRef<
-    Map<string, { requestId: string; activeCalls: number }>
-  >(new Map());
-
-  const getDeliveryRequestKey = React.useCallback((scope: string) => {
-    const existing = deliveryRequestKeysRef.current.get(scope);
-    if (existing) {
-      existing.activeCalls += 1;
-      return existing.requestId;
-    }
-    const created = crypto.randomUUID();
-    deliveryRequestKeysRef.current.set(scope, { requestId: created, activeCalls: 1 });
-    return created;
-  }, []);
-
-  const releaseDeliveryRequestKey = React.useCallback((scope: string, requestId: string) => {
-    const current = deliveryRequestKeysRef.current.get(scope);
-    if (!current || current.requestId !== requestId) return;
-    current.activeCalls -= 1;
-    if (current.activeCalls <= 0) {
-      deliveryRequestKeysRef.current.delete(scope);
-    }
-  }, []);
-
   const RESIZE_MIN = 420;
   const RESIZE_MAX = 720;
 
@@ -409,6 +376,10 @@ export function StackivoAiAssistant({ clients, projects, user }: StackivoAiAssis
     }
     return conversationLoadRef.current;
   }, []);
+
+  // All approval, delivery, and share tools are invoked through this runner so
+  // conversation binding and per-scope idempotency keys cannot be forgotten.
+  const tools = useIvoTools({ conversationIdRef, activeRunIdRef, ensureConversation });
 
   React.useEffect(() => { setMounted(true); }, []);
 
@@ -654,60 +625,6 @@ export function StackivoAiAssistant({ clients, projects, user }: StackivoAiAssis
     return () => window.clearTimeout(timer);
   }, [clientId, collected, conversationId, mode, pendingConfirm, pendingField, pendingProposal, projectId]);
 
-  const emailInvoiceWithIvo = React.useCallback(async (invoiceId: string, fixedRequestId?: string) => {
-    await ensureConversation();
-    const activeConversationId = conversationIdRef.current;
-    if (!activeConversationId) return { ok: false as const, error: "I couldn't start this delivery." };
-    const scope = `invoice.email:${invoiceId}`;
-    const requestId = fixedRequestId ?? getDeliveryRequestKey(scope);
-    try {
-      return await emailInvoiceIvoToolAction({
-        conversationId: activeConversationId,
-        runId: activeRunIdRef.current ?? undefined,
-        invoiceId,
-        requestId,
-      });
-    } finally {
-      if (!fixedRequestId) releaseDeliveryRequestKey(scope, requestId);
-    }
-  }, [ensureConversation, getDeliveryRequestKey, releaseDeliveryRequestKey]);
-
-  const emailContractWithIvo = React.useCallback(async (contractId: string) => {
-    await ensureConversation();
-    const activeConversationId = conversationIdRef.current;
-    if (!activeConversationId) return { ok: false as const, error: "I couldn't start this delivery." };
-    const scope = `contract.email:${contractId}`;
-    const requestId = getDeliveryRequestKey(scope);
-    try {
-      return await emailContractIvoToolAction({
-        conversationId: activeConversationId,
-        runId: activeRunIdRef.current ?? undefined,
-        contractId,
-        requestId,
-      });
-    } finally {
-      releaseDeliveryRequestKey(scope, requestId);
-    }
-  }, [ensureConversation, getDeliveryRequestKey, releaseDeliveryRequestKey]);
-
-  const emailWelcomeWithIvo = React.useCallback(async (welcomeDocId: string) => {
-    await ensureConversation();
-    const activeConversationId = conversationIdRef.current;
-    if (!activeConversationId) return { ok: false as const, error: "I couldn't start this delivery." };
-    const scope = `welcome_document.email:${welcomeDocId}`;
-    const requestId = getDeliveryRequestKey(scope);
-    try {
-      return await emailWelcomeDocumentIvoToolAction({
-        conversationId: activeConversationId,
-        runId: activeRunIdRef.current ?? undefined,
-        welcomeDocId,
-        requestId,
-      });
-    } finally {
-      releaseDeliveryRequestKey(scope, requestId);
-    }
-  }, [ensureConversation, getDeliveryRequestKey, releaseDeliveryRequestKey]);
-
   // ----- Invoice handlers -----
 
   const handleInvoiceDelivery = React.useCallback(
@@ -722,38 +639,16 @@ export function StackivoAiAssistant({ clients, projects, user }: StackivoAiAssis
               : "Open WhatsApp",
       });
       startTransition(async () => {
-        if (channel === "email" || channel === "both") {
-          const email = await emailInvoiceWithIvo(preview.id);
-          if (!email.ok) { push({ role: "assistant", content: email.error }); return; }
-        }
-        if (channel === "whatsapp" || channel === "both") {
-          await ensureConversation();
-          const activeConversationId = conversationIdRef.current;
-          if (!activeConversationId) {
-            push({ role: "assistant", content: "I couldn't safely prepare this WhatsApp share. Please try again." });
-            return;
-          }
-          const wa = await prepareInvoiceWhatsAppIvoToolAction({
-            conversationId: activeConversationId,
-            runId: activeRunIdRef.current ?? undefined,
-            invoiceId: preview.id,
-          });
-          if (!wa.ok) { push({ role: "assistant", content: wa.error }); return; }
-          window.open(wa.data.url, "_blank", "noopener,noreferrer");
-        }
-        push({
-          role: "assistant",
-          content:
-            channel === "both"
-              ? "Done. Invoice emailed and WhatsApp opened with the link."
-              : channel === "email"
-                ? "Done. Invoice emailed to the client."
-                : "WhatsApp is open with the invoice link ready to send.",
-        });
+        // The server sequences the channels and reports one merged outcome.
+        // Opening the share window is all that has to happen here.
+        const res = await tools.deliverInvoice(preview.id, channel);
+        if (!res.ok) { push({ role: "assistant", content: res.error }); return; }
+        if (res.whatsappUrl) window.open(res.whatsappUrl, "_blank", "noopener,noreferrer");
+        push({ role: "assistant", content: res.response.content });
         router.refresh();
       });
     },
-    [emailInvoiceWithIvo, ensureConversation, push, router],
+    [push, router, tools],
   );
 
   const handleInvoiceApprove = React.useCallback(
@@ -762,17 +657,7 @@ export function StackivoAiAssistant({ clients, projects, user }: StackivoAiAssis
         push({ role: "user", content: `Approve ${preview.invoiceNumber}` });
       }
       startTransition(async () => {
-        await ensureConversation();
-        const activeConversationId = conversationIdRef.current;
-        if (!activeConversationId) {
-          push({ role: "assistant", content: "I couldn't start this approval. Please try again." });
-          return;
-        }
-        const res = await approveInvoiceIvoToolAction({
-          conversationId: activeConversationId,
-          runId: activeRunIdRef.current ?? undefined,
-          invoiceId: preview.id,
-        });
+        const res = await tools.approveInvoice(preview.id);
         if (!res.ok) { push({ role: "assistant", content: res.error }); return; }
         // Merge the fresh, server-read invoice (reflects any edits) over the
         // in-memory preview so the delivery card shows the CORRECT total.
@@ -793,11 +678,7 @@ export function StackivoAiAssistant({ clients, projects, user }: StackivoAiAssis
         };
         push({
           role: "assistant",
-          persistence: {
-            kind: "preview",
-            content: "Invoice approved and ready for delivery.",
-            block: { type: "entity_preview", entityType: "invoice", entityId: fresh.id, variant: "delivery" },
-          },
+          persistence: res.response,
           content: (
             <InvoiceDeliveryActions
               preview={fresh}
@@ -810,7 +691,7 @@ export function StackivoAiAssistant({ clients, projects, user }: StackivoAiAssis
         router.refresh();
       });
     },
-    [ensureConversation, handleInvoiceDelivery, push, router],
+    [handleInvoiceDelivery, push, router, tools],
   );
 
   // ----- Welcome doc handlers -----
@@ -820,54 +701,30 @@ export function StackivoAiAssistant({ clients, projects, user }: StackivoAiAssis
       push({ role: "user", content: channel === "email" ? "Send by email" : "Open WhatsApp" });
       startTransition(async () => {
         if (channel === "email") {
-          const res = await emailWelcomeWithIvo(preview.id);
+          const res = await tools.emailWelcomeDocument(preview.id);
           if (!res.ok) { push({ role: "assistant", content: res.error }); return; }
-          push({ role: "assistant", content: "Done. Welcome document emailed to the client." });
+          if (res.response) push({ role: "assistant", content: res.response.content });
         } else {
-          await ensureConversation();
-          const activeConversationId = conversationIdRef.current;
-          if (!activeConversationId) {
-            push({ role: "assistant", content: "I couldn't safely prepare this WhatsApp share. Please try again." });
-            return;
-          }
-          const res = await prepareWelcomeWhatsAppIvoToolAction({
-            conversationId: activeConversationId,
-            runId: activeRunIdRef.current ?? undefined,
-            welcomeDocId: preview.id,
-          });
+          const res = await tools.prepareWelcomeWhatsApp(preview.id);
           if (!res.ok) { push({ role: "assistant", content: res.error }); return; }
           window.open(res.data.url, "_blank", "noopener,noreferrer");
-          push({ role: "assistant", content: "WhatsApp is open with the welcome document link ready to send." });
+          if (res.response) push({ role: "assistant", content: res.response.content });
         }
         router.refresh();
       });
     },
-    [emailWelcomeWithIvo, ensureConversation, push, router],
+    [push, router, tools],
   );
 
   const handleWelcomeDocApprove = React.useCallback(
     (preview: AiWelcomeDocPreview) => {
       push({ role: "user", content: `Approve and publish ${preview.title}` });
       startTransition(async () => {
-        await ensureConversation();
-        const activeConversationId = conversationIdRef.current;
-        if (!activeConversationId) {
-          push({ role: "assistant", content: "I couldn't start this publishing action. Please try again." });
-          return;
-        }
-        const res = await publishWelcomeDocumentIvoToolAction({
-          conversationId: activeConversationId,
-          runId: activeRunIdRef.current ?? undefined,
-          welcomeDocId: preview.id,
-        });
+        const res = await tools.publishWelcomeDocument(preview.id);
         if (!res.ok) { push({ role: "assistant", content: res.error }); return; }
         push({
           role: "assistant",
-          persistence: {
-            kind: "preview",
-            content: "Welcome document published and ready for delivery.",
-            block: { type: "entity_preview", entityType: "welcome_document", entityId: preview.id, variant: "delivery" },
-          },
+          persistence: res.response,
           content: (
             <WelcomeDocDeliveryActions
               preview={preview}
@@ -879,41 +736,26 @@ export function StackivoAiAssistant({ clients, projects, user }: StackivoAiAssis
         router.refresh();
       });
     },
-    [ensureConversation, handleWelcomeDocDelivery, push, router],
+    [handleWelcomeDocDelivery, push, router, tools],
   );
 
   const handleSaveWelcomeTemplate = React.useCallback(
     (preview: AiWelcomeDocPreview) => {
       push({ role: "user", content: "Save as a template" });
-      const scope = `welcome_document.save_template:${preview.id}`;
-      const requestId = getDeliveryRequestKey(scope);
       startTransition(async () => {
-        try {
-          await ensureConversation();
-          const activeConversationId = conversationIdRef.current;
-          if (!activeConversationId) {
-            push({ role: "assistant", content: "I couldn't safely save this template. Please try again." });
-            return;
-          }
-          const res = await saveWelcomeTemplateIvoToolAction({
-            conversationId: activeConversationId,
-            runId: activeRunIdRef.current ?? undefined,
-            requestId,
-            welcomeDocId: preview.id,
-            title: preview.title || "Welcome template",
-          });
-          push({
-            role: "assistant",
-            content: res.ok
-              ? "Saved as a reusable template — you'll see it next time you create a welcome document."
-              : res.error || "Could not save the template.",
-          });
-        } finally {
-          releaseDeliveryRequestKey(scope, requestId);
-        }
+        const res = await tools.saveWelcomeTemplate(
+          preview.id,
+          preview.title || "Welcome template",
+        );
+        push({
+          role: "assistant",
+          content: res.ok
+            ? res.response?.content ?? "Template saved."
+            : res.error || "Could not save the template.",
+        });
       });
     },
-    [ensureConversation, getDeliveryRequestKey, push, releaseDeliveryRequestKey],
+    [push, tools],
   );
 
   // ----- Contract handlers -----
@@ -922,42 +764,29 @@ export function StackivoAiAssistant({ clients, projects, user }: StackivoAiAssis
     (preview: AiContractPreview) => {
       push({ role: "user", content: `Approve and email ${preview.title}` });
       startTransition(async () => {
-        const res = await emailContractWithIvo(preview.id);
+        const res = await tools.emailContract(preview.id);
         if (!res.ok) { push({ role: "assistant", content: res.error }); return; }
         setActiveContract(null);
-        push({
-          role: "assistant",
-          content: `${preview.kind === "proposal" ? "Proposal" : "Contract"} sent to ${preview.clientEmail ?? "the selected client"}.`,
-        });
+        if (res.response) push({ role: "assistant", content: res.response.content });
         router.refresh();
       });
     },
-    [emailContractWithIvo, push, router],
+    [push, router, tools],
   );
 
   const handleContractWhatsApp = React.useCallback(
     (preview: AiContractPreview) => {
       push({ role: "user", content: `Open WhatsApp for ${preview.title}` });
       startTransition(async () => {
-        await ensureConversation();
-        const activeConversationId = conversationIdRef.current;
-        if (!activeConversationId) {
-          push({ role: "assistant", content: "I couldn't safely prepare this WhatsApp share. Please try again." });
-          return;
-        }
-        const res = await prepareContractWhatsAppIvoToolAction({
-          conversationId: activeConversationId,
-          runId: activeRunIdRef.current ?? undefined,
-          contractId: preview.id,
-        });
+        const res = await tools.prepareContractWhatsApp(preview.id);
         if (!res.ok) { push({ role: "assistant", content: res.error }); return; }
         setActiveContract(null);
         window.open(res.data.url, "_blank", "noopener,noreferrer");
-        push({ role: "assistant", content: `WhatsApp is open with the ${preview.kind === "proposal" ? "proposal" : "contract"} link ready to send.` });
+        if (res.response) push({ role: "assistant", content: res.response.content });
         router.refresh();
       });
     },
-    [ensureConversation, push, router],
+    [push, router, tools],
   );
 
   // ----- Conversational support / docs answering -----
@@ -1101,7 +930,7 @@ export function StackivoAiAssistant({ clients, projects, user }: StackivoAiAssis
       const amt = formatMoney(Math.round(d.totalAmount), d.currency);
       let sentOk = false;
       if (opts?.send) {
-        const sent = await emailInvoiceWithIvo(d.id, opts.requestId);
+        const sent = await tools.emailInvoice(d.id, opts.requestId);
         sentOk = sent.ok;
       }
       push({
@@ -1133,19 +962,22 @@ export function StackivoAiAssistant({ clients, projects, user }: StackivoAiAssis
       });
       router.refresh();
     },
-    [emailInvoiceWithIvo, ensureConversation, push, router],
+    [ensureConversation, push, router, tools],
   );
 
   const handleContractRowSend = React.useCallback(
     (id: string) => {
       push({ role: "user", content: "Email contract" });
       startTransition(async () => {
-        const res = await emailContractWithIvo(id);
-        push({ role: "assistant", content: res.ok ? "Contract sent ✓" : res.error });
+        const res = await tools.emailContract(id);
+        push({
+          role: "assistant",
+          content: res.ok ? res.response?.content ?? "Contract sent." : res.error,
+        });
         router.refresh();
       });
     },
-    [emailContractWithIvo, push, router],
+    [push, router, tools],
   );
 
   const runListContracts = React.useCallback(
@@ -1304,40 +1136,32 @@ export function StackivoAiAssistant({ clients, projects, user }: StackivoAiAssis
     (id: string) => {
       push({ role: "user", content: "Mark invoice paid" });
       startTransition(async () => {
-        await ensureConversation();
-        const activeConversationId = conversationIdRef.current;
-        if (!activeConversationId) {
-          push({ role: "assistant", content: "I couldn't start this status change. Please try again." });
-          return;
-        }
-        const res = await markInvoicePaidIvoToolAction({
-          conversationId: activeConversationId,
-          runId: activeRunIdRef.current ?? undefined,
-          invoiceId: id,
-        });
+        const res = await tools.markInvoicePaid(id);
         push({
           role: "assistant",
-          content: res.ok ? "Marked paid ✓" : res.error,
+          content: res.ok ? res.response?.content ?? "Invoice marked as paid." : res.error,
         });
         router.refresh();
       });
     },
-    [ensureConversation, push, router],
+    [push, router, tools],
   );
 
   const handleRowRemind = React.useCallback(
     (id: string) => {
       push({ role: "user", content: "Email invoice reminder" });
       startTransition(async () => {
-        const res = await emailInvoiceWithIvo(id);
+        const res = await tools.emailInvoice(id);
         push({
           role: "assistant",
-          content: res.ok ? "Reminder sent ✓" : res.error || "Couldn't send that reminder.",
+          content: res.ok
+            ? res.response?.content ?? "Reminder sent."
+            : res.error || "Couldn't send that reminder.",
         });
         router.refresh();
       });
     },
-    [emailInvoiceWithIvo, push, router],
+    [push, router, tools],
   );
 
   const runListInvoices = React.useCallback(
@@ -2436,11 +2260,7 @@ export function StackivoAiAssistant({ clients, projects, user }: StackivoAiAssis
           setActiveContract(res.data);
           push({
             role: "assistant",
-            persistence: {
-              kind: "preview",
-              content: "Contract draft updated and ready for review.",
-              block: { type: "entity_preview", entityType: "contract", entityId: res.data.id, variant: "draft" },
-            },
+            persistence: res.response,
             content: (
               <ContractDraftPreview
                 preview={res.data}
@@ -2469,11 +2289,7 @@ export function StackivoAiAssistant({ clients, projects, user }: StackivoAiAssis
           setLastInvoicePreview(res.data);
           push({
             role: "assistant",
-            persistence: {
-              kind: "preview",
-              content: "Invoice draft updated and ready for review.",
-              block: { type: "entity_preview", entityType: "invoice", entityId: res.data.id, variant: "draft" },
-            },
+            persistence: res.response,
             content: (
               <InvoiceDraftPreview
                 preview={res.data}
@@ -2500,11 +2316,7 @@ export function StackivoAiAssistant({ clients, projects, user }: StackivoAiAssis
           setActiveWelcomeDoc(res.data);
           push({
             role: "assistant",
-            persistence: {
-              kind: "preview",
-              content: "Welcome document draft updated and ready for review.",
-              block: { type: "entity_preview", entityType: "welcome_document", entityId: res.data.id, variant: "draft" },
-            },
+            persistence: res.response,
             content: (
               <WelcomeDocDraftPreview
                 preview={res.data}

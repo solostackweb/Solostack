@@ -1,4 +1,22 @@
-"use server";
+import "server-only";
+
+/**
+ * Ivo domain operations.
+ *
+ * This module is deliberately NOT a `"use server"` boundary. Every export in a
+ * `"use server"` file is a publicly reachable endpoint, so while these lived in
+ * `global-actions.ts` any authenticated client could POST straight to
+ * `createInvoiceFromAiAction` and bypass the Ivo runtime entirely — no action
+ * ledger row, no idempotency key, no approval gate. They are now plain
+ * server-side functions.
+ *
+ * The only supported callers are the typed tools in `tool-actions.ts`, which
+ * own ownership checks, idempotency, approval policy, and the durable audit
+ * trail. Read-only actions the panel calls directly are re-exported as real
+ * server actions from `read-actions.ts`.
+ *
+ * Do not add `"use server"` to this file.
+ */
 
 import { redirect } from "next/navigation";
 import { readFile } from "node:fs/promises";
@@ -53,7 +71,7 @@ import {
 import { getWelcomeShareUrl } from "@/features/welcome-documents/routes";
 import { listClients } from "@/features/clients/server";
 import { listProjects } from "@/features/projects/server";
-import { generateInvoiceDraftAction, generateOperationalDraftAction } from "./actions";
+import { generateInvoiceDraft, generateOperationalDraft } from "./generation";
 import { generateStructuredJson } from "./groq";
 import { interpretMessage } from "./nlu";
 import {
@@ -61,7 +79,6 @@ import {
   AI_SKIP_SENTINEL,
   NO_CLIENT_SENTINEL,
   NO_PROJECT_SENTINEL,
-  aiInterpretRequestSchema,
   type AiContractDraft,
   type AiFields,
   type AiMissingField,
@@ -131,33 +148,6 @@ async function checkAiRateLimit(userId: string): Promise<boolean> {
 async function aiReplyMaxTokens(): Promise<number> {
   const sub = await getCurrentSubscription();
   return AI_REPLY_MAX_TOKENS[effectivePlan(sub)];
-}
-
-/**
- * Monthly AI-message quota, per plan: Free 20 / Pro 100 / Business 500.
- * Call this ONCE per user message the assistant is about to answer. It reads
- * the current month's usage, blocks when the cap is hit, and otherwise
- * increments the counter. Fails OPEN on any metering error so an infra hiccup
- * never blocks a paying user.
- */
-export async function consumeAiMessageQuotaAction(): Promise<
-  | { ok: true }
-  | { ok: false; reason: "quota"; limit: number; plan: string }
-> {
-  await requireUserId();
-  const snap = await getUsageSnapshot("ai_messages");
-  if (!snap) return { ok: true as const };
-  if (snap.limit !== Infinity && snap.used >= snap.limit) {
-    const sub = await getCurrentSubscription();
-    return {
-      ok: false as const,
-      reason: "quota",
-      limit: snap.limit,
-      plan: effectivePlan(sub),
-    };
-  }
-  await incrementUsage("ai_messages");
-  return { ok: true as const };
 }
 
 /**
@@ -286,30 +276,6 @@ function nextMissingField(
     }
   }
   return null;
-}
-
-export async function interpretAiMessageAction(input: z.infer<typeof aiInterpretRequestSchema>) {
-  const parsed = aiInterpretRequestSchema.safeParse(input);
-  if (!parsed.success) {
-    return { ok: false as const, error: "Tell me what you'd like to do." };
-  }
-  const userId = await requireUserId();
-  if (!(await checkAiRateLimit(userId))) {
-    return { ok: false as const, error: "You're sending messages a little fast — give it a few seconds and try again." };
-  }
-  const [clients, projects] = await Promise.all([
-    listClients({ limit: 200 }),
-    listProjects({ limit: 200 }),
-  ]);
-  const result = await interpretMessage({
-    message: parsed.data.message,
-    currentWorkflow: parsed.data.currentWorkflow,
-    collected: parsed.data.collected,
-    history: parsed.data.history?.slice(-6),
-    clients,
-    projects,
-  });
-  return { ok: true as const, data: result };
 }
 
 // Currency tokens we recognise before/after an amount. `rup\w*` catches
@@ -978,20 +944,15 @@ export async function createInvoiceFromAiAction(input: AiCreateInput) {
 
   const netSubtotal = Math.max(0, originalSubtotal - discount);
   const unitPrice = quantity > 0 ? originalSubtotal / quantity : originalSubtotal;
-  const draftFd = new FormData();
-  draftFd.set(
-    "payload",
-    JSON.stringify({
-      clientId,
-      projectId,
-      workDescription: invoiceInput.workDescription,
-      amount: netSubtotal,
-      quantity,
-      dueDate,
-      notes: invoiceInput.notes,
-    }),
-  );
-  const draftResult = await generateInvoiceDraftAction(draftFd);
+  const draftResult = await generateInvoiceDraft({
+    clientId,
+    projectId,
+    workDescription: invoiceInput.workDescription,
+    amount: netSubtotal,
+    quantity,
+    dueDate,
+    notes: invoiceInput.notes,
+  });
   if (!draftResult.ok) return draftResult;
   const line = draftResult.data.items[0];
 
@@ -1712,17 +1673,12 @@ export async function createContractFromAiAction(input: AiCreateInput) {
     scope,
   );
 
-  const fdDraft = new FormData();
-  fdDraft.set(
-    "payload",
-    JSON.stringify({
-      workflow: "contract",
-      prompt: brief,
-      clientId,
-      projectId,
-    }),
-  );
-  const draftResult = await generateOperationalDraftAction(fdDraft);
+  const draftResult = await generateOperationalDraft({
+    workflow: "contract",
+    prompt: brief,
+    clientId,
+    projectId,
+  });
   if (!draftResult.ok || !("sections" in draftResult.data)) {
     return { ok: false as const, error: draftResult.ok ? "Could not draft contract." : draftResult.error };
   }
@@ -1855,17 +1811,12 @@ export async function refineContractFromAiAction(
     `REQUESTED CHANGE: ${parsed.data.instruction}`,
   ].join("\n");
 
-  const fdDraft = new FormData();
-  fdDraft.set(
-    "payload",
-    JSON.stringify({
-      workflow: "contract",
-      prompt: brief,
-      clientId: contract.client_id ?? "",
-      projectId: contract.project_id ?? "",
-    }),
-  );
-  const draftResult = await generateOperationalDraftAction(fdDraft);
+  const draftResult = await generateOperationalDraft({
+    workflow: "contract",
+    prompt: brief,
+    clientId: contract.client_id ?? "",
+    projectId: contract.project_id ?? "",
+  });
   if (!draftResult.ok || !("sections" in draftResult.data)) {
     return {
       ok: false as const,
@@ -2151,17 +2102,12 @@ export async function refineWelcomeDocFromAiAction(
     `REQUESTED CHANGE: ${parsed.data.instruction}`,
   ].join("\n");
 
-  const fdDraft = new FormData();
-  fdDraft.set(
-    "payload",
-    JSON.stringify({
-      workflow: "welcome_document",
-      prompt: brief,
-      clientId: doc.client_id ?? "",
-      projectId: doc.project_id ?? "",
-    }),
-  );
-  const draftResult = await generateOperationalDraftAction(fdDraft);
+  const draftResult = await generateOperationalDraft({
+    workflow: "welcome_document",
+    prompt: brief,
+    clientId: doc.client_id ?? "",
+    projectId: doc.project_id ?? "",
+  });
   if (!draftResult.ok || !("sections" in draftResult.data)) {
     return {
       ok: false as const,
@@ -3248,12 +3194,12 @@ export async function createWelcomeDocFromAiAction(input: AiCreateInput) {
       ],
       field(fields, "process"),
     );
-    const fdDraft = new FormData();
-    fdDraft.set(
-      "payload",
-      JSON.stringify({ workflow: "welcome_document", prompt: brief, clientId, projectId }),
-    );
-    const draftResult = await generateOperationalDraftAction(fdDraft);
+    const draftResult = await generateOperationalDraft({
+      workflow: "welcome_document",
+      prompt: brief,
+      clientId,
+      projectId,
+    });
     if (!draftResult.ok || !("sections" in draftResult.data)) {
       return { ok: false as const, error: draftResult.ok ? "Could not draft welcome document." : draftResult.error };
     }

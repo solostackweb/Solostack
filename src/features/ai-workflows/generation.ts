@@ -1,4 +1,17 @@
-"use server";
+import "server-only";
+
+/**
+ * Model-backed draft generation for Ivo's create workflows.
+ *
+ * These were `"use server"` form actions, which made them public endpoints and
+ * forced every caller to round-trip a plain object through `FormData` just to
+ * have it JSON-parsed straight back out. The only callers now live in
+ * `domain-operations.ts`, so they are plain server functions taking typed
+ * input. They still authenticate and rate-limit, because they spend model
+ * budget on the caller's behalf.
+ *
+ * Do not add `"use server"` to this file.
+ */
 
 import { redirect } from "next/navigation";
 import { getServerSupabase } from "@/lib/supabase/server";
@@ -16,16 +29,6 @@ import {
 import { z } from "zod";
 import { aiGenerateLimit } from "@/lib/rate-limit";
 
-function readPayload(formData: FormData): unknown {
-  const raw = formData.get("payload");
-  if (typeof raw !== "string") return null;
-  try {
-    return JSON.parse(raw);
-  } catch {
-    return null;
-  }
-}
-
 async function requireUser() {
   const supabase = await getServerSupabase();
   const {
@@ -35,14 +38,14 @@ async function requireUser() {
   return user;
 }
 
-export async function generateInvoiceDraftAction(
-  formData: FormData,
+export async function generateInvoiceDraft(
+  input: z.input<typeof aiInvoiceRequestSchema>,
 ): Promise<AiWorkflowResult<AiInvoiceDraft>> {
   const user = await requireUser();
   const rl = await aiGenerateLimit(`aigen:${user.id}`);
   if (!rl.ok) return { ok: false, error: rl.message };
 
-  const parsed = aiInvoiceRequestSchema.safeParse(readPayload(formData));
+  const parsed = aiInvoiceRequestSchema.safeParse(input);
   if (!parsed.success) {
     return {
       ok: false,
@@ -99,13 +102,13 @@ const operationalDraftRequestSchema = z.object({
   defaultHourlyRate: z.coerce.number().nonnegative().optional(),
 });
 
-export async function generateOperationalDraftAction(
-  formData: FormData,
+export async function generateOperationalDraft(
+  input: z.input<typeof operationalDraftRequestSchema>,
 ): Promise<AiWorkflowResult<OperationsDraft>> {
   const user = await requireUser();
   const rl = await aiGenerateLimit(`aigen:${user.id}`);
   if (!rl.ok) return { ok: false, error: rl.message };
-  const parsed = operationalDraftRequestSchema.safeParse(readPayload(formData));
+  const parsed = operationalDraftRequestSchema.safeParse(input);
   if (!parsed.success) {
     return {
       ok: false,

@@ -103,10 +103,19 @@ export type IvoMessageBlockReference =
 
 export type IvoResolvedMessageBlock = IvoMessageBlockReference & { data: Json };
 
+/**
+ * The canonical, server-authored description of what a tool outcome should
+ * become in the conversation. The panel renders and persists this verbatim; it
+ * never invents message kind, copy, or block identity for a tool result.
+ *
+ * `block` is omitted for outcomes that have no resumable card — a completed
+ * delivery or share preparation is a durable fact in the action ledger, and
+ * replaying it as an actionable card on resume would invite a duplicate send.
+ */
 export interface IvoToolResponseDescriptor {
   kind: "preview" | "confirmation" | "result";
   content: string;
-  block: IvoMessageBlockReference;
+  block?: IvoMessageBlockReference;
 }
 
 export interface IvoConfirmationSummary {

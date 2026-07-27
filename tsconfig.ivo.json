@@ -1,0 +1,7 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "incremental": false
+  },
+  "include": ["next-env.d.ts", "src/features/ai-workflows/**/*.ts", "src/features/ai-workflows/**/*.tsx"]
+}
