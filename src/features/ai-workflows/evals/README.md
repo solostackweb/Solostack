@@ -12,6 +12,28 @@ call, no database, no network, so it is fast and its failures are always real.
 | `retrieval.eval.ts` | A failed read can never reach the model looking like an empty one; a truncated payload always still parses. |
 | `knowledge.eval.ts` | Product and policy questions reach the right article; unrelated questions return `empty` so the model declines instead of answering from loosely-matched text. |
 | `planner.eval.ts` | One server-owned routing decision. A bulk external send is always proposed, never executed directly from a message. |
+| `nlu.eval.ts` | Intent routing, entity resolution, Indian money formats, and multi-turn follow-ups. |
+| `workflow.eval.ts` | Field sequencing terminates without looping or re-asking; export invoices are never told GST applies. |
+| `tool-registry.eval.ts` | Every executed tool is declared; nothing that reaches a client or moves money is exempt from approval. |
+| `receipts.eval.ts` | Every tool produces a receipt; links never dangle; an unrecognised ledger status never reads as success. |
+
+## Running against the model
+
+By default there is no `GROQ_API_KEY`, and `generateStructuredJson` returns
+`null` without attempting a request — so `nlu.eval.ts` exercises the
+deterministic fallback. That path is not a curiosity: it is what every user hits
+whenever the provider is down, rate-limited, or returns unparseable JSON, so it
+is worth testing on its own terms.
+
+Export a real key to run the same cases against the model:
+
+```
+GROQ_API_KEY=... npm run eval
+```
+
+The suite prints which path it took. Expectations are written to hold for both.
+Where the model should do strictly better than the fallback, add a separate
+provider-gated case rather than weakening the shared one.
 
 ## Why these cases exist
 

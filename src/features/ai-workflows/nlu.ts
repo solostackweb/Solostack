@@ -62,8 +62,14 @@ function matchWorkflowKeyword(
 ): { intent: AiIntent; leads: boolean } | null {
   if (/\binvoice\b|\bbill\b|\bbilling\b|\breceipt\b|\bcharge\b/.test(t))
     return { intent: "invoice", leads: /^(invoice|bill|billing)\b/.test(t) };
-  if (/\bcontract\b|\bagreement\b|\bproposal\b|\bnda\b|\bretainer\b/.test(t))
-    return { intent: "contract", leads: /^(contract|agreement|proposal|nda|retainer)\b/.test(t) };
+  // A proposal is its own workflow with its own template and lifecycle, so it
+  // must be matched before the contract family — otherwise a provider outage
+  // silently downgrades "draft a proposal" into a contract, producing the wrong
+  // document type for the client.
+  if (/\bproposals?\b|\bquote\b|\bquotation\b|\bestimate\b/.test(t))
+    return { intent: "proposal", leads: /^(proposal|quote|quotation|estimate)\b/.test(t) };
+  if (/\bcontract\b|\bagreement\b|\bnda\b|\bretainer\b/.test(t))
+    return { intent: "contract", leads: /^(contract|agreement|nda|retainer)\b/.test(t) };
   if (/\bwelcome\b|\bonboard\b|\bonboarding\b|\bkickoff\b/.test(t))
     return { intent: "welcome_document", leads: /^(welcome|onboard)/.test(t) };
   if (/\bproject\b/.test(t)) return { intent: "project", leads: /^project\b/.test(t) };

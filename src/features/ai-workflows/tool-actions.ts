@@ -34,6 +34,7 @@ import {
 } from "./domain-operations";
 import type { AiMissingField } from "./types";
 import type { IvoToolResponseDescriptor } from "./conversation-types";
+import { assertIvoToolPath, ivoToolApprovalState, ivoToolPolicy } from "./tool-registry";
 
 type IvoCreateToolKey =
   | "client.create"
@@ -270,6 +271,7 @@ async function runCreateTool<T extends ToolResult>(
   invoke: (input: z.output<typeof toolInputSchema>) => Promise<T>,
   readCached: (entityId: string, userId: string) => Promise<T | null>,
 ): Promise<T | ToolRuntimeError> {
+  assertIvoToolPath(toolKey, "approved");
   const parsed = toolInputSchema.safeParse(rawInput);
   if (!parsed.success) return { ok: false, error: "The Ivo action request is invalid." };
 
@@ -412,6 +414,7 @@ async function runImmediateDraftTool<T extends { ok: true; data: unknown; messag
   normalize: (value: unknown) => T | DraftToolError,
   readCached: (entityId: string, userId: string) => Promise<T | null>,
 ): Promise<T | DraftToolError> {
+  assertIvoToolPath(toolKey, "draft");
   const parsed = toolInputSchema.safeParse(rawInput);
   if (!parsed.success) {
     return {
@@ -466,11 +469,11 @@ async function runImmediateDraftTool<T extends { ok: true; data: unknown; messag
       user_id: userId,
       tool_key: toolKey,
       idempotency_key: parsed.data.idempotencyKey,
-      approval_state: "not_required",
+      approval_state: ivoToolApprovalState(toolKey),
       status: "executing",
       input_summary: {
         inputHash: hash,
-        policy: "internal_draft_review_after_creation",
+        policy: ivoToolPolicy(toolKey),
         fieldNames: Object.keys(parsed.data.fields).sort(),
         hasClient: Boolean(parsed.data.clientId),
         hasProject: Boolean(parsed.data.projectId),
@@ -551,6 +554,7 @@ async function runRefinementTool<T extends { ok: true; data: unknown; message: s
   normalize: (value: unknown) => T | DraftToolError,
   readCompleted: (entityId: string, userId: string) => Promise<T | null>,
 ): Promise<T | DraftToolError> {
+  assertIvoToolPath(toolKey, "draft");
   const parsed = refinementToolInputSchema.safeParse(rawInput);
   if (!parsed.success) return { ok: false, error: "The Ivo refinement request is invalid." };
   const context = await requireOwnedContext(parsed.data.conversationId, parsed.data.runId);
@@ -618,11 +622,11 @@ async function runRefinementTool<T extends { ok: true; data: unknown; message: s
         user_id: userId,
         tool_key: toolKey,
         idempotency_key: attemptKey,
-        approval_state: "not_required",
+        approval_state: ivoToolApprovalState(toolKey),
         status: "executing",
         input_summary: {
           inputHash: hash,
-          policy: "internal_draft_refinement_review_after_change",
+          policy: ivoToolPolicy(toolKey),
           instructionLength: parsed.data.instruction.length,
         },
         entity_type: entityType,
@@ -683,6 +687,7 @@ async function runExplicitCreationTool<T extends { ok: boolean; error?: string }
   resultEntityId: (result: T) => string | null,
   readCompleted: (entityId: string, userId: string) => Promise<T | null>,
 ): Promise<T | ToolRuntimeError> {
+  assertIvoToolPath(toolKey, "approved");
   const parsed = explicitCreateToolInputSchema.safeParse(rawInput);
   if (!parsed.success) return { ok: false, error: "The Ivo action request is invalid." };
   const context = await requireOwnedContext(parsed.data.conversationId, parsed.data.runId);
@@ -744,11 +749,11 @@ async function runExplicitCreationTool<T extends { ok: boolean; error?: string }
         user_id: userId,
         tool_key: toolKey,
         idempotency_key: attemptKey,
-        approval_state: "approved",
+        approval_state: ivoToolApprovalState(toolKey),
         status: "executing",
         input_summary: {
           inputHash: hash,
-          policy: "explicit_user_creation_action",
+          policy: ivoToolPolicy(toolKey),
           ...safeInputSummary,
         },
         entity_type: entityType,
@@ -1038,11 +1043,11 @@ async function runApprovedStatusTool<T extends { ok: boolean; error?: string }>(
     | "contract.whatsapp_prepare"
     | "welcome_document.whatsapp_prepare",
   entityType: "invoice" | "contract" | "welcome_document",
-  policy: "explicit_user_status_action" | "explicit_user_share_preparation",
   rawInput: z.input<typeof statusToolInputSchema>,
   invoke: (entityId: string) => Promise<T>,
   readCompleted: (entityId: string, userId: string) => Promise<T | null>,
 ): Promise<T | ToolRuntimeError> {
+  assertIvoToolPath(toolKey, "approved");
   const parsed = statusToolInputSchema.safeParse(rawInput);
   if (!parsed.success) return { ok: false, error: "The Ivo status action is invalid." };
   const context = await requireOwnedContext(parsed.data.conversationId, parsed.data.runId);
@@ -1090,9 +1095,9 @@ async function runApprovedStatusTool<T extends { ok: boolean; error?: string }>(
         user_id: userId,
         tool_key: toolKey,
         idempotency_key: requestKey,
-        approval_state: "approved",
+        approval_state: ivoToolApprovalState(toolKey),
         status: "executing",
-        input_summary: { inputHash: hash, policy },
+        input_summary: { inputHash: hash, policy: ivoToolPolicy(toolKey) },
         entity_type: entityType,
         entity_id: parsed.data.entityId,
       } as never)
@@ -1146,6 +1151,7 @@ async function runApprovedEmailTool(
   rawInput: z.input<typeof deliveryToolInputSchema>,
   invoke: (entityId: string, requestId: string) => Promise<{ ok: boolean; error?: string }>,
 ) {
+  assertIvoToolPath(toolKey, "approved");
   const parsed = deliveryToolInputSchema.safeParse(rawInput);
   if (!parsed.success) return { ok: false as const, error: "The Ivo delivery request is invalid." };
   const context = await requireOwnedContext(parsed.data.conversationId, parsed.data.runId);
@@ -1199,9 +1205,9 @@ async function runApprovedEmailTool(
         user_id: userId,
         tool_key: toolKey,
         idempotency_key: attemptKey,
-        approval_state: "approved",
+        approval_state: ivoToolApprovalState(toolKey),
         status: "executing",
-        input_summary: { inputHash, policy: "explicit_user_external_delivery" },
+        input_summary: { inputHash, policy: ivoToolPolicy(toolKey) },
         entity_type: entityType,
         entity_id: parsed.data.entityId,
       } as never)
@@ -1821,7 +1827,6 @@ export async function approveInvoiceIvoToolAction(input: {
   const result = await runApprovedStatusTool(
     "invoice.approve",
     "invoice",
-    "explicit_user_status_action",
     { conversationId: input.conversationId, runId: input.runId, entityId: input.invoiceId },
     (invoiceId) => approveInvoiceFromAiAction({ invoiceId }),
     async (invoiceId, userId) => {
@@ -1975,7 +1980,6 @@ export async function markInvoicePaidIvoToolAction(input: {
   const result = await runApprovedStatusTool(
     "invoice.mark_paid",
     "invoice",
-    "explicit_user_status_action",
     { conversationId: input.conversationId, runId: input.runId, entityId: input.invoiceId },
     (invoiceId) => markInvoicePaidFromAiAction({ invoiceId }),
     async (invoiceId, userId) => {
@@ -2003,7 +2007,6 @@ export async function publishWelcomeDocumentIvoToolAction(input: {
   const result = await runApprovedStatusTool(
     "welcome_document.publish",
     "welcome_document",
-    "explicit_user_status_action",
     {
       conversationId: input.conversationId,
       runId: input.runId,
@@ -2042,7 +2045,6 @@ export async function prepareInvoiceWhatsAppIvoToolAction(input: {
   const result = await runApprovedStatusTool(
     "invoice.whatsapp_prepare",
     "invoice",
-    "explicit_user_share_preparation",
     { conversationId: input.conversationId, runId: input.runId, entityId: input.invoiceId },
     (invoiceId) => invoiceWhatsappFromAiAction({ invoiceId }),
     async (invoiceId) => invoiceWhatsappFromAiAction({ invoiceId }),
@@ -2117,7 +2119,6 @@ export async function prepareContractWhatsAppIvoToolAction(input: {
   const result = await runApprovedStatusTool(
     "contract.whatsapp_prepare",
     "contract",
-    "explicit_user_share_preparation",
     { conversationId: input.conversationId, runId: input.runId, entityId: input.contractId },
     (contractId) => contractWhatsappFromAiAction({ contractId }),
     async (contractId) => contractWhatsappFromAiAction({ contractId }),
@@ -2149,7 +2150,6 @@ export async function prepareWelcomeWhatsAppIvoToolAction(input: {
   const result = await runApprovedStatusTool(
     "welcome_document.whatsapp_prepare",
     "welcome_document",
-    "explicit_user_share_preparation",
     {
       conversationId: input.conversationId,
       runId: input.runId,
@@ -2221,9 +2221,9 @@ export async function remindOverdueInvoicesIvoToolAction(input: {
         user_id: userId,
         tool_key: "invoice.remind_overdue",
         idempotency_key: attemptKey,
-        approval_state: "approved",
+        approval_state: ivoToolApprovalState("invoice.remind_overdue"),
         status: "executing",
-        input_summary: { policy: "explicit_user_bulk_delivery", day },
+        input_summary: { policy: ivoToolPolicy("invoice.remind_overdue"), day },
         entity_type: "invoice",
       } as never)
       .select("id")
