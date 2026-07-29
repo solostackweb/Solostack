@@ -61,7 +61,6 @@ import { getUnbilledTime } from "@/features/time/server";
 import { BUILTIN_WELCOME_TEMPLATES } from "@/features/welcome-documents/templates";
 import { sendWelcomeDocumentAction } from "@/features/welcome-documents/delivery";
 import { getUsageSnapshot, getCurrentSubscription } from "@/features/subscription/server";
-import { incrementUsage } from "@/features/subscription/usage";
 import { effectivePlan } from "@/features/subscription/features";
 import { AI_REPLY_MAX_TOKENS } from "@/features/subscription/plans";
 import {
