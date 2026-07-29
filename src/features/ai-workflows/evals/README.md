@@ -16,6 +16,8 @@ call, no database, no network, so it is fast and its failures are always real.
 | `workflow.eval.ts` | Field sequencing terminates without looping or re-asking; export invoices are never told GST applies. |
 | `tool-registry.eval.ts` | Every executed tool is declared; nothing that reaches a client or moves money is exempt from approval. |
 | `receipts.eval.ts` | Every tool produces a receipt; links never dangle; an unrecognised ledger status never reads as success. |
+| `text-diff.eval.ts` | Applying a diff reproduces the proposal exactly, so a user never reviews one thing and receives another. |
+| `field-generation.eval.ts` | Smart-field proposals are never mutations; untrustworthy model output is refused, not shown. |
 
 ## Running against the model
 

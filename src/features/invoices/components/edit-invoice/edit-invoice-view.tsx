@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { useForm, useFieldArray, useWatch, FormProvider } from "react-hook-form";
 import { draftInvoiceFieldAction } from "@/features/invoices/ai-assist";
+import { FieldProposalReview } from "@/features/ai-workflows/components/field-proposal-review";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -148,6 +149,10 @@ export function EditInvoiceView({
   );
   // ── Inline Ivo drafting for Notes + Terms ─────────────────────────────────
   const [ivoDrafting, setIvoDrafting] = React.useState<null | "notes" | "terms">(null);
+  /** A suggestion awaiting review. Applying it is a separate, explicit action. */
+  const [ivoProposal, setIvoProposal] = React.useState<
+    null | { field: "notes" | "terms"; proposed: string }
+  >(null);
   const handleIvoDraft = React.useCallback(
     async (field: "notes" | "terms") => {
       setIvoDrafting(field);
@@ -169,11 +174,31 @@ export function EditInvoiceView({
         toast.error(res.error);
         return;
       }
-      setValue(field, res.text, { shouldValidate: true, shouldDirty: true });
-      toast.success("Drafted — review and tweak before sending.");
+      // Hold the suggestion for review rather than writing it into the field.
+      // Notes and Terms usually already contain the user's own wording, and a
+      // silent replacement would lose it with no way back.
+      setIvoProposal({ field, proposed: res.text });
     },
-    [form, selectedClient, invoice.currency, totals.total, setValue],
+    [form, selectedClient, invoice.currency, totals.total],
   );
+
+  const ivoReviewFor = (field: "notes" | "terms") => {
+    const pending = ivoProposal;
+    if (!pending || pending.field !== field) return null;
+    return (
+      <FieldProposalReview
+        className="mt-2"
+        original={form.getValues(field) ?? ""}
+        proposed={pending.proposed}
+        onApply={(next) => {
+          setValue(field, next, { shouldValidate: true, shouldDirty: true });
+          setIvoProposal(null);
+          toast.success("Applied — you can still edit it before sending.");
+        }}
+        onDiscard={() => setIvoProposal(null)}
+      />
+    );
+  };
   const ivoDraftButton = (field: "notes" | "terms") => (
     <button
       type="button"
@@ -534,6 +559,7 @@ export function EditInvoiceView({
                     placeholder="Add notes visible to the client…"
                     className="resize-none"
                   />
+                  {ivoReviewFor("notes")}
                 </SectionCard>
                 <SectionCard
                   label="Terms"
@@ -546,6 +572,7 @@ export function EditInvoiceView({
                     placeholder="Payment terms, late fees…"
                     className="resize-none"
                   />
+                  {ivoReviewFor("terms")}
                 </SectionCard>
               </div>
 

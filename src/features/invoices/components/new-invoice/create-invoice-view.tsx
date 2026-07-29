@@ -29,6 +29,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { getClientInitials, getClientDisplayName } from "@/features/clients/utils";
 import { draftInvoiceFieldAction } from "@/features/invoices/ai-assist";
+import { FieldProposalReview } from "@/features/ai-workflows/components/field-proposal-review";
 import type { ClientRecord } from "@/features/clients/server";
 import type { ProjectRecord } from "@/features/projects/server";
 import { getStateName } from "@/features/gst/state-codes";
@@ -214,6 +215,10 @@ export function CreateInvoiceView({
 
   // ── Inline Ivo drafting for Notes + Terms ─────────────────────────────────
   const [ivoDrafting, setIvoDrafting] = React.useState<null | "notes" | "terms">(null);
+  /** A suggestion awaiting review. Applying it is a separate, explicit action. */
+  const [ivoProposal, setIvoProposal] = React.useState<
+    null | { field: "notes" | "terms"; proposed: string }
+  >(null);
   const handleIvoDraft = React.useCallback(
     async (field: "notes" | "terms") => {
       setIvoDrafting(field);
@@ -235,11 +240,31 @@ export function CreateInvoiceView({
         toast.error(res.error);
         return;
       }
-      setValue(field, res.text, { shouldValidate: true, shouldDirty: true });
-      toast.success("Drafted — review and tweak before sending.");
+      // Hold the suggestion for review rather than writing it into the field.
+      // Notes and Terms usually already contain the user's own wording, and a
+      // silent replacement would lose it with no way back.
+      setIvoProposal({ field, proposed: res.text });
     },
-    [form, selectedClient, selectedCurrency, totals.total, setValue],
+    [form, selectedClient, selectedCurrency, totals.total],
   );
+
+  const ivoReviewFor = (field: "notes" | "terms") => {
+    const pending = ivoProposal;
+    if (!pending || pending.field !== field) return null;
+    return (
+      <FieldProposalReview
+        className="mt-2"
+        original={form.getValues(field) ?? ""}
+        proposed={pending.proposed}
+        onApply={(next) => {
+          setValue(field, next, { shouldValidate: true, shouldDirty: true });
+          setIvoProposal(null);
+          toast.success("Applied — you can still edit it before sending.");
+        }}
+        onDiscard={() => setIvoProposal(null)}
+      />
+    );
+  };
   const ivoDraftButton = (field: "notes" | "terms") => (
     <button
       type="button"
@@ -671,6 +696,7 @@ export function CreateInvoiceView({
                     placeholder="Add notes visible to the client…"
                     className="resize-none"
                   />
+                  {ivoReviewFor("notes")}
                 </SectionCard>
                 <SectionCard
                   label="Terms"
@@ -683,6 +709,7 @@ export function CreateInvoiceView({
                     placeholder="Payment terms, late fees…"
                     className="resize-none"
                   />
+                  {ivoReviewFor("terms")}
                 </SectionCard>
               </div>
 

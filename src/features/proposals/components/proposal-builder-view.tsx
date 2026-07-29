@@ -38,6 +38,7 @@ import { formatMoney } from "@/lib/format";
 import { draftProposalFieldAction } from "@/features/proposals/ai-assist";
 import { cn } from "@/lib/utils";
 import { IvoContextActions } from "@/features/ai-workflows/components/ivo-context-actions";
+import { FieldProposalReview } from "@/features/ai-workflows/components/field-proposal-review";
 
 import {
   getProposalBillingGuidance,
@@ -324,9 +325,47 @@ export function ProposalBuilderView({
   const selectedClient = clients.find((client) => client.id === clientId) ?? null;
 
   // ── Inline Ivo drafting for the narrative fields ──────────────────────────
-  const [ivoDrafting, setIvoDrafting] = React.useState<
-    null | "scope" | "deliverables" | "timeline" | "terms"
+  type NarrativeField = "scope" | "deliverables" | "timeline" | "terms";
+  const [ivoDrafting, setIvoDrafting] = React.useState<null | NarrativeField>(null);
+  /** A suggestion awaiting review. Applying it is a separate, explicit action. */
+  const [ivoProposal, setIvoProposal] = React.useState<
+    null | { field: NarrativeField; proposed: string }
   >(null);
+
+  const narrativeValues: Record<NarrativeField, string> = {
+    scope,
+    deliverables,
+    timeline,
+    terms,
+  };
+  const narrativeSetters: Record<NarrativeField, (next: string) => void> = {
+    scope: setScope,
+    deliverables: setDeliverables,
+    timeline: setTimeline,
+    terms: setTerms,
+  };
+
+  const applyIvoProposal = (field: NarrativeField, proposed: string) => {
+    narrativeSetters[field](proposed);
+    setIvoProposal(null);
+    toast.success("Applied — you can still edit it before sending.");
+  };
+
+  /** Review panel for the field currently holding a suggestion. */
+  const ivoReviewFor = (field: NarrativeField) => {
+    // Bound to a local so the narrowing survives into the callbacks.
+    const pending = ivoProposal;
+    if (!pending || pending.field !== field) return null;
+    return (
+      <FieldProposalReview
+        className="mt-2"
+        original={narrativeValues[field]}
+        proposed={pending.proposed}
+        onApply={(next) => applyIvoProposal(field, next)}
+        onDiscard={() => setIvoProposal(null)}
+      />
+    );
+  };
   const handleIvoDraft = React.useCallback(
     async (field: "scope" | "deliverables" | "timeline" | "terms") => {
       setIvoDrafting(field);
@@ -349,14 +388,11 @@ export function ProposalBuilderView({
         toast.error(res.error);
         return;
       }
-      const setters = {
-        scope: setScope,
-        deliverables: setDeliverables,
-        timeline: setTimeline,
-        terms: setTerms,
-      } as const;
-      setters[field](res.text);
-      toast.success("Drafted — review and tweak before sending.");
+      // Never write straight into the field. The user has usually typed
+      // something here already, and replacing it silently means their work can
+      // disappear behind a single click with no way back. Hold the suggestion
+      // for review instead; applying it is an explicit second action.
+      setIvoProposal({ field, proposed: res.text });
     },
     [proposal.title, selectedClient, currency, draftItems, scope, deliverables, timeline, terms],
   );
@@ -759,19 +795,31 @@ export function ProposalBuilderView({
 
           <Card>
             <CardContent className="grid gap-4 p-5">
-              <Field label="Scope" action={ivoDraftButton("scope")}>
-                <Textarea name="scope" value={scope} onChange={(event) => setScope(event.target.value)} rows={5} />
-              </Field>
-              <Field label="Deliverables" action={ivoDraftButton("deliverables")}>
-                <Textarea name="deliverables" value={deliverables} onChange={(event) => setDeliverables(event.target.value)} rows={5} />
-              </Field>
+              <div>
+                <Field label="Scope" action={ivoDraftButton("scope")}>
+                  <Textarea name="scope" value={scope} onChange={(event) => setScope(event.target.value)} rows={5} />
+                </Field>
+                {ivoReviewFor("scope")}
+              </div>
+              <div>
+                <Field label="Deliverables" action={ivoDraftButton("deliverables")}>
+                  <Textarea name="deliverables" value={deliverables} onChange={(event) => setDeliverables(event.target.value)} rows={5} />
+                </Field>
+                {ivoReviewFor("deliverables")}
+              </div>
               <div className="grid gap-4 sm:grid-cols-2">
-                <Field label="Timeline" action={ivoDraftButton("timeline")}>
-                  <Textarea name="timeline" value={timeline} onChange={(event) => setTimeline(event.target.value)} rows={5} />
-                </Field>
-                <Field label="Terms" action={ivoDraftButton("terms")}>
-                  <Textarea name="terms" value={terms} onChange={(event) => setTerms(event.target.value)} rows={5} />
-                </Field>
+                <div>
+                  <Field label="Timeline" action={ivoDraftButton("timeline")}>
+                    <Textarea name="timeline" value={timeline} onChange={(event) => setTimeline(event.target.value)} rows={5} />
+                  </Field>
+                  {ivoReviewFor("timeline")}
+                </div>
+                <div>
+                  <Field label="Terms" action={ivoDraftButton("terms")}>
+                    <Textarea name="terms" value={terms} onChange={(event) => setTerms(event.target.value)} rows={5} />
+                  </Field>
+                  {ivoReviewFor("terms")}
+                </div>
               </div>
             </CardContent>
           </Card>
