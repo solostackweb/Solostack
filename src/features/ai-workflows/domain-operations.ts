@@ -92,7 +92,7 @@ import {
 /** A field/value row shown in a pre-create confirmation summary. */
 type AiConfirmLine = [label: string, value: string];
 interface AiConfirmSummary {
-  kind: "client" | "project" | "time_entry";
+  kind: "client" | "project" | "time_entry" | "meeting";
   title: string;
   lines: AiConfirmLine[];
 }
@@ -1452,13 +1452,13 @@ export async function createMeetingFromAiAction(input: AiCreateInput) {
   const { data: clientRow } = clientId
     ? await supabase
         .from("clients")
-        .select("id, full_name, business_name")
+        .select("id, full_name, business_name, email")
         .eq("id", clientId)
         .eq("user_id", userId)
         .maybeSingle()
     : { data: null };
   const client = clientRow as
-    | { id: string; full_name?: string | null; business_name?: string | null }
+    | { id: string; full_name?: string | null; business_name?: string | null; email?: string | null }
     | null;
   const clientName = client
     ? client.business_name || client.full_name || "your client"
@@ -1466,6 +1466,29 @@ export async function createMeetingFromAiAction(input: AiCreateInput) {
 
   const topic = field(fields, "topic") || "Call";
   const durationMinutes = meetingMinutesFromField(field(fields, "meetingLength"));
+
+  // A meeting created through this path immediately attempts to email the
+  // client its booking link. Treat that as an external action and show the
+  // exact consequence before creating anything.
+  if (!parsed.data.confirm) {
+    return {
+      ok: false as const,
+      needsConfirm: true as const,
+      error: "Confirm the meeting invite before I create it.",
+      summary: {
+        kind: "meeting" as const,
+        title: client?.email
+          ? "Create this meeting and email the booking link?"
+          : "Create this meeting and booking link?",
+        lines: [
+          ["Topic", topic],
+          ["Client", clientName],
+          ["Duration", `${durationMinutes} minutes`],
+          ["Delivery", client?.email ? `Email ${client.email}` : "Share link only — no client email found"],
+        ],
+      } satisfies AiConfirmSummary,
+    };
+  }
 
   const res = await createMeetingAction({
     topic,
@@ -1584,7 +1607,7 @@ export async function createProposalFromAiAction(input: AiCreateInput) {
   }
   const proposalId = String((data as { id: string }).id);
 
-  await supabase.from("proposal_items").insert([
+  const { error: itemError } = await supabase.from("proposal_items").insert([
     {
       proposal_id: proposalId,
       description: (scope || "Professional services").slice(0, 200),
@@ -1594,6 +1617,18 @@ export async function createProposalFromAiAction(input: AiCreateInput) {
       sort_order: 0,
     },
   ] as never);
+
+  // A proposal without its first line item is not a usable draft. Supabase's
+  // client cannot make these two writes transactional here, so compensate by
+  // deleting the owned proposal before reporting failure.
+  if (itemError) {
+    await supabase
+      .from("proposals")
+      .delete()
+      .eq("id", proposalId)
+      .eq("user_id", userId);
+    return { ok: false as const, error: "Could not finish the proposal draft." };
+  }
 
   return {
     ok: true as const,
@@ -2861,11 +2896,54 @@ export async function listClientsForAiAction() {
  * so a record deleted after this read fails there rather than here.
  */
 export async function listIvoPickerOptionsAction() {
-  await requireUserId();
-  const [clients, projects] = await Promise.all([
+  const userId = await requireUserId();
+  const supabase = await getServerSupabase();
+  const [clients, projects, invoiceResult, welcomeResult] = await Promise.all([
     listClients({ limit: 200 }),
     listProjects({ limit: 200 }),
+    supabase
+      .from("invoices")
+      .select("id, invoice_number, status, total_amount, currency, client_id")
+      .eq("user_id", userId)
+      .order("updated_at", { ascending: false })
+      .limit(100),
+    supabase
+      .from("welcome_documents")
+      .select("id, title, status, client_id")
+      .eq("user_id", userId)
+      .is("deleted_at", null)
+      .order("updated_at", { ascending: false })
+      .limit(100),
   ]);
+  const clientNames = new Map(
+    clients.map((client) => [client.id, client.businessName || client.fullName || "Client"]),
+  );
+  const resources = [
+    ...clients.map((client) => ({
+      type: "client" as const,
+      id: client.id,
+      label: client.businessName || client.fullName || "Client",
+      subtitle: client.email || "Client",
+    })),
+    ...projects.map((project) => ({
+      type: "project" as const,
+      id: project.id,
+      label: project.name,
+      subtitle: project.clientId ? (clientNames.get(project.clientId) ?? "Project") : "Project",
+    })),
+    ...((invoiceResult.data ?? []) as Array<Record<string, unknown>>).map((invoice) => ({
+      type: "invoice" as const,
+      id: String(invoice.id),
+      label: String(invoice.invoice_number || "Invoice"),
+      subtitle: `${String(invoice.status || "draft")} · ${String(invoice.currency || "INR")} ${Number(invoice.total_amount || 0).toLocaleString("en-IN")}${invoice.client_id ? ` · ${clientNames.get(String(invoice.client_id)) ?? "Client"}` : ""}`,
+    })),
+    ...((welcomeResult.data ?? []) as Array<Record<string, unknown>>).map((document) => ({
+      type: "welcome_document" as const,
+      id: String(document.id),
+      label: String(document.title || "Welcome document"),
+      subtitle: `${String(document.status || "draft")}${document.client_id ? ` · ${clientNames.get(String(document.client_id)) ?? "Client"}` : ""}`,
+    })),
+  ];
   return {
     asOf: new Date().toISOString(),
     clients: clients.map((client) => ({
@@ -2880,6 +2958,7 @@ export async function listIvoPickerOptionsAction() {
       name: project.name,
       clientId: project.clientId,
     })),
+    resources,
   };
 }
 
@@ -3374,9 +3453,8 @@ export async function contractWhatsappFromAiAction(
   if (!contract) return { ok: false as const, error: "Contract not found." };
 
   // Mint or reuse public token — mirrors requestSignatureAction
-  let token = contract.public_token ?? null;
-  if (!token) {
-    token = randomUUID();
+  const token = contract.public_token ?? randomUUID();
+  if (!contract.public_token) {
     await supabase
       .from("contracts")
       .update({ public_token: token, status: "sent", sent_at: new Date().toISOString() } as never)

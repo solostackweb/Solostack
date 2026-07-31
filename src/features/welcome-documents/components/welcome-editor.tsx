@@ -17,6 +17,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { SmartField } from "@/features/ai-workflows/components/smart-field";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -193,6 +194,16 @@ export function WelcomeEditor(props: Props) {
               onChange={(e) => setIntro(e.target.value)}
               className="mt-1.5 min-h-[80px]"
               maxLength={5000}
+            />
+            <SmartField
+              className="mt-2"
+              kind="welcome_intro"
+              value={intro}
+              onApply={setIntro}
+              // Only a real selection is passed; the unassigned sentinel is not
+              // a client id and would be rejected server-side anyway.
+              clientId={clientId === UNASSIGNED ? undefined : clientId}
+              projectId={props.initial.projectId ?? undefined}
             />
           </div>
           {/* Client assignment — prominent, with model explanation */}

@@ -42,6 +42,10 @@ import { planIvoWorkflowNextAction } from "./workflow-progress";
 import type { AiFields, AiWorkflow } from "./types";
 import { AI_WORKFLOWS, NO_CLIENT_SENTINEL, NO_PROJECT_SENTINEL } from "./types";
 import type { IvoMode, IvoRuntimeDecision } from "./conversation-types";
+import {
+  formatIvoResourceContext,
+  type IvoResolvedResource,
+} from "./resource-mentions";
 
 const MAX_ROUNDS = 4;
 // Tool-result size is now budgeted in `retrieval.ts`, which drops whole
@@ -64,6 +68,8 @@ export interface IvoAgentInput {
   page?: string;
   clients: ClientRecord[];
   projects: ProjectRecord[];
+  /** Exact workspace records explicitly attached to this message with @mentions. */
+  resources?: IvoResolvedResource[];
   requestId: string;
   /** Live progress callback ("Reading your invoices…") for streaming UIs. */
   onStatus?: (status: string) => void;
@@ -81,6 +87,11 @@ export interface IvoAgentResult {
   rounds: number;
   promptTokens: number;
   completionTokens: number;
+  reads: Array<{
+    tool: string;
+    scope: string;
+    status: IvoRetrieval["status"];
+  }>;
 }
 
 // ---------------------------------------------------------------------------
@@ -848,6 +859,7 @@ function buildSystemPrompt(input: IvoAgentInput, memories: string[]): string {
   );
 
   const pageLabel = describePage(input.page);
+  const resourceContext = formatIvoResourceContext(input.resources ?? []);
   // While a task, a pending question, or an open draft is in play, the user is
   // mid-workflow. Standing memories must NOT be injected here — they are what
   // was causing Ivo to merge past actions in and switch the task type mid-flow.
@@ -897,6 +909,10 @@ function buildSystemPrompt(input: IvoAgentInput, memories: string[]): string {
       : "",
     input.activeDraft
       ? `- An unsent ${input.activeDraft.entityType.replace("_", " ")} draft is open in this chat. Edit requests to it → refine_active_draft.`
+      : "",
+    resourceContext,
+    resourceContext
+      ? "When an attached client or project is relevant to a creation request, pass that exact record id to start_task. Do not ask the user to identify it again."
       : "",
     "",
     !inActiveTask && memories.length > 0
@@ -1006,6 +1022,7 @@ export async function runIvoAgent(input: IvoAgentInput): Promise<IvoAgentResult 
   let model: string | null = null;
   let promptTokens = 0;
   let completionTokens = 0;
+  const reads: IvoAgentResult["reads"] = [];
 
   for (let round = 1; round <= MAX_ROUNDS; round++) {
     const result = await generateToolChat({
@@ -1037,6 +1054,7 @@ export async function runIvoAgent(input: IvoAgentInput): Promise<IvoAgentResult 
           rounds: round,
           promptTokens,
           completionTokens,
+          reads,
         };
       }
       // Unusable route call — tell the model and let it try again.
@@ -1118,6 +1136,13 @@ export async function runIvoAgent(input: IvoAgentInput): Promise<IvoAgentResult 
           tool_call_id: call.id,
           content: JSON.stringify(envelope),
         });
+        if (call.function.name !== "remember") {
+          reads.push({
+            tool: call.function.name,
+            scope: retrievalScope(call.function.name, args),
+            status: envelope.status,
+          });
+        }
       }
       continue;
     }
@@ -1134,6 +1159,7 @@ export async function runIvoAgent(input: IvoAgentInput): Promise<IvoAgentResult 
       rounds: round,
       promptTokens,
       completionTokens,
+      reads,
     };
   }
 

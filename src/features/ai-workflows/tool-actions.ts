@@ -35,6 +35,10 @@ import {
 import type { AiMissingField } from "./types";
 import type { IvoToolResponseDescriptor } from "./conversation-types";
 import { assertIvoToolPath, ivoToolApprovalState, ivoToolPolicy } from "./tool-registry";
+import {
+  approveAndSendPreparedActionAction,
+  resolveIvoPreparedActionAction,
+} from "./prepared-actions";
 
 type IvoCreateToolKey =
   | "client.create"
@@ -43,6 +47,8 @@ type IvoCreateToolKey =
   | "invoice.draft"
   | "invoice.unbilled_draft"
   | "contract.draft"
+  | "proposal.create"
+  | "meeting.create"
   | "welcome_document.draft";
 
 const toolInputSchema = z.object({
@@ -75,13 +81,20 @@ const explicitCreateToolInputSchema = z.object({
   runId: z.string().uuid().optional(),
   requestId: z.string().uuid(),
 });
+const preparedActionToolInputSchema = z.object({
+  conversationId: z.string().uuid(),
+  runId: z.string().uuid().optional(),
+  requestId: z.string().uuid(),
+  actionId: z.string().uuid(),
+});
 
 type ToolInput = z.input<typeof toolInputSchema>;
 type ToolRuntimeError = { ok: false; error: string };
 type ClientToolResult = Awaited<ReturnType<typeof createClientFromAiAction>>;
 type ProjectToolResult = Awaited<ReturnType<typeof createProjectFromAiAction>>;
 type TimeEntryToolResult = Awaited<ReturnType<typeof createTimeEntryFromAiAction>>;
-type ToolResult = ClientToolResult | ProjectToolResult | TimeEntryToolResult;
+type MeetingToolResult = Awaited<ReturnType<typeof createMeetingFromAiAction>>;
+type ToolResult = ClientToolResult | ProjectToolResult | TimeEntryToolResult | MeetingToolResult;
 type DraftToolError = {
   ok: false;
   error: string;
@@ -145,6 +158,20 @@ const unbilledInvoicePreviewSchema = z.object({
   currency: z.string(),
   hours: z.number(),
   lineCount: z.number().int().nonnegative(),
+});
+const proposalPreviewSchema = z.object({
+  id: z.string().uuid(),
+  title: z.string(),
+  clientName: z.string(),
+  total: z.number(),
+  currency: z.string(),
+});
+const meetingResultSchema = z.object({
+  id: z.string().uuid(),
+  publicToken: z.string().min(10),
+  topic: z.string(),
+  clientName: z.string(),
+  durationMinutes: z.number().int().positive(),
 });
 
 type ContractDraftToolResult =
@@ -266,7 +293,7 @@ async function requireOwnedContext(conversationId: string, runId?: string) {
 
 async function runCreateTool<T extends ToolResult>(
   toolKey: IvoCreateToolKey,
-  entityType: "client" | "project" | "time_entry",
+  entityType: "client" | "project" | "time_entry" | "meeting",
   rawInput: ToolInput,
   invoke: (input: z.output<typeof toolInputSchema>) => Promise<T>,
   readCached: (entityId: string, userId: string) => Promise<T | null>,
@@ -408,7 +435,7 @@ async function runCreateTool<T extends ToolResult>(
 
 async function runImmediateDraftTool<T extends { ok: true; data: unknown; message: string }>(
   toolKey: IvoCreateToolKey,
-  entityType: "invoice" | "contract" | "welcome_document",
+  entityType: "invoice" | "contract" | "proposal" | "welcome_document",
   rawInput: ToolInput,
   invoke: (input: z.output<typeof toolInputSchema>) => Promise<unknown>,
   normalize: (value: unknown) => T | DraftToolError,
@@ -1145,6 +1172,128 @@ async function runApprovedStatusTool<T extends { ok: boolean; error?: string }>(
   }
 }
 
+async function runPreparedActionTool(
+  toolKey: "prepared_action.send" | "prepared_action.dismiss",
+  rawInput: z.input<typeof preparedActionToolInputSchema>,
+  expectedStatus: "approved" | "dismissed",
+  invoke: (actionId: string) => Promise<{ ok: boolean; error?: string }>,
+) {
+  assertIvoToolPath(toolKey, "approved");
+  const parsed = preparedActionToolInputSchema.safeParse(rawInput);
+  if (!parsed.success) return { ok: false as const, error: "The prepared action request is invalid." };
+  const context = await requireOwnedContext(parsed.data.conversationId, parsed.data.runId);
+  if (!context) return { ok: false as const, error: "This prepared action is no longer available." };
+  const { supabase, userId } = context;
+  const requestKey = `${toolKey}:${parsed.data.requestId}`;
+
+  const { data: actionRaw } = await supabase
+    .from("ivo_prepared_actions")
+    .select("id, status, subject, body, recipient_email, updated_at")
+    .eq("id", parsed.data.actionId)
+    .eq("user_id", userId)
+    .maybeSingle();
+  const action = actionRaw as Record<string, unknown> | null;
+  if (!action) return { ok: false as const, error: "This prepared action no longer exists." };
+  const inputHash = createHash("sha256")
+    .update(JSON.stringify({
+      toolKey,
+      actionId: parsed.data.actionId,
+      subject: action.subject,
+      body: action.body,
+      recipientEmail: action.recipient_email,
+      updatedAt: action.updated_at,
+    }))
+    .digest("hex");
+
+  const { data: existingRaw } = await supabase
+    .from("ivo_action_attempts")
+    .select("id, status, input_summary")
+    .eq("user_id", userId)
+    .eq("idempotency_key", requestKey)
+    .maybeSingle();
+  const existing = existingRaw as { id: string; status: string; input_summary: Json } | null;
+  const existingHash = existing?.input_summary && typeof existing.input_summary === "object" &&
+    !Array.isArray(existing.input_summary) ? String(existing.input_summary.inputHash ?? "") : "";
+  if (existing && existingHash !== inputHash) {
+    return { ok: false as const, error: "This prepared draft changed. Please review it again." };
+  }
+  if (existing?.status === "succeeded") {
+    return action.status === expectedStatus
+      ? { ok: true as const, message: "This prepared action was already completed." }
+      : { ok: false as const, error: "The prepared action no longer matches its receipt." };
+  }
+  if (existing?.status === "executing") {
+    return { ok: false as const, error: "This prepared action is already being processed." };
+  }
+  if (action.status !== "ready") {
+    return { ok: false as const, error: "This prepared action was already handled." };
+  }
+
+  let attemptId: string | null = null;
+  if (existing?.status === "failed") {
+    const { data: claimed } = await supabase
+      .from("ivo_action_attempts")
+      .update({ status: "executing", error_code: null } as never)
+      .eq("id", existing.id)
+      .eq("user_id", userId)
+      .eq("status", "failed")
+      .select("id")
+      .maybeSingle();
+    attemptId = (claimed as { id?: string } | null)?.id ?? null;
+  } else {
+    const { data: inserted, error } = await supabase
+      .from("ivo_action_attempts")
+      .insert({
+        conversation_id: parsed.data.conversationId,
+        run_id: parsed.data.runId ?? null,
+        user_id: userId,
+        tool_key: toolKey,
+        idempotency_key: requestKey,
+        approval_state: ivoToolApprovalState(toolKey),
+        status: "executing",
+        input_summary: { inputHash, policy: ivoToolPolicy(toolKey) },
+        entity_type: "prepared_action",
+        entity_id: parsed.data.actionId,
+      } as never)
+      .select("id")
+      .maybeSingle();
+    if (error?.code === "23505") {
+      return { ok: false as const, error: "This prepared action is already being processed." };
+    }
+    if (error) log.warn("ivo.tool.prepared_claim_failed", { toolKey, code: error.code });
+    attemptId = (inserted as { id?: string } | null)?.id ?? null;
+  }
+  if (!attemptId) return { ok: false as const, error: "Ivo couldn't safely start this action." };
+
+  try {
+    const result = await invoke(parsed.data.actionId);
+    const { data: verifiedRaw } = result.ok
+      ? await supabase.from("ivo_prepared_actions").select("status")
+          .eq("id", parsed.data.actionId).eq("user_id", userId).maybeSingle()
+      : { data: null };
+    const verified = (verifiedRaw as { status?: string } | null)?.status === expectedStatus;
+    const succeeded = result.ok && verified;
+    await supabase.from("ivo_action_attempts").update({
+      status: succeeded ? "succeeded" : "failed",
+      error_code: succeeded ? null : result.ok ? "VERIFY_FAILED" : "ACTION_FAILED",
+      output_summary: succeeded ? { completed: true } : {},
+    } as never).eq("id", attemptId).eq("user_id", userId);
+    return succeeded
+      ? { ok: true as const, message: expectedStatus === "approved" ? "Prepared follow-up sent." : "Prepared follow-up dismissed." }
+      : { ok: false as const, error: result.error ?? "Ivo couldn't verify that action." };
+  } catch (error) {
+    await supabase.from("ivo_action_attempts")
+      .update({ status: "failed", error_code: "TOOL_RUNTIME_ERROR" } as never)
+      .eq("id", attemptId).eq("user_id", userId);
+    log.warn("ivo.tool.prepared_execution_failed", {
+      toolKey,
+      error: error instanceof Error ? error.message : "unknown",
+      entity: { type: "ivo_action_attempt", id: attemptId },
+    });
+    return { ok: false as const, error: "Ivo couldn't complete that prepared action." };
+  }
+}
+
 async function runApprovedEmailTool(
   toolKey: "invoice.email" | "contract.email" | "welcome_document.email",
   entityType: "invoice" | "contract" | "welcome_document",
@@ -1519,23 +1668,117 @@ export async function createUnbilledTimeInvoiceIvoToolAction(input: {
 }
 
 export async function createMeetingDraftIvoToolAction(input: ToolInput) {
-  const res = await createMeetingFromAiAction({
-    fields: input.fields,
-    clientId: input.clientId,
-    projectId: input.projectId,
-  });
-  if (!res.ok) return res;
-  return { ok: true as const, kind: "meeting" as const, meeting: res.data };
+  const result = await runCreateTool<MeetingToolResult>(
+    "meeting.create",
+    "meeting",
+    input,
+    (value) => createMeetingFromAiAction(value),
+    async (entityId, userId) => {
+      const supabase = await getServerSupabase();
+      const { data: meetingRaw } = await supabase
+        .from("meetings")
+        .select("id, public_token, topic, client_id, duration_minutes")
+        .eq("id", entityId)
+        .eq("user_id", userId)
+        .maybeSingle();
+      const meeting = meetingRaw as Record<string, unknown> | null;
+      if (!meeting) return null;
+      const { data: clientRaw } = meeting.client_id
+        ? await supabase
+            .from("clients")
+            .select("full_name, business_name")
+            .eq("id", String(meeting.client_id))
+            .eq("user_id", userId)
+            .maybeSingle()
+        : { data: null };
+      const client = clientRaw as Record<string, unknown> | null;
+      const parsed = meetingResultSchema.safeParse({
+        id: meeting.id,
+        publicToken: meeting.public_token,
+        topic: meeting.topic,
+        clientName: client?.business_name || client?.full_name || "your client",
+        durationMinutes: Number(meeting.duration_minutes ?? 30),
+      });
+      return parsed.success ? { ok: true as const, data: parsed.data } : null;
+    },
+  );
+  if (result.ok) {
+    return {
+      ...result,
+      kind: "meeting" as const,
+      meeting: result.data,
+      response: entityResponse("result", "Meeting created and booking link prepared.", {
+        type: "entity_result",
+        entityType: "meeting",
+        entityId: result.data.id,
+      }),
+    };
+  }
+  if ("needsConfirm" in result && result.needsConfirm) {
+    return {
+      ...result,
+      response: confirmationResponse(input.idempotencyKey, result.summary.title),
+    };
+  }
+  return result;
 }
 
 export async function createProposalDraftIvoToolAction(input: ToolInput) {
-  const res = await createProposalFromAiAction({
-    fields: input.fields,
-    clientId: input.clientId,
-    projectId: input.projectId,
-  });
-  if (!res.ok) return res;
-  return { ok: true as const, kind: "proposal" as const, proposal: res.data };
+  const result = await runImmediateDraftTool(
+    "proposal.create",
+    "proposal",
+    input,
+    (value) => createProposalFromAiAction(value),
+    (value) => {
+      const raw = value as { ok?: boolean; data?: unknown };
+      if (!raw?.ok) return normalizeFailure(value);
+      const preview = proposalPreviewSchema.safeParse(raw.data);
+      return preview.success
+        ? { ok: true as const, data: preview.data, message: "Proposal draft created." }
+        : { ok: false as const, error: "The proposal draft response was invalid." };
+    },
+    async (entityId, userId) => {
+      const supabase = await getServerSupabase();
+      const { data: proposalRaw } = await supabase
+        .from("proposals")
+        .select("id, title, client_id, total_amount, currency")
+        .eq("id", entityId)
+        .eq("user_id", userId)
+        .maybeSingle();
+      const proposal = proposalRaw as Record<string, unknown> | null;
+      if (!proposal) return null;
+      const { data: clientRaw } = proposal.client_id
+        ? await supabase
+            .from("clients")
+            .select("full_name, business_name")
+            .eq("id", String(proposal.client_id))
+            .eq("user_id", userId)
+            .maybeSingle()
+        : { data: null };
+      const client = clientRaw as Record<string, unknown> | null;
+      const parsed = proposalPreviewSchema.safeParse({
+        id: proposal.id,
+        title: proposal.title,
+        clientName: client?.business_name || client?.full_name || "Selected client",
+        total: Number(proposal.total_amount ?? 0),
+        currency: String(proposal.currency || "INR"),
+      });
+      return parsed.success
+        ? { ok: true as const, data: parsed.data, message: "Proposal draft created." }
+        : null;
+    },
+  );
+  if (!result.ok) return result;
+  return {
+    ...result,
+    kind: "proposal" as const,
+    proposal: result.data,
+    response: entityResponse("result", "Proposal draft ready for review.", {
+      type: "entity_result",
+      entityType: "proposal",
+      entityId: result.data.id,
+    }),
+  };
 }
 
 export async function createContractDraftIvoToolAction(
@@ -1547,13 +1790,10 @@ export async function createContractDraftIvoToolAction(
     (input.fields as Record<string, string> | undefined)?.type ?? "",
   );
   if (/proposal/i.test(typeField)) {
-    const proposal = await createProposalFromAiAction({
-      fields: input.fields,
-      clientId: input.clientId,
-      projectId: input.projectId,
-    });
-    if (!proposal.ok) return proposal;
-    return { ok: true as const, kind: "proposal" as const, proposal: proposal.data };
+    // Defensive compatibility for an older router that represented proposals
+    // as contract drafts. Still enter through the proposal tool so the action
+    // gets its own policy, idempotency claim, verification, and receipt.
+    return createProposalDraftIvoToolAction(input);
   }
 
   const result = await runImmediateDraftTool(
@@ -2365,6 +2605,28 @@ export async function saveWelcomeTemplateIvoToolAction(input: {
     outcomeResponse(
       "Saved as a reusable template — you'll see it next time you create a welcome document.",
     ),
+  );
+}
+
+export async function sendPreparedActionIvoToolAction(
+  input: z.input<typeof preparedActionToolInputSchema>,
+) {
+  return runPreparedActionTool(
+    "prepared_action.send",
+    input,
+    "approved",
+    (actionId) => approveAndSendPreparedActionAction({ id: actionId }),
+  );
+}
+
+export async function dismissPreparedActionIvoToolAction(
+  input: z.input<typeof preparedActionToolInputSchema>,
+) {
+  return runPreparedActionTool(
+    "prepared_action.dismiss",
+    input,
+    "dismissed",
+    (actionId) => resolveIvoPreparedActionAction({ id: actionId, resolution: "dismissed" }),
   );
 }
 

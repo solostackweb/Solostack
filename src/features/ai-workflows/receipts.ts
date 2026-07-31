@@ -30,6 +30,7 @@ export interface IvoExecutionReceipt {
   status: IvoReceiptStatus;
   /** Whether this action required the user's explicit approval. */
   requiredApproval: boolean;
+  approvalState: "not_required" | "required" | "approved" | "rejected";
   occurredAt: string;
   /** Route to the affected record, or null when it has no detail page. */
   href: string | null;
@@ -45,12 +46,15 @@ export interface IvoExecutionReceipt {
 const ENTITY_ROUTES: Record<IvoToolSpec["entityType"], ((id: string) => string) | null> = {
   invoice: (id) => `/dashboard/invoices/${id}`,
   contract: (id) => `/dashboard/contracts/${id}`,
+  proposal: (id) => `/dashboard/proposals/${id}`,
+  meeting: (id) => `/dashboard/meetings/${id}`,
   welcome_document: (id) => `/dashboard/welcome/${id}`,
   client: (id) => `/dashboard/clients/${id}`,
   project: (id) => `/dashboard/projects/${id}`,
   time_entry: null,
   support_ticket: null,
   welcome_document_template: null,
+  prepared_action: null,
 };
 
 export function receiptHref(
@@ -71,10 +75,12 @@ const TOOL_SUMMARIES: Record<IvoToolKey, string> = {
   "invoice.draft": "Drafted an invoice",
   "invoice.unbilled_draft": "Drafted an invoice from unbilled time",
   "contract.draft": "Drafted a contract",
+  "proposal.create": "Drafted a proposal",
   "welcome_document.draft": "Drafted a welcome document",
   "client.create": "Created a client",
   "project.create": "Created a project",
   "time_entry.create": "Logged a time entry",
+  "meeting.create": "Created a meeting and prepared its client invite",
   "support.forward": "Forwarded a question to support",
   "welcome_document.save_template": "Saved a welcome document template",
   "invoice.refine": "Updated an invoice draft",
@@ -87,6 +93,8 @@ const TOOL_SUMMARIES: Record<IvoToolKey, string> = {
   "contract.email": "Emailed a contract to the client",
   "welcome_document.email": "Emailed a welcome document to the client",
   "invoice.remind_overdue": "Sent overdue payment reminders",
+  "prepared_action.send": "Sent a prepared follow-up",
+  "prepared_action.dismiss": "Dismissed a prepared follow-up",
   "invoice.whatsapp_prepare": "Prepared an invoice WhatsApp share",
   "contract.whatsapp_prepare": "Prepared a contract WhatsApp share",
   "welcome_document.whatsapp_prepare": "Prepared a welcome document WhatsApp share",
@@ -114,6 +122,7 @@ export interface IvoLedgerRow {
   tool_key: string;
   entity_id: string | null;
   status: string;
+  approval_state?: string;
   created_at: string;
 }
 
@@ -133,6 +142,11 @@ export function buildIvoReceipt(row: IvoLedgerRow): IvoExecutionReceipt | null {
     entityId: row.entity_id,
     status: receiptStatus(row.status),
     requiredApproval: spec.requiresApproval,
+    approvalState:
+      row.approval_state === "approved" || row.approval_state === "rejected" ||
+      row.approval_state === "required" || row.approval_state === "not_required"
+        ? row.approval_state
+        : spec.requiresApproval ? "required" : "not_required",
     occurredAt: row.created_at,
     href: receiptHref(spec.entityType, row.entity_id),
     summary: TOOL_SUMMARIES[spec.key],

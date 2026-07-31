@@ -96,13 +96,12 @@ const GROQ_TIMEOUT_MS = 12_000;
 const GROQ_MAX_ATTEMPTS = 2;
 
 /**
- * Known-stable Groq production model. Groq regularly decommissions preview
- * models (e.g. qwen/qwen3-32b was retired 2026-06-17), after which the API
- * rejects requests for them with a 400/404. When the *configured* model is
- * rejected we transparently retry with this fallback so a single upstream
- * decommission can never silently break the in-app assistant.
+ * A separate production model used only if the configured model name is
+ * rejected. This must not point at Llama 3.3: Groq retires that developer-tier
+ * model on 2026-08-16. GPT-OSS 20B is the current production, low-cost escape
+ * hatch; deterministic routing still takes over if it cannot complete a call.
  */
-const GROQ_FALLBACK_MODEL = "llama-3.3-70b-versatile";
+const GROQ_FALLBACK_MODEL = "openai/gpt-oss-20b";
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 

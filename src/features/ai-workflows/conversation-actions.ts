@@ -19,9 +19,15 @@ import { loadMemories, runIvoAgent } from "./agent";
 import { ivoRuntimeDecisionSchema, planIvoRuntime } from "./runtime-planner";
 import { planIvoWorkflowNextAction } from "./workflow-progress";
 import {
+  ivoResourceReferenceSchema,
+  type IvoResolvedResource,
+  type IvoResourceReference,
+} from "./resource-mentions";
+import {
   EMPTY_IVO_WORKFLOW_STATE,
   IVO_MODES,
   type IvoConversationSnapshot,
+  type IvoConversationListItem,
   type IvoMessageBlockReference,
   type IvoMode,
   type IvoResolvedMessageBlock,
@@ -49,7 +55,7 @@ const messageBlockSchema = z.discriminatedUnion("type", [
   }),
   z.object({
     type: z.literal("entity_result"),
-    entityType: z.enum(["client", "project", "time_entry"]),
+    entityType: z.enum(["client", "project", "time_entry", "proposal", "meeting"]),
     entityId: z.string().uuid(),
   }),
   z.object({
@@ -83,14 +89,14 @@ const workflowStateSchema = z.object({
   collected: z.record(z.string().max(6000)).default({}),
   pendingField: pendingFieldSchema.default(null),
   pendingConfirmation: z.object({
-    workflow: z.enum(["client", "project", "time_entry"]),
-    tool: z.enum(["client.create", "project.create", "time_entry.create"]),
+    workflow: z.enum(["client", "project", "time_entry", "meeting"]),
+    tool: z.enum(["client.create", "project.create", "time_entry.create", "meeting.create"]),
     fields: z.record(z.string().max(6000)),
     cId: z.string().max(100),
     pId: z.string().max(100),
     toolRequestKey: z.string().trim().min(4).max(100),
     summary: z.object({
-      kind: z.enum(["client", "project", "time_entry"]),
+      kind: z.enum(["client", "project", "time_entry", "meeting"]),
       title: z.string().trim().min(1).max(1000),
       lines: z.array(z.tuple([z.string().max(300), z.string().max(1000)])).max(30),
     }),
@@ -126,6 +132,7 @@ const processMessageSchema = z.object({
     .optional(),
   /** Dashboard route the message was sent from, for page-aware answers. */
   page: z.string().max(200).optional(),
+  selectedResources: z.array(ivoResourceReferenceSchema).max(6).optional(),
 });
 const workflowProgressInputSchema = z.object({
   conversationId: conversationIdSchema,
@@ -140,6 +147,92 @@ async function requireUser() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error("Unauthorized");
   return { supabase, userId: user.id };
+}
+
+function compactText(value: unknown, max = 2000): string | null {
+  if (typeof value !== "string") return null;
+  const normalized = value.trim();
+  return normalized ? normalized.slice(0, max) : null;
+}
+
+async function resolveSelectedResources(
+  supabase: Awaited<ReturnType<typeof getServerSupabase>>,
+  userId: string,
+  references: IvoResourceReference[],
+): Promise<IvoResolvedResource[]> {
+  const unique = Array.from(
+    new Map(references.map((reference) => [`${reference.type}:${reference.id}`, reference])).values(),
+  ).slice(0, 6);
+  const resolved = await Promise.all(unique.map(async (reference): Promise<IvoResolvedResource | null> => {
+    if (reference.type === "client") {
+      const { data } = await supabase.from("clients")
+        .select("id, full_name, business_name, email, phone, country, currency, notes")
+        .eq("id", reference.id).eq("user_id", userId).maybeSingle();
+      const row = data as Record<string, unknown> | null;
+      if (!row) return null;
+      return {
+        ...reference,
+        label: String(row.business_name || row.full_name || "Client"),
+        details: {
+          name: String(row.business_name || row.full_name || "Client"),
+          email: compactText(row.email, 320), phone: compactText(row.phone, 80),
+          country: compactText(row.country, 120), currency: compactText(row.currency, 20),
+          notes: compactText(row.notes),
+        },
+      };
+    }
+    if (reference.type === "project") {
+      const { data } = await supabase.from("projects")
+        .select("id, name, description, status, client_id, start_date, due_date, hourly_rate")
+        .eq("id", reference.id).eq("user_id", userId).maybeSingle();
+      const row = data as Record<string, unknown> | null;
+      if (!row) return null;
+      return {
+        ...reference,
+        label: String(row.name || "Project"),
+        details: {
+          name: String(row.name || "Project"), description: compactText(row.description),
+          status: compactText(row.status, 80), clientId: compactText(row.client_id, 80),
+          startDate: compactText(row.start_date, 40), dueDate: compactText(row.due_date, 40),
+          hourlyRate: Number(row.hourly_rate || 0),
+        },
+      };
+    }
+    if (reference.type === "invoice") {
+      const { data } = await supabase.from("invoices")
+        .select("id, invoice_number, client_id, project_id, status, issue_date, due_date, total_amount, currency, notes, terms")
+        .eq("id", reference.id).eq("user_id", userId).maybeSingle();
+      const row = data as Record<string, unknown> | null;
+      if (!row) return null;
+      return {
+        ...reference,
+        label: String(row.invoice_number || "Invoice"),
+        details: {
+          invoiceNumber: String(row.invoice_number || "Invoice"),
+          clientId: compactText(row.client_id, 80), projectId: compactText(row.project_id, 80),
+          status: compactText(row.status, 80), issueDate: compactText(row.issue_date, 40),
+          dueDate: compactText(row.due_date, 40), totalAmount: Number(row.total_amount || 0),
+          currency: compactText(row.currency, 20), notes: compactText(row.notes), terms: compactText(row.terms),
+        },
+      };
+    }
+    const { data } = await supabase.from("welcome_documents")
+      .select("id, title, intro, content, status, client_id, project_id, published_at")
+      .eq("id", reference.id).eq("user_id", userId).is("deleted_at", null).maybeSingle();
+    const row = data as Record<string, unknown> | null;
+    if (!row) return null;
+    return {
+      ...reference,
+      label: String(row.title || "Welcome document"),
+      details: {
+        title: String(row.title || "Welcome document"), intro: compactText(row.intro),
+        content: compactText(row.content, 3000), status: compactText(row.status, 80),
+        clientId: compactText(row.client_id, 80), projectId: compactText(row.project_id, 80),
+        publishedAt: compactText(row.published_at, 40),
+      },
+    };
+  }));
+  return resolved.filter((resource): resource is IvoResolvedResource => resource !== null);
 }
 
 function parseState(value: Json): IvoWorkflowState {
@@ -241,6 +334,64 @@ async function resolveMessageBlock(
       const row = data as Record<string, unknown> | null;
       if (!row) return undefined;
       return { ...reference, data: { id: String(row.id), name: String(row.name) } };
+    }
+    if (reference.entityType === "proposal") {
+      const { data: proposalRaw } = await supabase
+        .from("proposals")
+        .select("id, title, client_id, total_amount, currency")
+        .eq("id", reference.entityId)
+        .eq("user_id", userId)
+        .maybeSingle();
+      const proposal = proposalRaw as Record<string, unknown> | null;
+      if (!proposal) return undefined;
+      const { data: clientRaw } = proposal.client_id
+        ? await supabase
+            .from("clients")
+            .select("full_name, business_name")
+            .eq("id", String(proposal.client_id))
+            .eq("user_id", userId)
+            .maybeSingle()
+        : { data: null };
+      const client = clientRaw as Record<string, unknown> | null;
+      return {
+        ...reference,
+        data: {
+          id: String(proposal.id),
+          title: String(proposal.title),
+          clientName: String(client?.business_name || client?.full_name || "Selected client"),
+          total: Number(proposal.total_amount ?? 0),
+          currency: String(proposal.currency || "INR"),
+        },
+      };
+    }
+    if (reference.entityType === "meeting") {
+      const { data: meetingRaw } = await supabase
+        .from("meetings")
+        .select("id, public_token, topic, client_id, duration_minutes")
+        .eq("id", reference.entityId)
+        .eq("user_id", userId)
+        .maybeSingle();
+      const meeting = meetingRaw as Record<string, unknown> | null;
+      if (!meeting) return undefined;
+      const { data: clientRaw } = meeting.client_id
+        ? await supabase
+            .from("clients")
+            .select("full_name, business_name")
+            .eq("id", String(meeting.client_id))
+            .eq("user_id", userId)
+            .maybeSingle()
+        : { data: null };
+      const client = clientRaw as Record<string, unknown> | null;
+      return {
+        ...reference,
+        data: {
+          id: String(meeting.id),
+          publicToken: String(meeting.public_token),
+          topic: String(meeting.topic),
+          clientName: String(client?.business_name || client?.full_name || "your client"),
+          durationMinutes: Number(meeting.duration_minutes ?? 30),
+        },
+      };
     }
     const { data } = await supabase
       .from("time_entries")
@@ -644,23 +795,135 @@ export async function startNewIvoConversationAction(): Promise<
 > {
   try {
     const { supabase, userId } = await requireUser();
-    await supabase
+    const previous = await findActiveConversation(userId);
+    const { error: archiveError } = await supabase
       .from("ivo_conversations")
       .update({ status: "archived" } as never)
       .eq("user_id", userId)
       .eq("status", "active");
+    if (archiveError) throw archiveError;
     const { data, error } = await supabase
       .from("ivo_conversations")
       .insert({ user_id: userId } as never)
       .select("*")
       .single();
-    if (error || !data) throw error ?? new Error("Conversation was not created");
+    if (error || !data) {
+      if (previous) {
+        await supabase
+          .from("ivo_conversations")
+          .update({ status: "active" } as never)
+          .eq("id", previous.id)
+          .eq("user_id", userId)
+          .eq("status", "archived");
+      }
+      throw error ?? new Error("Conversation was not created");
+    }
     return { ok: true, data: await readSnapshot(data as unknown as IvoConversationRow) };
   } catch (error) {
     log.warn("ivo.conversation.create_failed", {
       error: error instanceof Error ? error.message : "unknown",
     });
     return { ok: false, error: "Ivo could not start a new conversation." };
+  }
+}
+
+/** Recent user-owned conversations for the panel switcher. */
+export async function listIvoConversationsAction(): Promise<
+  { ok: true; data: IvoConversationListItem[] } | { ok: false; error: string }
+> {
+  try {
+    const { supabase, userId } = await requireUser();
+    const { data, error } = await supabase
+      .from("ivo_conversations")
+      .select("id, title, status, last_message_at, created_at")
+      .eq("user_id", userId)
+      .order("last_message_at", { ascending: false })
+      .limit(20);
+    if (error) throw error;
+    return {
+      ok: true,
+      data: ((data as Array<Record<string, unknown>> | null) ?? []).map((row) => ({
+        id: String(row.id),
+        title: typeof row.title === "string" && row.title.trim()
+          ? row.title.trim()
+          : "New conversation",
+        status: row.status === "active" ? "active" : "archived",
+        lastMessageAt: String(row.last_message_at),
+        createdAt: String(row.created_at),
+      })),
+    };
+  } catch (error) {
+    log.warn("ivo.conversation.list_failed", {
+      error: error instanceof Error ? error.message : "unknown",
+    });
+    return { ok: false, error: "Ivo could not load conversation history." };
+  }
+}
+
+/**
+ * Activate one owned historical conversation and return its canonical state.
+ * The prior active conversation is restored if activation fails after archive.
+ */
+export async function switchIvoConversationAction(
+  input: { conversationId: string },
+): Promise<{ ok: true; data: IvoConversationSnapshot } | { ok: false; error: string }> {
+  const parsed = z.object({ conversationId: conversationIdSchema }).safeParse(input);
+  if (!parsed.success) return { ok: false, error: "Invalid conversation." };
+  try {
+    const { supabase, userId } = await requireUser();
+    const { data: targetData, error: targetError } = await supabase
+      .from("ivo_conversations")
+      .select("*")
+      .eq("id", parsed.data.conversationId)
+      .eq("user_id", userId)
+      .maybeSingle();
+    if (targetError) throw targetError;
+    if (!targetData) return { ok: false, error: "Conversation not found." };
+    const target = targetData as unknown as IvoConversationRow;
+    if (target.status === "active") {
+      return { ok: true, data: await readSnapshot(target) };
+    }
+
+    const previous = await findActiveConversation(userId);
+    if (previous) {
+      const { error: archiveError } = await supabase
+        .from("ivo_conversations")
+        .update({ status: "archived" } as never)
+        .eq("id", previous.id)
+        .eq("user_id", userId)
+        .eq("status", "active");
+      if (archiveError) throw archiveError;
+    }
+
+    const { data: activatedData, error: activateError } = await supabase
+      .from("ivo_conversations")
+      .update({ status: "active" } as never)
+      .eq("id", target.id)
+      .eq("user_id", userId)
+      .eq("status", "archived")
+      .select("*")
+      .maybeSingle();
+    if (activateError || !activatedData) {
+      if (previous) {
+        await supabase
+          .from("ivo_conversations")
+          .update({ status: "active" } as never)
+          .eq("id", previous.id)
+          .eq("user_id", userId)
+          .eq("status", "archived");
+      }
+      throw activateError ?? new Error("Conversation was not activated");
+    }
+    return {
+      ok: true,
+      data: await readSnapshot(activatedData as unknown as IvoConversationRow),
+    };
+  } catch (error) {
+    log.warn("ivo.conversation.switch_failed", {
+      error: error instanceof Error ? error.message : "unknown",
+      entity: { type: "ivo_conversation", id: parsed.data.conversationId },
+    });
+    return { ok: false, error: "Ivo could not switch conversations." };
   }
 }
 
@@ -934,6 +1197,13 @@ export async function processIvoMessageAction(
     }
 
     const [clients, projects, profile, memories] = await workspacePromise;
+    const resources = await resolveSelectedResources(
+      supabase,
+      userId,
+      parsed.data.selectedResources ?? [],
+    );
+    const mentionedClientId = resources.find((resource) => resource.type === "client")?.id;
+    const mentionedProjectId = resources.find((resource) => resource.type === "project")?.id;
 
     // ---- Primary path: the model-driven agent loop ----------------------
     // The agent reads the workspace through tools, chooses the action, and
@@ -947,13 +1217,14 @@ export async function processIvoMessageAction(
         (profile?.displayName || profile?.fullName || "").trim().split(/\s+/)[0] || null,
       currentMode: parsed.data.currentWorkflow ?? "general",
       collected: parsed.data.collected ?? {},
-      clientId: parsed.data.clientId,
-      projectId: parsed.data.projectId,
+      clientId: parsed.data.clientId || mentionedClientId,
+      projectId: parsed.data.projectId || mentionedProjectId,
       pendingField: parsed.data.pendingField,
       activeDraft,
       page: parsed.data.page,
       clients,
       projects,
+      resources,
       requestId: runId,
       onStatus: hooks?.onStatus,
       onDelta: hooks?.onDelta,
@@ -1006,6 +1277,7 @@ export async function processIvoMessageAction(
               route: decision.kind,
               rounds: agent.rounds,
               nextAction: decision.kind === "workflow" ? decision.nextAction.kind : null,
+              reads: agent.reads,
             },
           } as never)
           .eq("id", runId)
@@ -1037,7 +1309,7 @@ export async function processIvoMessageAction(
       projects,
     });
     const resolvedClientForPlan =
-      result.interpretation.clientId || parsed.data.clientId || "";
+      result.interpretation.clientId || parsed.data.clientId || mentionedClientId || "";
     const selectedClientForPlan = clients.find(
       (client) => client.id === resolvedClientForPlan,
     );
@@ -1049,8 +1321,8 @@ export async function processIvoMessageAction(
         currentMode: parsed.data.currentWorkflow ?? "general",
         collected: parsed.data.collected ?? {},
         pendingField: parsed.data.pendingField,
-        clientId: parsed.data.clientId ?? "",
-        projectId: parsed.data.projectId ?? "",
+        clientId: parsed.data.clientId || mentionedClientId || "",
+        projectId: parsed.data.projectId || mentionedProjectId || "",
         clientCurrency: selectedClientForPlan?.isForeign
           ? selectedClientForPlan.currency
           : "INR",

@@ -14,6 +14,7 @@ import {
   ivoToolSpec,
   type IvoToolKey,
 } from "../tool-registry";
+import { IVO_WORKFLOW_TOOLS } from "../conversation-types";
 
 /**
  * The registry is only a safety control if it cannot drift from the code.
@@ -69,6 +70,15 @@ describe("tool registry — completeness", () => {
     const used = new Set(toolKeysUsedInSource());
     for (const key of IVO_TOOL_KEYS) {
       assert.ok(used.has(key), `"${key}" is declared but never used in tool-actions.ts`);
+    }
+  });
+
+  it("declares every workflow tool the planner can ask the panel to execute", () => {
+    for (const key of IVO_WORKFLOW_TOOLS) {
+      assert.ok(
+        key in IVO_TOOL_REGISTRY,
+        `workflow tool "${key}" is executable but missing from the registry`,
+      );
     }
   });
 
@@ -203,9 +213,14 @@ describe("tool registry — classification", () => {
   });
 
   it("classes every email and bulk reminder tool as external delivery", () => {
-    for (const key of ["invoice.email", "contract.email", "welcome_document.email", "invoice.remind_overdue"] as const) {
+    for (const key of ["invoice.email", "contract.email", "welcome_document.email", "invoice.remind_overdue", "meeting.create"] as const) {
       assert.equal(IVO_TOOL_REGISTRY[key].risk, "external_delivery", key);
     }
+  });
+
+  it("registers proposal drafts as reviewable internal work", () => {
+    assert.equal(IVO_TOOL_REGISTRY["proposal.create"].risk, "internal_draft");
+    assert.equal(IVO_TOOL_REGISTRY["proposal.create"].requiresApproval, false);
   });
 
   it("gives every tool a non-empty policy label for the ledger", () => {

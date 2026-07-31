@@ -53,6 +53,12 @@ describe("receipts — coverage", () => {
     }
   });
 
+  it("distinguishes waiting, approved, and rejected approval states", () => {
+    assert.equal(buildIvoReceipt(row({ approval_state: "required" }))?.approvalState, "required");
+    assert.equal(buildIvoReceipt(row({ approval_state: "approved" }))?.approvalState, "approved");
+    assert.equal(buildIvoReceipt(row({ approval_state: "rejected" }))?.approvalState, "rejected");
+  });
+
   it("drops a row for a tool that is no longer declared", () => {
     // Better an absent entry than one with invented metadata.
     assert.equal(buildIvoReceipt(row({ tool_key: "invoice.removed_long_ago" })), null);

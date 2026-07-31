@@ -93,7 +93,7 @@ export type IvoMessageBlockReference =
     }
   | {
       type: "entity_result";
-      entityType: "client" | "project" | "time_entry";
+      entityType: "client" | "project" | "time_entry" | "proposal" | "meeting";
       entityId: string;
     }
   | {
@@ -119,14 +119,14 @@ export interface IvoToolResponseDescriptor {
 }
 
 export interface IvoConfirmationSummary {
-  kind: "client" | "project" | "time_entry";
+  kind: "client" | "project" | "time_entry" | "meeting";
   title: string;
   lines: Array<[label: string, value: string]>;
 }
 
 export interface IvoPendingConfirmation {
-  workflow: "client" | "project" | "time_entry";
-  tool: Extract<IvoWorkflowTool, "client.create" | "project.create" | "time_entry.create">;
+  workflow: "client" | "project" | "time_entry" | "meeting";
+  tool: Extract<IvoWorkflowTool, "client.create" | "project.create" | "time_entry.create" | "meeting.create">;
   fields: AiFields;
   cId: string;
   pId: string;
@@ -139,6 +139,14 @@ export interface IvoConversationSnapshot {
   title: string | null;
   state: IvoWorkflowState;
   messages: IvoPersistedMessage[];
+}
+
+export interface IvoConversationListItem {
+  id: string;
+  title: string;
+  status: "active" | "archived";
+  lastMessageAt: string;
+  createdAt: string;
 }
 
 export type IvoRuntimeDecision =

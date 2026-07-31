@@ -324,10 +324,12 @@ export interface IvoConversationRow {
     | "general"
     | "invoice"
     | "contract"
+    | "proposal"
     | "welcome_document"
     | "client"
     | "project"
     | "time_entry"
+    | "meeting"
     | "support";
   workflow_state: Json;
   last_message_at: string;

@@ -6,8 +6,13 @@ import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import {
   ArrowUp,
+  ChevronDown,
+  Copy,
   Eraser,
   Lightbulb,
+  ListChecks,
+  MessageSquare,
+  Send,
   Plus,
   Sparkles,
   X,
@@ -31,6 +36,12 @@ import {
   listIvoPickerOptionsAction,
 } from "@/features/ai-workflows/read-actions";
 import { clearIvoMemoriesAction } from "@/features/ai-workflows/memory-actions";
+import { refreshIvoPreparedActionsAction } from "@/features/ai-workflows/prepared-action-actions";
+import type { IvoPreparedAction } from "@/features/ai-workflows/prepared-actions";
+import {
+  listIvoActivityAction,
+  type IvoActivityItem,
+} from "@/features/ai-workflows/receipt-actions";
 import { useIvoTools } from "@/features/ai-workflows/components/use-ivo-tools";
 import type { AssistantSuggestion } from "@/features/ai-workflows/suggestions";
 import type {
@@ -42,6 +53,7 @@ import type {
   AiWelcomeDocPreview,
   AiConfirmSummary,
   AiEntityOption,
+  AiResourceOption,
   AiInvoiceListRow,
   AiContractListRow,
   AiClientListRow,
@@ -88,11 +100,13 @@ import {
 import { IVO_ASK_EVENT, type IvoAskDetail } from "./ivo-entry-point";
 import {
   appendIvoMessageAction,
+  listIvoConversationsAction,
   planIvoWorkflowProgressAction,
   processIvoMessageAction,
   resumeIvoConversationAction,
   saveIvoConversationStateAction,
   startNewIvoConversationAction,
+  switchIvoConversationAction,
 } from "@/features/ai-workflows/conversation-actions";
 import {
   createClientIvoToolAction,
@@ -112,6 +126,7 @@ import {
   remindOverdueInvoicesIvoToolAction,
 } from "@/features/ai-workflows/tool-actions";
 import type {
+  IvoConversationListItem,
   IvoConversationSnapshot,
   IvoPendingConfirmation,
   IvoResolvedMessageBlock,
@@ -139,6 +154,26 @@ function formatAssistantMessageContent(content: string): string {
     .replace(/([.!?])\s+(Next:|Focus:|Watch:|Tip:)/g, "$1\n$2")
     .replace(/^\n+/, "")
     .trim();
+}
+
+function formatConversationTime(value: string): string {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  const now = new Date();
+  if (date.toDateString() === now.toDateString()) {
+    return new Intl.DateTimeFormat(undefined, { hour: "numeric", minute: "2-digit" }).format(date);
+  }
+  return new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric" }).format(date);
+}
+
+function activityStatusLabel(item: IvoActivityItem): string {
+  if (item.status === "in_progress" && item.approvalState === "required") return "Awaiting approval";
+  if (item.status === "in_progress") return "In progress";
+  if (item.status === "succeeded") return item.kind === "read" ? "Read" : "Completed";
+  if (item.status === "empty") return "No matches";
+  if (item.status === "unavailable") return "Unavailable";
+  if (item.status === "cancelled") return "Cancelled";
+  return "Failed";
 }
 
 type ProcessIvoResult = Awaited<ReturnType<typeof processIvoMessageAction>>;
@@ -204,7 +239,8 @@ export function StackivoAiAssistant({ user }: StackivoAiAssistantProps) {
   const [pickerOptions, setPickerOptions] = React.useState<{
     clients: AiEntityOption[];
     projects: AiEntityOption[];
-  }>({ clients: [], projects: [] });
+    resources: AiResourceOption[];
+  }>({ clients: [], projects: [], resources: [] });
   const clients = pickerOptions.clients;
   const projects = pickerOptions.projects;
   const pickerOptionsLoadedRef = React.useRef(false);
@@ -216,10 +252,20 @@ export function StackivoAiAssistant({ user }: StackivoAiAssistantProps) {
   const [panelWidth, setPanelWidth] = React.useState(440);
   const [mode, setMode] = React.useState<AiMode>("general");
   const [input, setInput] = React.useState("");
+  const [selectedResources, setSelectedResources] = React.useState<AiResourceOption[]>([]);
   const [suggestions, setSuggestions] = React.useState<AssistantSuggestion[]>([]);
+  const [preparedActions, setPreparedActions] = React.useState<IvoPreparedAction[]>([]);
+  const [expandedPreparedAction, setExpandedPreparedAction] = React.useState<string | null>(null);
+  const [preparedActionBusy, setPreparedActionBusy] = React.useState<string | null>(null);
   const [aiUsage, setAiUsage] = React.useState<{ used: number; limit: number; plan: string } | null>(null);
   const [conversationId, setConversationId] = React.useState<string | null>(null);
+  const [conversationHistory, setConversationHistory] = React.useState<IvoConversationListItem[]>([]);
+  const [conversationMenuOpen, setConversationMenuOpen] = React.useState(false);
+  const [activityItems, setActivityItems] = React.useState<IvoActivityItem[]>([]);
+  const [activityOpen, setActivityOpen] = React.useState(false);
+  const [activityUnavailable, setActivityUnavailable] = React.useState(false);
   const suggestionsLoaded = React.useRef(false);
+  const preparedActionsLoaded = React.useRef(false);
   const submitRef = React.useRef<((text?: string) => void) | null>(null);
   const userFirstName = React.useMemo(
     () => user?.name?.trim().split(/\s+/)[0] ?? "",
@@ -232,6 +278,15 @@ export function StackivoAiAssistant({ user }: StackivoAiAssistantProps) {
     suggestionsLoaded.current = true;
     void getAssistantSuggestionsAction().then((res) => {
       if (res.ok) setSuggestions(res.data.suggestions);
+    });
+  }, [open]);
+
+  React.useEffect(() => {
+    if (!open || preparedActionsLoaded.current) return;
+    preparedActionsLoaded.current = true;
+    void refreshIvoPreparedActionsAction().then((result) => {
+      if (result.ok) setPreparedActions(result.data);
+      else preparedActionsLoaded.current = false;
     });
   }, [open]);
   const [collected, setCollected] = React.useState<AiFields>({});
@@ -313,6 +368,7 @@ export function StackivoAiAssistant({ user }: StackivoAiAssistantProps) {
 
   const handleNewConversation = React.useCallback(() => {
     conversationHydratedRef.current = true;
+    setConversationMenuOpen(false);
     const priorLoad = conversationLoadRef.current;
     const priorWrites = conversationWriteQueueRef.current;
     setConversationId(null);
@@ -328,12 +384,16 @@ export function StackivoAiAssistant({ user }: StackivoAiAssistantProps) {
       }
       conversationIdRef.current = result.data.id;
       setConversationId(result.data.id);
+      void listIvoConversationsAction().then((history) => {
+        if (history.ok) setConversationHistory(history.data);
+      });
       return result.data;
     });
     setMode("general");
     setCollected({});
     setPendingField(null);
     setInput("");
+    setSelectedResources([]);
     setClientId("");
     setProjectId("");
     setLastInvoicePreview(null);
@@ -392,6 +452,44 @@ export function StackivoAiAssistant({ user }: StackivoAiAssistantProps) {
   // conversation binding and per-scope idempotency keys cannot be forgotten.
   const tools = useIvoTools({ conversationIdRef, activeRunIdRef, ensureConversation });
 
+  const handlePreparedActionSend = React.useCallback((action: IvoPreparedAction) => {
+    if (preparedActionBusy) return;
+    setPreparedActionBusy(action.id);
+    startTransition(async () => {
+      const result = await tools.sendPreparedAction(action.id);
+      setPreparedActionBusy(null);
+      if (!result.ok) {
+        toast.error(result.error);
+        return;
+      }
+      setPreparedActions((current) => current.filter((item) => item.id !== action.id));
+      toast.success("Follow-up sent and recorded in Ivo activity.");
+    });
+  }, [preparedActionBusy, tools]);
+
+  const handlePreparedActionDismiss = React.useCallback((action: IvoPreparedAction) => {
+    if (preparedActionBusy) return;
+    setPreparedActionBusy(action.id);
+    startTransition(async () => {
+      const result = await tools.dismissPreparedAction(action.id);
+      setPreparedActionBusy(null);
+      if (!result.ok) {
+        toast.error(result.error);
+        return;
+      }
+      setPreparedActions((current) => current.filter((item) => item.id !== action.id));
+    });
+  }, [preparedActionBusy, tools]);
+
+  const handlePreparedActionCopy = React.useCallback(async (action: IvoPreparedAction) => {
+    try {
+      await navigator.clipboard.writeText(`${action.subject}\n\n${action.body}`);
+      toast.success("Draft copied.");
+    } catch {
+      toast.error("Couldn't copy the draft.");
+    }
+  }, []);
+
   React.useEffect(() => { setMounted(true); }, []);
 
   // Load picker options the first time the panel opens. Deliberately not
@@ -402,7 +500,11 @@ export function StackivoAiAssistant({ user }: StackivoAiAssistantProps) {
     pickerOptionsLoadedRef.current = true;
     void listIvoPickerOptionsAction()
       .then((options) => {
-        setPickerOptions({ clients: options.clients, projects: options.projects });
+        setPickerOptions({
+          clients: options.clients,
+          projects: options.projects,
+          resources: options.resources,
+        });
       })
       .catch(() => {
         // Leave the lists empty and allow a retry on the next open. The picker
@@ -412,67 +514,155 @@ export function StackivoAiAssistant({ user }: StackivoAiAssistantProps) {
       });
   }, [open]);
 
+  const applyConversationSnapshot = React.useCallback((snapshot: IvoConversationSnapshot) => {
+    const restored: Message[] = snapshot.messages.map((message) => ({
+      id: message.id,
+      role: message.role,
+      content: message.content,
+      suggestions: message.suggestions,
+      tip: message.tip,
+      persistedBlock: message.block,
+    }));
+    const state = snapshot.state;
+    const lastText = snapshot.messages.at(-1)?.content;
+    if (state.pendingField && lastText !== state.pendingField.question) {
+      restored.push({
+        id: `resume-${snapshot.id}`,
+        role: "assistant",
+        content: state.pendingField.question,
+      });
+    }
+
+    conversationIdRef.current = snapshot.id;
+    setConversationId(snapshot.id);
+    transcriptRef.current = snapshot.messages
+      .map(({ role, content }) => ({ role, content }))
+      .slice(-12);
+    setMessages(restored);
+    setActivityOpen(false);
+    setInput("");
+    setSelectedResources([]);
+    setLastInvoicePreview(null);
+    setActiveInvoice(null);
+    setActiveContract(null);
+    setActiveWelcomeDoc(null);
+    activeRunIdRef.current = null;
+    pendingSupportForwardRef.current = null;
+    pendingUnbilledClientRef.current = null;
+
+    // Restore only canonical, still-editable entity cards. This reset-first
+    // approach prevents drafts or approvals from the previous conversation
+    // leaking into the newly selected one.
+    const lastBlock = [...snapshot.messages]
+      .reverse()
+      .find((message) => message.block)?.block;
+    if (lastBlock?.type === "entity_preview" && lastBlock.entityType === "invoice") {
+      const preview = lastBlock.data as unknown as AiInvoicePreview;
+      setLastInvoicePreview(preview);
+      if (lastBlock.variant === "draft" && preview.status === "draft") setActiveInvoice(preview);
+    } else if (lastBlock?.type === "entity_preview" && lastBlock.entityType === "contract") {
+      const preview = lastBlock.data as unknown as AiContractPreview;
+      if (lastBlock.variant === "draft" && preview.status === "draft") setActiveContract(preview);
+    } else if (lastBlock?.type === "entity_preview" && lastBlock.entityType === "welcome_document") {
+      const preview = lastBlock.data as unknown as AiWelcomeDocPreview;
+      if (lastBlock.variant === "draft" && preview.status === "draft") setActiveWelcomeDoc(preview);
+    }
+
+    setMode(state.mode);
+    setCollected(state.collected);
+    setPendingField(state.pendingField);
+    setPendingConfirm(state.pendingConfirmation);
+    setPendingProposal(state.pendingProposal);
+    setClientId(state.clientId);
+    setProjectId(state.projectId);
+  }, []);
+
+  const handleSwitchConversation = React.useCallback((targetId: string) => {
+    if (pending || targetId === conversationIdRef.current) {
+      setConversationMenuOpen(false);
+      return;
+    }
+    startTransition(async () => {
+      const currentId = conversationIdRef.current;
+      if (currentId) {
+        // Flush visible workflow state before archiving the thread. Message
+        // writes are serialized separately; wait for those as well so the
+        // history snapshot cannot lose the user's last turn.
+        await conversationWriteQueueRef.current.catch(() => undefined);
+        await saveIvoConversationStateAction({
+          conversationId: currentId,
+          state: {
+            version: 1,
+            mode,
+            collected,
+            pendingField,
+            pendingConfirmation: pendingConfirmRef.current,
+            pendingProposal,
+            clientId,
+            projectId,
+          },
+        });
+      }
+      const result = await switchIvoConversationAction({ conversationId: targetId });
+      if (!result.ok) {
+        toast.error(result.error);
+        return;
+      }
+      applyConversationSnapshot(result.data);
+      setConversationMenuOpen(false);
+      const refreshed = await listIvoConversationsAction();
+      if (refreshed.ok) setConversationHistory(refreshed.data);
+    });
+  }, [
+    applyConversationSnapshot,
+    clientId,
+    collected,
+    mode,
+    pending,
+    pendingField,
+    pendingProposal,
+    projectId,
+  ]);
+
   // Restore the active textual conversation and resumable workflow state once.
   React.useEffect(() => {
     if (!open || conversationHydratedRef.current) return;
     conversationHydratedRef.current = true;
     void ensureConversation().then((snapshot) => {
       if (!snapshot || transcriptRef.current.length > 0) return;
-      const restored: Message[] = snapshot.messages.map((message) => ({
-        id: message.id,
-        role: message.role,
-        content: message.content,
-        suggestions: message.suggestions,
-        tip: message.tip,
-        persistedBlock: message.block,
-      }));
-      const state = snapshot.state;
-      const lastText = snapshot.messages.at(-1)?.content;
-      if (state.pendingField && lastText !== state.pendingField.question) {
-        restored.push({
-          id: `resume-${snapshot.id}`,
-          role: "assistant",
-          content: state.pendingField.question,
-        });
-      }
-      transcriptRef.current = snapshot.messages
-        .map(({ role, content }) => ({ role, content }))
-        .slice(-12);
-      setMessages(restored);
-
-      // Resume the most recently persisted entity card from canonical data.
-      // Only genuine drafts become refinement targets; published/sent records
-      // remain visible but cannot accidentally be edited through a stale card.
-      const lastBlock = [...snapshot.messages]
-        .reverse()
-        .find((message) => message.block)?.block;
-      if (lastBlock?.type === "entity_preview" && lastBlock.entityType === "invoice") {
-        const preview = lastBlock.data as unknown as AiInvoicePreview;
-        setLastInvoicePreview(preview);
-        if (lastBlock.variant === "draft" && preview.status === "draft") {
-          setActiveInvoice(preview);
-        }
-      } else if (lastBlock?.type === "entity_preview" && lastBlock.entityType === "contract") {
-        const preview = lastBlock.data as unknown as AiContractPreview;
-        if (lastBlock.variant === "draft" && preview.status === "draft") {
-          setActiveContract(preview);
-        }
-      } else if (lastBlock?.type === "entity_preview" && lastBlock.entityType === "welcome_document") {
-        const preview = lastBlock.data as unknown as AiWelcomeDocPreview;
-        if (lastBlock.variant === "draft" && preview.status === "draft") {
-          setActiveWelcomeDoc(preview);
-        }
-      }
-
-      setMode(state.mode);
-      setCollected(state.collected);
-      setPendingField(state.pendingField);
-      setPendingConfirm(state.pendingConfirmation);
-      setPendingProposal(state.pendingProposal);
-      setClientId(state.clientId);
-      setProjectId(state.projectId);
+      applyConversationSnapshot(snapshot);
     });
-  }, [ensureConversation, open]);
+  }, [applyConversationSnapshot, ensureConversation, open]);
+
+  React.useEffect(() => {
+    if (!open) return;
+    void listIvoConversationsAction().then((result) => {
+      if (result.ok) setConversationHistory(result.data);
+    });
+  }, [conversationId, open]);
+
+  React.useEffect(() => {
+    if (!open) setConversationMenuOpen(false);
+  }, [open]);
+
+  React.useEffect(() => {
+    if (!open || !conversationId || pending) return;
+    let active = true;
+    void listIvoActivityAction({ conversationId, limit: 30 }).then((result) => {
+      if (!active) return;
+      if (result.ok) {
+        setActivityItems(result.data.items);
+        setActivityUnavailable(false);
+      } else {
+        setActivityUnavailable(true);
+      }
+    });
+    return () => { active = false; };
+  }, [conversationId, open, pending]);
+
+  React.useEffect(() => {
+    if (!open) setActivityOpen(false);
+  }, [open]);
 
   // Refresh the AI usage indicator each time the panel opens.
   React.useEffect(() => {
@@ -601,6 +791,15 @@ export function StackivoAiAssistant({ user }: StackivoAiAssistantProps) {
         ...transcriptRef.current,
         { role: message.role, content: message.content },
       ].slice(-12);
+      if (message.role === "user" && conversationIdRef.current) {
+        const activeId = conversationIdRef.current;
+        const nextTitle = message.content.replace(/\s+/g, " ").trim().slice(0, 80);
+        setConversationHistory((current) => current.map((conversation) =>
+          conversation.id === activeId && conversation.title === "New conversation"
+            ? { ...conversation, title: nextTitle || conversation.title, lastMessageAt: new Date().toISOString() }
+            : conversation,
+        ));
+      }
     }
     if (persistedContent) {
       // Persistence is deliberately best-effort: a temporary database problem
@@ -1251,7 +1450,7 @@ export function StackivoAiAssistant({ user }: StackivoAiAssistantProps) {
       toolRequestKey = crypto.randomUUID(),
       plannedAction?: IvoWorkflowNextAction,
     ) => {
-      let effectiveToolRequestKey = toolRequestKey;
+      let effectiveToolRequestKey: string = toolRequestKey;
       let sequencedTool: IvoWorkflowTool | null = null;
       const actionInput = {
         fields,
@@ -1265,6 +1464,8 @@ export function StackivoAiAssistant({ user }: StackivoAiAssistantProps) {
         (workflow === "client" ||
           workflow === "project" ||
           workflow === "time_entry" ||
+          workflow === "meeting" ||
+          workflow === "proposal" ||
           workflow === "invoice" ||
           workflow === "contract" ||
           workflow === "welcome_document") &&
@@ -1284,6 +1485,8 @@ export function StackivoAiAssistant({ user }: StackivoAiAssistantProps) {
               ? { workflow: "project" as const, tool: "project.create" as const }
               : workflow === "time_entry" && sequencedTool === "time_entry.create"
                 ? { workflow: "time_entry" as const, tool: "time_entry.create" as const }
+                : workflow === "meeting" && sequencedTool === "meeting.create"
+                  ? { workflow: "meeting" as const, tool: "meeting.create" as const }
                 : null;
         if (!confirmationTarget) {
           push({ role: "assistant", content: "I couldn't safely prepare that confirmation." });
@@ -1647,6 +1850,7 @@ export function StackivoAiAssistant({ user }: StackivoAiAssistantProps) {
           const p = res.proposal;
           push({
             role: "assistant",
+            persistence: res.response,
             content: (
               <div className="space-y-3">
                 <p className="font-medium">Proposal draft created</p>
@@ -1681,7 +1885,8 @@ export function StackivoAiAssistant({ user }: StackivoAiAssistantProps) {
           }
           const res = await createMeetingDraftIvoToolAction(toolActionInput);
           if (!res.ok) {
-            push({ role: "assistant", content: res.error });
+            if ("needsConfirm" in res && res.needsConfirm) showConfirm(res.summary, res.response);
+            else push({ role: "assistant", content: res.error });
             return;
           }
           finish();
@@ -1692,6 +1897,7 @@ export function StackivoAiAssistant({ user }: StackivoAiAssistantProps) {
               : `/m/${m.publicToken}`;
           push({
             role: "assistant",
+            persistence: res.response,
             content: (
               <div className="space-y-3">
                 <p className="font-medium">Call scheduled</p>
@@ -1751,6 +1957,7 @@ export function StackivoAiAssistant({ user }: StackivoAiAssistantProps) {
             const p = res.proposal;
             push({
               role: "assistant",
+              persistence: res.response,
               content: (
                 <div className="space-y-3">
                   <p className="font-medium">Proposal draft created</p>
@@ -1913,7 +2120,9 @@ export function StackivoAiAssistant({ user }: StackivoAiAssistantProps) {
   const handleSubmit = React.useCallback((override?: string) => {
     const text = (override ?? input).trim();
     if (!text || pending) return;
+    const resourcesForMessage = override ? [] : selectedResources;
     setInput("");
+    setSelectedResources([]);
     const userMessageId = push({ role: "user", content: text });
 
     // Resolve an outstanding "forward this to support?" offer before anything
@@ -2085,7 +2294,7 @@ export function StackivoAiAssistant({ user }: StackivoAiAssistantProps) {
     // INSTANTLY on-device instead of paying a full server + model round-trip
     // (and an AI-quota message). Short messages only, so "hi, invoice Acme
     // 5000" still reaches the agent intact.
-    if (!pendingField && text.trim().length <= 40) {
+    if (!pendingField && resourcesForMessage.length === 0 && text.trim().length <= 40) {
       const chat = conversationalReply(text, userFirstName);
       if (chat) {
         push({ role: "assistant", content: chat });
@@ -2156,6 +2365,7 @@ export function StackivoAiAssistant({ user }: StackivoAiAssistantProps) {
         projectId,
         history: transcriptRef.current.slice(0, -1),
         page: typeof window !== "undefined" ? window.location.pathname : undefined,
+        selectedResources: resourcesForMessage.map(({ type, id }) => ({ type, id })),
       };
       // Stream-first (live progress + token streaming), server action as the
       // resilient fallback.
@@ -2494,7 +2704,35 @@ export function StackivoAiAssistant({ user }: StackivoAiAssistantProps) {
     runListProjects,
     runListWelcomeDocs,
     userFirstName,
+    selectedResources,
   ]);
+
+  const mentionMatch = React.useMemo(() => input.match(/@([^@\]\n]*)$/), [input]);
+  const mentionQuery = mentionMatch?.[1]?.trim().toLowerCase() ?? null;
+  const mentionOptions = React.useMemo(() => {
+    if (mentionQuery === null) return [];
+    const alreadySelected = new Set(selectedResources.map((resource) => `${resource.type}:${resource.id}`));
+    return pickerOptions.resources
+      .filter((resource) => !alreadySelected.has(`${resource.type}:${resource.id}`))
+      .filter((resource) => {
+        const haystack = `${resource.label} ${resource.subtitle} ${resource.type}`.toLowerCase();
+        return !mentionQuery || haystack.includes(mentionQuery);
+      })
+      .slice(0, 8);
+  }, [mentionQuery, pickerOptions.resources, selectedResources]);
+
+  const selectMention = React.useCallback((resource: AiResourceOption) => {
+    setSelectedResources((current) =>
+      current.some((item) => item.type === resource.type && item.id === resource.id)
+        ? current
+        : [...current, resource].slice(0, 6),
+    );
+    setInput((current) => {
+      const match = current.match(/@([^@\]\n]*)$/);
+      if (!match || match.index === undefined) return `${current} @[${resource.label}] `;
+      return `${current.slice(0, match.index)}@[${resource.label}] `;
+    });
+  }, []);
 
   // Keep a live ref to handleSubmit so list rows (rendered as message content)
   // can dispatch a follow-up prompt without depending on declaration order.
@@ -2631,6 +2869,39 @@ export function StackivoAiAssistant({ user }: StackivoAiAssistantProps) {
             actionLabel="Open projects"
             onAction={() => router.push("/dashboard/projects")}
           />
+        );
+      }
+      if (block.entityType === "proposal") {
+        return (
+          <ResultBlock
+            title="Proposal draft created"
+            description={`${String(data.title ?? "Proposal")} for ${String(data.clientName ?? "the client")} · ${formatMoney(Number(data.total ?? 0), String(data.currency ?? "INR"))}.`}
+            actionLabel="Open proposal"
+            onAction={() => router.push(`/dashboard/proposals/${String(data.id)}`)}
+          />
+        );
+      }
+      if (block.entityType === "meeting") {
+        const shareUrl = `${window.location.origin}/m/${String(data.publicToken ?? "")}`;
+        return (
+          <ResultBlock
+            title="Meeting created"
+            description={`${String(data.topic ?? "Call")} with ${String(data.clientName ?? "the client")} · ${Number(data.durationMinutes ?? 30)} min. The booking link is ready.`}
+            actionLabel="Open meeting"
+            onAction={() => router.push(`/dashboard/meetings/${String(data.id)}`)}
+          >
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              onClick={() => {
+                void navigator.clipboard.writeText(shareUrl);
+                toast.success("Link copied");
+              }}
+            >
+              Copy booking link
+            </Button>
+          </ResultBlock>
         );
       }
       return (
@@ -2788,7 +3059,7 @@ export function StackivoAiAssistant({ user }: StackivoAiAssistantProps) {
           )}
         >
           {/* Header */}
-          <div className="sticky top-0 z-10 flex h-14 items-center gap-2 border-b bg-background px-3">
+          <div className="sticky top-0 z-30 flex h-14 items-center gap-2 border-b bg-background px-3">
             <div className="flex min-w-0 flex-1 items-center gap-2.5 font-semibold">
               <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-indigo-500 text-white shadow-sm shadow-primary/20">
                 {(() => {
@@ -2799,19 +3070,145 @@ export function StackivoAiAssistant({ user }: StackivoAiAssistantProps) {
                   return <HeaderIcon className="h-4 w-4" />;
                 })()}
               </span>
-              <span className="flex min-w-0 flex-col leading-tight">
-                <span className="truncate">
-                  {mode === "general"
-                    ? ASSISTANT_NAME
-                    : QUICK_ACTIONS.find((a) => a.mode === mode)?.title ?? "New conversation"}
-                </span>
-                {mode === "general" ? (
+              <button
+                type="button"
+                className="flex min-w-0 items-center gap-1 rounded-md px-1 py-0.5 text-left hover:bg-muted"
+                onClick={() => {
+                  setActivityOpen(false);
+                  setConversationMenuOpen((current) => !current);
+                }}
+                aria-expanded={conversationMenuOpen}
+                aria-label="Open conversation history"
+              >
+                <span className="flex min-w-0 flex-col leading-tight">
+                  <span className="max-w-[220px] truncate">
+                    {conversationHistory.find((conversation) => conversation.id === conversationId)?.title ??
+                      (mode === "general"
+                        ? ASSISTANT_NAME
+                        : QUICK_ACTIONS.find((action) => action.mode === mode)?.title ?? "New conversation")}
+                  </span>
                   <span className="text-[10px] font-medium text-emerald-600 dark:text-emerald-400">
                     Connected to your workspace
                   </span>
-                ) : null}
-              </span>
+                </span>
+                <ChevronDown className={cn(
+                  "h-3.5 w-3.5 shrink-0 text-muted-foreground transition-transform",
+                  conversationMenuOpen && "rotate-180",
+                )} />
+              </button>
             </div>
+            {conversationMenuOpen ? (
+              <div className="absolute left-3 right-3 top-[calc(100%+6px)] z-50 overflow-hidden rounded-xl border bg-popover shadow-xl">
+                <div className="flex items-center justify-between border-b px-3 py-2">
+                  <span className="text-xs font-semibold">Recent conversations</span>
+                  <button
+                    type="button"
+                    disabled={pending}
+                    className="text-[11px] font-medium text-primary hover:underline"
+                    onClick={handleNewConversation}
+                  >
+                    New conversation
+                  </button>
+                </div>
+                <div className="max-h-72 overflow-y-auto p-1.5">
+                  {conversationHistory.length > 0 ? conversationHistory.map((conversation) => {
+                    const active = conversation.id === conversationId;
+                    return (
+                      <button
+                        key={conversation.id}
+                        type="button"
+                        disabled={pending}
+                        onClick={() => handleSwitchConversation(conversation.id)}
+                        className={cn(
+                          "flex w-full items-start gap-2.5 rounded-lg px-2.5 py-2 text-left hover:bg-muted disabled:opacity-60",
+                          active && "bg-primary/5",
+                        )}
+                      >
+                        <MessageSquare className={cn(
+                          "mt-0.5 h-4 w-4 shrink-0",
+                          active ? "text-primary" : "text-muted-foreground",
+                        )} />
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate text-sm font-medium">{conversation.title}</span>
+                          <span className="block text-[11px] text-muted-foreground">
+                            {active ? "Current · " : ""}{formatConversationTime(conversation.lastMessageAt)}
+                          </span>
+                        </span>
+                      </button>
+                    );
+                  }) : (
+                    <p className="px-3 py-5 text-center text-xs text-muted-foreground">
+                      No previous conversations yet.
+                    </p>
+                  )}
+                </div>
+              </div>
+            ) : null}
+            {activityOpen ? (
+              <div className="absolute left-3 right-3 top-[calc(100%+6px)] z-50 overflow-hidden rounded-xl border bg-popover shadow-xl">
+                <div className="flex items-center justify-between border-b px-3 py-2">
+                  <span className="text-xs font-semibold">Ivo activity</span>
+                  <span className="text-[10px] text-muted-foreground">Verified from the ledger</span>
+                </div>
+                <div className="max-h-80 overflow-y-auto p-2">
+                  {activityUnavailable ? (
+                    <p className="px-3 py-5 text-center text-xs text-amber-700 dark:text-amber-300">
+                      Activity couldn't be read right now. This does not mean nothing happened.
+                    </p>
+                  ) : activityItems.length > 0 ? (
+                    <div className="relative space-y-1 before:absolute before:bottom-3 before:left-[13px] before:top-3 before:w-px before:bg-border">
+                      {activityItems.map((item) => {
+                        const statusLabel = activityStatusLabel(item);
+                        const statusClass =
+                          item.status === "succeeded" || item.status === "empty"
+                            ? "bg-emerald-500"
+                            : item.status === "in_progress"
+                              ? "bg-amber-500"
+                              : item.status === "cancelled"
+                                ? "bg-muted-foreground"
+                                : "bg-destructive";
+                        return (
+                          <button
+                            key={item.id}
+                            type="button"
+                            disabled={!item.href}
+                            onClick={() => {
+                              if (!item.href) return;
+                              setActivityOpen(false);
+                              router.push(item.href);
+                            }}
+                            className={cn(
+                              "relative flex w-full items-start gap-3 rounded-lg px-2 py-2 text-left",
+                              item.href && "hover:bg-muted",
+                            )}
+                          >
+                            <span className={cn(
+                              "relative z-10 mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full ring-4 ring-popover",
+                              statusClass,
+                            )} />
+                            <span className="min-w-0 flex-1">
+                              <span className="flex items-center justify-between gap-2">
+                                <span className="truncate text-xs font-medium">{item.title}</span>
+                                <span className="shrink-0 text-[10px] text-muted-foreground">
+                                  {formatConversationTime(item.occurredAt)}
+                                </span>
+                              </span>
+                              <span className="mt-0.5 block truncate text-[10px] text-muted-foreground">
+                                {statusLabel}{item.detail ? ` · ${item.detail}` : ""}
+                              </span>
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <p className="px-3 py-5 text-center text-xs text-muted-foreground">
+                      No workspace reads or actions in this conversation yet.
+                    </p>
+                  )}
+                </div>
+              </div>
+            ) : null}
             <div className="flex shrink-0 items-center gap-0.5">
               {aiUsage && aiUsage.limit >= 0 ? (
                 <span
@@ -2832,6 +3229,20 @@ export function StackivoAiAssistant({ user }: StackivoAiAssistantProps) {
                 variant="ghost"
                 size="icon"
                 className="h-8 w-8"
+                onClick={() => {
+                  setConversationMenuOpen(false);
+                  setActivityOpen((current) => !current);
+                }}
+                aria-label="Open Ivo activity"
+                title="Ivo activity"
+              >
+                <ListChecks className="h-4 w-4" />
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8"
                 onClick={handleClearMemory}
                 disabled={clearingMemory}
                 aria-label="Reset Ivo's memory"
@@ -2845,6 +3256,7 @@ export function StackivoAiAssistant({ user }: StackivoAiAssistantProps) {
                 size="icon"
                 className="h-8 w-8"
                 onClick={handleNewConversation}
+                disabled={pending}
                 aria-label="New conversation"
               >
                 <Plus className="h-4 w-4" />
@@ -2949,6 +3361,114 @@ export function StackivoAiAssistant({ user }: StackivoAiAssistantProps) {
                     </span>
                   </button>
                 ))}
+
+                {preparedActions.length > 0 ? (
+                  <div className="mt-5">
+                    <div className="mb-2 flex items-center justify-between gap-2">
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                        Prepared for you
+                      </p>
+                      <span className="text-[10px] text-muted-foreground">
+                        Nothing sends without approval
+                      </span>
+                    </div>
+                    <div className="space-y-2">
+                      {preparedActions.map((action) => {
+                        const expanded = expandedPreparedAction === action.id;
+                        const busy = preparedActionBusy === action.id;
+                        return (
+                          <div
+                            key={action.id}
+                            className={cn(
+                              "overflow-hidden rounded-xl border bg-background/95",
+                              action.tone === "danger" && "border-destructive/30",
+                              action.tone === "warning" && "border-amber-500/30",
+                            )}
+                          >
+                            <button
+                              type="button"
+                              className="flex w-full items-start gap-2.5 p-3 text-left hover:bg-muted/50"
+                              onClick={() => setExpandedPreparedAction(expanded ? null : action.id)}
+                              aria-expanded={expanded}
+                            >
+                              <span className={cn(
+                                "mt-1.5 h-2 w-2 shrink-0 rounded-full",
+                                action.tone === "danger" ? "bg-destructive" :
+                                  action.tone === "warning" ? "bg-amber-500" : "bg-primary",
+                              )} />
+                              <span className="min-w-0 flex-1">
+                                <span className="block truncate text-sm font-medium">{action.title}</span>
+                                <span className="mt-0.5 block text-xs leading-relaxed text-muted-foreground">
+                                  {action.description}
+                                </span>
+                              </span>
+                              <ChevronDown className={cn(
+                                "mt-0.5 h-4 w-4 shrink-0 text-muted-foreground transition-transform",
+                                expanded && "rotate-180",
+                              )} />
+                            </button>
+                            {expanded ? (
+                              <div className="border-t bg-muted/20 px-3 pb-3 pt-2.5">
+                                <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                                  To {action.recipientName || "recipient"}
+                                  {action.recipientEmail ? ` · ${action.recipientEmail}` : " · no email on file"}
+                                </p>
+                                <p className="mt-2 text-xs font-semibold">{action.subject}</p>
+                                <p className="mt-1.5 whitespace-pre-wrap text-xs leading-relaxed text-muted-foreground">
+                                  {action.body}
+                                </p>
+                                <div className="mt-3 flex flex-wrap items-center gap-1.5">
+                                  <Button
+                                    type="button"
+                                    size="sm"
+                                    className="h-7 gap-1.5 text-xs"
+                                    disabled={busy || !action.recipientEmail}
+                                    onClick={() => handlePreparedActionSend(action)}
+                                  >
+                                    <Send className="h-3 w-3" />
+                                    Approve &amp; send
+                                  </Button>
+                                  <Button
+                                    type="button"
+                                    size="sm"
+                                    variant="outline"
+                                    className="h-7 gap-1.5 text-xs"
+                                    disabled={busy}
+                                    onClick={() => void handlePreparedActionCopy(action)}
+                                  >
+                                    <Copy className="h-3 w-3" /> Copy
+                                  </Button>
+                                  {action.href ? (
+                                    <Button
+                                      type="button"
+                                      size="sm"
+                                      variant="ghost"
+                                      className="h-7 text-xs"
+                                      disabled={busy}
+                                      onClick={() => router.push(action.href!)}
+                                    >
+                                      Open record
+                                    </Button>
+                                  ) : null}
+                                  <Button
+                                    type="button"
+                                    size="sm"
+                                    variant="ghost"
+                                    className="ml-auto h-7 text-xs text-muted-foreground"
+                                    disabled={busy}
+                                    onClick={() => handlePreparedActionDismiss(action)}
+                                  >
+                                    Dismiss
+                                  </Button>
+                                </div>
+                              </div>
+                            ) : null}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ) : null}
 
                 {suggestions.length > 0 ? (
                   <div className="mt-5">
@@ -3071,7 +3591,58 @@ export function StackivoAiAssistant({ user }: StackivoAiAssistantProps) {
 
           {/* Input area */}
           <div className="sticky bottom-0 border-t bg-background px-4 py-3">
-            <div className="flex items-end gap-2 rounded-2xl border bg-background py-2 pl-3.5 pr-2 focus-within:border-primary/60 focus-within:ring-4 focus-within:ring-primary/15">
+            {selectedResources.length > 0 ? (
+              <div className="mb-2 flex flex-wrap gap-1.5" aria-label="Attached workspace resources">
+                {selectedResources.map((resource) => (
+                  <span
+                    key={`${resource.type}:${resource.id}`}
+                    className="inline-flex max-w-full items-center gap-1 rounded-full border border-primary/20 bg-primary/5 py-1 pl-2.5 pr-1.5 text-[11px] font-medium text-foreground"
+                  >
+                    <span className="text-primary">@</span>
+                    <span className="truncate">{resource.label}</span>
+                    <button
+                      type="button"
+                      className="rounded-full p-0.5 text-muted-foreground hover:bg-background hover:text-foreground"
+                      onClick={() => setSelectedResources((current) => current.filter(
+                        (item) => !(item.type === resource.type && item.id === resource.id),
+                      ))}
+                      aria-label={`Remove ${resource.label}`}
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </span>
+                ))}
+              </div>
+            ) : null}
+            <div className="relative">
+              {mentionQuery !== null ? (
+                <div className="absolute bottom-full left-0 right-0 z-20 mb-2 max-h-64 overflow-y-auto rounded-xl border bg-popover p-1.5 shadow-xl">
+                  {mentionOptions.length > 0 ? mentionOptions.map((resource) => (
+                    <button
+                      key={`${resource.type}:${resource.id}`}
+                      type="button"
+                      onMouseDown={(event) => event.preventDefault()}
+                      onClick={() => selectMention(resource)}
+                      className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left hover:bg-muted"
+                    >
+                      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-primary/10 text-xs font-semibold uppercase text-primary">
+                        {resource.type === "welcome_document" ? "WD" : resource.type.slice(0, 1)}
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-sm font-medium">{resource.label}</span>
+                        <span className="block truncate text-[11px] capitalize text-muted-foreground">
+                          {resource.type.replace("_", " ")} · {resource.subtitle}
+                        </span>
+                      </span>
+                    </button>
+                  )) : (
+                    <p className="px-3 py-3 text-xs text-muted-foreground">
+                      No matching clients, projects, invoices, or welcome documents.
+                    </p>
+                  )}
+                </div>
+              ) : null}
+              <div className="flex items-end gap-2 rounded-2xl border bg-background py-2 pl-3.5 pr-2 focus-within:border-primary/60 focus-within:ring-4 focus-within:ring-primary/15">
               <Textarea
                 value={input}
                 data-testid="ai-chat-input"
@@ -3101,13 +3672,12 @@ export function StackivoAiAssistant({ user }: StackivoAiAssistantProps) {
               >
                 <ArrowUp className="h-4 w-4" />
               </Button>
+              </div>
             </div>
             <div className="mt-2 space-y-1 px-1">
               <p className="flex flex-wrap items-center gap-1.5 text-[11px] text-muted-foreground">
                 <Lightbulb className="h-3 w-3 shrink-0 text-primary/60" />
-                Tip: use
-                <Plus className="inline h-3 w-3 shrink-0" />
-                to start fresh, or just ask Ivo to switch tasks.
+                Type @ to attach a client, project, invoice, or welcome document.
               </p>
               <p className="text-center text-[10px] text-muted-foreground/70">
                 AI can make mistakes — please review everything before approving or sending.

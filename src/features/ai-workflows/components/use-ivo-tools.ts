@@ -14,6 +14,8 @@ import {
   prepareWelcomeWhatsAppIvoToolAction,
   publishWelcomeDocumentIvoToolAction,
   saveWelcomeTemplateIvoToolAction,
+  sendPreparedActionIvoToolAction,
+  dismissPreparedActionIvoToolAction,
 } from "@/features/ai-workflows/tool-actions";
 
 /**
@@ -234,6 +236,28 @@ export function useIvoTools({
     [base, conversation],
   );
 
+  const sendPreparedAction = React.useCallback(
+    async (actionId: string) => {
+      const conversationId = await conversation();
+      if (!conversationId) return noConversation("prepared delivery");
+      return withRequestKey(`prepared_action.send:${actionId}`, undefined, (requestId) =>
+        sendPreparedActionIvoToolAction({ ...base(conversationId), actionId, requestId }),
+      );
+    },
+    [base, conversation, withRequestKey],
+  );
+
+  const dismissPreparedAction = React.useCallback(
+    async (actionId: string) => {
+      const conversationId = await conversation();
+      if (!conversationId) return noConversation("prepared action");
+      return withRequestKey(`prepared_action.dismiss:${actionId}`, undefined, (requestId) =>
+        dismissPreparedActionIvoToolAction({ ...base(conversationId), actionId, requestId }),
+      );
+    },
+    [base, conversation, withRequestKey],
+  );
+
   return React.useMemo(
     () => ({
       approveInvoice,
@@ -247,6 +271,8 @@ export function useIvoTools({
       prepareWelcomeWhatsApp,
       publishWelcomeDocument,
       saveWelcomeTemplate,
+      sendPreparedAction,
+      dismissPreparedAction,
     }),
     [
       approveInvoice,
@@ -260,6 +286,8 @@ export function useIvoTools({
       prepareWelcomeWhatsApp,
       publishWelcomeDocument,
       saveWelcomeTemplate,
+      sendPreparedAction,
+      dismissPreparedAction,
     ],
   );
 }

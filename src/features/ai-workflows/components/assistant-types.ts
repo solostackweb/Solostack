@@ -4,6 +4,7 @@ import type {
   IvoResolvedMessageBlock,
   IvoToolResponseDescriptor,
 } from "@/features/ai-workflows/conversation-types";
+import type { IvoResourceReference } from "@/features/ai-workflows/resource-mentions";
 
 /**
  * Shared types for the Stackivo AI assistant. Extracted from the main
@@ -18,6 +19,11 @@ export interface AiEntityOption {
   currency?: string | null;
   isForeign?: boolean | null;
   country?: string | null;
+}
+
+export interface AiResourceOption extends IvoResourceReference {
+  label: string;
+  subtitle: string;
 }
 
 /**
@@ -127,7 +133,7 @@ export interface AiWelcomeDocPreview {
 }
 
 export interface AiConfirmSummary {
-  kind: "client" | "project" | "time_entry";
+  kind: "client" | "project" | "time_entry" | "meeting";
   title: string;
   lines: Array<[label: string, value: string]>;
 }

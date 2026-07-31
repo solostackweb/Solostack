@@ -24,11 +24,13 @@ export const IVO_TOOL_KEYS = [
   "invoice.draft",
   "invoice.unbilled_draft",
   "contract.draft",
+  "proposal.create",
   "welcome_document.draft",
   // Direct creation of workspace records on explicit request.
   "client.create",
   "project.create",
   "time_entry.create",
+  "meeting.create",
   "support.forward",
   "welcome_document.save_template",
   // Refinement of an existing owned draft.
@@ -44,6 +46,8 @@ export const IVO_TOOL_KEYS = [
   "contract.email",
   "welcome_document.email",
   "invoice.remind_overdue",
+  "prepared_action.send",
+  "prepared_action.dismiss",
   // A shareable link is prepared; the user still sends it themselves.
   "invoice.whatsapp_prepare",
   "contract.whatsapp_prepare",
@@ -74,12 +78,15 @@ export interface IvoToolSpec {
   entityType:
     | "invoice"
     | "contract"
+    | "proposal"
+    | "meeting"
     | "welcome_document"
     | "client"
     | "project"
     | "time_entry"
     | "support_ticket"
-    | "welcome_document_template";
+    | "welcome_document_template"
+    | "prepared_action";
   /**
    * Whether the user must explicitly approve this exact action before it runs.
    * Draft creation is exempt because the draft itself IS the approval surface —
@@ -112,11 +119,15 @@ export const IVO_TOOL_REGISTRY: Record<IvoToolKey, IvoToolSpec> = {
   "invoice.draft": spec("invoice.draft", "invoice", "internal_draft", "internal_draft_review_after_creation", DRAFT),
   "invoice.unbilled_draft": spec("invoice.unbilled_draft", "invoice", "internal_draft", "internal_draft_review_after_creation", DRAFT),
   "contract.draft": spec("contract.draft", "contract", "internal_draft", "internal_draft_review_after_creation", DRAFT),
+  "proposal.create": spec("proposal.create", "proposal", "internal_draft", "internal_draft_review_after_creation", DRAFT),
   "welcome_document.draft": spec("welcome_document.draft", "welcome_document", "internal_draft", "internal_draft_review_after_creation", DRAFT),
 
   "client.create": spec("client.create", "client", "explicit_creation", "explicit_user_creation_action", APPROVED),
   "project.create": spec("project.create", "project", "explicit_creation", "explicit_user_creation_action", APPROVED),
   "time_entry.create": spec("time_entry.create", "time_entry", "explicit_creation", "explicit_user_creation_action", APPROVED),
+  // Creating a meeting also emails the client its booking link, so this is an
+  // external delivery rather than an ordinary workspace-only creation.
+  "meeting.create": spec("meeting.create", "meeting", "external_delivery", "explicit_user_external_delivery", APPROVED),
   "support.forward": spec("support.forward", "support_ticket", "explicit_creation", "explicit_user_creation_action", APPROVED),
   "welcome_document.save_template": spec("welcome_document.save_template", "welcome_document_template", "explicit_creation", "explicit_user_creation_action", APPROVED),
 
@@ -134,6 +145,8 @@ export const IVO_TOOL_REGISTRY: Record<IvoToolKey, IvoToolSpec> = {
   "contract.email": spec("contract.email", "contract", "external_delivery", "explicit_user_external_delivery", APPROVED),
   "welcome_document.email": spec("welcome_document.email", "welcome_document", "external_delivery", "explicit_user_external_delivery", APPROVED),
   "invoice.remind_overdue": spec("invoice.remind_overdue", "invoice", "external_delivery", "explicit_user_bulk_delivery", APPROVED),
+  "prepared_action.send": spec("prepared_action.send", "prepared_action", "external_delivery", "explicit_user_external_delivery", APPROVED),
+  "prepared_action.dismiss": spec("prepared_action.dismiss", "prepared_action", "status_change", "explicit_user_status_action", APPROVED),
 
   "invoice.whatsapp_prepare": spec("invoice.whatsapp_prepare", "invoice", "share_preparation", "explicit_user_share_preparation", APPROVED),
   "contract.whatsapp_prepare": spec("contract.whatsapp_prepare", "contract", "share_preparation", "explicit_user_share_preparation", APPROVED),
