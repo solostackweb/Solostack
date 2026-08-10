@@ -100,6 +100,10 @@ export type IvoMessageBlockReference =
   | {
       type: "confirmation";
       requestId: string;
+    }
+  | {
+      type: "prepared_action";
+      actionId: string;
     };
 
 export type IvoResolvedMessageBlock = IvoMessageBlockReference & { data: Json };
@@ -161,6 +165,8 @@ export type IvoRuntimeDecision =
   | { kind: "list"; entityType: "welcome_document"; filter: "open" | "all" }
   | { kind: "business_query" }
   | { kind: "support" }
+  | { kind: "questionnaire"; projectId?: string }
+  | { kind: "project_followup"; clientId: string; projectId?: string }
   | { kind: "refine"; entityType: IvoMessageBlockEntity | "questionnaire"; entityId: string }
   | { kind: "overdue_reminders"; action: "propose" | "execute" | "dismiss" }
   | { kind: "unbilled_invoice"; send: boolean; clientId?: string }

@@ -8,6 +8,7 @@ import { getServerSupabase } from "@/lib/supabase/server";
 import type { IvoConversationRow, IvoMessageRow, Json } from "@/lib/supabase/types";
 import { aiGenerateLimit } from "@/lib/rate-limit";
 import { listClients } from "@/features/clients/server";
+import { getClientDisplayName } from "@/features/clients/utils";
 import { listProjects } from "@/features/projects/server";
 import { getUsageSnapshot, getCurrentSubscription } from "@/features/subscription/server";
 import { incrementUsage } from "@/features/subscription/usage";
@@ -17,7 +18,12 @@ import { normalizeQuestions } from "@/features/questionnaires/types";
 import { AI_WORKFLOWS, type AiInterpretation } from "./types";
 import { interpretMessageDetailed } from "./nlu";
 import { loadMemories, runIvoAgent } from "./agent";
-import { ivoRuntimeDecisionSchema, planIvoRuntime } from "./runtime-planner";
+import {
+  isQuestionnaireCreationRequest,
+  isProjectFollowupRequest,
+  ivoRuntimeDecisionSchema,
+  planIvoRuntime,
+} from "./runtime-planner";
 import { planIvoWorkflowNextAction } from "./workflow-progress";
 import {
   ivoResourceReferenceSchema,
@@ -63,6 +69,10 @@ const messageBlockSchema = z.discriminatedUnion("type", [
   z.object({
     type: z.literal("confirmation"),
     requestId: z.string().trim().min(4).max(100),
+  }),
+  z.object({
+    type: z.literal("prepared_action"),
+    actionId: z.string().uuid(),
   }),
 ]);
 const messageSchema = z.object({
@@ -305,6 +315,34 @@ async function resolveMessageBlock(
     const pending = state.pendingConfirmation;
     if (!pending || pending.toolRequestKey !== reference.requestId) return undefined;
     return { ...reference, data: pending.summary as unknown as Json };
+  }
+
+  if (reference.type === "prepared_action") {
+    const { data } = await supabase
+      .from("ivo_prepared_actions")
+      .select("id, kind, title, description, subject, body, recipient_name, recipient_email, href, tone, created_at")
+      .eq("id", reference.actionId)
+      .eq("user_id", userId)
+      .eq("status", "ready")
+      .maybeSingle();
+    const row = data as Record<string, unknown> | null;
+    if (!row) return undefined;
+    return {
+      ...reference,
+      data: {
+        id: String(row.id),
+        kind: String(row.kind),
+        title: String(row.title),
+        description: String(row.description || ""),
+        subject: String(row.subject || ""),
+        body: String(row.body || ""),
+        recipientName: row.recipient_name ? String(row.recipient_name) : null,
+        recipientEmail: row.recipient_email ? String(row.recipient_email) : null,
+        href: row.href ? String(row.href) : null,
+        tone: String(row.tone || "info"),
+        createdAt: String(row.created_at),
+      } as Json,
+    };
   }
 
   if (reference.type === "picker") {
@@ -1344,6 +1382,116 @@ export async function processIvoMessageAction(
     );
     const mentionedClientId = resources.find((resource) => resource.type === "client")?.id;
     const mentionedProjectId = resources.find((resource) => resource.type === "project")?.id;
+
+    if (!parsed.data.pendingField && isQuestionnaireCreationRequest(parsed.data.message)) {
+      const requestedProjectId = parsed.data.projectId || mentionedProjectId || "";
+      const ownedProjectId = projects.some((project) => project.id === requestedProjectId)
+        ? requestedProjectId
+        : undefined;
+      const decision = {
+        kind: "questionnaire" as const,
+        ...(ownedProjectId ? { projectId: ownedProjectId } : {}),
+      };
+      const interpretation: AiInterpretation = {
+        intent: "general",
+        confident: true,
+        fields: {},
+        provider: "local",
+      };
+      await supabase
+        .from("ivo_runs")
+        .update({
+          provider: "deterministic",
+          model: null,
+          status: "succeeded",
+          outcome: "questionnaire_workflow",
+          duration_ms: Date.now() - startedAt,
+          finished_at: new Date().toISOString(),
+          metadata: { route: "questionnaire", projectSelected: Boolean(ownedProjectId) },
+        } as never)
+        .eq("id", runId)
+        .eq("user_id", userId);
+      return {
+        ok: true as const,
+        data: {
+          interpretation,
+          decision,
+          say: ownedProjectId
+            ? "Let's prepare it from this project's real context."
+            : "Let's ground it in a project first. Choose the project this questionnaire is for.",
+          runId,
+          usageConsumed,
+        },
+      };
+    }
+
+    if (!parsed.data.pendingField && isProjectFollowupRequest(parsed.data.message)) {
+      const searchable = [
+        parsed.data.message,
+        ...(parsed.data.history ?? []).slice(-3).map((entry) => entry.content),
+      ].join(" ").toLowerCase();
+      const containsName = (name: string) => {
+        const normalized = name.trim().toLowerCase();
+        if (!normalized) return false;
+        if (searchable.includes(normalized)) return true;
+        const first = normalized.split(/\s+/)[0];
+        return first.length >= 3 && new RegExp(`\\b${first.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "i").test(searchable);
+      };
+      const requestedProjectId = parsed.data.projectId || mentionedProjectId || "";
+      const selectedProject =
+        projects.find((project) => project.id === requestedProjectId) ??
+        projects.find((project) => containsName(project.name));
+      const requestedClientId =
+        parsed.data.clientId || mentionedClientId || selectedProject?.clientId || "";
+      const namedClients = clients.filter((client) =>
+        containsName(client.fullName) ||
+        Boolean(client.businessName && containsName(client.businessName)) ||
+        containsName(getClientDisplayName(client)),
+      );
+      const selectedClient =
+        clients.find((client) => client.id === requestedClientId) ??
+        (namedClients.length === 1 ? namedClients[0] : undefined);
+
+      if (selectedClient) {
+        const project = selectedProject?.clientId === selectedClient.id ? selectedProject : undefined;
+        const decision = {
+          kind: "project_followup" as const,
+          clientId: selectedClient.id,
+          ...(project ? { projectId: project.id } : {}),
+        };
+        const interpretation: AiInterpretation = {
+          intent: "general",
+          confident: true,
+          fields: {},
+          clientId: selectedClient.id,
+          ...(project ? { projectId: project.id } : {}),
+          provider: "local",
+        };
+        await supabase
+          .from("ivo_runs")
+          .update({
+            provider: "deterministic",
+            model: null,
+            status: "succeeded",
+            outcome: "project_followup_workflow",
+            duration_ms: Date.now() - startedAt,
+            finished_at: new Date().toISOString(),
+            metadata: { route: "project_followup", projectSelected: Boolean(project) },
+          } as never)
+          .eq("id", runId)
+          .eq("user_id", userId);
+        return {
+          ok: true as const,
+          data: {
+            interpretation,
+            decision,
+            say: `I'll prepare a reviewable email to ${selectedClient.fullName || getClientDisplayName(selectedClient)}. Nothing will send until you approve it.`,
+            runId,
+            usageConsumed,
+          },
+        };
+      }
+    }
 
     // ---- Primary path: the model-driven agent loop ----------------------
     // The agent reads the workspace through tools, chooses the action, and

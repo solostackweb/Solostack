@@ -54,6 +54,12 @@ export const ivoRuntimeDecisionSchema = z.union([
   z.object({ kind: z.literal("list"), entityType: z.literal("welcome_document"), filter: z.enum(["open", "all"]) }),
   z.object({ kind: z.literal("business_query") }),
   z.object({ kind: z.literal("support") }),
+  z.object({ kind: z.literal("questionnaire"), projectId: z.string().uuid().optional() }),
+  z.object({
+    kind: z.literal("project_followup"),
+    clientId: z.string().uuid(),
+    projectId: z.string().uuid().optional(),
+  }),
   z.object({
     kind: z.literal("refine"),
     entityType: z.enum(["invoice", "contract", "questionnaire", "welcome_document"]),
@@ -83,6 +89,23 @@ export const ivoRuntimeDecisionSchema = z.union([
 const BUSINESS_DATA_QUESTION =
   /\b(how much|how many|revenue|earned?|earnings|income|turnover|sales|paid|unpaid|owe[sd]?|outstanding|overdue|unbilled|receivable|receivables|collected|collection|collections|follow ?up|followups?|this month|last month|this year|this quarter|top clients?|best clients?|biggest clients?|largest clients?|top customers?|best customers?|top customer|best customer|made|balance due|collection rate|collection plan|concentration|risk|cash ?flow|business summary|how am i doing|health|focus|attention|what needs attention|what should i focus on|what should i do today|priorit(?:y|ies)|today'?s focus|today'?s priorities)\b/;
 const PRICING_QUESTION = /\b(price|pricing|plan|plans|cost|subscription|upgrade)\b/;
+const QUESTIONNAIRE_REQUEST = /\b(questionnaire|intake form|discovery form|client brief(?:ing)? form)\b/i;
+const QUESTIONNAIRE_ACTION = /\b(help(?: me)?|create|draft|prepare|build|make|generate|set up|write)\b/i;
+const FOLLOWUP_ACTION = /\b(send|write|draft|prepare|create|make|help(?: me)?(?: write)?)\b/i;
+const FOLLOWUP_REQUEST = /\b(remind(?:er)?|follow[ -]?up|check[ -]?in|nudge)\b/i;
+const PAYMENT_FOLLOWUP = /\b(invoice|payment|paid|unpaid|overdue|outstanding|past[- ]?due|money|amount)\b/i;
+
+export function isQuestionnaireCreationRequest(message: string): boolean {
+  return QUESTIONNAIRE_REQUEST.test(message) && QUESTIONNAIRE_ACTION.test(message);
+}
+
+export function isProjectFollowupRequest(message: string): boolean {
+  return (
+    FOLLOWUP_ACTION.test(message) &&
+    FOLLOWUP_REQUEST.test(message) &&
+    !PAYMENT_FOLLOWUP.test(message)
+  );
+}
 
 function isBusinessDataQuestion(text: string) {
   const normalized = text.trim().toLowerCase();
@@ -169,6 +192,22 @@ export function planIvoRuntime(input: {
   const normalized = message.trim().toLowerCase().replace(/[!.]+$/g, "");
 
   if (!pendingField) {
+    if (isQuestionnaireCreationRequest(message)) {
+      return {
+        kind: "questionnaire",
+        ...(z.string().uuid().safeParse(projectId).success ? { projectId } : {}),
+      };
+    }
+    if (isProjectFollowupRequest(message)) {
+      const resolvedClientId = interpretation.clientId || clientId;
+      if (z.string().uuid().safeParse(resolvedClientId).success) {
+        return {
+          kind: "project_followup",
+          clientId: resolvedClientId,
+          ...(z.string().uuid().safeParse(projectId).success ? { projectId } : {}),
+        };
+      }
+    }
     if (pendingProposal === "overdue_reminders") {
       if (/^(yes,? send reminders|yes|send( them)?|go ahead|do it|confirm)$/.test(normalized)) {
         return { kind: "overdue_reminders", action: "execute" };

@@ -353,7 +353,8 @@ export interface IvoPreparedActionRow {
     | "due_soon_reminder"
     | "proposal_followup"
     | "contract_followup"
-    | "lead_reply";
+    | "lead_reply"
+    | "project_followup";
   dedupe_key: string;
   title: string;
   description: string;

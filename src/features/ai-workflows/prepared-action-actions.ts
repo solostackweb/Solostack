@@ -5,12 +5,19 @@
  * delivery and dismissal through the audited tools in `tool-actions.ts`. */
 import {
   approveAndSendPreparedActionAction as approveAndSendPreparedAction,
+  prepareProjectFollowupAction as prepareProjectFollowup,
   refreshIvoPreparedActionsAction as refreshPreparedActions,
   resolveIvoPreparedActionAction as resolvePreparedAction,
 } from "./prepared-actions";
 
 export async function refreshIvoPreparedActionsAction() {
   return refreshPreparedActions();
+}
+
+export async function prepareProjectFollowupAction(
+  input: Parameters<typeof prepareProjectFollowup>[0],
+) {
+  return prepareProjectFollowup(input);
 }
 
 /** Legacy dashboard-card mutations stay behind an explicit server boundary.

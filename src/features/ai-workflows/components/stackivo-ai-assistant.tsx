@@ -38,7 +38,10 @@ import {
   listIvoPickerOptionsAction,
 } from "@/features/ai-workflows/read-actions";
 import { clearIvoMemoriesAction } from "@/features/ai-workflows/memory-actions";
-import { refreshIvoPreparedActionsAction } from "@/features/ai-workflows/prepared-action-actions";
+import {
+  prepareProjectFollowupAction,
+  refreshIvoPreparedActionsAction,
+} from "@/features/ai-workflows/prepared-action-actions";
 import type { IvoPreparedAction } from "@/features/ai-workflows/prepared-actions";
 import {
   listIvoActivityAction,
@@ -98,6 +101,7 @@ import {
   QuestionnaireSendPickerBlock,
   QuestionnaireDraftResultBlock,
   QuestionnaireRefinementPreviewBlock,
+  PreparedEmailBlock,
   WelcomeDocListBlock,
 } from "./assistant-previews";
 import {
@@ -137,6 +141,11 @@ import {
   remindOverdueInvoicesIvoToolAction,
 } from "@/features/ai-workflows/tool-actions";
 import { prepareQuestionnaireRefinementAction } from "@/features/ai-workflows/questionnaire-refinement-actions";
+import {
+  formatAssistantMessageContent,
+  hasStructuredAssistantFormatting,
+} from "@/features/ai-workflows/assistant-text";
+import { AssistantRichText } from "./assistant-rich-text";
 import type {
   IvoConversationListItem,
   IvoConversationSnapshot,
@@ -158,15 +167,6 @@ import type {
  * explicit user confirmation before creating a human support ticket.
  */
 const SUPPORT_ENABLED = true;
-
-function formatAssistantMessageContent(content: string): string {
-  return content
-    .replace(/\s+(\d+\.\s+)/g, "\n$1")
-    .replace(/\s+([-*]\s+)/g, "\n$1")
-    .replace(/([.!?])\s+(Next:|Focus:|Watch:|Tip:)/g, "$1\n$2")
-    .replace(/^\n+/, "")
-    .trim();
-}
 
 function formatConversationTime(value: string): string {
   const date = new Date(value);
@@ -284,6 +284,9 @@ export function StackivoAiAssistant({ user }: StackivoAiAssistantProps) {
   const [preparedActions, setPreparedActions] = React.useState<IvoPreparedAction[]>([]);
   const [expandedPreparedAction, setExpandedPreparedAction] = React.useState<string | null>(null);
   const [preparedActionBusy, setPreparedActionBusy] = React.useState<string | null>(null);
+  const [handledPreparedActionIds, setHandledPreparedActionIds] = React.useState<Set<string>>(
+    () => new Set(),
+  );
   const [aiUsage, setAiUsage] = React.useState<{ used: number; limit: number; plan: string } | null>(null);
   const [conversationId, setConversationId] = React.useState<string | null>(null);
   const [conversationHistory, setConversationHistory] = React.useState<IvoConversationListItem[]>([]);
@@ -294,6 +297,7 @@ export function StackivoAiAssistant({ user }: StackivoAiAssistantProps) {
   const suggestionsLoaded = React.useRef(false);
   const preparedActionsLoaded = React.useRef(false);
   const submitRef = React.useRef<((text?: string) => void) | null>(null);
+  const pushMessageRef = React.useRef<((message: Omit<Message, "id">) => string) | null>(null);
   const userFirstName = React.useMemo(
     () => user?.name?.trim().split(/\s+/)[0] ?? "",
     [user?.name],
@@ -371,6 +375,7 @@ export function StackivoAiAssistant({ user }: StackivoAiAssistantProps) {
     send: boolean;
     choices: Array<{ id: string; name: string }>;
   } | null>(null);
+  const pendingPreparedActionRef = React.useRef<IvoPreparedAction | null>(null);
   const runWorkflowRef = React.useRef<
     (
       workflow: AiMode,
@@ -434,6 +439,7 @@ export function StackivoAiAssistant({ user }: StackivoAiAssistantProps) {
     activeRunIdRef.current = null;
     pendingSupportForwardRef.current = null;
     pendingUnbilledClientRef.current = null;
+    pendingPreparedActionRef.current = null;
     transcriptRef.current = [];
     setMessages([]);
   }, []);
@@ -489,10 +495,19 @@ export function StackivoAiAssistant({ user }: StackivoAiAssistantProps) {
       setPreparedActionBusy(null);
       if (!result.ok) {
         toast.error(result.error);
+        pushMessageRef.current?.({ role: "assistant", content: result.error });
         return;
       }
       setPreparedActions((current) => current.filter((item) => item.id !== action.id));
+      setHandledPreparedActionIds((current) => new Set(current).add(action.id));
+      if (pendingPreparedActionRef.current?.id === action.id) {
+        pendingPreparedActionRef.current = null;
+      }
       toast.success("Follow-up sent and recorded in Ivo activity.");
+      pushMessageRef.current?.({
+        role: "assistant",
+        content: `Sent — the email was delivered to ${action.recipientName || "the client"} and recorded in Ivo activity.`,
+      });
     });
   }, [preparedActionBusy, tools]);
 
@@ -507,6 +522,11 @@ export function StackivoAiAssistant({ user }: StackivoAiAssistantProps) {
         return;
       }
       setPreparedActions((current) => current.filter((item) => item.id !== action.id));
+      setHandledPreparedActionIds((current) => new Set(current).add(action.id));
+      if (pendingPreparedActionRef.current?.id === action.id) {
+        pendingPreparedActionRef.current = null;
+      }
+      pushMessageRef.current?.({ role: "assistant", content: "No problem — I won't send that draft." });
     });
   }, [preparedActionBusy, tools]);
 
@@ -578,6 +598,7 @@ export function StackivoAiAssistant({ user }: StackivoAiAssistantProps) {
     activeRunIdRef.current = null;
     pendingSupportForwardRef.current = null;
     pendingUnbilledClientRef.current = null;
+    pendingPreparedActionRef.current = null;
 
     // Restore only canonical, still-editable entity cards. This reset-first
     // approach prevents drafts or approvals from the previous conversation
@@ -595,6 +616,8 @@ export function StackivoAiAssistant({ user }: StackivoAiAssistantProps) {
     } else if (lastBlock?.type === "entity_preview" && lastBlock.entityType === "welcome_document") {
       const preview = lastBlock.data as unknown as AiWelcomeDocPreview;
       if (lastBlock.variant === "draft" && preview.status === "draft") setActiveWelcomeDoc(preview);
+    } else if (lastBlock?.type === "prepared_action") {
+      pendingPreparedActionRef.current = lastBlock.data as unknown as IvoPreparedAction;
     }
 
     setMode(state.mode);
@@ -860,6 +883,7 @@ export function StackivoAiAssistant({ user }: StackivoAiAssistantProps) {
     setMessages((prev) => [...prev, { ...message, id: messageId }]);
     return messageId;
   }, [ensureConversation]);
+  pushMessageRef.current = push;
 
   // Persist the minimal state required to resume a partially completed flow.
   // Rich previews are rebuilt from canonical domain records rather than being
@@ -2466,6 +2490,22 @@ export function StackivoAiAssistant({ user }: StackivoAiAssistantProps) {
       pendingSupportForwardRef.current = null;
     }
 
+    // A prepared email card is a durable approval proposal. Typed confirmation
+    // acts on that exact artifact, so "yes, send this" cannot fall through to
+    // docs/support or lose the recipient and draft context.
+    const prepared = pendingPreparedActionRef.current;
+    if (prepared) {
+      if (isAffirmative(text) || /\b(send (it|this)|approve( and)? send)\b/i.test(text)) {
+        handlePreparedActionSend(prepared);
+        return;
+      }
+      if (isNegative(text) || isAbandonFlow(text)) {
+        handlePreparedActionDismiss(prepared);
+        return;
+      }
+      pendingPreparedActionRef.current = null;
+    }
+
     const pendingUnbilled = pendingUnbilledClientRef.current;
     if (pendingUnbilled) {
       if (isNegative(text) || isAbandonFlow(text)) {
@@ -2765,6 +2805,50 @@ export function StackivoAiAssistant({ user }: StackivoAiAssistantProps) {
 
       // Read-only routing and target-workflow selection now come from the
       // authenticated server runtime instead of a second client-side router.
+      if (decision.kind === "questionnaire") {
+        if (decision.projectId) handleProjectQuestionnaire(decision.projectId);
+        else await runListProjects("active");
+        return;
+      }
+      if (decision.kind === "project_followup") {
+        const prepared = await prepareProjectFollowupAction({
+          clientId: decision.clientId,
+          ...(decision.projectId ? { projectId: decision.projectId } : {}),
+          requestId: processed.data.runId,
+        });
+        if (!prepared.ok) {
+          push({ role: "assistant", content: prepared.error });
+          return;
+        }
+        const action = prepared.data;
+        pendingPreparedActionRef.current = action;
+        setPreparedActions((current) =>
+          current.some((item) => item.id === action.id) ? current : [action, ...current],
+        );
+        push({
+          role: "assistant",
+          persistedBlock: {
+            type: "prepared_action",
+            actionId: action.id,
+            data: action as unknown as IvoResolvedMessageBlock["data"],
+          },
+          persistence: {
+            kind: "preview",
+            content: `Email draft ready for ${action.recipientName || "the client"}. Review it and approve before sending.`,
+            block: { type: "prepared_action", actionId: action.id },
+          },
+          content: (
+            <PreparedEmailBlock
+              action={action}
+              busy={preparedActionBusy === action.id}
+              handled={handledPreparedActionIds.has(action.id)}
+              onSend={() => handlePreparedActionSend(action)}
+              onCopy={() => void handlePreparedActionCopy(action)}
+            />
+          ),
+        });
+        return;
+      }
       if (decision.kind === "list") {
         if (decision.entityType === "invoice") await runListInvoices(decision.filter);
         else if (decision.entityType === "contract") await runListContracts(decision.filter);
@@ -3038,6 +3122,12 @@ export function StackivoAiAssistant({ user }: StackivoAiAssistantProps) {
     runListProposals,
     runListClients,
     runListProjects,
+    handleProjectQuestionnaire,
+    handlePreparedActionCopy,
+    handlePreparedActionDismiss,
+    handlePreparedActionSend,
+    handledPreparedActionIds,
+    preparedActionBusy,
     runListWelcomeDocs,
     userFirstName,
     selectedResources,
@@ -3093,6 +3183,19 @@ export function StackivoAiAssistant({ user }: StackivoAiAssistantProps) {
   // ----- Render -----
 
   const renderPersistedBlock = (block: IvoResolvedMessageBlock) => {
+    if (block.type === "prepared_action") {
+      const action = block.data as unknown as IvoPreparedAction;
+      return (
+        <PreparedEmailBlock
+          action={action}
+          busy={preparedActionBusy === action.id}
+          handled={handledPreparedActionIds.has(action.id)}
+          onSend={() => handlePreparedActionSend(action)}
+          onCopy={() => void handlePreparedActionCopy(action)}
+        />
+      );
+    }
+
     if (block.type === "picker") {
       const options = ((block.data as { options?: AiEntityOption[] }).options ?? []);
       if (block.pickerType === "client") {
@@ -3877,6 +3980,11 @@ export function StackivoAiAssistant({ user }: StackivoAiAssistantProps) {
               // Quick-reply chips appear only under the most recent assistant
               // message, so older questions don't keep stale chips around.
               const isLast = index === messages.length - 1;
+              const isStructuredAssistantMessage =
+                message.role === "assistant" &&
+                (Boolean(message.persistedBlock) ||
+                  typeof message.content !== "string" ||
+                  hasStructuredAssistantFormatting(message.content));
               const showSuggestions =
                 isLast &&
                 !pending &&
@@ -3892,16 +4000,18 @@ export function StackivoAiAssistant({ user }: StackivoAiAssistantProps) {
                 >
                   <div
                     className={cn(
-                      "max-w-[88%] whitespace-pre-line px-4 py-3 text-sm leading-relaxed",
+                      "whitespace-pre-line px-4 py-3 text-sm leading-relaxed",
                       message.role === "user"
-                        ? "rounded-2xl rounded-br-md bg-primary text-primary-foreground shadow-sm shadow-primary/20"
-                        : "mr-auto rounded-2xl rounded-bl-md border border-border/70 bg-background shadow-sm",
+                        ? "max-w-[88%] rounded-2xl rounded-br-md bg-primary text-primary-foreground shadow-sm shadow-primary/20"
+                        : isStructuredAssistantMessage
+                          ? "mr-auto w-full max-w-[94%] rounded-2xl rounded-bl-md border border-border/70 bg-background shadow-sm"
+                          : "mr-auto max-w-[88%] rounded-2xl rounded-bl-md border border-border/70 bg-background shadow-sm",
                     )}
                   >
                     {message.persistedBlock
                       ? renderPersistedBlock(message.persistedBlock)
                       : message.role === "assistant" && typeof message.content === "string"
-                      ? formatAssistantMessageContent(message.content)
+                      ? <AssistantRichText source={message.content} />
                       : message.content}
                     {message.role === "assistant" && message.tip ? (
                       <span className="mt-2 flex items-start gap-1.5 rounded-lg border border-primary/15 bg-primary/[0.04] px-2.5 py-1.5 text-xs text-muted-foreground">
@@ -3936,7 +4046,7 @@ export function StackivoAiAssistant({ user }: StackivoAiAssistantProps) {
                 <div className="max-w-[85%] rounded-2xl rounded-bl-md border border-border/70 bg-background px-4 py-3 shadow-sm">
                   {liveReply ? (
                     <p className="whitespace-pre-wrap text-sm leading-relaxed">
-                      {liveReply.replace(/\n?\s*\[chips\][\s\S]*$/i, "")}
+                      {formatAssistantMessageContent(liveReply.replace(/\n?\s*\[chips\][\s\S]*$/i, ""))}
                       <span className="ml-0.5 inline-block h-3.5 w-[2px] animate-pulse rounded bg-primary/70 align-middle" />
                     </p>
                   ) : (

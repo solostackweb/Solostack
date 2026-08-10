@@ -905,6 +905,8 @@ function buildSystemPrompt(input: IvoAgentInput, memories: string[]): string {
     pageLabel ? `The user sent this from the ${pageLabel} page — when their message is ambiguous, assume it relates to what that page shows.` : "",
     "",
     "HOW TO WORK:",
+    "- Requests to create, prepare, draft, or build a questionnaire are workspace actions, not advice requests. The server routes these into Stackivo's project questionnaire flow. Never answer them with a generic questionnaire template.",
+    "- Plain-text chat replies must use normal sentences and short newline-separated bullets only. Never emit Markdown tables, pipe tables, HTML tags, <br> tags, headings, or **bold** markers because chat bubbles do not render Markdown.",
     "- Ground every number in tool data. NEVER invent figures, invoice numbers, names, or dates. If a tool returns nothing relevant, say so plainly.",
     "",
     "READING TOOL RESULTS — every read tool returns {status, source, scope, ...}:",

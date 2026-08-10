@@ -301,6 +301,8 @@ const KIND_BRIEF: Record<IvoPreparedActionRow["kind"], string> = {
     "A brief nudge that a contract is awaiting signature and expires soon. Helpful, never pushy; offer to walk through any clause.",
   lead_reply:
     "A warm first reply to a new inbound lead. Thank them, reflect back their project in one specific sentence (proof of reading), and propose a concrete next step (quick call or a few clarifying questions). No pricing commitments.",
+  project_followup:
+    "A warm, concise project follow-up asking for the specific feedback or input needed to keep work moving. Mention the project and due date only when supplied. Make the next action clear without sounding accusatory or inventing details.",
 };
 
 async function generateDraft(
@@ -388,7 +390,10 @@ export async function refreshIvoPreparedActionsAction(): Promise<
     // Auto-dismiss 'ready' artifacts whose moment has passed (invoice paid,
     // lead converted, proposal accepted…) so the queue never shows dead work.
     const stale = existing.filter(
-      (row) => row.status === "ready" && !currentKeys.has(row.dedupe_key),
+      (row) =>
+        row.status === "ready" &&
+        row.kind !== "project_followup" &&
+        !currentKeys.has(row.dedupe_key),
     );
     if (stale.length > 0) {
       await supabase
@@ -439,6 +444,150 @@ export async function refreshIvoPreparedActionsAction(): Promise<
       error: error instanceof Error ? error.message : "unknown",
     });
     return { ok: false, error: "Couldn't prepare actions right now." };
+  }
+}
+
+const prepareProjectFollowupSchema = z.object({
+  clientId: z.string().uuid(),
+  projectId: z.string().uuid().optional(),
+  requestId: z.string().uuid(),
+});
+
+/**
+ * Prepare a conversational client/project reminder as a canonical email
+ * artifact. The IDs are suggestions from the conversation runtime only; this
+ * boundary rereads ownership, project/client consistency, and the recipient's
+ * current email before persisting anything.
+ */
+export async function prepareProjectFollowupAction(
+  input: z.input<typeof prepareProjectFollowupSchema>,
+): Promise<
+  { ok: true; data: IvoPreparedAction } | { ok: false; error: string }
+> {
+  const parsed = prepareProjectFollowupSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: "That reminder request is incomplete." };
+
+  try {
+    const { supabase, userId } = await requireUser();
+    const { data: clientRaw } = await supabase
+      .from("clients")
+      .select("id, full_name, business_name, email")
+      .eq("id", parsed.data.clientId)
+      .eq("user_id", userId)
+      .maybeSingle();
+    const client = clientRaw as Record<string, unknown> | null;
+    if (!client) return { ok: false, error: "I couldn't find that client in your workspace." };
+
+    let project: Record<string, unknown> | null = null;
+    if (parsed.data.projectId) {
+      const { data } = await supabase
+        .from("projects")
+        .select("id, name, description, status, client_id, due_date, updated_at")
+        .eq("id", parsed.data.projectId)
+        .eq("client_id", parsed.data.clientId)
+        .eq("user_id", userId)
+        .maybeSingle();
+      project = data as Record<string, unknown> | null;
+      if (!project) {
+        return { ok: false, error: "That project is no longer connected to this client." };
+      }
+    } else {
+      const { data } = await supabase
+        .from("projects")
+        .select("id, name, description, status, client_id, due_date, updated_at")
+        .eq("client_id", parsed.data.clientId)
+        .eq("user_id", userId)
+        .in("status", ["lead", "planning", "active", "waiting_on_client", "revision", "review", "on_hold"])
+        .order("updated_at", { ascending: false })
+        .limit(20);
+      const projects = (data as Array<Record<string, unknown>> | null) ?? [];
+      const priority = (row: Record<string, unknown>) => {
+        const status = String(row.status || "");
+        if (status === "waiting_on_client") return 0;
+        if (status === "revision" || status === "review") return 1;
+        return 2;
+      };
+      project = projects.sort((a, b) => priority(a) - priority(b))[0] ?? null;
+    }
+
+    if (!project) {
+      return {
+        ok: false,
+        error: "I found the client, but not an active project to ground this reminder in.",
+      };
+    }
+
+    const dedupeKey = `project_followup:${String(project.id)}:${parsed.data.requestId}`;
+    const { data: existingRaw } = await supabase
+      .from("ivo_prepared_actions")
+      .select("*")
+      .eq("user_id", userId)
+      .eq("dedupe_key", dedupeKey)
+      .maybeSingle();
+    const existing = existingRaw as unknown as IvoPreparedActionRow | null;
+    if (existing) return { ok: true, data: mapRow(existing) };
+
+    const profile = await getProfile().catch(() => null);
+    const sellerName = profile?.displayName || profile?.fullName || "the sender";
+    const recipientName = String(client.business_name || client.full_name || "Client");
+    const dueDate = project.due_date ? String(project.due_date) : "";
+    const moment: DetectedMoment = {
+      kind: "project_followup",
+      dedupeKey,
+      title: `Project follow-up — ${String(project.name || "Project")}`,
+      description: `${recipientName} · ${String(project.status || "active").replace(/_/g, " ")}${dueDate ? ` · due ${dueDate}` : ""}`,
+      tone: dueDate && dueDate < new Date().toISOString().slice(0, 10) ? "warning" : "info",
+      recipientName,
+      recipientEmail: client.email ? String(client.email) : null,
+      entityType: "project",
+      entityId: String(project.id),
+      href: `/dashboard/projects/${String(project.id)}`,
+      facts: {
+        clientName: recipientName,
+        projectName: String(project.name || "Project"),
+        projectStatus: String(project.status || "active").replace(/_/g, " "),
+        dueDate: dueDate || "not set",
+        projectContext: project.description ? String(project.description).slice(0, 1000) : "",
+      },
+    };
+    const draft = await generateDraft(moment, sellerName);
+    const recipientFirstName = recipientName.trim().split(/\s+/)[0] || "there";
+    const fallback = {
+      subject: `Quick follow-up on ${String(project.name || "our project")}`,
+      body: [
+        `Hi ${recipientFirstName},`,
+        `I wanted to check in on ${String(project.name || "our project")}${dueDate ? `, which was due on ${dueDate}` : ""}. Please share any pending feedback or inputs when you can so we can keep things moving.`,
+        "If anything has changed on your side, let me know and I’ll update the schedule accordingly.",
+        `Best,\n${sellerName}`,
+      ].join("\n\n"),
+    };
+
+    const { data: insertedRaw, error } = await supabase
+      .from("ivo_prepared_actions")
+      .insert({
+        user_id: userId,
+        kind: moment.kind,
+        dedupe_key: moment.dedupeKey,
+        title: moment.title,
+        description: moment.description,
+        subject: (draft ?? fallback).subject,
+        body: (draft ?? fallback).body,
+        recipient_name: moment.recipientName,
+        recipient_email: moment.recipientEmail,
+        entity_type: moment.entityType,
+        entity_id: moment.entityId,
+        href: moment.href,
+        tone: moment.tone,
+      } as never)
+      .select("*")
+      .single();
+    if (error || !insertedRaw) throw error ?? new Error("Prepared action was not created");
+    return { ok: true, data: mapRow(insertedRaw as unknown as IvoPreparedActionRow) };
+  } catch (error) {
+    log.warn("ivo.prepared_actions.project_followup_failed", {
+      error: error instanceof Error ? error.message : "unknown",
+    });
+    return { ok: false, error: "I couldn't prepare that email just now." };
   }
 }
 
