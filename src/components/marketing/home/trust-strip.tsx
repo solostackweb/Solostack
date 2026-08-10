@@ -107,6 +107,22 @@ export function TrustStrip() {
               className="h-auto w-[202px] rounded-xl"
             />
           </a>
+
+          <a
+            href="https://sellwithboost.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            data-cta="sell_with_boost_badge"
+            aria-label="View Stackivo on Sell With Boost (opens in a new tab)"
+            className="inline-flex rounded-xl transition-transform hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-4 focus-visible:ring-offset-background"
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="https://sellwithboost.com/badge/listing.svg"
+              alt="Listed on Sell With Boost"
+              className="h-10 w-auto rounded-xl"
+            />
+          </a>
         </div>
 
         <p className="mt-7 text-center text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground/70">
