@@ -115,10 +115,15 @@ function isBusinessDataQuestion(text: string) {
 
 export function meetingListFilter(message: string): "upcoming" | "awaiting" | "all" | null {
   const normalized = message.trim().toLowerCase();
-  if (
-    !/\b(show|list|view|see|check|review)\b/.test(normalized) ||
-    !/\b(meetings?|calls?|calendar|schedule)\b/.test(normalized)
-  ) {
+  const mentionsMeetings = /\b(meetings?|calls?|calendar|schedule)\b/.test(normalized);
+  const listCommand = /\b(show|list|view|see|check|review)\b/.test(normalized);
+  const ownedScheduleQuestion =
+    /\b(?:what|which)\s+(?:meetings?|calls?)\s+(?:do\s+i\s+have|are\s+(?:coming\s+up|upcoming|scheduled))\b/.test(normalized) ||
+    /\bdo\s+i\s+have\s+(?:any\s+)?(?:(?:upcoming|scheduled)\s+)?(?:meetings?|calls?)\b/.test(normalized) ||
+    /\bwhen(?:'s| is)\s+my\s+next\s+(?:meeting|call)\b/.test(normalized) ||
+    /\bwhat(?:'s| is)\s+(?:on|in)\s+my\s+(?:calendar|schedule)\b/.test(normalized) ||
+    /\bmy\s+(?:next|upcoming|scheduled)\s+(?:meetings?|calls?)\b/.test(normalized);
+  if (!mentionsMeetings || (!listCommand && !ownedScheduleQuestion)) {
     return null;
   }
   if (/\b(all|past|history|completed|cancelled)\b/.test(normalized)) return "all";

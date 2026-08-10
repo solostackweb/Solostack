@@ -20,14 +20,19 @@ const interpretation = {
 describe("meeting workspace requests", () => {
   it("recognises the exact request that previously fell through to help docs", () => {
     assert.equal(meetingListFilter("check my meetings"), "upcoming");
+    assert.equal(meetingListFilter("What meetings do I have coming up?"), "upcoming");
+    assert.equal(meetingListFilter("Do I have any upcoming calls?"), "upcoming");
+    assert.equal(meetingListFilter("When is my next meeting?"), "upcoming");
+    assert.equal(meetingListFilter("What's on my calendar?"), "upcoming");
     assert.equal(meetingListFilter("show meetings awaiting confirmation"), "awaiting");
     assert.equal(meetingListFilter("show all past meetings"), "all");
     assert.equal(meetingListFilter("how do meetings work?"), null);
+    assert.equal(meetingListFilter("how do I schedule a meeting?"), null);
   });
 
   it("plans a canonical meeting list rather than support", () => {
     assert.deepEqual(planIvoRuntime({
-      message: "check my meetings",
+      message: "What meetings do I have coming up?",
       interpretation,
       currentMode: "general",
       collected: {},
