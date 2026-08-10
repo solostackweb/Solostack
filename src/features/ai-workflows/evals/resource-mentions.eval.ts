@@ -4,12 +4,16 @@ import test from "node:test";
 import {
   formatIvoResourceContext,
   ivoResourceReferenceSchema,
-} from "../resource-mentions.ts";
+} from "../resource-mentions";
 
 test("resource references accept only supported workspace entities and UUIDs", () => {
   assert.equal(ivoResourceReferenceSchema.safeParse({
     type: "invoice",
     id: "11111111-1111-4111-8111-111111111111",
+  }).success, true);
+  assert.equal(ivoResourceReferenceSchema.safeParse({
+    type: "questionnaire_response",
+    id: "22222222-2222-4222-8222-222222222222",
   }).success, true);
   assert.equal(ivoResourceReferenceSchema.safeParse({ type: "secret", id: "not-an-id" }).success, false);
 });

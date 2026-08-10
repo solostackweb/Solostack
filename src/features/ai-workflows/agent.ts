@@ -63,7 +63,7 @@ export interface IvoAgentInput {
   clientId?: string;
   projectId?: string;
   pendingField?: { field: string; optional?: boolean };
-  activeDraft?: { entityType: "invoice" | "contract" | "welcome_document"; entityId: string };
+  activeDraft?: { entityType: "invoice" | "contract" | "questionnaire" | "welcome_document"; entityId: string };
   /** Dashboard route the user sent the message from (e.g. "/dashboard/pulse"). */
   page?: string;
   clients: ClientRecord[];
@@ -120,13 +120,13 @@ function buildTools(input: IvoAgentInput): GroqToolDefinition[] {
           properties: {
             entityType: {
               type: "string",
-              enum: ["invoice", "contract", "client", "project", "welcome_document"],
+              enum: ["invoice", "contract", "proposal", "client", "project", "welcome_document"],
             },
             filter: {
               type: "string",
               enum: ["all", "unpaid", "overdue", "pending", "active", "open"],
               description:
-                "invoice: unpaid|overdue|all · contract: pending|all (contracts include proposals; each row has kind) · project: active|all · welcome_document: open|all · client: all",
+                "invoice: unpaid|overdue|all · contract: pending|all · proposal: pending|all · project: active|all · welcome_document: open|all · client: all",
             },
           },
           required: ["entityType", "filter"],
@@ -257,7 +257,7 @@ function buildTools(input: IvoAgentInput): GroqToolDefinition[] {
           properties: {
             entityType: {
               type: "string",
-              enum: ["invoice", "contract", "client", "project", "welcome_document"],
+              enum: ["invoice", "contract", "proposal", "client", "project", "welcome_document"],
             },
             filter: {
               type: "string",
@@ -376,6 +376,27 @@ async function execListRecords(
       status: row.status,
       value: row.value_amount == null ? null : Number(row.value_amount),
       currency: row.currency,
+    })) };
+  }
+
+  if (entityType === "proposal") {
+    let query = supabase
+      .from("proposals")
+      .select("id, title, client_id, status, total_amount, currency, valid_until, created_at")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false })
+      .limit(25);
+    if (filter === "pending") query = query.in("status", ["draft", "sent", "viewed"]);
+    const { data } = await query;
+    const rows = (data as Array<Record<string, unknown>> | null) ?? [];
+    return { rows: await withClientNames(rows, userId, (row, name) => ({
+      id: row.id,
+      title: row.title,
+      client: name,
+      status: row.status,
+      total: Number(row.total_amount ?? 0),
+      currency: row.currency,
+      validUntil: row.valid_until,
     })) };
   }
 
@@ -569,7 +590,7 @@ async function execClientProfile(
   }
 
   const supabase = await getServerSupabase();
-  const [invoicesRes, projectsRes, contractsRes, meetingsRes] = await Promise.all([
+  const [invoicesRes, projectsRes, contractsRes, proposalsRes, meetingsRes] = await Promise.all([
     supabase
       .from("invoices")
       .select("invoice_number, total_amount, currency, status, issue_date, due_date")
@@ -587,6 +608,13 @@ async function execClientProfile(
     supabase
       .from("contracts")
       .select("title, kind, status, value_amount, currency")
+      .eq("user_id", userId)
+      .eq("client_id", client.id)
+      .order("created_at", { ascending: false })
+      .limit(6),
+    supabase
+      .from("proposals")
+      .select("title, status, total_amount, currency, valid_until")
       .eq("user_id", userId)
       .eq("client_id", client.id)
       .order("created_at", { ascending: false })
@@ -611,7 +639,7 @@ async function execClientProfile(
   const today = new Date().toISOString().slice(0, 10);
   const sum = (rows: typeof invoices) => rows.reduce((total, row) => total + row.amount, 0);
   const paid = invoices.filter((row) => row.status === "paid");
-  const open = invoices.filter((row) => ["sent", "viewed", "overdue"].includes(String(row.status)));
+  const open = invoices.filter((row) => ["sent", "viewed", "overdue", "partially_paid"].includes(String(row.status)));
   const overdue = open.filter(
     (row) => row.status === "overdue" || (typeof row.dueDate === "string" && row.dueDate < today),
   );
@@ -637,6 +665,7 @@ async function execClientProfile(
     recentInvoices: invoices,
     projects: ((projectsRes.data as Array<Record<string, unknown>> | null) ?? []),
     contracts: ((contractsRes.data as Array<Record<string, unknown>> | null) ?? []),
+    proposals: ((proposalsRes.data as Array<Record<string, unknown>> | null) ?? []),
     meetings: ((meetingsRes.data as Array<Record<string, unknown>> | null) ?? []),
   };
 }
@@ -693,6 +722,7 @@ async function execFindInvoice(userId: string, query: string): Promise<unknown> 
 const LIST_FILTERS: Record<string, string[]> = {
   invoice: ["unpaid", "overdue", "all"],
   contract: ["pending", "all"],
+  proposal: ["pending", "all"],
   client: ["all"],
   project: ["active", "all"],
   welcome_document: ["open", "all"],

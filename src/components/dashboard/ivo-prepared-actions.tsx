@@ -24,8 +24,8 @@ import {
   approveAndSendPreparedActionAction,
   refreshIvoPreparedActionsAction,
   resolveIvoPreparedActionAction,
-  type IvoPreparedAction,
-} from "@/features/ai-workflows/prepared-actions";
+} from "@/features/ai-workflows/prepared-action-actions";
+import type { IvoPreparedAction } from "@/features/ai-workflows/prepared-actions";
 
 const TONE_STYLES = {
   info: "border-primary/20 bg-primary/5",

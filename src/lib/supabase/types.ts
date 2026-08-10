@@ -581,6 +581,7 @@ export type DeliveryKind =
   | "portal_update"
   | "portal_meeting"
   | "portal_file"
+  | "questionnaire_sent"
   | "custom";
 
 export type DeliveryChannel = "email" | "sms" | "inapp";
@@ -600,7 +601,7 @@ export interface DeliveryLogRow {
   user_id: string;
   kind: DeliveryKind;
   channel: DeliveryChannel;
-  entity_type: "invoice" | "contract" | "welcome_document" | "client" | "system";
+  entity_type: "invoice" | "contract" | "welcome_document" | "client" | "questionnaire" | "system";
   entity_id: string | null;
   to_email: string | null;
   subject: string | null;
@@ -772,6 +773,7 @@ export interface QuestionnaireRow {
   description: string | null;
   questions: Json;
   active: boolean;
+  idempotency_key: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -787,6 +789,7 @@ export interface QuestionnaireSendRow {
   responses: Json;
   status: string;
   public_token: string;
+  idempotency_key: string | null;
   submitted_at: string | null;
   created_at: string;
   updated_at: string;

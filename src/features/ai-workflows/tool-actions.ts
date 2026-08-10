@@ -10,15 +10,20 @@ import { createTicketAction } from "@/features/support/ticket-actions";
 import { saveAsTemplateAction } from "@/features/welcome-documents/actions";
 import {
   approveInvoiceFromAiAction,
+  applyQuestionnaireRefinementFromAiAction,
   approveWelcomeDocFromAiAction,
   createClientFromAiAction,
   createContractFromAiAction,
   createInvoiceFromAiAction,
   createMeetingFromAiAction,
   createProjectFromAiAction,
+  createProjectQuestionnaireDraftFromAiAction,
+  createProjectPortalFromAiAction,
   createProposalFromAiAction,
   createTimeEntryFromAiAction,
   createWelcomeDocFromAiAction,
+  convertAcceptedProposalToContractFromAiAction,
+  convertAcceptedProposalToProjectFromAiAction,
   emailInvoiceFromAiAction,
   invoiceUnbilledTimeFromAiAction,
   invoiceWhatsappFromAiAction,
@@ -26,8 +31,11 @@ import {
   refineContractFromAiAction,
   refineInvoiceFromAiAction,
   refineWelcomeDocFromAiAction,
+  remindInvoiceFromAiAction,
   remindOverdueInvoicesFromAiAction,
   sendContractFromAiAction,
+  sendProposalFromAiAction,
+  sendProjectQuestionnaireFromAiAction,
   sendWelcomeDocFromAiAction,
   contractWhatsappFromAiAction,
   welcomeDocWhatsappFromAiAction,
@@ -35,6 +43,7 @@ import {
 import type { AiMissingField } from "./types";
 import type { IvoToolResponseDescriptor } from "./conversation-types";
 import { assertIvoToolPath, ivoToolApprovalState, ivoToolPolicy } from "./tool-registry";
+import { questionnaireRevisionHash, questionnaireRevisionSchema } from "./questionnaire-refinement-core";
 import {
   approveAndSendPreparedActionAction,
   resolveIvoPreparedActionAction,
@@ -48,6 +57,7 @@ type IvoCreateToolKey =
   | "invoice.unbilled_draft"
   | "contract.draft"
   | "proposal.create"
+  | "questionnaire.draft"
   | "meeting.create"
   | "welcome_document.draft";
 
@@ -72,9 +82,11 @@ const statusToolInputSchema = z.object({
 });
 const deliveryToolInputSchema = statusToolInputSchema.extend({
   requestId: z.string().uuid(),
+  contextId: z.string().uuid().optional(),
 });
 const refinementToolInputSchema = deliveryToolInputSchema.extend({
   instruction: z.string().trim().min(2).max(2000),
+  proposalHash: z.string().regex(/^[a-f0-9]{64}$/).optional(),
 });
 const explicitCreateToolInputSchema = z.object({
   conversationId: z.string().uuid(),
@@ -165,6 +177,23 @@ const proposalPreviewSchema = z.object({
   clientName: z.string(),
   total: z.number(),
   currency: z.string(),
+});
+const questionnaireDraftPreviewSchema = z.object({
+  id: z.string().uuid(),
+  projectId: z.string().uuid(),
+  projectName: z.string(),
+  clientName: z.string(),
+  title: z.string(),
+  description: z.string().nullable(),
+  questions: z.array(z.object({
+    id: z.string(),
+    type: z.string(),
+    label: z.string(),
+    required: z.boolean(),
+    help: z.string().optional(),
+    options: z.array(z.string()).optional(),
+    max: z.number().optional(),
+  })),
 });
 const meetingResultSchema = z.object({
   id: z.string().uuid(),
@@ -435,7 +464,7 @@ async function runCreateTool<T extends ToolResult>(
 
 async function runImmediateDraftTool<T extends { ok: true; data: unknown; message: string }>(
   toolKey: IvoCreateToolKey,
-  entityType: "invoice" | "contract" | "proposal" | "welcome_document",
+  entityType: "invoice" | "contract" | "proposal" | "questionnaire" | "welcome_document",
   rawInput: ToolInput,
   invoke: (input: z.output<typeof toolInputSchema>) => Promise<unknown>,
   normalize: (value: unknown) => T | DraftToolError,
@@ -574,8 +603,8 @@ async function runImmediateDraftTool<T extends { ok: true; data: unknown; messag
 }
 
 async function runRefinementTool<T extends { ok: true; data: unknown; message: string }>(
-  toolKey: "invoice.refine" | "contract.refine" | "welcome_document.refine",
-  entityType: "invoice" | "contract" | "welcome_document",
+  toolKey: "invoice.refine" | "contract.refine" | "questionnaire.refine" | "welcome_document.refine",
+  entityType: "invoice" | "contract" | "questionnaire" | "welcome_document",
   rawInput: z.input<typeof refinementToolInputSchema>,
   invoke: (entityId: string, instruction: string) => Promise<unknown>,
   normalize: (value: unknown) => T | DraftToolError,
@@ -593,6 +622,8 @@ async function runRefinementTool<T extends { ok: true; data: unknown; message: s
       toolKey,
       entityId: parsed.data.entityId,
       instruction: parsed.data.instruction,
+      contextId: parsed.data.contextId ?? null,
+      proposalHash: parsed.data.proposalHash ?? null,
     }))
     .digest("hex");
 
@@ -1065,14 +1096,18 @@ async function runApprovedStatusTool<T extends { ok: boolean; error?: string }>(
   toolKey:
     | "invoice.approve"
     | "invoice.mark_paid"
+    | "proposal.convert_contract"
+    | "proposal.convert_project"
+    | "portal.create_invite"
     | "welcome_document.publish"
     | "invoice.whatsapp_prepare"
     | "contract.whatsapp_prepare"
     | "welcome_document.whatsapp_prepare",
-  entityType: "invoice" | "contract" | "welcome_document",
+  entityType: "invoice" | "proposal" | "contract" | "welcome_document" | "portal",
   rawInput: z.input<typeof statusToolInputSchema>,
   invoke: (entityId: string) => Promise<T>,
   readCompleted: (entityId: string, userId: string) => Promise<T | null>,
+  completedEntity?: (result: T) => { entityType: "portal"; entityId: string } | null,
 ): Promise<T | ToolRuntimeError> {
   assertIvoToolPath(toolKey, "approved");
   const parsed = statusToolInputSchema.safeParse(rawInput);
@@ -1126,7 +1161,10 @@ async function runApprovedStatusTool<T extends { ok: boolean; error?: string }>(
         status: "executing",
         input_summary: { inputHash: hash, policy: ivoToolPolicy(toolKey) },
         entity_type: entityType,
-        entity_id: parsed.data.entityId,
+        // A portal id does not exist until creation succeeds. Keeping the
+        // pending/failed receipt unlinked avoids treating the source project
+        // id as though it were a portal route; success replaces this below.
+        entity_id: entityType === "portal" ? null : parsed.data.entityId,
       } as never)
       .select("id")
       .maybeSingle();
@@ -1146,13 +1184,26 @@ async function runApprovedStatusTool<T extends { ok: boolean; error?: string }>(
 
   if (!attemptId) return { ok: false, error: "Ivo couldn't safely start this action." };
   try {
-    const result = await invoke(parsed.data.entityId);
+    let result = await invoke(parsed.data.entityId);
+    if (result.ok) {
+      const verified = await readCompleted(parsed.data.entityId, userId);
+      if (!verified) {
+        result = {
+          ok: false,
+          error: "Ivo made the change but could not verify it. Check the record before retrying.",
+        } as T;
+      }
+    }
+    const completed = result.ok ? completedEntity?.(result) : null;
     await supabase
       .from("ivo_action_attempts")
       .update({
         status: result.ok ? "succeeded" : "failed",
         error_code: result.ok ? null : "TOOL_REJECTED",
         output_summary: result.ok ? { completed: true } : {},
+        ...(completed
+          ? { entity_type: completed.entityType, entity_id: completed.entityId }
+          : {}),
       } as never)
       .eq("id", attemptId)
       .eq("user_id", userId);
@@ -1295,10 +1346,10 @@ async function runPreparedActionTool(
 }
 
 async function runApprovedEmailTool(
-  toolKey: "invoice.email" | "contract.email" | "welcome_document.email",
-  entityType: "invoice" | "contract" | "welcome_document",
+  toolKey: "invoice.email" | "proposal.email" | "contract.email" | "welcome_document.email" | "invoice.remind_one" | "questionnaire.send",
+  entityType: "invoice" | "proposal" | "contract" | "welcome_document" | "questionnaire",
   rawInput: z.input<typeof deliveryToolInputSchema>,
-  invoke: (entityId: string, requestId: string) => Promise<{ ok: boolean; error?: string }>,
+  invoke: (entityId: string, requestId: string) => Promise<{ ok: boolean; error?: string; message?: string }>,
 ) {
   assertIvoToolPath(toolKey, "approved");
   const parsed = deliveryToolInputSchema.safeParse(rawInput);
@@ -1308,7 +1359,7 @@ async function runApprovedEmailTool(
   const { supabase, userId } = context;
   const attemptKey = `${toolKey}:${parsed.data.requestId}`;
   const inputHash = createHash("sha256")
-    .update(`${toolKey}:${parsed.data.entityId}:${parsed.data.requestId}`)
+    .update(`${toolKey}:${parsed.data.entityId}:${parsed.data.requestId}:${parsed.data.contextId ?? ""}`)
     .digest("hex");
 
   const { data: existingRaw } = await supabase
@@ -1382,7 +1433,7 @@ async function runApprovedEmailTool(
       .eq("id", attemptId)
       .eq("user_id", userId);
     return result.ok
-      ? { ok: true as const, message: "Delivery completed." }
+      ? { ok: true as const, message: result.message ?? "Delivery completed." }
       : { ok: false as const, error: result.error ?? "Delivery failed." };
   } catch (error) {
     await supabase
@@ -1781,6 +1832,86 @@ export async function createProposalDraftIvoToolAction(input: ToolInput) {
   };
 }
 
+export async function createProjectQuestionnaireDraftIvoToolAction(input: {
+  conversationId: string;
+  runId?: string;
+  projectId: string;
+  idempotencyKey: string;
+}) {
+  const result = await runImmediateDraftTool(
+    "questionnaire.draft",
+    "questionnaire",
+    { ...input, fields: {}, confirm: false },
+    (value) => createProjectQuestionnaireDraftFromAiAction({
+      projectId: value.projectId ?? "",
+      requestId: value.idempotencyKey,
+    }),
+    (value) => {
+      const raw = value as { ok?: boolean; data?: unknown };
+      if (!raw?.ok) return normalizeFailure(value);
+      const preview = questionnaireDraftPreviewSchema.safeParse(raw.data);
+      return preview.success
+        ? { ok: true as const, data: preview.data, message: "Questionnaire draft created." }
+        : { ok: false as const, error: "The questionnaire draft response was invalid." };
+    },
+    async (entityId, userId) => {
+      const projectId = z.string().uuid().safeParse(input.projectId);
+      if (!projectId.success) return null;
+      const supabase = await getServerSupabase();
+      const [{ data: questionnaireRaw }, { data: projectRaw }] = await Promise.all([
+        supabase
+          .from("questionnaires")
+          .select("id, title, description, questions")
+          .eq("id", entityId)
+          .eq("user_id", userId)
+          .maybeSingle(),
+        supabase
+          .from("projects")
+          .select("id, name, client_id")
+          .eq("id", projectId.data)
+          .eq("user_id", userId)
+          .maybeSingle(),
+      ]);
+      const questionnaire = questionnaireRaw as Record<string, unknown> | null;
+      const project = projectRaw as Record<string, unknown> | null;
+      if (!questionnaire || !project) return null;
+      const { data: clientRaw } = project.client_id
+        ? await supabase
+            .from("clients")
+            .select("full_name, business_name")
+            .eq("id", String(project.client_id))
+            .eq("user_id", userId)
+            .maybeSingle()
+        : { data: null };
+      const client = clientRaw as Record<string, unknown> | null;
+      const preview = questionnaireDraftPreviewSchema.safeParse({
+        id: questionnaire.id,
+        projectId: project.id,
+        projectName: project.name,
+        clientName: client?.business_name || client?.full_name || "the client",
+        title: questionnaire.title,
+        description: questionnaire.description ?? null,
+        questions: questionnaire.questions,
+      });
+      return preview.success
+        ? { ok: true as const, data: preview.data, message: "Questionnaire draft created." }
+        : null;
+    },
+  );
+  if (!result.ok) return result;
+  return {
+    ...result,
+    kind: "questionnaire" as const,
+    questionnaire: result.data,
+    response: entityResponse("result", "Questionnaire draft ready for review.", {
+      type: "entity_result",
+      entityType: "questionnaire",
+      entityId: result.data.id,
+      contextId: result.data.projectId,
+    }),
+  };
+}
+
 export async function createContractDraftIvoToolAction(
   input: ToolInput,
 ) {
@@ -2059,6 +2190,119 @@ export async function refineWelcomeDocumentIvoToolAction(input: {
   );
 }
 
+async function readQuestionnaireRefinementPreview(
+  questionnaireId: string,
+  projectId: string,
+  userId: string,
+) {
+  const supabase = await getServerSupabase();
+  const [{ data: questionnaireRaw }, { data: projectRaw }] = await Promise.all([
+    supabase
+      .from("questionnaires")
+      .select("id, title, description, questions")
+      .eq("id", questionnaireId)
+      .eq("user_id", userId)
+      .maybeSingle(),
+    supabase
+      .from("projects")
+      .select("id, name, client_id")
+      .eq("id", projectId)
+      .eq("user_id", userId)
+      .maybeSingle(),
+  ]);
+  const questionnaire = questionnaireRaw as Record<string, unknown> | null;
+  const project = projectRaw as Record<string, unknown> | null;
+  if (!questionnaire || !project) return null;
+  const { data: clientRaw } = project.client_id
+    ? await supabase
+        .from("clients")
+        .select("full_name, business_name")
+        .eq("id", String(project.client_id))
+        .eq("user_id", userId)
+        .maybeSingle()
+    : { data: null };
+  const client = clientRaw as Record<string, unknown> | null;
+  const preview = questionnaireDraftPreviewSchema.safeParse({
+    id: questionnaire.id,
+    projectId: project.id,
+    projectName: project.name,
+    clientName: client?.business_name || client?.full_name || "the client",
+    title: questionnaire.title,
+    description: questionnaire.description ?? null,
+    questions: questionnaire.questions,
+  });
+  return preview.success
+    ? { ok: true as const, data: preview.data, message: "Questionnaire refinement completed." }
+    : null;
+}
+
+export async function refineQuestionnaireIvoToolAction(input: {
+  conversationId: string;
+  runId?: string;
+  questionnaireId: string;
+  projectId: string;
+  requestId: string;
+  instruction: string;
+  originalHash: string;
+  proposalHash: string;
+  proposal: unknown;
+}) {
+  const parsed = z.object({
+    conversationId: z.string().uuid(),
+    runId: z.string().uuid().optional(),
+    questionnaireId: z.string().uuid(),
+    projectId: z.string().uuid(),
+    requestId: z.string().uuid(),
+    instruction: z.string().trim().min(2).max(2000),
+    originalHash: z.string().regex(/^[a-f0-9]{64}$/),
+    proposalHash: z.string().regex(/^[a-f0-9]{64}$/),
+    proposal: questionnaireRevisionSchema,
+  }).safeParse(input);
+  if (!parsed.success) return { ok: false as const, error: "The questionnaire refinement is invalid." };
+  if (questionnaireRevisionHash(parsed.data.proposal) !== parsed.data.proposalHash) {
+    return { ok: false as const, error: "The questionnaire preview changed before it could be applied." };
+  }
+  const result = await runRefinementTool(
+    "questionnaire.refine",
+    "questionnaire",
+    {
+      conversationId: parsed.data.conversationId,
+      runId: parsed.data.runId,
+      entityId: parsed.data.questionnaireId,
+      requestId: parsed.data.requestId,
+      contextId: parsed.data.projectId,
+      instruction: parsed.data.instruction,
+      proposalHash: parsed.data.proposalHash,
+    },
+    () => applyQuestionnaireRefinementFromAiAction({
+      questionnaireId: parsed.data.questionnaireId,
+      projectId: parsed.data.projectId,
+      originalHash: parsed.data.originalHash,
+      proposal: parsed.data.proposal,
+    }),
+    (value) => {
+      const raw = value as { ok?: boolean; data?: unknown };
+      if (!raw?.ok) return normalizeFailure(value);
+      const preview = questionnaireDraftPreviewSchema.safeParse(raw.data);
+      return preview.success
+        ? { ok: true as const, data: preview.data, message: "Questionnaire changes applied." }
+        : { ok: false as const, error: "The updated questionnaire was invalid." };
+    },
+    (entityId, userId) => readQuestionnaireRefinementPreview(entityId, parsed.data.projectId, userId),
+  );
+  if (!result.ok) return result;
+  return {
+    ...result,
+    questionnaire: result.data,
+    response: entityResponse("result", "Questionnaire changes applied.", {
+      type: "entity_result",
+      entityType: "questionnaire",
+      entityId: result.data.id,
+      contextId: result.data.projectId,
+    }),
+  };
+}
+
 export async function approveInvoiceIvoToolAction(input: {
   conversationId: string;
   runId?: string;
@@ -2137,6 +2381,26 @@ export async function emailInvoiceIvoToolAction(input: {
   return withResponse(result, () => outcomeResponse("Done. Invoice emailed to the client."));
 }
 
+export async function remindInvoiceIvoToolAction(input: {
+  conversationId: string;
+  runId?: string;
+  invoiceId: string;
+  requestId: string;
+}) {
+  const result = await runApprovedEmailTool(
+    "invoice.remind_one",
+    "invoice",
+    {
+      conversationId: input.conversationId,
+      runId: input.runId,
+      entityId: input.invoiceId,
+      requestId: input.requestId,
+    },
+    (invoiceId) => remindInvoiceFromAiAction({ invoiceId }),
+  );
+  return withResponse(result, () => outcomeResponse("Done. Payment reminder sent to the client."));
+}
+
 export async function emailContractIvoToolAction(input: {
   conversationId: string;
   runId?: string;
@@ -2157,6 +2421,182 @@ export async function emailContractIvoToolAction(input: {
   return withResponse(result, async () =>
     outcomeResponse(await describeContractDelivery(input.conversationId, input.contractId)),
   );
+}
+
+export async function emailProposalIvoToolAction(input: {
+  conversationId: string;
+  runId?: string;
+  proposalId: string;
+  requestId: string;
+}) {
+  const result = await runApprovedEmailTool(
+    "proposal.email",
+    "proposal",
+    {
+      conversationId: input.conversationId,
+      runId: input.runId,
+      entityId: input.proposalId,
+      requestId: input.requestId,
+    },
+    (proposalId) => sendProposalFromAiAction({ proposalId }),
+  );
+  return withResponse(result, () => outcomeResponse("Done. Proposal emailed to the client."));
+}
+
+export async function sendProjectQuestionnaireIvoToolAction(input: {
+  conversationId: string;
+  runId?: string;
+  projectId: string;
+  questionnaireId: string;
+  requestId: string;
+}) {
+  const projectId = z.string().uuid().safeParse(input.projectId);
+  if (!projectId.success) return { ok: false as const, error: "Invalid project." };
+  const result = await runApprovedEmailTool(
+    "questionnaire.send",
+    "questionnaire",
+    {
+      conversationId: input.conversationId,
+      runId: input.runId,
+      entityId: input.questionnaireId,
+      requestId: input.requestId,
+      contextId: projectId.data,
+    },
+    (questionnaireId, requestId) => sendProjectQuestionnaireFromAiAction({
+      projectId: projectId.data,
+      questionnaireId,
+      requestId,
+    }),
+  );
+  return withResponse(result, () => outcomeResponse(
+    result.message ?? "Questionnaire delivery completed.",
+  ));
+}
+
+export async function convertProposalToContractIvoToolAction(input: {
+  conversationId: string;
+  runId?: string;
+  proposalId: string;
+}) {
+  const result = await runApprovedStatusTool(
+    "proposal.convert_contract",
+    "proposal",
+    { conversationId: input.conversationId, runId: input.runId, entityId: input.proposalId },
+    (proposalId) => convertAcceptedProposalToContractFromAiAction({ proposalId }),
+    async (proposalId, userId) => {
+      const supabase = await getServerSupabase();
+      const { data } = await supabase
+        .from("contracts")
+        .select("id")
+        .eq("proposal_id", proposalId)
+        .eq("user_id", userId)
+        .order("created_at", { ascending: true })
+        .limit(1)
+        .maybeSingle();
+      return data
+        ? { ok: true as const, data: { id: String((data as { id: string }).id) } }
+        : null;
+    },
+  );
+  return withResponse(result, () => {
+    const contractId = String((result as { data?: { id?: string } }).data?.id ?? "");
+    return entityResponse("preview", "Contract draft created from the accepted proposal.", {
+      type: "entity_preview",
+      entityType: "contract",
+      entityId: contractId,
+      variant: "draft",
+    });
+  });
+}
+
+export async function convertProposalToProjectIvoToolAction(input: {
+  conversationId: string;
+  runId?: string;
+  proposalId: string;
+}) {
+  const result = await runApprovedStatusTool(
+    "proposal.convert_project",
+    "proposal",
+    { conversationId: input.conversationId, runId: input.runId, entityId: input.proposalId },
+    (proposalId) => convertAcceptedProposalToProjectFromAiAction({ proposalId }),
+    async (proposalId, userId) => {
+      const supabase = await getServerSupabase();
+      const { data } = await supabase
+        .from("projects")
+        .select("id, name, description")
+        .eq("proposal_id", proposalId)
+        .eq("user_id", userId)
+        .order("created_at", { ascending: true })
+        .limit(1)
+        .maybeSingle();
+      const project = data as { id: string; name: string; description?: string | null } | null;
+      return project
+        ? { ok: true as const, data: { id: project.id, name: project.name, description: project.description ?? "" } }
+        : null;
+    },
+  );
+  return withResponse(result, () => {
+    const projectId = String((result as { data?: { id?: string } }).data?.id ?? "");
+    return entityResponse("result", "Project started from the accepted proposal.", {
+      type: "entity_result",
+      entityType: "project",
+      entityId: projectId,
+    });
+  });
+}
+
+export async function createProjectPortalIvoToolAction(input: {
+  conversationId: string;
+  runId?: string;
+  projectId: string;
+}) {
+  const result = await runApprovedStatusTool(
+    "portal.create_invite",
+    "portal",
+    { conversationId: input.conversationId, runId: input.runId, entityId: input.projectId },
+    (projectId) => createProjectPortalFromAiAction({ projectId }),
+    async (projectId, userId) => {
+      const supabase = await getServerSupabase();
+      const { data: projectRaw } = await supabase
+        .from("projects")
+        .select("client_id")
+        .eq("id", projectId)
+        .eq("user_id", userId)
+        .maybeSingle();
+      const clientId = (projectRaw as { client_id?: string | null } | null)?.client_id;
+      if (!clientId) return null;
+      const { data: portalRaw } = await supabase
+        .from("portals")
+        .select("id")
+        .eq("owner_user_id", userId)
+        .eq("client_id", clientId)
+        .eq("status", "active")
+        .is("deleted_at", null)
+        .maybeSingle();
+      const portalId = (portalRaw as { id?: string } | null)?.id;
+      return portalId
+        ? { ok: true as const, data: { portalId }, message: "Client portal already exists." }
+        : null;
+    },
+    (completedResult) => {
+      const portalId = String(
+        (completedResult as { data?: { portalId?: string } }).data?.portalId ?? "",
+      );
+      return portalId ? { entityType: "portal" as const, entityId: portalId } : null;
+    },
+  );
+  return withResponse(result, () => {
+    const portalId = String((result as { data?: { portalId?: string } }).data?.portalId ?? "");
+    const message = String(
+      (result as { message?: string }).message
+        ?? "Client portal created and its invitation was attempted.",
+    );
+    return entityResponse("result", message, {
+      type: "entity_result",
+      entityType: "portal",
+      entityId: portalId,
+    });
+  });
 }
 
 /**

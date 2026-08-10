@@ -50,6 +50,7 @@ export function SendQuestionnaireDialog({
   const [sending, setSending] = React.useState(false);
   const [link, setLink] = React.useState<string | null>(null);
   const [copied, setCopied] = React.useState(false);
+  const requestKeyRef = React.useRef<string | null>(null);
 
   const client = clients.find((c) => c.id === clientId);
 
@@ -57,6 +58,7 @@ export function SendQuestionnaireDialog({
     setLink(null);
     setClientId("");
     setCopied(false);
+    requestKeyRef.current = null;
   };
 
   const send = async () => {
@@ -65,7 +67,12 @@ export function SendQuestionnaireDialog({
       return;
     }
     setSending(true);
-    const res = await sendQuestionnaireAction({ questionnaireId, clientId });
+    requestKeyRef.current ??= crypto.randomUUID();
+    const res = await sendQuestionnaireAction({
+      questionnaireId,
+      clientId,
+      idempotencyKey: requestKeyRef.current,
+    });
     setSending(false);
     if (!res.ok) {
       toast.error(res.error);
@@ -148,7 +155,10 @@ export function SendQuestionnaireDialog({
               </span>
               <select
                 value={clientId}
-                onChange={(e) => setClientId(e.target.value)}
+                onChange={(e) => {
+                  setClientId(e.target.value);
+                  requestKeyRef.current = null;
+                }}
                 className="h-11 w-full rounded-md border bg-background px-3 text-sm"
               >
                 <option value="">Choose a client</option>

@@ -48,6 +48,7 @@ export const ivoRuntimeDecisionSchema = z.union([
   z.object({ kind: z.literal("reply") }),
   z.object({ kind: z.literal("list"), entityType: z.literal("invoice"), filter: z.enum(["unpaid", "overdue", "all"]) }),
   z.object({ kind: z.literal("list"), entityType: z.literal("contract"), filter: z.enum(["pending", "all"]) }),
+  z.object({ kind: z.literal("list"), entityType: z.literal("proposal"), filter: z.enum(["pending", "all"]) }),
   z.object({ kind: z.literal("list"), entityType: z.literal("client"), filter: z.literal("all") }),
   z.object({ kind: z.literal("list"), entityType: z.literal("project"), filter: z.enum(["active", "all"]) }),
   z.object({ kind: z.literal("list"), entityType: z.literal("welcome_document"), filter: z.enum(["open", "all"]) }),
@@ -55,7 +56,7 @@ export const ivoRuntimeDecisionSchema = z.union([
   z.object({ kind: z.literal("support") }),
   z.object({
     kind: z.literal("refine"),
-    entityType: z.enum(["invoice", "contract", "welcome_document"]),
+    entityType: z.enum(["invoice", "contract", "questionnaire", "welcome_document"]),
     entityId: z.string().uuid(),
   }),
   z.object({
@@ -98,7 +99,14 @@ function listDecision(text: string): IvoRuntimeDecision | null {
       filter: /overdue/.test(normalized) ? "overdue" : /\ball\b/.test(normalized) ? "all" : "unpaid",
     };
   }
-  if (show && /\b(contracts?|proposals?)\b/.test(normalized)) {
+  if (show && /\bproposals?\b/.test(normalized)) {
+    return {
+      kind: "list",
+      entityType: "proposal",
+      filter: /\b(all|every)\b/.test(normalized) ? "all" : "pending",
+    };
+  }
+  if (show && /\bcontracts?\b/.test(normalized)) {
     return {
       kind: "list",
       entityType: "contract",
@@ -143,7 +151,7 @@ export function planIvoRuntime(input: {
   clientCurrency?: string;
   requestId: string;
   pendingProposal?: "overdue_reminders";
-  activeDraft?: { entityType: "invoice" | "contract" | "welcome_document"; entityId: string };
+  activeDraft?: { entityType: "invoice" | "contract" | "questionnaire" | "welcome_document"; entityId: string };
 }): IvoRuntimeDecision {
   const {
     message,
@@ -201,8 +209,11 @@ export function planIvoRuntime(input: {
         : activeDraft.entityType === "invoice"
           ? /\b(create|draft|make|generate|raise|new|another)\s+(a\s+|an\s+|another\s+|new\s+)?(new\s+)?(invoice|bill)\b/i.test(message) ||
             /\b(new|another|second|separate|different)\s+invoice\b/i.test(message)
-          : /\b(create|draft|make|generate|prepare|new|another)\s+(a\s+|an\s+|another\s+|new\s+)?(new\s+)?(welcome|onboarding)\b/i.test(message) ||
-            /\b(new|another)\s+(welcome|onboarding)\b/i.test(message);
+          : activeDraft.entityType === "questionnaire"
+            ? /\b(create|draft|make|generate|new|another)\s+(a\s+|an\s+|another\s+|new\s+)?(new\s+)?questionnaire\b/i.test(message) ||
+              /\b(new|another)\s+questionnaire\b/i.test(message)
+            : /\b(create|draft|make|generate|prepare|new|another)\s+(a\s+|an\s+|another\s+|new\s+)?(new\s+)?(welcome|onboarding)\b/i.test(message) ||
+              /\b(new|another)\s+(welcome|onboarding)\b/i.test(message);
       if (!switchingAway && !startsNew) {
         return { kind: "refine", ...activeDraft };
       }

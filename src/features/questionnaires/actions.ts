@@ -7,7 +7,7 @@ import { z } from "zod";
 
 import { getServerSupabase } from "@/lib/supabase/server";
 import { getAdminSupabase } from "@/lib/supabase/admin";
-import { sendEmail } from "@/features/email/service";
+import { dispatchDelivery } from "@/features/email/send";
 import {
   buildEmailBrand,
   renderQuestionnaireInviteEmail,
@@ -62,6 +62,7 @@ const upsertSchema = z.object({
   title: z.string().trim().min(1).max(200),
   description: z.string().trim().max(1000).optional(),
   questions: z.array(questionSchema).max(60),
+  idempotencyKey: z.string().trim().min(8).max(200).optional(),
 });
 
 export async function createQuestionnaireAction(
@@ -74,6 +75,21 @@ export async function createQuestionnaireAction(
     return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input." };
   }
   const supabase = await getServerSupabase();
+  if (parsed.data.idempotencyKey) {
+    const { data: existing } = await supabase
+      .from("questionnaires")
+      .select("id")
+      .eq("user_id", userId)
+      .eq("idempotency_key", parsed.data.idempotencyKey)
+      .maybeSingle();
+    if (existing) {
+      return {
+        ok: true,
+        data: { id: String((existing as { id: string }).id) },
+        message: "Questionnaire draft already exists.",
+      };
+    }
+  }
   const { data, error } = await supabase
     .from("questionnaires")
     .insert({
@@ -81,10 +97,26 @@ export async function createQuestionnaireAction(
       title: parsed.data.title,
       description: parsed.data.description ?? null,
       questions: normalizeQuestions(parsed.data.questions),
+      idempotency_key: parsed.data.idempotencyKey ?? null,
       updated_at: new Date().toISOString(),
     } as never)
     .select("id")
     .single();
+  if (error?.code === "23505" && parsed.data.idempotencyKey) {
+    const { data: existing } = await supabase
+      .from("questionnaires")
+      .select("id")
+      .eq("user_id", userId)
+      .eq("idempotency_key", parsed.data.idempotencyKey)
+      .maybeSingle();
+    if (existing) {
+      return {
+        ok: true,
+        data: { id: String((existing as { id: string }).id) },
+        message: "Questionnaire draft already exists.",
+      };
+    }
+  }
   if (error || !data) {
     return { ok: false, error: error?.message ?? "Could not save the questionnaire." };
   }
@@ -97,7 +129,7 @@ export async function createQuestionnaireAction(
 }
 
 export async function updateQuestionnaireAction(
-  input: z.infer<typeof upsertSchema> & { id: string },
+  input: Omit<z.infer<typeof upsertSchema>, "idempotencyKey"> & { id: string },
 ): Promise<QResult> {
   const userId = await requireUserId();
   if (!userId) return { ok: false, error: "Please sign in." };
@@ -172,11 +204,12 @@ const sendSchema = z.object({
   questionnaireId: z.string().uuid(),
   clientId: z.string().uuid(),
   projectId: z.string().uuid().optional().nullable(),
+  idempotencyKey: z.string().trim().min(8).max(200).optional(),
 });
 
 export async function sendQuestionnaireAction(
   input: z.infer<typeof sendSchema>,
-): Promise<QResult<{ publicToken: string }>> {
+): Promise<QResult<{ id: string; publicToken: string; emailSent: boolean }>> {
   const userId = await requireUserId();
   if (!userId) return { ok: false, error: "Please sign in." };
   const parsed = sendSchema.safeParse(input);
@@ -196,6 +229,58 @@ export async function sendQuestionnaireAction(
     | null;
   if (!questionnaire) return { ok: false, error: "Questionnaire not found." };
 
+  const { data: clientData } = await supabase
+    .from("clients")
+    .select("id")
+    .eq("id", parsed.data.clientId)
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (!clientData) return { ok: false, error: "Client not found." };
+
+  if (parsed.data.projectId) {
+    const { data: projectData } = await supabase
+      .from("projects")
+      .select("id, client_id")
+      .eq("id", parsed.data.projectId)
+      .eq("user_id", userId)
+      .maybeSingle();
+    const project = projectData as { client_id?: string | null } | null;
+    if (!project || project.client_id !== parsed.data.clientId) {
+      return { ok: false, error: "That project does not belong to the selected client." };
+    }
+  }
+
+  const notify = async (sendId: string, publicToken: string) => {
+    const emailSent = await notifyClientOfQuestionnaire({
+      userId,
+      clientId: parsed.data.clientId,
+      questionnaireId: questionnaire.id,
+      sendId,
+      title: questionnaire.title,
+      questionCount: normalizeQuestions(questionnaire.questions).length,
+      token: publicToken,
+      idempotencyKey: parsed.data.idempotencyKey,
+    });
+    return {
+      ok: true as const,
+      data: { id: sendId, publicToken, emailSent },
+      message: emailSent
+        ? "Questionnaire emailed to the client."
+        : "Questionnaire link created, but email delivery was not completed.",
+    };
+  };
+
+  if (parsed.data.idempotencyKey) {
+    const { data: existingRaw } = await supabase
+      .from("questionnaire_sends")
+      .select("id, public_token")
+      .eq("user_id", userId)
+      .eq("idempotency_key", parsed.data.idempotencyKey)
+      .maybeSingle();
+    const existing = existingRaw as { id: string; public_token: string } | null;
+    if (existing) return notify(existing.id, existing.public_token);
+  }
+
   const token = makeToken();
   const { data, error } = await supabase
     .from("questionnaire_sends")
@@ -209,28 +294,27 @@ export async function sendQuestionnaireAction(
       responses: {},
       status: "sent",
       public_token: token,
+      idempotency_key: parsed.data.idempotencyKey ?? null,
     } as never)
-    .select("public_token")
+    .select("id, public_token")
     .single();
   if (error || !data) {
+    if (error?.code === "23505" && parsed.data.idempotencyKey) {
+      const { data: existingRaw } = await supabase
+        .from("questionnaire_sends")
+        .select("id, public_token")
+        .eq("user_id", userId)
+        .eq("idempotency_key", parsed.data.idempotencyKey)
+        .maybeSingle();
+      const existing = existingRaw as { id: string; public_token: string } | null;
+      if (existing) return notify(existing.id, existing.public_token);
+    }
     return { ok: false, error: error?.message ?? "Could not send." };
   }
-  const publicToken = (data as { public_token: string }).public_token;
-
-  await notifyClientOfQuestionnaire({
-    userId,
-    clientId: parsed.data.clientId,
-    title: questionnaire.title,
-    questionCount: normalizeQuestions(questionnaire.questions).length,
-    token: publicToken,
-  }).catch(() => undefined);
+  const created = data as { id: string; public_token: string };
 
   revalidatePath("/dashboard/questionnaires");
-  return {
-    ok: true,
-    data: { publicToken },
-    message: "Questionnaire sent — share the link with your client.",
-  };
+  return notify(created.id, created.public_token);
 }
 
 // ---------------------------------------------------------------------------
@@ -281,10 +365,13 @@ export async function submitQuestionnaireAction(
 async function notifyClientOfQuestionnaire(args: {
   userId: string;
   clientId: string;
+  questionnaireId: string;
+  sendId: string;
   title: string;
   questionCount?: number;
   token: string;
-}): Promise<void> {
+  idempotencyKey?: string;
+}): Promise<boolean> {
   const admin = getAdminSupabase();
   const { data: clientData } = await admin
     .from("clients")
@@ -294,7 +381,7 @@ async function notifyClientOfQuestionnaire(args: {
   const client = clientData as
     | { email: string | null; full_name: string; business_name: string | null }
     | null;
-  if (!client?.email) return;
+  if (!client?.email) return false;
 
   const { data: profile } = await admin
     .from("user_profiles")
@@ -334,13 +421,22 @@ async function notifyClientOfQuestionnaire(args: {
     }),
   });
 
-  await sendEmail({
-    type: "share",
+  const delivery = await dispatchDelivery({
+    userId: args.userId,
+    kind: "questionnaire_sent",
+    entityType: "questionnaire",
+    entityId: args.questionnaireId,
+    senderType: "share",
     to: { email: client.email, name: clientName },
     ...(hostEmail ? { replyTo: { email: hostEmail, name: hostName } } : {}),
     subject: rendered.subject,
     html: rendered.html,
     text: rendered.text,
     tags: ["questionnaire"],
+    metadata: { questionnaireSendId: args.sendId },
+    idempotencyKey: args.idempotencyKey
+      ? `questionnaire-email:${args.userId}:${args.idempotencyKey}`
+      : null,
   });
+  return delivery.ok;
 }

@@ -13,6 +13,7 @@ import { getUsageSnapshot, getCurrentSubscription } from "@/features/subscriptio
 import { incrementUsage } from "@/features/subscription/usage";
 import { effectivePlan } from "@/features/subscription/features";
 import { getProfile } from "@/features/profile/server";
+import { normalizeQuestions } from "@/features/questionnaires/types";
 import { AI_WORKFLOWS, type AiInterpretation } from "./types";
 import { interpretMessageDetailed } from "./nlu";
 import { loadMemories, runIvoAgent } from "./agent";
@@ -50,13 +51,14 @@ const messageBlockSchema = z.discriminatedUnion("type", [
   }),
   z.object({
     type: z.literal("entity_list"),
-    entityType: z.enum(["invoice", "contract", "client", "project", "welcome_document"]),
+    entityType: z.enum(["invoice", "contract", "proposal", "client", "project", "welcome_document"]),
     entityIds: z.array(z.string().uuid()).max(20),
   }),
   z.object({
     type: z.literal("entity_result"),
-    entityType: z.enum(["client", "project", "time_entry", "proposal", "meeting"]),
+    entityType: z.enum(["client", "project", "time_entry", "proposal", "questionnaire", "meeting", "portal"]),
     entityId: z.string().uuid(),
+    contextId: z.string().uuid().optional(),
   }),
   z.object({
     type: z.literal("confirmation"),
@@ -120,7 +122,7 @@ const processMessageSchema = z.object({
   }).optional(),
   pendingProposal: z.enum(["overdue_reminders"]).optional(),
   activeDraft: z.object({
-    entityType: z.enum(["invoice", "contract", "welcome_document"]),
+    entityType: z.enum(["invoice", "contract", "questionnaire", "welcome_document"]),
     entityId: z.string().uuid(),
   }).optional(),
   clientId: z.string().max(100).optional(),
@@ -213,6 +215,46 @@ async function resolveSelectedResources(
           status: compactText(row.status, 80), issueDate: compactText(row.issue_date, 40),
           dueDate: compactText(row.due_date, 40), totalAmount: Number(row.total_amount || 0),
           currency: compactText(row.currency, 20), notes: compactText(row.notes), terms: compactText(row.terms),
+        },
+      };
+    }
+    if (reference.type === "questionnaire_response") {
+      const { data } = await supabase.from("questionnaire_sends")
+        .select("id, title, questions, responses, status, client_id, project_id, submitted_at")
+        .eq("id", reference.id).eq("user_id", userId).eq("status", "completed").maybeSingle();
+      const row = data as Record<string, unknown> | null;
+      if (!row) return null;
+      const questions = Array.isArray(row.questions)
+        ? row.questions as Array<Record<string, unknown>>
+        : [];
+      const responses = row.responses && typeof row.responses === "object" && !Array.isArray(row.responses)
+        ? row.responses as Record<string, unknown>
+        : {};
+      const responseSummary = questions.map((question) => {
+        const id = String(question.id ?? "");
+        const raw = responses[id];
+        const answer = Array.isArray(raw)
+          ? raw.map(String).join(", ")
+          : raw === undefined || raw === null || raw === ""
+            ? "Unanswered"
+            : String(raw);
+        return { question: String(question.label || "Question"), answer };
+      });
+      const { data: clientRaw } = row.client_id
+        ? await supabase.from("clients")
+            .select("full_name, business_name")
+            .eq("id", String(row.client_id)).eq("user_id", userId).maybeSingle()
+        : { data: null };
+      const client = clientRaw as Record<string, unknown> | null;
+      return {
+        ...reference,
+        label: `${String(row.title || "Questionnaire")} response`,
+        details: {
+          title: String(row.title || "Questionnaire"),
+          clientName: String(client?.business_name || client?.full_name || "Client"),
+          status: "completed",
+          submittedAt: compactText(row.submitted_at, 40),
+          responses: JSON.stringify(responseSummary).slice(0, 6000),
         },
       };
     }
@@ -364,6 +406,47 @@ async function resolveMessageBlock(
         },
       };
     }
+    if (reference.entityType === "questionnaire") {
+      if (!reference.contextId) return undefined;
+      const [{ data: questionnaireRaw }, { data: projectRaw }] = await Promise.all([
+        supabase
+          .from("questionnaires")
+          .select("id, title, description, questions")
+          .eq("id", reference.entityId)
+          .eq("user_id", userId)
+          .maybeSingle(),
+        supabase
+          .from("projects")
+          .select("id, name, client_id")
+          .eq("id", reference.contextId)
+          .eq("user_id", userId)
+          .maybeSingle(),
+      ]);
+      const questionnaire = questionnaireRaw as Record<string, unknown> | null;
+      const project = projectRaw as Record<string, unknown> | null;
+      if (!questionnaire || !project) return undefined;
+      const { data: clientRaw } = project.client_id
+        ? await supabase
+            .from("clients")
+            .select("full_name, business_name")
+            .eq("id", String(project.client_id))
+            .eq("user_id", userId)
+            .maybeSingle()
+        : { data: null };
+      const client = clientRaw as Record<string, unknown> | null;
+      return {
+        ...reference,
+        data: {
+          id: String(questionnaire.id),
+          projectId: String(project.id),
+          projectName: String(project.name || "Project"),
+          clientName: String(client?.business_name || client?.full_name || "the client"),
+          title: String(questionnaire.title || "Questionnaire"),
+          description: questionnaire.description ? String(questionnaire.description) : null,
+          questions: normalizeQuestions(questionnaire.questions),
+        } as unknown as Json,
+      };
+    }
     if (reference.entityType === "meeting") {
       const { data: meetingRaw } = await supabase
         .from("meetings")
@@ -390,6 +473,25 @@ async function resolveMessageBlock(
           topic: String(meeting.topic),
           clientName: String(client?.business_name || client?.full_name || "your client"),
           durationMinutes: Number(meeting.duration_minutes ?? 30),
+        },
+      };
+    }
+    if (reference.entityType === "portal") {
+      const { data } = await supabase
+        .from("portals")
+        .select("id, name, client_id")
+        .eq("id", reference.entityId)
+        .eq("owner_user_id", userId)
+        .is("deleted_at", null)
+        .maybeSingle();
+      const row = data as Record<string, unknown> | null;
+      if (!row) return undefined;
+      return {
+        ...reference,
+        data: {
+          id: String(row.id),
+          name: String(row.name || "Client portal"),
+          clientId: row.client_id ? String(row.client_id) : null,
         },
       };
     }
@@ -483,10 +585,10 @@ async function resolveMessageBlock(
       return { ...reference, data: { rows: sortRows(rows) } };
     }
 
-    if (reference.entityType === "project") {
+    if (reference.entityType === "proposal") {
       const { data } = await supabase
-        .from("projects")
-        .select("id, name, client_id, status, due_date")
+        .from("proposals")
+        .select("id, title, client_id, status, total_amount, currency, valid_until")
         .eq("user_id", userId)
         .in("id", reference.entityIds);
       const records = (data as Array<Record<string, unknown>> | null) ?? [];
@@ -499,8 +601,44 @@ async function resolveMessageBlock(
       ]));
       const rows = records.map((row) => ({
         id: String(row.id),
-        name: String(row.name),
+        title: String(row.title),
         clientName: typeof row.client_id === "string" ? names.get(row.client_id) ?? "Unknown client" : "No client",
+        status: String(row.status),
+        totalAmount: Number(row.total_amount ?? 0),
+        currency: String(row.currency || "INR"),
+        validUntil: row.valid_until ? String(row.valid_until) : null,
+      }));
+      return { ...reference, data: { rows: sortRows(rows) } };
+    }
+
+    if (reference.entityType === "project") {
+      const { data } = await supabase
+        .from("projects")
+        .select("id, name, client_id, status, due_date")
+        .eq("user_id", userId)
+        .in("id", reference.entityIds);
+      const records = (data as Array<Record<string, unknown>> | null) ?? [];
+      const clientIds = records.map((row) => row.client_id).filter((id): id is string => typeof id === "string");
+      const [{ data: clientsRaw }, { data: portalsRaw }] = await Promise.all([
+        clientIds.length
+          ? supabase.from("clients").select("id, full_name, business_name").eq("user_id", userId).in("id", clientIds)
+          : Promise.resolve({ data: [] }),
+        clientIds.length
+          ? supabase.from("portals").select("id, client_id").eq("owner_user_id", userId).eq("status", "active").is("deleted_at", null).in("client_id", clientIds)
+          : Promise.resolve({ data: [] }),
+      ]);
+      const names = new Map(((clientsRaw as Array<Record<string, unknown>> | null) ?? []).map((row) => [
+        String(row.id), String(row.business_name || row.full_name || "Client"),
+      ]));
+      const portalIds = new Map(((portalsRaw as Array<Record<string, unknown>> | null) ?? []).map((row) => [
+        String(row.client_id), String(row.id),
+      ]));
+      const rows = records.map((row) => ({
+        id: String(row.id),
+        name: String(row.name),
+        clientId: typeof row.client_id === "string" ? row.client_id : null,
+        clientName: typeof row.client_id === "string" ? names.get(row.client_id) ?? "Unknown client" : "No client",
+        portalId: typeof row.client_id === "string" ? portalIds.get(row.client_id) ?? null : null,
         status: String(row.status),
         dueDate: row.due_date ? String(row.due_date) : null,
       }));
@@ -1185,14 +1323,16 @@ export async function processIvoMessageAction(
         ? "invoices"
         : requestedDraft.entityType === "contract"
           ? "contracts"
-          : "welcome_documents";
-      const { data: draft } = await supabase
+          : requestedDraft.entityType === "questionnaire"
+            ? "questionnaires"
+            : "welcome_documents";
+      let query = supabase
         .from(table)
-        .select("id, status")
+        .select(requestedDraft.entityType === "questionnaire" ? "id, active" : "id, status")
         .eq("id", requestedDraft.entityId)
-        .eq("user_id", userId)
-        .eq("status", "draft")
-        .maybeSingle();
+        .eq("user_id", userId);
+      if (requestedDraft.entityType !== "questionnaire") query = query.eq("status", "draft");
+      const { data: draft } = await query.maybeSingle();
       if (draft) activeDraft = requestedDraft;
     }
 

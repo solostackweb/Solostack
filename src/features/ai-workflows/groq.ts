@@ -45,6 +45,15 @@ interface GroqChatResponse {
   };
 }
 
+interface GroqErrorResponse {
+  error?: {
+    message?: string;
+    type?: string;
+    code?: string | null;
+    failed_generation?: string;
+  };
+}
+
 export interface AiProviderResultMeta {
   provider: "groq";
   outcome:
@@ -69,7 +78,7 @@ export interface AiProviderResultMeta {
  * the JSON in ```json fences or surrounding prose. We strip those and, as a
  * last resort, extract the first balanced object/array block before parsing.
  */
-function parseJsonLoose(raw: string): unknown | null {
+export function parseGroqJson(raw: string): unknown | null {
   const cleaned = raw
     .replace(/<think>[\s\S]*?<\/think>/gi, "")
     .replace(/```(?:json)?/gi, "")
@@ -77,16 +86,45 @@ function parseJsonLoose(raw: string): unknown | null {
   try {
     return JSON.parse(cleaned);
   } catch {
-    const match = cleaned.match(/\{[\s\S]*\}|\[[\s\S]*\]/);
-    if (match) {
-      try {
-        return JSON.parse(match[0]);
-      } catch {
-        return null;
-      }
+    const extracted = extractFirstJsonValue(cleaned);
+    if (!extracted) return null;
+    try {
+      return JSON.parse(extracted);
+    } catch {
+      return null;
     }
-    return null;
   }
+}
+
+/** Extract one balanced JSON object/array while respecting quoted braces.
+ * A greedy regex merges adjacent examples and fails on perfectly usable model
+ * output such as `Here is the JSON: {...}\nExplanation: {...}`. */
+function extractFirstJsonValue(value: string): string | null {
+  const start = value.search(/[\[{]/);
+  if (start < 0) return null;
+  const stack: string[] = [];
+  let inString = false;
+  let escaped = false;
+  for (let index = start; index < value.length; index += 1) {
+    const char = value[index];
+    if (inString) {
+      if (escaped) escaped = false;
+      else if (char === "\\") escaped = true;
+      else if (char === '"') inString = false;
+      continue;
+    }
+    if (char === '"') {
+      inString = true;
+      continue;
+    }
+    if (char === "{" || char === "[") stack.push(char);
+    else if (char === "}" || char === "]") {
+      const expected = char === "}" ? "{" : "[";
+      if (stack.pop() !== expected) return null;
+      if (stack.length === 0) return value.slice(start, index + 1);
+    }
+  }
+  return null;
 }
 
 /** Hard ceiling on a single Groq round-trip so a slow upstream can't hang the
@@ -103,7 +141,57 @@ const GROQ_MAX_ATTEMPTS = 2;
  */
 const GROQ_FALLBACK_MODEL = "openai/gpt-oss-20b";
 
+/** Honour provider backoff without freezing an interactive turn indefinitely. */
+const GROQ_MAX_RETRY_DELAY_MS = 3_000;
+
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+function retryDelayMs(response: Response, attempt: number): number {
+  const raw = response.headers.get("retry-after")?.trim();
+  if (raw) {
+    const seconds = Number(raw);
+    if (Number.isFinite(seconds) && seconds >= 0) {
+      return Math.min(Math.ceil(seconds * 1000), GROQ_MAX_RETRY_DELAY_MS);
+    }
+    const at = Date.parse(raw);
+    if (Number.isFinite(at)) {
+      return Math.min(Math.max(at - Date.now(), 0), GROQ_MAX_RETRY_DELAY_MS);
+    }
+  }
+  return 300 * attempt;
+}
+
+async function readGroqError(response: Response): Promise<GroqErrorResponse> {
+  try {
+    return (await response.json()) as GroqErrorResponse;
+  } catch {
+    return {};
+  }
+}
+
+/** A 400 may be a malformed generated tool call, so only switch models when
+ * Groq actually reports that the requested model is unavailable. */
+function isModelRejected(status: number, payload: GroqErrorResponse): boolean {
+  if (status === 404) return true;
+  const code = payload.error?.code?.toLowerCase() ?? "";
+  const message = payload.error?.message?.toLowerCase() ?? "";
+  return (
+    code === "model_not_found" ||
+    code === "model_decommissioned" ||
+    /model.+(not found|does not exist|decommissioned|deprecated|not available)/.test(message)
+  );
+}
+
+function isRetryableGroqStatus(status: number, payload: GroqErrorResponse): boolean {
+  return (
+    status === 408 ||
+    status === 409 ||
+    status === 429 ||
+    status >= 500 ||
+    (status === 400 && Boolean(payload.error?.failed_generation)) ||
+    status === 422
+  );
+}
 
 export async function generateStructuredJson({
   messages,
@@ -200,35 +288,30 @@ export async function generateStructuredJson({
           },
         );
 
-        // Retry transient upstream errors (rate limit / server) once.
-        if (res.status === 429 || res.status >= 500) {
+        // Classify the response before retrying: a generated tool-call error
+        // and a missing model can both arrive as HTTP 400 from Groq.
+        if (!res.ok) {
+          const errorPayload = await readGroqError(res);
+          if (isModelRejected(res.status, errorPayload)) {
+            lastOutcome = "model_rejected";
+            log.warn("ai.provider.model_rejected", {
+              provider: "groq", operation, model, status: res.status,
+              latencyMs: Date.now() - startedAt,
+            });
+            modelRejected = true;
+            break;
+          }
+
           lastOutcome = "http_error";
-          log.warn("ai.provider.retryable_http_error", {
-            provider: "groq", operation, model, attempt, status: res.status,
-            latencyMs: Date.now() - startedAt,
-          });
-          if (attempt < GROQ_MAX_ATTEMPTS) {
-            await sleep(300 * attempt);
+          if (isRetryableGroqStatus(res.status, errorPayload) && attempt < GROQ_MAX_ATTEMPTS) {
+            const delayMs = retryDelayMs(res, attempt);
+            log.warn("ai.provider.retryable_http_error", {
+              provider: "groq", operation, model, attempt, status: res.status,
+              latencyMs: Date.now() - startedAt, delayMs,
+            });
+            await sleep(delayMs);
             continue;
           }
-          break; // give up on this model
-        }
-
-        // A 400/404 almost always means the model name is unknown or has been
-        // decommissioned. Don't retry the same model — fall through to the next
-        // candidate (the stable fallback).
-        if (res.status === 400 || res.status === 404) {
-          lastOutcome = "model_rejected";
-          log.warn("ai.provider.model_rejected", {
-            provider: "groq", operation, model, status: res.status,
-            latencyMs: Date.now() - startedAt,
-          });
-          modelRejected = true;
-          break;
-        }
-
-        if (!res.ok) {
-          lastOutcome = "http_error";
           log.warn("ai.provider.http_error", {
             provider: "groq", operation, model, attempt, status: res.status,
             latencyMs: Date.now() - startedAt,
@@ -246,7 +329,7 @@ export async function generateStructuredJson({
           report("empty_response", { model });
           return null;
         }
-        const parsed = parseJsonLoose(content);
+        const parsed = parseGroqJson(content);
         if (parsed === null) {
           log.warn("ai.provider.invalid_json", {
             provider: "groq", operation, model, attempt,
@@ -357,6 +440,47 @@ async function readGroqStream(
     idle = setTimeout(() => controller.abort(), GROQ_TIMEOUT_MS);
   };
 
+  const consumeLine = (line: string) => {
+    const trimmed = line.trim();
+    if (!trimmed.startsWith("data:")) return;
+    const payload = trimmed.slice(5).trim();
+    if (!payload || payload === "[DONE]") return;
+    let chunk: GroqStreamDelta;
+    try {
+      chunk = JSON.parse(payload) as GroqStreamDelta;
+    } catch {
+      return;
+    }
+    const delta = chunk.choices?.[0]?.delta;
+    if (typeof delta?.content === "string" && delta.content) {
+      content += delta.content;
+      onDelta(delta.content);
+    }
+    if (Array.isArray(delta?.tool_calls)) {
+      for (const fragment of delta.tool_calls) {
+        const index = Number(fragment.index ?? 0);
+        const existing = toolCalls.get(index) ?? {
+          id: "",
+          type: "function" as const,
+          function: { name: "", arguments: "" },
+        };
+        if (typeof fragment.id === "string" && fragment.id) existing.id = fragment.id;
+        if (typeof fragment.function?.name === "string" && fragment.function.name) {
+          existing.function.name = fragment.function.name;
+        }
+        if (typeof fragment.function?.arguments === "string") {
+          existing.function.arguments += fragment.function.arguments;
+        }
+        toolCalls.set(index, existing);
+      }
+    }
+    const usage = chunk.usage ?? chunk.x_groq?.usage;
+    if (usage) {
+      promptTokens = usage.prompt_tokens ?? promptTokens;
+      completionTokens = usage.completion_tokens ?? completionTokens;
+    }
+  };
+
   try {
     for (;;) {
       const { done, value } = await reader.read();
@@ -366,46 +490,11 @@ async function readGroqStream(
       const lines = buffer.split("\n");
       buffer = lines.pop() ?? "";
       for (const line of lines) {
-        const trimmed = line.trim();
-        if (!trimmed.startsWith("data:")) continue;
-        const payload = trimmed.slice(5).trim();
-        if (!payload || payload === "[DONE]") continue;
-        let chunk: GroqStreamDelta;
-        try {
-          chunk = JSON.parse(payload) as GroqStreamDelta;
-        } catch {
-          continue; // partial/malformed frame
-        }
-        const delta = chunk.choices?.[0]?.delta;
-        if (typeof delta?.content === "string" && delta.content) {
-          content += delta.content;
-          onDelta(delta.content);
-        }
-        if (Array.isArray(delta?.tool_calls)) {
-          for (const fragment of delta.tool_calls) {
-            const index = Number(fragment.index ?? 0);
-            const existing = toolCalls.get(index) ?? {
-              id: "",
-              type: "function" as const,
-              function: { name: "", arguments: "" },
-            };
-            if (typeof fragment.id === "string" && fragment.id) existing.id = fragment.id;
-            if (typeof fragment.function?.name === "string" && fragment.function.name) {
-              existing.function.name = fragment.function.name;
-            }
-            if (typeof fragment.function?.arguments === "string") {
-              existing.function.arguments += fragment.function.arguments;
-            }
-            toolCalls.set(index, existing);
-          }
-        }
-        const usage = chunk.usage ?? chunk.x_groq?.usage;
-        if (usage) {
-          promptTokens = usage.prompt_tokens ?? promptTokens;
-          completionTokens = usage.completion_tokens ?? completionTokens;
-        }
+        consumeLine(line);
       }
     }
+    buffer += decoder.decode();
+    if (buffer.trim()) consumeLine(buffer);
   } catch (err) {
     log.warn("ai.provider.stream_error", {
       provider: "groq",
@@ -496,22 +585,31 @@ export async function generateToolChat({
             signal: controller.signal,
           },
         );
-        if (res.status === 429 || res.status >= 500) {
-          if (attempt < GROQ_MAX_ATTEMPTS) {
-            await sleep(300 * attempt);
+        if (!res.ok) {
+          const errorPayload = await readGroqError(res);
+          if (isModelRejected(res.status, errorPayload)) {
+            log.warn("ai.provider.model_rejected", {
+              provider: "groq", operation, model, status: res.status,
+              latencyMs: Date.now() - startedAt,
+            });
+            modelRejected = true;
+            break;
+          }
+          if (isRetryableGroqStatus(res.status, errorPayload) && attempt < GROQ_MAX_ATTEMPTS) {
+            const delayMs = retryDelayMs(res, attempt);
+            log.warn("ai.provider.retryable_http_error", {
+              provider: "groq", operation, model, attempt, status: res.status,
+              latencyMs: Date.now() - startedAt, delayMs,
+            });
+            await sleep(delayMs);
             continue;
           }
-          break;
-        }
-        if (res.status === 400 || res.status === 404) {
-          log.warn("ai.provider.model_rejected", {
-            provider: "groq", operation, model, status: res.status,
+          log.warn("ai.provider.http_error", {
+            provider: "groq", operation, model, attempt, status: res.status,
             latencyMs: Date.now() - startedAt,
           });
-          modelRejected = true;
           break;
         }
-        if (!res.ok) break;
 
         if (onDelta && res.body) {
           // Streaming mode. The initial timer guarded time-to-first-byte;

@@ -8,6 +8,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
+import { IvoEntryPoint } from "@/features/ai-workflows/components/ivo-entry-point";
 import type { QuestionnaireSend } from "../types";
 import {
   SendQuestionnaireDialog,
@@ -144,6 +145,18 @@ function ResponseCard({
         </div>
 
         <div className="flex flex-wrap gap-2">
+          {completed ? (
+            <IvoEntryPoint
+              label="Analyze with IVo"
+              prompt="Analyze this completed questionnaire response. Summarize the client's goals, constraints, unanswered questions, risks, and the best next actions. Stay grounded in the attached response."
+              resources={[{
+                type: "questionnaire_response",
+                id: send.id,
+                label: `${send.title} response`,
+                subtitle: client?.name ?? "Completed questionnaire",
+              }]}
+            />
+          ) : null}
           <Button type="button" size="sm" variant="outline" onClick={copy}>
             {copied ? (
               <Check className="h-3.5 w-3.5" />

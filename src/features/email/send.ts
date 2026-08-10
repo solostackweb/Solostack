@@ -28,7 +28,7 @@ import { getSuppression } from "./suppressions";
 export interface DeliveryDispatchInput {
   userId: string;
   kind: DeliveryKind;
-  entityType: "invoice" | "contract" | "welcome_document" | "client" | "portal" | "system";
+  entityType: "invoice" | "contract" | "welcome_document" | "client" | "portal" | "questionnaire" | "system";
   senderType: EmailSenderType;
   entityId?: string | null;
   to: { email: string; name?: string };

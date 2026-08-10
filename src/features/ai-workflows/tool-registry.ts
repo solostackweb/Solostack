@@ -25,6 +25,11 @@ export const IVO_TOOL_KEYS = [
   "invoice.unbilled_draft",
   "contract.draft",
   "proposal.create",
+  "questionnaire.draft",
+  "proposal.convert_contract",
+  "proposal.convert_project",
+  "portal.create_invite",
+  "questionnaire.send",
   "welcome_document.draft",
   // Direct creation of workspace records on explicit request.
   "client.create",
@@ -36,6 +41,7 @@ export const IVO_TOOL_KEYS = [
   // Refinement of an existing owned draft.
   "invoice.refine",
   "contract.refine",
+  "questionnaire.refine",
   "welcome_document.refine",
   // State changes on an owned record.
   "invoice.approve",
@@ -43,8 +49,10 @@ export const IVO_TOOL_KEYS = [
   "welcome_document.publish",
   // Something leaves the workspace and reaches a client.
   "invoice.email",
+  "proposal.email",
   "contract.email",
   "welcome_document.email",
+  "invoice.remind_one",
   "invoice.remind_overdue",
   "prepared_action.send",
   "prepared_action.dismiss",
@@ -83,6 +91,8 @@ export interface IvoToolSpec {
     | "welcome_document"
     | "client"
     | "project"
+    | "portal"
+    | "questionnaire"
     | "time_entry"
     | "support_ticket"
     | "welcome_document_template"
@@ -120,6 +130,13 @@ export const IVO_TOOL_REGISTRY: Record<IvoToolKey, IvoToolSpec> = {
   "invoice.unbilled_draft": spec("invoice.unbilled_draft", "invoice", "internal_draft", "internal_draft_review_after_creation", DRAFT),
   "contract.draft": spec("contract.draft", "contract", "internal_draft", "internal_draft_review_after_creation", DRAFT),
   "proposal.create": spec("proposal.create", "proposal", "internal_draft", "internal_draft_review_after_creation", DRAFT),
+  "questionnaire.draft": spec("questionnaire.draft", "questionnaire", "internal_draft", "internal_draft_review_after_creation", DRAFT),
+  "proposal.convert_contract": spec("proposal.convert_contract", "proposal", "explicit_creation", "explicit_user_creation_action", APPROVED),
+  "proposal.convert_project": spec("proposal.convert_project", "proposal", "explicit_creation", "explicit_user_creation_action", APPROVED),
+  // Portal creation immediately attempts to deliver the invitation, so it is
+  // governed as external delivery rather than an ordinary record creation.
+  "portal.create_invite": spec("portal.create_invite", "portal", "external_delivery", "explicit_user_external_delivery", APPROVED),
+  "questionnaire.send": spec("questionnaire.send", "questionnaire", "external_delivery", "explicit_user_external_delivery", APPROVED),
   "welcome_document.draft": spec("welcome_document.draft", "welcome_document", "internal_draft", "internal_draft_review_after_creation", DRAFT),
 
   "client.create": spec("client.create", "client", "explicit_creation", "explicit_user_creation_action", APPROVED),
@@ -131,9 +148,10 @@ export const IVO_TOOL_REGISTRY: Record<IvoToolKey, IvoToolSpec> = {
   "support.forward": spec("support.forward", "support_ticket", "explicit_creation", "explicit_user_creation_action", APPROVED),
   "welcome_document.save_template": spec("welcome_document.save_template", "welcome_document_template", "explicit_creation", "explicit_user_creation_action", APPROVED),
 
-  "invoice.refine": spec("invoice.refine", "invoice", "draft_refinement", "internal_draft_refinement_review_after_change", DRAFT),
-  "contract.refine": spec("contract.refine", "contract", "draft_refinement", "internal_draft_refinement_review_after_change", DRAFT),
-  "welcome_document.refine": spec("welcome_document.refine", "welcome_document", "draft_refinement", "internal_draft_refinement_review_after_change", DRAFT),
+  "invoice.refine": spec("invoice.refine", "invoice", "draft_refinement", "internal_draft_refinement_review", DRAFT),
+  "contract.refine": spec("contract.refine", "contract", "draft_refinement", "internal_draft_refinement_review", DRAFT),
+  "questionnaire.refine": spec("questionnaire.refine", "questionnaire", "draft_refinement", "internal_draft_refinement_review", DRAFT),
+  "welcome_document.refine": spec("welcome_document.refine", "welcome_document", "draft_refinement", "internal_draft_refinement_review", DRAFT),
 
   // Approving an invoice moves it to "sent" and makes it a receivable, so it is
   // classed financial rather than a plain status change.
@@ -142,8 +160,10 @@ export const IVO_TOOL_REGISTRY: Record<IvoToolKey, IvoToolSpec> = {
   "welcome_document.publish": spec("welcome_document.publish", "welcome_document", "status_change", "explicit_user_status_action", APPROVED),
 
   "invoice.email": spec("invoice.email", "invoice", "external_delivery", "explicit_user_external_delivery", APPROVED),
+  "proposal.email": spec("proposal.email", "proposal", "external_delivery", "explicit_user_external_delivery", APPROVED),
   "contract.email": spec("contract.email", "contract", "external_delivery", "explicit_user_external_delivery", APPROVED),
   "welcome_document.email": spec("welcome_document.email", "welcome_document", "external_delivery", "explicit_user_external_delivery", APPROVED),
+  "invoice.remind_one": spec("invoice.remind_one", "invoice", "external_delivery", "explicit_user_external_delivery", APPROVED),
   "invoice.remind_overdue": spec("invoice.remind_overdue", "invoice", "external_delivery", "explicit_user_bulk_delivery", APPROVED),
   "prepared_action.send": spec("prepared_action.send", "prepared_action", "external_delivery", "explicit_user_external_delivery", APPROVED),
   "prepared_action.dismiss": spec("prepared_action.dismiss", "prepared_action", "status_change", "explicit_user_status_action", APPROVED),

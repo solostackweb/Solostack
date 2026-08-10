@@ -5,6 +5,7 @@ export const IVO_RESOURCE_TYPES = [
   "project",
   "invoice",
   "welcome_document",
+  "questionnaire_response",
 ] as const;
 
 export type IvoResourceType = (typeof IVO_RESOURCE_TYPES)[number];

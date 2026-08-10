@@ -25,6 +25,8 @@ import {
   listContractsForAiAction as listContractsForAi,
   listInvoicesForAiAction as listInvoicesForAi,
   listProjectsForAiAction as listProjectsForAi,
+  listQuestionnairesForProjectAiAction as listQuestionnairesForProjectAi,
+  listProposalsForAiAction as listProposalsForAi,
   listWelcomeDocsForAiAction as listWelcomeDocsForAi,
 } from "./domain-operations";
 
@@ -64,6 +66,10 @@ export async function listContractsForAiAction(input: { filter?: "pending" | "al
   return listContractsForAi(input);
 }
 
+export async function listProposalsForAiAction(input: { filter?: "pending" | "all" } = {}) {
+  return listProposalsForAi(input);
+}
+
 export async function listInvoicesForAiAction(
   input: { filter?: "unpaid" | "overdue" | "all" } = {},
 ) {
@@ -72,6 +78,10 @@ export async function listInvoicesForAiAction(
 
 export async function listProjectsForAiAction(input: { filter?: "active" | "all" } = {}) {
   return listProjectsForAi(input);
+}
+
+export async function listQuestionnairesForProjectAiAction(input: { projectId: string }) {
+  return listQuestionnairesForProjectAi(input);
 }
 
 export async function listWelcomeDocsForAiAction(input: { filter?: "open" | "all" } = {}) {

@@ -30,8 +30,10 @@ import {
   getAssistantSuggestionsAction,
   listInvoicesForAiAction,
   listContractsForAiAction,
+  listProposalsForAiAction,
   listClientsForAiAction,
   listProjectsForAiAction,
+  listQuestionnairesForProjectAiAction,
   listWelcomeDocsForAiAction,
   listIvoPickerOptionsAction,
 } from "@/features/ai-workflows/read-actions";
@@ -56,8 +58,12 @@ import type {
   AiResourceOption,
   AiInvoiceListRow,
   AiContractListRow,
+  AiProposalListRow,
   AiClientListRow,
   AiProjectListRow,
+  AiQuestionnaireListRow,
+  AiQuestionnaireDraftPreview,
+  AiQuestionnaireRefinementProposal,
   AiWelcomeDocListRow,
 } from "./assistant-types";
 import {
@@ -86,8 +92,12 @@ import {
   WelcomeDocDeliveryActions,
   InvoiceListBlock,
   ContractListBlock,
+  ProposalListBlock,
   ClientListBlock,
   ProjectListBlock,
+  QuestionnaireSendPickerBlock,
+  QuestionnaireDraftResultBlock,
+  QuestionnaireRefinementPreviewBlock,
   WelcomeDocListBlock,
 } from "./assistant-previews";
 import {
@@ -121,10 +131,12 @@ import {
   forwardToSupportIvoToolAction,
   refineContractIvoToolAction,
   refineInvoiceIvoToolAction,
+  refineQuestionnaireIvoToolAction,
   refineWelcomeDocumentIvoToolAction,
   rejectIvoToolAction,
   remindOverdueInvoicesIvoToolAction,
 } from "@/features/ai-workflows/tool-actions";
+import { prepareQuestionnaireRefinementAction } from "@/features/ai-workflows/questionnaire-refinement-actions";
 import type {
   IvoConversationListItem,
   IvoConversationSnapshot,
@@ -202,6 +214,24 @@ async function processIvoMessageStreaming(
     let buffer = "";
     let result: ProcessIvoResult | null = null;
 
+    const consumeFrame = (frame: string) => {
+      const event = frame.match(/^event: (.+)$/m)?.[1];
+      const data = frame.match(/^data: (.+)$/m)?.[1];
+      if (!event || !data) return;
+      try {
+        const parsed = JSON.parse(data);
+        if (event === "status" && typeof parsed?.text === "string") {
+          onStatus(parsed.text);
+        } else if (event === "delta" && typeof parsed?.text === "string") {
+          onDelta(parsed.text);
+        } else if (event === "result") {
+          result = parsed as ProcessIvoResult;
+        }
+      } catch {
+        // Ignore one malformed event without discarding the rest of the stream.
+      }
+    };
+
     for (;;) {
       const { done, value } = await reader.read();
       if (done) break;
@@ -209,24 +239,21 @@ async function processIvoMessageStreaming(
       const frames = buffer.split("\n\n");
       buffer = frames.pop() ?? "";
       for (const frame of frames) {
-        const event = frame.match(/^event: (.+)$/m)?.[1];
-        const data = frame.match(/^data: (.+)$/m)?.[1];
-        if (!event || !data) continue;
-        try {
-          const parsed = JSON.parse(data);
-          if (event === "status" && typeof parsed?.text === "string") {
-            onStatus(parsed.text);
-          } else if (event === "delta" && typeof parsed?.text === "string") {
-            onDelta(parsed.text);
-          } else if (event === "result") {
-            result = parsed as ProcessIvoResult;
-          }
-        } catch {
-          /* skip malformed frame */
-        }
+        consumeFrame(frame);
       }
     }
-    return result;
+    buffer += decoder.decode();
+    if (buffer.trim()) consumeFrame(buffer);
+
+    // Once a 200 SSE response has started, replaying the same request through
+    // the server action can duplicate reads or race an already-completed tool
+    // run. Only pre-stream failures return null and take that fallback path.
+    return result ?? {
+      ok: false as const,
+      reason: "runtime" as const,
+      error: "The live response was interrupted. Your request was not replayed; reopen this conversation to check its latest state.",
+      usageConsumed: false,
+    };
   } catch {
     return null;
   }
@@ -304,6 +331,8 @@ export function StackivoAiAssistant({ user }: StackivoAiAssistantProps) {
   const [activeInvoice, setActiveInvoice] = React.useState<AiInvoicePreview | null>(null);
   const [activeWelcomeDoc, setActiveWelcomeDoc] =
     React.useState<AiWelcomeDocPreview | null>(null);
+  const [activeQuestionnaire, setActiveQuestionnaire] =
+    React.useState<AiQuestionnaireDraftPreview | null>(null);
   // When a confirmation summary is showing, a typed "yes"/"confirm"/"cancel"
   // acts on it (in addition to the buttons).
   const [pendingConfirm, setPendingConfirm] = React.useState<IvoPendingConfirmation | null>(null);
@@ -1240,6 +1269,277 @@ export function StackivoAiAssistant({ user }: StackivoAiAssistantProps) {
     [push, handleContractRowSend],
   );
 
+  const handleProposalRowSend = React.useCallback(
+    (id: string) => {
+      push({ role: "user", content: "Send proposal to client" });
+      startTransition(async () => {
+        const res = await tools.emailProposal(id);
+        push({
+          role: "assistant",
+          content: res.ok
+            ? res.response?.content ?? "Proposal sent."
+            : res.error || "Couldn't send that proposal.",
+        });
+        router.refresh();
+      });
+    },
+    [push, router, tools],
+  );
+
+  const handleProposalCreateContract = React.useCallback(
+    (id: string) => {
+      push({ role: "user", content: "Create contract from accepted proposal" });
+      startTransition(async () => {
+        const res = await tools.convertProposalToContract(id);
+        if (!res.ok) {
+          push({ role: "assistant", content: res.error || "Couldn't create the contract." });
+          return;
+        }
+        const contractId = String((res as { data?: { id?: string } }).data?.id ?? "");
+        push({
+          role: "assistant",
+          persistence: res.response,
+          content: (
+            <span>
+              Contract draft created from the accepted proposal.{" "}
+              <a href={`/dashboard/contracts/${contractId}`} className="font-medium text-primary underline underline-offset-2">
+                Open contract →
+              </a>
+            </span>
+          ),
+        });
+        router.refresh();
+      });
+    },
+    [push, router, tools],
+  );
+
+  const handleProposalStartProject = React.useCallback(
+    (id: string) => {
+      push({ role: "user", content: "Start project from accepted proposal" });
+      startTransition(async () => {
+        const res = await tools.convertProposalToProject(id);
+        if (!res.ok) {
+          push({ role: "assistant", content: res.error || "Couldn't start the project." });
+          return;
+        }
+        const projectId = String((res as { data?: { id?: string } }).data?.id ?? "");
+        push({
+          role: "assistant",
+          persistence: res.response,
+          content: (
+            <span>
+              Project started from the accepted proposal.{" "}
+              <a href={`/dashboard/projects/${projectId}`} className="font-medium text-primary underline underline-offset-2">
+                Open project →
+              </a>
+            </span>
+          ),
+        });
+        router.refresh();
+      });
+    },
+    [push, router, tools],
+  );
+
+  const handleProjectCreatePortal = React.useCallback(
+    (id: string) => {
+      push({ role: "user", content: "Create client portal and send invitation" });
+      startTransition(async () => {
+        const res = await tools.createProjectPortal(id);
+        if (!res.ok) {
+          push({ role: "assistant", content: res.error || "Couldn't create the client portal." });
+          return;
+        }
+        const portalId = String((res as { data?: { portalId?: string } }).data?.portalId ?? "");
+        const message = String(
+          (res as { message?: string }).message
+            ?? "Client portal created and its invitation was attempted.",
+        );
+        push({
+          role: "assistant",
+          persistence: res.response,
+          content: (
+            <span>
+              {message}{" "}
+              <a href={`/dashboard/portal/${portalId}`} className="font-medium text-primary underline underline-offset-2">
+                Open portal →
+              </a>
+            </span>
+          ),
+        });
+        router.refresh();
+      });
+    },
+    [push, router, tools],
+  );
+
+  const handleQuestionnaireSend = React.useCallback(
+    (projectId: string, questionnaireId: string, title: string) => {
+      push({ role: "user", content: `Send ${title} to the project client` });
+      startTransition(async () => {
+        const res = await tools.sendProjectQuestionnaire(projectId, questionnaireId);
+        push({
+          role: "assistant",
+          persistence: res.ok ? res.response : undefined,
+          content: res.ok
+            ? res.response?.content ?? "Questionnaire delivery completed."
+            : res.error || "Couldn't send that questionnaire.",
+        });
+        if (res.ok) router.refresh();
+      });
+    },
+    [push, router, tools],
+  );
+
+  const activateQuestionnaireRefinement = React.useCallback(
+    (draft: AiQuestionnaireDraftPreview) => {
+      setActiveQuestionnaire(draft);
+      setActiveContract(null);
+      setActiveInvoice(null);
+      setActiveWelcomeDoc(null);
+      push({
+        role: "assistant",
+        content: "Tell me what to change. For example: “make question 3 optional”, “add a budget question”, or “remove question 5”. I’ll show you the complete before/after version before applying anything.",
+      });
+    },
+    [push],
+  );
+
+  const handleApplyQuestionnaireRefinement = React.useCallback(
+    (draft: AiQuestionnaireDraftPreview, proposal: AiQuestionnaireRefinementProposal, requestId: string) => {
+      push({ role: "user", content: "Apply questionnaire changes" });
+      startTransition(async () => {
+        await ensureConversation();
+        const conversationId = conversationIdRef.current;
+        if (!conversationId) {
+          push({ role: "assistant", content: "I couldn't bind this change to the conversation. Please try again." });
+          return;
+        }
+        const res = await refineQuestionnaireIvoToolAction({
+          conversationId,
+          runId: activeRunIdRef.current ?? undefined,
+          questionnaireId: draft.id,
+          projectId: draft.projectId,
+          requestId,
+          instruction: proposal.instruction,
+          originalHash: proposal.originalHash,
+          proposalHash: proposal.proposalHash,
+          proposal: proposal.after,
+        });
+        if (!res.ok) {
+          push({ role: "assistant", content: res.error });
+          return;
+        }
+        const updated = (res as { questionnaire: AiQuestionnaireDraftPreview }).questionnaire;
+        setActiveQuestionnaire(updated);
+        push({
+          role: "assistant",
+          persistence: res.response,
+          content: (
+            <QuestionnaireDraftResultBlock
+              draft={updated}
+              onRefine={() => activateQuestionnaireRefinement(updated)}
+              onSend={() => handleQuestionnaireSend(updated.projectId, updated.id, updated.title)}
+            />
+          ),
+        });
+        router.refresh();
+      });
+    },
+    [activateQuestionnaireRefinement, ensureConversation, handleQuestionnaireSend, push, router],
+  );
+
+  const handleQuestionnaireDraft = React.useCallback(
+    (projectId: string) => {
+      push({ role: "user", content: "Draft a project-specific questionnaire with IVo" });
+      startTransition(async () => {
+        const res = await tools.draftProjectQuestionnaire(projectId);
+        if (!res.ok) {
+          push({ role: "assistant", content: res.error || "Couldn't draft that questionnaire." });
+          return;
+        }
+        const draft = (res as { questionnaire: AiQuestionnaireDraftPreview }).questionnaire;
+        setActiveQuestionnaire(draft);
+        push({
+          role: "assistant",
+          persistence: res.response,
+          content: (
+            <QuestionnaireDraftResultBlock
+              draft={draft}
+              onRefine={() => activateQuestionnaireRefinement(draft)}
+              onSend={() => handleQuestionnaireSend(draft.projectId, draft.id, draft.title)}
+            />
+          ),
+        });
+        router.refresh();
+      });
+    },
+    [activateQuestionnaireRefinement, handleQuestionnaireSend, push, router, tools],
+  );
+
+  const handleProjectQuestionnaire = React.useCallback(
+    (projectId: string) => {
+      startTransition(async () => {
+        const res = await listQuestionnairesForProjectAiAction({ projectId });
+        if (!res.ok) {
+          push({ role: "assistant", content: res.error });
+          return;
+        }
+        push({
+          role: "assistant",
+          content: (
+            <QuestionnaireSendPickerBlock
+              rows={res.data.rows as AiQuestionnaireListRow[]}
+              projectName={res.data.projectName}
+              clientName={res.data.clientName}
+              clientEmail={res.data.clientEmail}
+              onDraft={() => handleQuestionnaireDraft(projectId)}
+              onSend={(questionnaireId, title) => handleQuestionnaireSend(projectId, questionnaireId, title)}
+            />
+          ),
+        });
+      });
+    },
+    [handleQuestionnaireDraft, handleQuestionnaireSend, push],
+  );
+
+  const runListProposals = React.useCallback(
+    async (filter: "pending" | "all") => {
+      const res = await listProposalsForAiAction({ filter });
+      if (!res.ok) {
+        push({ role: "assistant", content: res.error });
+        return;
+      }
+      const { rows } = res.data;
+      if (rows.length === 0) {
+        push({
+          role: "assistant",
+          content: filter === "pending" ? "No proposals need attention." : "No proposals yet.",
+        });
+        return;
+      }
+      push({ role: "assistant", content: "Here are your proposals:" });
+      push({
+        role: "assistant",
+        persistence: {
+          kind: "result",
+          content: "Proposal list.",
+          block: { type: "entity_list", entityType: "proposal", entityIds: rows.map((row) => row.id) },
+        },
+        content: (
+          <ProposalListBlock
+            rows={rows}
+            onSend={handleProposalRowSend}
+            onCreateContract={handleProposalCreateContract}
+            onStartProject={handleProposalStartProject}
+          />
+        ),
+      });
+    },
+    [push, handleProposalRowSend, handleProposalCreateContract, handleProposalStartProject],
+  );
+
   const runListClients = React.useCallback(async () => {
     const res = await listClientsForAiAction();
     if (!res.ok) {
@@ -1304,11 +1604,13 @@ export function StackivoAiAssistant({ user }: StackivoAiAssistantProps) {
           <ProjectListBlock
             rows={rows}
             onInvoice={(name) => submitRef.current?.(`Create an invoice for project ${name}`)}
+            onCreatePortal={handleProjectCreatePortal}
+            onQuestionnaire={handleProjectQuestionnaire}
           />
         ),
       });
     },
-    [push],
+    [push, handleProjectCreatePortal, handleProjectQuestionnaire],
   );
 
   const runListWelcomeDocs = React.useCallback(
@@ -1379,7 +1681,7 @@ export function StackivoAiAssistant({ user }: StackivoAiAssistantProps) {
     (id: string) => {
       push({ role: "user", content: "Email invoice reminder" });
       startTransition(async () => {
-        const res = await tools.emailInvoice(id);
+        const res = await tools.remindInvoice(id);
         push({
           role: "assistant",
           content: res.ok
@@ -1952,7 +2254,7 @@ export function StackivoAiAssistant({ user }: StackivoAiAssistantProps) {
           // Proposals are their own document type — the tool created a real
           // proposal in the Proposals feature. Hand off to the builder (where
           // packages, pricing, and sending live) instead of a contract card.
-          if ("kind" in res && res.kind === "proposal") {
+          if ("proposal" in res) {
             finish();
             const p = res.proposal;
             push({
@@ -2359,7 +2661,9 @@ export function StackivoAiAssistant({ user }: StackivoAiAssistantProps) {
             ? { entityType: "invoice", entityId: activeInvoice.id }
             : activeWelcomeDoc
               ? { entityType: "welcome_document", entityId: activeWelcomeDoc.id }
-              : undefined,
+              : activeQuestionnaire
+                ? { entityType: "questionnaire", entityId: activeQuestionnaire.id }
+                : undefined,
         collected,
         clientId,
         projectId,
@@ -2464,6 +2768,7 @@ export function StackivoAiAssistant({ user }: StackivoAiAssistantProps) {
       if (decision.kind === "list") {
         if (decision.entityType === "invoice") await runListInvoices(decision.filter);
         else if (decision.entityType === "contract") await runListContracts(decision.filter);
+        else if (decision.entityType === "proposal") await runListProposals(decision.filter);
         else if (decision.entityType === "client") await runListClients();
         else if (decision.entityType === "project") await runListProjects(decision.filter);
         else await runListWelcomeDocs(decision.filter);
@@ -2568,6 +2873,33 @@ export function StackivoAiAssistant({ user }: StackivoAiAssistantProps) {
           router.refresh();
           return;
       }
+      if (decision.kind === "refine" && decision.entityType === "questionnaire" && activeQuestionnaire) {
+        const chat = conversationalReply(text, userFirstName);
+        if (chat) { push({ role: "assistant", content: chat }); return; }
+        const prepared = await prepareQuestionnaireRefinementAction({
+          conversationId: activeConversationId,
+          runId: activeRunIdRef.current ?? "",
+          requestId: userMessageId,
+          questionnaireId: activeQuestionnaire.id,
+          instruction: text,
+        });
+        if (!prepared.ok) {
+          push({ role: "assistant", content: prepared.error });
+          return;
+        }
+        const proposal = prepared.data as AiQuestionnaireRefinementProposal;
+        push({
+          role: "assistant",
+          content: (
+            <QuestionnaireRefinementPreviewBlock
+              proposal={proposal}
+              onApply={() => handleApplyQuestionnaireRefinement(activeQuestionnaire, proposal, userMessageId)}
+              onCancel={() => push({ role: "assistant", content: "Kept the current questionnaire unchanged." })}
+            />
+          ),
+        });
+        return;
+      }
       if (decision.kind === "refine") {
         push({
           role: "assistant",
@@ -2581,6 +2913,7 @@ export function StackivoAiAssistant({ user }: StackivoAiAssistantProps) {
       if (activeContract) setActiveContract(null);
       if (activeInvoice) setActiveInvoice(null);
       if (activeWelcomeDoc) setActiveWelcomeDoc(null);
+      if (activeQuestionnaire) setActiveQuestionnaire(null);
 
       // 1e. Mid-question chit-chat guard. If we're waiting on a specific field
       // and the user types a greeting / thanks / meta remark (not an answer and
@@ -2679,6 +3012,8 @@ export function StackivoAiAssistant({ user }: StackivoAiAssistantProps) {
     activeContract,
     activeInvoice,
     activeWelcomeDoc,
+    activeQuestionnaire,
+    handleApplyQuestionnaireRefinement,
     handleContractApproveAndSend,
     handleContractWhatsApp,
     handleInvoiceApprove,
@@ -2700,6 +3035,7 @@ export function StackivoAiAssistant({ user }: StackivoAiAssistantProps) {
     runInvoiceUnbilled,
     runListInvoices,
     runListContracts,
+    runListProposals,
     runListClients,
     runListProjects,
     runListWelcomeDocs,
@@ -2743,6 +3079,9 @@ export function StackivoAiAssistant({ user }: StackivoAiAssistantProps) {
       const detail = (event as CustomEvent<IvoAskDetail>).detail;
       const prompt = detail?.prompt?.trim();
       setOpen(true);
+      if (detail?.resources?.length) {
+        setSelectedResources(detail.resources.slice(0, 6));
+      }
       if (prompt) {
         window.setTimeout(() => submitRef.current?.(prompt), 80);
       }
@@ -2825,6 +3164,16 @@ export function StackivoAiAssistant({ user }: StackivoAiAssistantProps) {
       if (block.entityType === "contract") {
         return <ContractListBlock rows={rows as AiContractListRow[]} onSend={handleContractRowSend} />;
       }
+      if (block.entityType === "proposal") {
+        return (
+          <ProposalListBlock
+            rows={rows as AiProposalListRow[]}
+            onSend={handleProposalRowSend}
+            onCreateContract={handleProposalCreateContract}
+            onStartProject={handleProposalStartProject}
+          />
+        );
+      }
       if (block.entityType === "client") {
         return (
           <ClientListBlock
@@ -2838,6 +3187,8 @@ export function StackivoAiAssistant({ user }: StackivoAiAssistantProps) {
           <ProjectListBlock
             rows={rows as AiProjectListRow[]}
             onInvoice={(name) => submitRef.current?.(`Create an invoice for project ${name}`)}
+            onCreatePortal={handleProjectCreatePortal}
+            onQuestionnaire={handleProjectQuestionnaire}
           />
         );
       }
@@ -2878,6 +3229,26 @@ export function StackivoAiAssistant({ user }: StackivoAiAssistantProps) {
             description={`${String(data.title ?? "Proposal")} for ${String(data.clientName ?? "the client")} · ${formatMoney(Number(data.total ?? 0), String(data.currency ?? "INR"))}.`}
             actionLabel="Open proposal"
             onAction={() => router.push(`/dashboard/proposals/${String(data.id)}`)}
+          />
+        );
+      }
+      if (block.entityType === "questionnaire") {
+        const draft = data as unknown as AiQuestionnaireDraftPreview;
+        return (
+          <QuestionnaireDraftResultBlock
+            draft={draft}
+            onRefine={() => activateQuestionnaireRefinement(draft)}
+            onSend={() => handleQuestionnaireSend(draft.projectId, draft.id, draft.title)}
+          />
+        );
+      }
+      if (block.entityType === "portal") {
+        return (
+          <ResultBlock
+            title="Client portal ready"
+            description={`${String(data.name ?? "Client portal")} is ready. Check the portal activity to confirm invitation delivery.`}
+            actionLabel="Open portal"
+            onAction={() => router.push(`/dashboard/portal/${String(data.id)}`)}
           />
         );
       }
@@ -3153,7 +3524,7 @@ export function StackivoAiAssistant({ user }: StackivoAiAssistantProps) {
                 <div className="max-h-80 overflow-y-auto p-2">
                   {activityUnavailable ? (
                     <p className="px-3 py-5 text-center text-xs text-amber-700 dark:text-amber-300">
-                      Activity couldn't be read right now. This does not mean nothing happened.
+                      Activity couldn&apos;t be read right now. This does not mean nothing happened.
                     </p>
                   ) : activityItems.length > 0 ? (
                     <div className="relative space-y-1 before:absolute before:bottom-3 before:left-[13px] before:top-3 before:w-px before:bg-border">
@@ -3561,7 +3932,7 @@ export function StackivoAiAssistant({ user }: StackivoAiAssistantProps) {
 
             {/* Typing indicator — live progress, then the reply streaming in */}
             {pending && (
-              <div className="flex justify-start">
+              <div className="flex justify-start" role="status" aria-live="polite" aria-label="Ivo is responding">
                 <div className="max-w-[85%] rounded-2xl rounded-bl-md border border-border/70 bg-background px-4 py-3 shadow-sm">
                   {liveReply ? (
                     <p className="whitespace-pre-wrap text-sm leading-relaxed">
@@ -3581,7 +3952,9 @@ export function StackivoAiAssistant({ user }: StackivoAiAssistantProps) {
                       </span>
                       {agentStatus ? (
                         <span className="text-xs text-muted-foreground">{agentStatus}</span>
-                      ) : null}
+                      ) : (
+                        <span className="text-xs text-muted-foreground">Thinking with your workspace context…</span>
+                      )}
                     </span>
                   )}
                 </div>
@@ -3668,7 +4041,7 @@ export function StackivoAiAssistant({ user }: StackivoAiAssistantProps) {
                 className="h-8 w-8 shrink-0 rounded-full"
                 onClick={() => handleSubmit()}
                 disabled={pending || !input.trim()}
-                aria-label="Send"
+                aria-label="Send message"
               >
                 <ArrowUp className="h-4 w-4" />
               </Button>

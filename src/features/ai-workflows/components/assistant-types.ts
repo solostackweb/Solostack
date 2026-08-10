@@ -156,6 +156,16 @@ export interface AiContractListRow {
   status: string;
 }
 
+export interface AiProposalListRow {
+  id: string;
+  title: string;
+  clientName: string;
+  status: string;
+  totalAmount: number;
+  currency: string;
+  validUntil: string | null;
+}
+
 export interface AiClientListRow {
   id: string;
   name: string;
@@ -164,9 +174,53 @@ export interface AiClientListRow {
 export interface AiProjectListRow {
   id: string;
   name: string;
+  clientId: string | null;
   clientName: string;
+  portalId: string | null;
   status: string;
   dueDate: string | null;
+}
+
+export interface AiQuestionnaireListRow {
+  id: string;
+  title: string;
+  description: string | null;
+  questionCount: number;
+}
+
+export interface AiQuestionnaireDraftPreview {
+  id: string;
+  projectId: string;
+  projectName: string;
+  clientName: string;
+  title: string;
+  description: string | null;
+  questions: Array<{
+    id: string;
+    type: string;
+    label: string;
+    required: boolean;
+    help?: string;
+    options?: string[];
+    max?: number;
+  }>;
+}
+
+export interface AiQuestionnaireRefinementProposal {
+  questionnaireId: string;
+  instruction: string;
+  originalHash: string;
+  proposalHash: string;
+  before: {
+    title: string;
+    description: string | null;
+    questions: AiQuestionnaireDraftPreview["questions"];
+  };
+  after: {
+    title: string;
+    description: string | null;
+    questions: AiQuestionnaireDraftPreview["questions"];
+  };
 }
 
 export interface AiWelcomeDocListRow {

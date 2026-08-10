@@ -50,6 +50,7 @@ import { createContractAction } from "../actions";
 import { sendContractAction } from "../delivery";
 import { ContractPreview } from "./contract-preview";
 import type { AiContractDraft } from "@/features/ai-workflows/types";
+import { SmartField } from "@/features/ai-workflows/components/smart-field";
 
 type Step = "template" | "build";
 const PLACEHOLDER_PATTERN = /\[[^\]\n]{2,80}\]/;
@@ -801,6 +802,19 @@ export function ContractBuilderView({
                         rows={4}
                         placeholder="Section content…"
                         className="mt-2 resize-none"
+                      />
+                      <SmartField
+                        kind="contract_clause"
+                        value={s.body}
+                        onApply={(body) => updateSection(s.id, { body })}
+                        clientId={clientId || undefined}
+                        projectId={projectId || undefined}
+                        brief={[
+                          s.heading ? `Clause: ${s.heading}` : "Contract clause",
+                          title ? `Contract: ${title}` : "",
+                        ].filter(Boolean).join(". ")}
+                        disabled={submitting}
+                        className="mt-2"
                       />
                     </li>
                   ))}

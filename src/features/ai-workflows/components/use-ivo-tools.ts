@@ -4,16 +4,23 @@ import * as React from "react";
 
 import {
   approveInvoiceIvoToolAction,
+  convertProposalToContractIvoToolAction,
+  convertProposalToProjectIvoToolAction,
+  createProjectPortalIvoToolAction,
+  createProjectQuestionnaireDraftIvoToolAction,
   deliverInvoiceIvoToolAction,
   emailContractIvoToolAction,
   emailInvoiceIvoToolAction,
+  emailProposalIvoToolAction,
   emailWelcomeDocumentIvoToolAction,
   markInvoicePaidIvoToolAction,
+  remindInvoiceIvoToolAction,
   prepareContractWhatsAppIvoToolAction,
   prepareInvoiceWhatsAppIvoToolAction,
   prepareWelcomeWhatsAppIvoToolAction,
   publishWelcomeDocumentIvoToolAction,
   saveWelcomeTemplateIvoToolAction,
+  sendProjectQuestionnaireIvoToolAction,
   sendPreparedActionIvoToolAction,
   dismissPreparedActionIvoToolAction,
 } from "@/features/ai-workflows/tool-actions";
@@ -119,6 +126,99 @@ export function useIvoTools({
       if (!conversationId) return noConversation("delivery");
       return withRequestKey(`invoice.email:${invoiceId}`, fixedRequestId, (requestId) =>
         emailInvoiceIvoToolAction({ ...base(conversationId), invoiceId, requestId }),
+      );
+    },
+    [base, conversation, withRequestKey],
+  );
+
+  const emailProposal = React.useCallback(
+    async (proposalId: string, fixedRequestId?: string) => {
+      const conversationId = await conversation();
+      if (!conversationId) return noConversation("proposal delivery");
+      return withRequestKey(`proposal.email:${proposalId}`, fixedRequestId, (requestId) =>
+        emailProposalIvoToolAction({ ...base(conversationId), proposalId, requestId }),
+      );
+    },
+    [base, conversation, withRequestKey],
+  );
+
+  const convertProposalToContract = React.useCallback(
+    async (proposalId: string) => {
+      const conversationId = await conversation();
+      if (!conversationId) return noConversation("proposal handoff");
+      return convertProposalToContractIvoToolAction({
+        ...base(conversationId),
+        proposalId,
+      });
+    },
+    [base, conversation],
+  );
+
+  const convertProposalToProject = React.useCallback(
+    async (proposalId: string) => {
+      const conversationId = await conversation();
+      if (!conversationId) return noConversation("proposal handoff");
+      return convertProposalToProjectIvoToolAction({
+        ...base(conversationId),
+        proposalId,
+      });
+    },
+    [base, conversation],
+  );
+
+  const createProjectPortal = React.useCallback(
+    async (projectId: string) => {
+      const conversationId = await conversation();
+      if (!conversationId) return noConversation("portal invitation");
+      return createProjectPortalIvoToolAction({
+        ...base(conversationId),
+        projectId,
+      });
+    },
+    [base, conversation],
+  );
+
+  const sendProjectQuestionnaire = React.useCallback(
+    async (projectId: string, questionnaireId: string) => {
+      const conversationId = await conversation();
+      if (!conversationId) return noConversation("questionnaire delivery");
+      return withRequestKey(
+        `questionnaire.send:${projectId}:${questionnaireId}`,
+        undefined,
+        (requestId) => sendProjectQuestionnaireIvoToolAction({
+          ...base(conversationId),
+          projectId,
+          questionnaireId,
+          requestId,
+        }),
+      );
+    },
+    [base, conversation, withRequestKey],
+  );
+
+  const draftProjectQuestionnaire = React.useCallback(
+    async (projectId: string) => {
+      const conversationId = await conversation();
+      if (!conversationId) return noConversation("questionnaire draft");
+      return withRequestKey(
+        `questionnaire.draft:${projectId}`,
+        undefined,
+        (idempotencyKey) => createProjectQuestionnaireDraftIvoToolAction({
+          ...base(conversationId),
+          projectId,
+          idempotencyKey,
+        }),
+      );
+    },
+    [base, conversation, withRequestKey],
+  );
+
+  const remindInvoice = React.useCallback(
+    async (invoiceId: string, fixedRequestId?: string) => {
+      const conversationId = await conversation();
+      if (!conversationId) return noConversation("reminder");
+      return withRequestKey(`invoice.remind_one:${invoiceId}`, fixedRequestId, (requestId) =>
+        remindInvoiceIvoToolAction({ ...base(conversationId), invoiceId, requestId }),
       );
     },
     [base, conversation, withRequestKey],
@@ -262,10 +362,17 @@ export function useIvoTools({
     () => ({
       approveInvoice,
       deliverInvoice,
+      convertProposalToContract,
+      convertProposalToProject,
+      createProjectPortal,
+      draftProjectQuestionnaire,
+      sendProjectQuestionnaire,
       emailContract,
       emailInvoice,
+      emailProposal,
       emailWelcomeDocument,
       markInvoicePaid,
+      remindInvoice,
       prepareContractWhatsApp,
       prepareInvoiceWhatsApp,
       prepareWelcomeWhatsApp,
@@ -277,10 +384,17 @@ export function useIvoTools({
     [
       approveInvoice,
       deliverInvoice,
+      convertProposalToContract,
+      convertProposalToProject,
+      createProjectPortal,
+      draftProjectQuestionnaire,
+      sendProjectQuestionnaire,
       emailContract,
       emailInvoice,
+      emailProposal,
       emailWelcomeDocument,
       markInvoicePaid,
+      remindInvoice,
       prepareContractWhatsApp,
       prepareInvoiceWhatsApp,
       prepareWelcomeWhatsApp,

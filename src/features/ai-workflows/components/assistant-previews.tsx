@@ -1,14 +1,18 @@
 import * as React from "react";
+import Link from "next/link";
 import {
   Bookmark,
   BookOpen,
   CheckCircle2,
+  ClipboardList,
   ExternalLink,
+  FileSignature,
   FolderKanban,
   Mail,
   MessageCircle,
   ReceiptText,
   Send,
+  Sparkles,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -23,8 +27,12 @@ import type {
   AiEntityOption,
   AiInvoiceListRow,
   AiContractListRow,
+  AiProposalListRow,
   AiClientListRow,
   AiProjectListRow,
+  AiQuestionnaireListRow,
+  AiQuestionnaireDraftPreview,
+  AiQuestionnaireRefinementProposal,
   AiWelcomeDocListRow,
 } from "./assistant-types";
 
@@ -678,7 +686,7 @@ export function InvoiceListBlock({
                     disabled={busy}
                     className={ROW_CHIP}
                   >
-                    <Mail className="h-3 w-3" /> Remind
+                    <Mail className="h-3 w-3" /> Send reminder
                   </button>
                 </>
               ) : null}
@@ -735,6 +743,75 @@ export function ContractListBlock({
   );
 }
 
+export function ProposalListBlock({
+  rows,
+  onSend,
+  onCreateContract,
+  onStartProject,
+  busyId,
+}: {
+  rows: AiProposalListRow[];
+  onSend: (id: string) => void;
+  onCreateContract: (id: string) => void;
+  onStartProject: (id: string) => void;
+  busyId?: string | null;
+}) {
+  if (rows.length === 0) {
+    return <p className="text-sm text-muted-foreground">No matching proposals.</p>;
+  }
+  return (
+    <div className="space-y-2">
+      {rows.map((row) => {
+        const sendable = ["draft", "sent", "viewed"].includes(row.status);
+        return (
+          <div key={row.id} className="rounded-xl border bg-muted/20 p-2.5">
+            <p className="truncate text-xs font-semibold">{row.title}</p>
+            <p className="text-[11px] text-muted-foreground">
+              {row.clientName} · {formatAiMoney(row.totalAmount, row.currency)} · {row.status.replace(/_/g, " ")}
+              {row.validUntil ? ` · valid until ${row.validUntil}` : ""}
+            </p>
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              <a href={`/dashboard/proposals/${row.id}`} className={ROW_CHIP}>
+                <ExternalLink className="h-3 w-3" /> Open
+              </a>
+              {sendable ? (
+                <button
+                  type="button"
+                  onClick={() => onSend(row.id)}
+                  disabled={busyId === row.id}
+                  className={ROW_CHIP}
+                >
+                  <Send className="h-3 w-3" /> {row.status === "draft" ? "Send proposal" : "Resend proposal"}
+                </button>
+              ) : null}
+              {row.status === "accepted" ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => onCreateContract(row.id)}
+                    disabled={busyId === row.id}
+                    className={ROW_CHIP}
+                  >
+                    <FileSignature className="h-3 w-3" /> Create contract
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => onStartProject(row.id)}
+                    disabled={busyId === row.id}
+                    className={ROW_CHIP}
+                  >
+                    <FolderKanban className="h-3 w-3" /> Start project
+                  </button>
+                </>
+              ) : null}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 export function ClientListBlock({
   rows,
   onInvoice,
@@ -767,9 +844,13 @@ export function ClientListBlock({
 export function ProjectListBlock({
   rows,
   onInvoice,
+  onCreatePortal,
+  onQuestionnaire,
 }: {
   rows: AiProjectListRow[];
   onInvoice: (name: string) => void;
+  onCreatePortal: (projectId: string) => void;
+  onQuestionnaire: (projectId: string) => void;
 }) {
   if (rows.length === 0) {
     return <p className="text-sm text-muted-foreground">No projects yet.</p>;
@@ -790,9 +871,167 @@ export function ProjectListBlock({
             <button type="button" onClick={() => onInvoice(r.name)} className={ROW_CHIP}>
               <ReceiptText className="h-3 w-3" /> Invoice
             </button>
+            {r.clientId ? (
+              <button type="button" onClick={() => onQuestionnaire(r.id)} className={ROW_CHIP}>
+                <ClipboardList className="h-3 w-3" /> Questionnaire
+              </button>
+            ) : null}
+            {r.portalId ? (
+              <a href={`/dashboard/portal/${r.portalId}`} className={ROW_CHIP}>
+                <ExternalLink className="h-3 w-3" /> Open portal
+              </a>
+            ) : r.clientId ? (
+              <button type="button" onClick={() => onCreatePortal(r.id)} className={ROW_CHIP}>
+                <FolderKanban className="h-3 w-3" /> Create portal &amp; invite
+              </button>
+            ) : null}
           </div>
         </div>
       ))}
+    </div>
+  );
+}
+
+export function QuestionnaireSendPickerBlock({
+  rows,
+  projectName,
+  clientName,
+  clientEmail,
+  onDraft,
+  onSend,
+}: {
+  rows: AiQuestionnaireListRow[];
+  projectName: string;
+  clientName: string;
+  clientEmail: string | null;
+  onDraft: () => void;
+  onSend: (questionnaireId: string, title: string) => void;
+}) {
+  if (rows.length === 0) {
+    return (
+      <div className="rounded-xl border bg-muted/20 p-3 text-sm">
+        <p>No active questionnaires are available.</p>
+        <button type="button" onClick={onDraft} className={`${ROW_CHIP} mt-2`}>
+          <Sparkles className="h-3 w-3" /> Draft with IVo
+        </button>
+        <Link href="/dashboard/questionnaires" className="mt-2 inline-flex font-medium text-primary underline underline-offset-2">
+          Create a questionnaire →
+        </Link>
+      </div>
+    );
+  }
+  return (
+    <div className="space-y-2">
+      <p className="text-xs text-muted-foreground">
+        Choose what to send to {clientName} for {projectName}.
+        {clientEmail ? ` It will be emailed to ${clientEmail}.` : " No client email is available, so only the response link will be created."}
+      </p>
+      <button type="button" onClick={onDraft} className={ROW_CHIP}>
+        <Sparkles className="h-3 w-3" /> Draft a project-specific questionnaire
+      </button>
+      {rows.map((row) => (
+        <div key={row.id} className="rounded-xl border bg-muted/20 p-2.5">
+          <p className="text-xs font-semibold">{row.title}</p>
+          <p className="mt-0.5 text-[11px] text-muted-foreground">
+            {row.questionCount} question{row.questionCount === 1 ? "" : "s"}
+            {row.description ? ` · ${row.description}` : ""}
+          </p>
+          <button type="button" onClick={() => onSend(row.id, row.title)} className={`${ROW_CHIP} mt-2`}>
+            <Send className="h-3 w-3" /> Send to {clientName}
+          </button>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+export function QuestionnaireDraftResultBlock({
+  draft,
+  onRefine,
+  onSend,
+}: {
+  draft: AiQuestionnaireDraftPreview;
+  onRefine: () => void;
+  onSend: () => void;
+}) {
+  return (
+    <div className="space-y-3 rounded-xl border bg-muted/20 p-3">
+      <div>
+        <p className="text-sm font-semibold">{draft.title}</p>
+        <p className="text-xs text-muted-foreground">
+          Draft for {draft.clientName} · {draft.projectName}
+        </p>
+        {draft.description ? <p className="mt-1 text-xs text-muted-foreground">{draft.description}</p> : null}
+      </div>
+      <ol className="space-y-1.5 text-xs">
+        {draft.questions.map((question, index) => (
+          <li key={question.id} className="rounded-lg border bg-background/70 px-2.5 py-2">
+            <span className="font-medium">{index + 1}. {question.label}</span>
+            <span className="ml-1 text-muted-foreground">
+              · {question.type.replace(/_/g, " ")}{question.required ? " · required" : " · optional"}
+            </span>
+            {question.options?.length ? (
+              <p className="mt-1 text-muted-foreground">Options: {question.options.join(", ")}</p>
+            ) : null}
+          </li>
+        ))}
+      </ol>
+      <div className="flex flex-wrap gap-2">
+        <Link href={`/dashboard/questionnaires/${draft.id}`} className={ROW_CHIP}>
+          <ClipboardList className="h-3 w-3" /> Review &amp; edit
+        </Link>
+        <button type="button" onClick={onRefine} className={ROW_CHIP}>
+          <Sparkles className="h-3 w-3" /> Refine with IVo
+        </button>
+        <button type="button" onClick={onSend} className={ROW_CHIP}>
+          <Send className="h-3 w-3" /> Send to {draft.clientName}
+        </button>
+      </div>
+      <p className="text-[11px] text-muted-foreground">Nothing has been sent yet. Sending remains a separate audited action.</p>
+    </div>
+  );
+}
+
+export function QuestionnaireRefinementPreviewBlock({
+  proposal,
+  onApply,
+  onCancel,
+}: {
+  proposal: AiQuestionnaireRefinementProposal;
+  onApply: () => void;
+  onCancel: () => void;
+}) {
+  const questionList = (questions: AiQuestionnaireDraftPreview["questions"]) => (
+    <ol className="space-y-1 text-[11px]">
+      {questions.map((question, index) => (
+        <li key={question.id} className="rounded-md border bg-background/70 px-2 py-1.5">
+          {index + 1}. {question.label}
+          <span className="text-muted-foreground"> · {question.required ? "required" : "optional"}</span>
+        </li>
+      ))}
+    </ol>
+  );
+  return (
+    <div className="space-y-3 rounded-xl border bg-muted/20 p-3">
+      <div>
+        <p className="text-sm font-semibold">Review questionnaire changes</p>
+        <p className="text-xs text-muted-foreground">{proposal.instruction}</p>
+      </div>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <div className="space-y-1.5">
+          <p className="text-xs font-semibold text-muted-foreground">Before · {proposal.before.questions.length} questions</p>
+          {questionList(proposal.before.questions)}
+        </div>
+        <div className="space-y-1.5">
+          <p className="text-xs font-semibold">After · {proposal.after.questions.length} questions</p>
+          {questionList(proposal.after.questions)}
+        </div>
+      </div>
+      <div className="flex flex-wrap gap-2">
+        <Button type="button" size="sm" onClick={onApply}>Apply changes</Button>
+        <Button type="button" size="sm" variant="outline" onClick={onCancel}>Keep current draft</Button>
+      </div>
+      <p className="text-[11px] text-muted-foreground">Applying updates the internal draft only. It does not send anything.</p>
     </div>
   );
 }

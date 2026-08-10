@@ -88,13 +88,14 @@ export type IvoMessageBlockReference =
     }
   | {
       type: "entity_list";
-      entityType: "invoice" | "contract" | "client" | "project" | "welcome_document";
+      entityType: "invoice" | "contract" | "proposal" | "client" | "project" | "welcome_document";
       entityIds: string[];
     }
   | {
       type: "entity_result";
-      entityType: "client" | "project" | "time_entry" | "proposal" | "meeting";
+      entityType: "client" | "project" | "time_entry" | "proposal" | "questionnaire" | "meeting" | "portal";
       entityId: string;
+      contextId?: string;
     }
   | {
       type: "confirmation";
@@ -154,12 +155,13 @@ export type IvoRuntimeDecision =
   | { kind: "reply" }
   | { kind: "list"; entityType: "invoice"; filter: "unpaid" | "overdue" | "all" }
   | { kind: "list"; entityType: "contract"; filter: "pending" | "all" }
+  | { kind: "list"; entityType: "proposal"; filter: "pending" | "all" }
   | { kind: "list"; entityType: "client"; filter: "all" }
   | { kind: "list"; entityType: "project"; filter: "active" | "all" }
   | { kind: "list"; entityType: "welcome_document"; filter: "open" | "all" }
   | { kind: "business_query" }
   | { kind: "support" }
-  | { kind: "refine"; entityType: IvoMessageBlockEntity; entityId: string }
+  | { kind: "refine"; entityType: IvoMessageBlockEntity | "questionnaire"; entityId: string }
   | { kind: "overdue_reminders"; action: "propose" | "execute" | "dismiss" }
   | { kind: "unbilled_invoice"; send: boolean; clientId?: string }
   | { kind: "field_error"; message: string }

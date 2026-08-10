@@ -213,7 +213,7 @@ describe("tool registry — classification", () => {
   });
 
   it("classes every email and bulk reminder tool as external delivery", () => {
-    for (const key of ["invoice.email", "contract.email", "welcome_document.email", "invoice.remind_overdue", "meeting.create"] as const) {
+    for (const key of ["invoice.email", "proposal.email", "contract.email", "welcome_document.email", "invoice.remind_one", "invoice.remind_overdue", "meeting.create", "portal.create_invite", "questionnaire.send"] as const) {
       assert.equal(IVO_TOOL_REGISTRY[key].risk, "external_delivery", key);
     }
   });
