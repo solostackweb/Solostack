@@ -112,10 +112,12 @@ export function ConfirmBlock({
   summary,
   onConfirm,
   onCancel,
+  disabled = false,
 }: {
   summary: AiConfirmSummary;
   onConfirm: () => void;
   onCancel: () => void;
+  disabled?: boolean;
 }) {
   return (
     <div className="space-y-3">
@@ -129,10 +131,10 @@ export function ConfirmBlock({
         ))}
       </div>
       <div className="flex flex-wrap gap-2">
-        <Button type="button" size="sm" onClick={onConfirm}>
-          Confirm &amp; create
+        <Button type="button" size="sm" disabled={disabled} onClick={onConfirm}>
+          {disabled ? "No longer available" : "Confirm & create"}
         </Button>
-        <Button type="button" size="sm" variant="ghost" onClick={onCancel}>
+        <Button type="button" size="sm" variant="ghost" disabled={disabled} onClick={onCancel}>
           Cancel
         </Button>
       </div>

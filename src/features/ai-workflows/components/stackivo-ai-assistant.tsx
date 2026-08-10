@@ -576,6 +576,22 @@ export function StackivoAiAssistant({ user }: StackivoAiAssistantProps) {
       persistedBlock: message.block,
     }));
     const state = snapshot.state;
+    let restoredPendingConfirmation = state.pendingConfirmation;
+    if (restoredPendingConfirmation && !restoredPendingConfirmation.prompt) {
+      const confirmationIndex = snapshot.messages.findIndex(
+        (message) =>
+          message.block?.type === "confirmation" &&
+          message.block.requestId === restoredPendingConfirmation?.toolRequestKey,
+      );
+      const previewPrompt = snapshot.messages
+        .slice(0, confirmationIndex >= 0 ? confirmationIndex : undefined)
+        .reverse()
+        .find((message) => message.role === "user")?.content;
+      restoredPendingConfirmation = {
+        ...restoredPendingConfirmation,
+        prompt: previewPrompt ?? "",
+      };
+    }
     const lastText = snapshot.messages.at(-1)?.content;
     if (state.pendingField && lastText !== state.pendingField.question) {
       restored.push({
@@ -626,7 +642,7 @@ export function StackivoAiAssistant({ user }: StackivoAiAssistantProps) {
     setMode(state.mode);
     setCollected(state.collected);
     setPendingField(state.pendingField);
-    setPendingConfirm(state.pendingConfirmation);
+    setPendingConfirm(restoredPendingConfirmation);
     setPendingProposal(state.pendingProposal);
     setClientId(state.clientId);
     setProjectId(state.projectId);
@@ -1883,11 +1899,17 @@ export function StackivoAiAssistant({ user }: StackivoAiAssistantProps) {
           fields,
           cId,
           pId,
+          prompt: text,
           toolRequestKey: effectiveToolRequestKey,
           summary,
         });
         push({
           role: "assistant",
+          persistedBlock: {
+            type: "confirmation",
+            requestId: effectiveToolRequestKey,
+            data: summary as unknown as IvoResolvedMessageBlock["data"],
+          },
           persistence: response,
           content: (
             <ConfirmBlock
@@ -1901,7 +1923,7 @@ export function StackivoAiAssistant({ user }: StackivoAiAssistantProps) {
                     fields,
                     cId,
                     pId,
-                    "",
+                    text,
                     true,
                     effectiveToolRequestKey,
                     {
@@ -2606,7 +2628,7 @@ export function StackivoAiAssistant({ user }: StackivoAiAssistantProps) {
             pc.fields,
             pc.cId,
             pc.pId,
-            "",
+            pc.prompt,
             true,
             pc.toolRequestKey,
             { kind: "invoke_tool", tool: pc.tool, requestId: pc.toolRequestKey },
@@ -3462,9 +3484,11 @@ export function StackivoAiAssistant({ user }: StackivoAiAssistantProps) {
 
     if (block.type === "confirmation") {
       const summary = block.data as unknown as AiConfirmSummary;
+      const active = pendingConfirmRef.current?.toolRequestKey === block.requestId;
       return (
         <ConfirmBlock
           summary={summary}
+          disabled={!active}
           onConfirm={() => {
             const confirmation = pendingConfirmRef.current;
             if (!confirmation || confirmation.toolRequestKey !== block.requestId) return;
@@ -3476,7 +3500,7 @@ export function StackivoAiAssistant({ user }: StackivoAiAssistantProps) {
                 confirmation.fields,
                 confirmation.cId,
                 confirmation.pId,
-                "",
+                confirmation.prompt,
                 true,
                 confirmation.toolRequestKey,
                 {

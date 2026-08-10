@@ -107,6 +107,7 @@ const workflowStateSchema = z.object({
     fields: z.record(z.string().max(6000)),
     cId: z.string().max(100),
     pId: z.string().max(100),
+    prompt: z.string().max(6000).default(""),
     toolRequestKey: z.string().trim().min(4).max(100),
     summary: z.object({
       kind: z.enum(["client", "project", "time_entry", "meeting"]),

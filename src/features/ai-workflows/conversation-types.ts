@@ -135,6 +135,7 @@ export interface IvoPendingConfirmation {
   fields: AiFields;
   cId: string;
   pId: string;
+  prompt: string;
   toolRequestKey: string;
   summary: IvoConfirmationSummary;
 }
