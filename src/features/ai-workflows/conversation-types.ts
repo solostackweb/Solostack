@@ -88,7 +88,7 @@ export type IvoMessageBlockReference =
     }
   | {
       type: "entity_list";
-      entityType: "invoice" | "contract" | "proposal" | "client" | "project" | "welcome_document";
+      entityType: "invoice" | "contract" | "proposal" | "client" | "project" | "meeting" | "welcome_document";
       entityIds: string[];
     }
   | {
@@ -162,6 +162,7 @@ export type IvoRuntimeDecision =
   | { kind: "list"; entityType: "proposal"; filter: "pending" | "all" }
   | { kind: "list"; entityType: "client"; filter: "all" }
   | { kind: "list"; entityType: "project"; filter: "active" | "all" }
+  | { kind: "list"; entityType: "meeting"; filter: "upcoming" | "awaiting" | "all" }
   | { kind: "list"; entityType: "welcome_document"; filter: "open" | "all" }
   | { kind: "business_query" }
   | { kind: "support" }

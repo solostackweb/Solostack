@@ -3,6 +3,7 @@ import Link from "next/link";
 import {
   Bookmark,
   BookOpen,
+  CalendarDays,
   CheckCircle2,
   ClipboardList,
   Copy,
@@ -14,6 +15,7 @@ import {
   ReceiptText,
   Send,
   Sparkles,
+  Video,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -32,6 +34,7 @@ import type {
   AiProposalListRow,
   AiClientListRow,
   AiProjectListRow,
+  AiMeetingListRow,
   AiQuestionnaireListRow,
   AiQuestionnaireDraftPreview,
   AiQuestionnaireRefinementProposal,
@@ -949,6 +952,74 @@ export function ProjectListBlock({
               <button type="button" onClick={() => onCreatePortal(r.id)} className={ROW_CHIP}>
                 <FolderKanban className="h-3 w-3" /> Create portal &amp; invite
               </button>
+            ) : null}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function meetingTime(row: AiMeetingListRow): string {
+  if (!row.scheduledAt) return "Waiting for the client to choose a time";
+  const date = new Date(row.scheduledAt);
+  if (Number.isNaN(date.getTime())) return row.scheduledAt;
+  try {
+    return new Intl.DateTimeFormat("en-IN", {
+      dateStyle: "medium",
+      timeStyle: "short",
+      timeZone: row.timezone,
+    }).format(date);
+  } catch {
+    return new Intl.DateTimeFormat("en-IN", {
+      dateStyle: "medium",
+      timeStyle: "short",
+    }).format(date);
+  }
+}
+
+export function MeetingListBlock({
+  rows,
+  onCopyBookingLink,
+}: {
+  rows: AiMeetingListRow[];
+  onCopyBookingLink: (publicToken: string) => void;
+}) {
+  if (rows.length === 0) {
+    return <p className="text-sm text-muted-foreground">No matching meetings.</p>;
+  }
+  return (
+    <div className="space-y-2">
+      {rows.map((row) => (
+        <div key={row.id} className="rounded-xl border bg-muted/20 p-3">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <p className="truncate text-sm font-semibold">{row.topic}</p>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                {row.clientName} · {row.durationMinutes} min
+              </p>
+            </div>
+            <span className="shrink-0 rounded-full border bg-background px-2 py-0.5 text-[10px] font-medium capitalize text-muted-foreground">
+              {row.status === "proposed" ? "Awaiting time" : row.status}
+            </span>
+          </div>
+          <div className="mt-2 flex items-start gap-1.5 text-xs text-foreground/80">
+            <CalendarDays className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
+            <span>{meetingTime(row)}</span>
+          </div>
+          <div className="mt-3 flex flex-wrap gap-1.5">
+            <Link href={`/dashboard/meetings/${row.id}`} className={ROW_CHIP}>
+              <ExternalLink className="h-3 w-3" /> Open
+            </Link>
+            {row.status === "proposed" && row.publicToken ? (
+              <button type="button" className={ROW_CHIP} onClick={() => onCopyBookingLink(row.publicToken)}>
+                <Copy className="h-3 w-3" /> Copy booking link
+              </button>
+            ) : null}
+            {row.status === "confirmed" && row.meetLink ? (
+              <a href={row.meetLink} target="_blank" rel="noopener noreferrer" className={ROW_CHIP}>
+                <Video className="h-3 w-3" /> Join call
+              </a>
             ) : null}
           </div>
         </div>

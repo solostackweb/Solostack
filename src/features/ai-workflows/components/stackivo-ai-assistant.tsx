@@ -33,6 +33,7 @@ import {
   listProposalsForAiAction,
   listClientsForAiAction,
   listProjectsForAiAction,
+  listMeetingsForAiAction,
   listQuestionnairesForProjectAiAction,
   listWelcomeDocsForAiAction,
   listIvoPickerOptionsAction,
@@ -64,6 +65,7 @@ import type {
   AiProposalListRow,
   AiClientListRow,
   AiProjectListRow,
+  AiMeetingListRow,
   AiQuestionnaireListRow,
   AiQuestionnaireDraftPreview,
   AiQuestionnaireRefinementProposal,
@@ -98,6 +100,7 @@ import {
   ProposalListBlock,
   ClientListBlock,
   ProjectListBlock,
+  MeetingListBlock,
   QuestionnaireSendPickerBlock,
   QuestionnaireDraftResultBlock,
   QuestionnaireRefinementPreviewBlock,
@@ -1637,6 +1640,61 @@ export function StackivoAiAssistant({ user }: StackivoAiAssistantProps) {
     [push, handleProjectCreatePortal, handleProjectQuestionnaire],
   );
 
+  const runListMeetings = React.useCallback(
+    async (filter: "upcoming" | "awaiting" | "all") => {
+      const res = await listMeetingsForAiAction({ filter });
+      if (!res.ok) {
+        push({ role: "assistant", content: res.error });
+        return;
+      }
+      const { rows } = res.data;
+      if (rows.length === 0) {
+        push({
+          role: "assistant",
+          content:
+            filter === "awaiting"
+              ? "No meetings are waiting for a client to choose a time."
+              : filter === "upcoming"
+                ? "You have no upcoming or awaiting meetings right now."
+                : "You haven't created any meetings yet.",
+          suggestions: ["Schedule a meeting"],
+        });
+        return;
+      }
+      const awaiting = rows.filter((row) => row.status === "proposed").length;
+      push({
+        role: "assistant",
+        content:
+          awaiting > 0
+            ? `Here are your meetings. ${awaiting} ${awaiting === 1 ? "is" : "are"} still waiting for the client to choose a time.`
+            : "Here are your upcoming meetings.",
+      });
+      push({
+        role: "assistant",
+        persistence: {
+          kind: "result",
+          content: "Meeting list.",
+          block: {
+            type: "entity_list",
+            entityType: "meeting",
+            entityIds: rows.map((row) => row.id),
+          },
+        },
+        content: (
+          <MeetingListBlock
+            rows={rows}
+            onCopyBookingLink={(publicToken) => {
+              const url = `${window.location.origin}/m/${publicToken}`;
+              void navigator.clipboard.writeText(url);
+              toast.success("Booking link copied");
+            }}
+          />
+        ),
+      });
+    },
+    [push],
+  );
+
   const runListWelcomeDocs = React.useCallback(
     async (filter: "open" | "all") => {
       const res = await listWelcomeDocsForAiAction({ filter });
@@ -2855,6 +2913,7 @@ export function StackivoAiAssistant({ user }: StackivoAiAssistantProps) {
         else if (decision.entityType === "proposal") await runListProposals(decision.filter);
         else if (decision.entityType === "client") await runListClients();
         else if (decision.entityType === "project") await runListProjects(decision.filter);
+        else if (decision.entityType === "meeting") await runListMeetings(decision.filter);
         else await runListWelcomeDocs(decision.filter);
         return;
       }
@@ -3122,6 +3181,7 @@ export function StackivoAiAssistant({ user }: StackivoAiAssistantProps) {
     runListProposals,
     runListClients,
     runListProjects,
+    runListMeetings,
     handleProjectQuestionnaire,
     handlePreparedActionCopy,
     handlePreparedActionDismiss,
@@ -3292,6 +3352,18 @@ export function StackivoAiAssistant({ user }: StackivoAiAssistantProps) {
             onInvoice={(name) => submitRef.current?.(`Create an invoice for project ${name}`)}
             onCreatePortal={handleProjectCreatePortal}
             onQuestionnaire={handleProjectQuestionnaire}
+          />
+        );
+      }
+      if (block.entityType === "meeting") {
+        return (
+          <MeetingListBlock
+            rows={rows as AiMeetingListRow[]}
+            onCopyBookingLink={(publicToken) => {
+              const url = `${window.location.origin}/m/${publicToken}`;
+              void navigator.clipboard.writeText(url);
+              toast.success("Booking link copied");
+            }}
           />
         );
       }

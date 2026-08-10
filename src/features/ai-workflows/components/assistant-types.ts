@@ -181,6 +181,18 @@ export interface AiProjectListRow {
   dueDate: string | null;
 }
 
+export interface AiMeetingListRow {
+  id: string;
+  topic: string;
+  clientName: string;
+  durationMinutes: number;
+  timezone: string;
+  scheduledAt: string | null;
+  status: string;
+  meetLink: string | null;
+  publicToken: string;
+}
+
 export interface AiQuestionnaireListRow {
   id: string;
   title: string;

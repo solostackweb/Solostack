@@ -51,6 +51,7 @@ export const ivoRuntimeDecisionSchema = z.union([
   z.object({ kind: z.literal("list"), entityType: z.literal("proposal"), filter: z.enum(["pending", "all"]) }),
   z.object({ kind: z.literal("list"), entityType: z.literal("client"), filter: z.literal("all") }),
   z.object({ kind: z.literal("list"), entityType: z.literal("project"), filter: z.enum(["active", "all"]) }),
+  z.object({ kind: z.literal("list"), entityType: z.literal("meeting"), filter: z.enum(["upcoming", "awaiting", "all"]) }),
   z.object({ kind: z.literal("list"), entityType: z.literal("welcome_document"), filter: z.enum(["open", "all"]) }),
   z.object({ kind: z.literal("business_query") }),
   z.object({ kind: z.literal("support") }),
@@ -112,9 +113,28 @@ function isBusinessDataQuestion(text: string) {
   return !PRICING_QUESTION.test(normalized) && BUSINESS_DATA_QUESTION.test(normalized);
 }
 
+export function meetingListFilter(message: string): "upcoming" | "awaiting" | "all" | null {
+  const normalized = message.trim().toLowerCase();
+  if (
+    !/\b(show|list|view|see|check|review)\b/.test(normalized) ||
+    !/\b(meetings?|calls?|calendar|schedule)\b/.test(normalized)
+  ) {
+    return null;
+  }
+  if (/\b(all|past|history|completed|cancelled)\b/.test(normalized)) return "all";
+  if (/\b(awaiting|unconfirmed|needs? to (pick|choose)|pick a time)\b/.test(normalized)) {
+    return "awaiting";
+  }
+  return "upcoming";
+}
+
 function listDecision(text: string): IvoRuntimeDecision | null {
   const normalized = text.trim().toLowerCase();
-  const show = /\b(show|list|view|see)\b/.test(normalized);
+  const show = /\b(show|list|view|see|check|review)\b/.test(normalized);
+  const meetingFilter = meetingListFilter(text);
+  if (meetingFilter) {
+    return { kind: "list", entityType: "meeting", filter: meetingFilter };
+  }
   if (show && /\binvoices?\b/.test(normalized)) {
     return {
       kind: "list",

@@ -3509,6 +3509,71 @@ export async function listProjectsForAiAction(input: { filter?: "active" | "all"
   return { ok: true as const, data: { rows, filter } };
 }
 
+/** List real meeting records for IVo's schedule cards. */
+export async function listMeetingsForAiAction(
+  input: { filter?: "upcoming" | "awaiting" | "all" } = {},
+) {
+  const userId = await requireUserId();
+  if (!(await checkAiRateLimit(userId))) {
+    return { ok: false as const, error: "You're going a little fast — give it a few seconds." };
+  }
+  const filter = input.filter ?? "upcoming";
+  const supabase = await getServerSupabase();
+  const { data } = await supabase
+    .from("meetings")
+    .select("id, topic, client_id, duration_minutes, timezone, scheduled_at, status, meet_link, public_token, updated_at")
+    .eq("user_id", userId)
+    .order("updated_at", { ascending: false })
+    .limit(50);
+  const now = Date.now();
+  const records = ((data as Array<Record<string, unknown>> | null) ?? []).filter((row) => {
+    const status = String(row.status || "");
+    if (filter === "all") return true;
+    if (filter === "awaiting") return status === "proposed";
+    if (status === "proposed") return true;
+    if (status !== "confirmed" || !row.scheduled_at) return false;
+    const scheduled = Date.parse(String(row.scheduled_at));
+    return Number.isFinite(scheduled) && scheduled >= now;
+  });
+  records.sort((a, b) => {
+    const aTime = a.scheduled_at ? Date.parse(String(a.scheduled_at)) : Number.MAX_SAFE_INTEGER;
+    const bTime = b.scheduled_at ? Date.parse(String(b.scheduled_at)) : Number.MAX_SAFE_INTEGER;
+    return aTime - bTime;
+  });
+  const scoped = records.slice(0, 15);
+  const clientIds = Array.from(
+    new Set(scoped.map((row) => row.client_id).filter((id): id is string => typeof id === "string")),
+  );
+  const { data: clientsRaw } = clientIds.length
+    ? await supabase
+        .from("clients")
+        .select("id, full_name, business_name")
+        .eq("user_id", userId)
+        .in("id", clientIds)
+    : { data: [] };
+  const names = new Map(
+    ((clientsRaw as Array<Record<string, unknown>> | null) ?? []).map((client) => [
+      String(client.id),
+      String(client.business_name || client.full_name || "Client"),
+    ]),
+  );
+  const rows = scoped.map((row) => ({
+    id: String(row.id),
+    topic: String(row.topic || "Meeting"),
+    clientName:
+      typeof row.client_id === "string"
+        ? names.get(row.client_id) ?? "Unknown client"
+        : "No client",
+    durationMinutes: Number(row.duration_minutes || 30),
+    timezone: String(row.timezone || "UTC"),
+    scheduledAt: row.scheduled_at ? String(row.scheduled_at) : null,
+    status: String(row.status || "proposed"),
+    meetLink: row.meet_link ? String(row.meet_link) : null,
+    publicToken: String(row.public_token || ""),
+  }));
+  return { ok: true as const, data: { rows, filter, asOf: new Date().toISOString() } };
+}
+
 /** List welcome documents for the assistant's interactive workspace list. */
 export async function listWelcomeDocsForAiAction(input: { filter?: "open" | "all" } = {}) {
   const userId = await requireUserId();

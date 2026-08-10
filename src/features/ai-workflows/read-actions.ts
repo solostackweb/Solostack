@@ -25,6 +25,7 @@ import {
   listContractsForAiAction as listContractsForAi,
   listInvoicesForAiAction as listInvoicesForAi,
   listProjectsForAiAction as listProjectsForAi,
+  listMeetingsForAiAction as listMeetingsForAi,
   listQuestionnairesForProjectAiAction as listQuestionnairesForProjectAi,
   listProposalsForAiAction as listProposalsForAi,
   listWelcomeDocsForAiAction as listWelcomeDocsForAi,
@@ -78,6 +79,12 @@ export async function listInvoicesForAiAction(
 
 export async function listProjectsForAiAction(input: { filter?: "active" | "all" } = {}) {
   return listProjectsForAi(input);
+}
+
+export async function listMeetingsForAiAction(
+  input: { filter?: "upcoming" | "awaiting" | "all" } = {},
+) {
+  return listMeetingsForAi(input);
 }
 
 export async function listQuestionnairesForProjectAiAction(input: { projectId: string }) {

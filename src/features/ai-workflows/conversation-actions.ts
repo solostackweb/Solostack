@@ -21,6 +21,7 @@ import { loadMemories, runIvoAgent } from "./agent";
 import {
   isQuestionnaireCreationRequest,
   isProjectFollowupRequest,
+  meetingListFilter,
   ivoRuntimeDecisionSchema,
   planIvoRuntime,
 } from "./runtime-planner";
@@ -57,7 +58,7 @@ const messageBlockSchema = z.discriminatedUnion("type", [
   }),
   z.object({
     type: z.literal("entity_list"),
-    entityType: z.enum(["invoice", "contract", "proposal", "client", "project", "welcome_document"]),
+    entityType: z.enum(["invoice", "contract", "proposal", "client", "project", "meeting", "welcome_document"]),
     entityIds: z.array(z.string().uuid()).max(20),
   }),
   z.object({
@@ -679,6 +680,46 @@ async function resolveMessageBlock(
         portalId: typeof row.client_id === "string" ? portalIds.get(row.client_id) ?? null : null,
         status: String(row.status),
         dueDate: row.due_date ? String(row.due_date) : null,
+      }));
+      return { ...reference, data: { rows: sortRows(rows) } };
+    }
+
+    if (reference.entityType === "meeting") {
+      const { data } = await supabase
+        .from("meetings")
+        .select("id, topic, client_id, duration_minutes, timezone, scheduled_at, status, meet_link, public_token")
+        .eq("user_id", userId)
+        .in("id", reference.entityIds);
+      const records = (data as Array<Record<string, unknown>> | null) ?? [];
+      const clientIds = records
+        .map((row) => row.client_id)
+        .filter((id): id is string => typeof id === "string");
+      const { data: clientsRaw } = clientIds.length
+        ? await supabase
+            .from("clients")
+            .select("id, full_name, business_name")
+            .eq("user_id", userId)
+            .in("id", clientIds)
+        : { data: [] };
+      const names = new Map(
+        ((clientsRaw as Array<Record<string, unknown>> | null) ?? []).map((row) => [
+          String(row.id),
+          String(row.business_name || row.full_name || "Client"),
+        ]),
+      );
+      const rows = records.map((row) => ({
+        id: String(row.id),
+        topic: String(row.topic || "Meeting"),
+        clientName:
+          typeof row.client_id === "string"
+            ? names.get(row.client_id) ?? "Unknown client"
+            : "No client",
+        durationMinutes: Number(row.duration_minutes || 30),
+        timezone: String(row.timezone || "UTC"),
+        scheduledAt: row.scheduled_at ? String(row.scheduled_at) : null,
+        status: String(row.status || "proposed"),
+        meetLink: row.meet_link ? String(row.meet_link) : null,
+        publicToken: String(row.public_token || ""),
       }));
       return { ...reference, data: { rows: sortRows(rows) } };
     }
@@ -1382,6 +1423,46 @@ export async function processIvoMessageAction(
     );
     const mentionedClientId = resources.find((resource) => resource.type === "client")?.id;
     const mentionedProjectId = resources.find((resource) => resource.type === "project")?.id;
+
+    const meetingFilter = !parsed.data.pendingField
+      ? meetingListFilter(parsed.data.message)
+      : null;
+    if (meetingFilter) {
+      const decision = {
+        kind: "list" as const,
+        entityType: "meeting" as const,
+        filter: meetingFilter,
+      };
+      const interpretation: AiInterpretation = {
+        intent: "query",
+        confident: true,
+        fields: {},
+        provider: "local",
+      };
+      await supabase
+        .from("ivo_runs")
+        .update({
+          provider: "deterministic",
+          model: null,
+          status: "succeeded",
+          outcome: "meeting_list",
+          duration_ms: Date.now() - startedAt,
+          finished_at: new Date().toISOString(),
+          metadata: { route: "list", entityType: "meeting", filter: meetingFilter },
+        } as never)
+        .eq("id", runId)
+        .eq("user_id", userId);
+      return {
+        ok: true as const,
+        data: {
+          interpretation,
+          decision,
+          say: undefined as string | undefined,
+          runId,
+          usageConsumed,
+        },
+      };
+    }
 
     if (!parsed.data.pendingField && isQuestionnaireCreationRequest(parsed.data.message)) {
       const requestedProjectId = parsed.data.projectId || mentionedProjectId || "";
