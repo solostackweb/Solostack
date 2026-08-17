@@ -6,6 +6,7 @@ import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import {
   ArrowUp,
+  CalendarClock,
   ChevronDown,
   Copy,
   Eraser,
@@ -2292,6 +2293,37 @@ export function StackivoAiAssistant({ user }: StackivoAiAssistantProps) {
           const res = await createMeetingDraftIvoToolAction(toolActionInput);
           if (!res.ok) {
             if ("needsConfirm" in res && res.needsConfirm) showConfirm(res.summary, res.response);
+            else if ("availabilitySetup" in res && res.availabilitySetup) {
+              const manualParams = new URLSearchParams({ topic: fields.topic || "Call" });
+              if (cId) manualParams.set("clientId", cId);
+              push({
+                role: "assistant",
+                content: (
+                  <div className="space-y-3">
+                    <p>{res.error}</p>
+                    <div className="flex flex-wrap gap-2">
+                      <Button
+                        type="button"
+                        size="sm"
+                        onClick={() => router.push("/dashboard/meetings/availability")}
+                      >
+                        <CalendarClock className="h-4 w-4" /> Set availability
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        onClick={() =>
+                          router.push(`/dashboard/meetings/new?${manualParams.toString()}`)
+                        }
+                      >
+                        Choose specific times
+                      </Button>
+                    </div>
+                  </div>
+                ),
+              });
+            }
             else push({ role: "assistant", content: res.error });
             return;
           }

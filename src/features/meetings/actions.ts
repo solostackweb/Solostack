@@ -90,6 +90,18 @@ export async function createMeetingAction(
   if (mode === "slots" && slots.length === 0) {
     return { ok: false, error: "Offer at least one time slot." };
   }
+  if (mode === "availability") {
+    const openSlots = await computeOpenSlots(userId, {
+      durationMinutes: d.durationMinutes ?? 30,
+    });
+    if (openSlots.length === 0) {
+      return {
+        ok: false,
+        error:
+          "No bookable times are available in the next 14 days. Connect your calendar or adjust your availability before sharing this link.",
+      };
+    }
+  }
 
   const supabase = await getServerSupabase();
   const { data, error } = await supabase

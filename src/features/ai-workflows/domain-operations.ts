@@ -55,6 +55,11 @@ import {
 } from "./questionnaire-refinement-core";
 import { manualTimeEntryAction } from "@/features/time/actions";
 import { createMeetingAction } from "@/features/meetings/actions";
+import {
+  computeOpenSlots,
+  getCalendarConnection,
+  isGoogleConfigured,
+} from "@/features/scheduling/server";
 import { INDIAN_STATES } from "@/features/gst/state-codes";
 import { ensureInvoicePublicToken } from "@/features/share/server";
 import { buildWaUrl } from "@/lib/whatsapp";
@@ -1498,6 +1503,28 @@ export async function createMeetingFromAiAction(input: AiCreateInput) {
 
   const topic = field(fields, "topic") || "Call";
   const durationMinutes = meetingMinutesFromField(field(fields, "meetingLength"));
+
+  // IVo must never create or email a live-availability link that has nothing
+  // for the client to book. The manual meeting form hides this mode until the
+  // calendar is connected; enforce the same readiness contract here.
+  const calendar = await getCalendarConnection(userId);
+  if (!isGoogleConfigured() || !calendar.connected) {
+    return {
+      ok: false as const,
+      availabilitySetup: true as const,
+      error:
+        "Your Google Calendar isn't connected yet. Connect it to use live availability, or schedule this call with specific times.",
+    };
+  }
+  const openSlots = await computeOpenSlots(userId, { durationMinutes });
+  if (openSlots.length === 0) {
+    return {
+      ok: false as const,
+      availabilitySetup: true as const,
+      error:
+        "You don't currently have any bookable times in the next 14 days. Adjust your working hours, notice period, or calendar before sharing a booking link.",
+    };
+  }
 
   // A meeting created through this path immediately attempts to email the
   // client its booking link. Treat that as an external action and show the
