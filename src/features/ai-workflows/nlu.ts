@@ -27,6 +27,7 @@ const CANONICAL_FIELDS: Record<string, string[]> = {
   welcome_document: ["relationship", "process", "operations", "tone"],
   client: ["fullName", "businessName", "email", "phone", "billingAddress", "state", "notes"],
   project: ["name", "scope", "status", "dates", "dueDate"],
+  portal: [],
   time_entry: ["description", "duration", "billable"],
   meeting: ["topic", "meetingLength"],
   support: ["question", "page"],
@@ -72,6 +73,9 @@ function matchWorkflowKeyword(
     return { intent: "contract", leads: /^(contract|agreement|nda|retainer)\b/.test(t) };
   if (/\bwelcome\b|\bonboard\b|\bonboarding\b|\bkickoff\b/.test(t))
     return { intent: "welcome_document", leads: /^(welcome|onboard)/.test(t) };
+  // Portal must win before the generic client/project keywords in phrases
+  // such as "create a client portal" or "set up a project portal".
+  if (/\bportals?\b/.test(t)) return { intent: "portal", leads: /^portal\b/.test(t) };
   if (/\bproject\b/.test(t)) return { intent: "project", leads: /^project\b/.test(t) };
   if (/\bclient\b|\bcustomer\b|\bcontact\b/.test(t)) return { intent: "client", leads: /^(client|customer|contact)\b/.test(t) };
   if (/\btime\b|\bhours?\b|\bminutes?\b|\blog time\b|\bbillable\b/.test(t)) return { intent: "time_entry", leads: false };
@@ -304,6 +308,7 @@ export async function interpretMessageDetailed(
           "- welcome_document: relationship, process, operations, tone",
           "- client: fullName, businessName, email, phone, billingAddress, state, notes",
           "- project: name, scope, status, dates, dueDate",
+          "- portal: no text fields are required; resolve the named client or let the UI show the client picker",
           "- time_entry: description, duration, billable",
           "- support: question, page",
           "",

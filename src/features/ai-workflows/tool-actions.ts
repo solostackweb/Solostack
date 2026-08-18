@@ -17,6 +17,7 @@ import {
   createInvoiceFromAiAction,
   createMeetingFromAiAction,
   createProjectFromAiAction,
+  createPortalFromAiAction,
   createProjectQuestionnaireDraftFromAiAction,
   createProjectPortalFromAiAction,
   createProposalFromAiAction,
@@ -52,6 +53,7 @@ import {
 type IvoCreateToolKey =
   | "client.create"
   | "project.create"
+  | "portal.create_invite"
   | "time_entry.create"
   | "invoice.draft"
   | "invoice.unbilled_draft"
@@ -104,9 +106,10 @@ type ToolInput = z.input<typeof toolInputSchema>;
 type ToolRuntimeError = { ok: false; error: string };
 type ClientToolResult = Awaited<ReturnType<typeof createClientFromAiAction>>;
 type ProjectToolResult = Awaited<ReturnType<typeof createProjectFromAiAction>>;
+type PortalToolResult = Awaited<ReturnType<typeof createPortalFromAiAction>>;
 type TimeEntryToolResult = Awaited<ReturnType<typeof createTimeEntryFromAiAction>>;
 type MeetingToolResult = Awaited<ReturnType<typeof createMeetingFromAiAction>>;
-type ToolResult = ClientToolResult | ProjectToolResult | TimeEntryToolResult | MeetingToolResult;
+type ToolResult = ClientToolResult | ProjectToolResult | PortalToolResult | TimeEntryToolResult | MeetingToolResult;
 type DraftToolError = {
   ok: false;
   error: string;
@@ -322,7 +325,7 @@ async function requireOwnedContext(conversationId: string, runId?: string) {
 
 async function runCreateTool<T extends ToolResult>(
   toolKey: IvoCreateToolKey,
-  entityType: "client" | "project" | "time_entry" | "meeting",
+  entityType: "client" | "project" | "portal" | "time_entry" | "meeting",
   rawInput: ToolInput,
   invoke: (input: z.output<typeof toolInputSchema>) => Promise<T>,
   readCached: (entityId: string, userId: string) => Promise<T | null>,
@@ -1528,6 +1531,68 @@ export async function createProjectIvoToolAction(input: ToolInput) {
       response: entityResponse("result", "Project created.", {
         type: "entity_result",
         entityType: "project",
+        entityId: result.data.id,
+      }),
+    };
+  }
+  if ("needsConfirm" in result && result.needsConfirm) {
+    return {
+      ...result,
+      response: confirmationResponse(input.idempotencyKey, result.summary.title),
+    };
+  }
+  return result;
+}
+
+export async function createPortalIvoToolAction(input: ToolInput) {
+  const result = await runCreateTool<PortalToolResult>(
+    "portal.create_invite",
+    "portal",
+    input,
+    (value) => createPortalFromAiAction(value),
+    async (entityId, userId) => {
+      const supabase = await getServerSupabase();
+      const { data: portalRaw } = await supabase
+        .from("portals")
+        .select("id, name, client_id")
+        .eq("id", entityId)
+        .eq("owner_user_id", userId)
+        .eq("status", "active")
+        .is("deleted_at", null)
+        .maybeSingle();
+      const portal = portalRaw as { id: string; name: string; client_id: string | null } | null;
+      if (!portal) return null;
+      const { data: clientRaw } = portal.client_id
+        ? await supabase
+            .from("clients")
+            .select("full_name, business_name, email")
+            .eq("id", portal.client_id)
+            .eq("user_id", userId)
+            .maybeSingle()
+        : { data: null };
+      const client = clientRaw as {
+        full_name?: string | null;
+        business_name?: string | null;
+        email?: string | null;
+      } | null;
+      return {
+        ok: true as const,
+        data: {
+          id: portal.id,
+          name: portal.name,
+          clientName: client?.business_name || client?.full_name || "Client",
+          clientEmail: client?.email || "",
+        },
+        message: "Client portal already exists.",
+      };
+    },
+  );
+  if (result.ok) {
+    return {
+      ...result,
+      response: entityResponse("result", result.message ?? "Client portal created and invitation sent.", {
+        type: "entity_result",
+        entityType: "portal",
         entityId: result.data.id,
       }),
     };

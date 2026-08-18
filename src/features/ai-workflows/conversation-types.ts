@@ -9,6 +9,7 @@ export const IVO_MODES = [
   "welcome_document",
   "client",
   "project",
+  "portal",
   "time_entry",
   "meeting",
   "support",
@@ -22,6 +23,7 @@ export const IVO_WORKFLOW_TOOLS = [
   "welcome_document.draft",
   "client.create",
   "project.create",
+  "portal.create_invite",
   "time_entry.create",
   "meeting.create",
   "proposal.create",
@@ -124,14 +126,14 @@ export interface IvoToolResponseDescriptor {
 }
 
 export interface IvoConfirmationSummary {
-  kind: "client" | "project" | "time_entry" | "meeting";
+  kind: "client" | "project" | "portal" | "time_entry" | "meeting";
   title: string;
   lines: Array<[label: string, value: string]>;
 }
 
 export interface IvoPendingConfirmation {
-  workflow: "client" | "project" | "time_entry" | "meeting";
-  tool: Extract<IvoWorkflowTool, "client.create" | "project.create" | "time_entry.create" | "meeting.create">;
+  workflow: "client" | "project" | "portal" | "time_entry" | "meeting";
+  tool: Extract<IvoWorkflowTool, "client.create" | "project.create" | "portal.create_invite" | "time_entry.create" | "meeting.create">;
   fields: AiFields;
   cId: string;
   pId: string;

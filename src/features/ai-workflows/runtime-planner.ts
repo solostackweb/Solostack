@@ -78,7 +78,7 @@ export const ivoRuntimeDecisionSchema = z.union([
   z.object({ kind: z.literal("field_error"), message: z.string().min(1).max(2000) }),
   z.object({
     kind: z.literal("workflow"),
-    targetMode: z.enum(["general", "invoice", "contract", "proposal", "welcome_document", "client", "project", "time_entry", "meeting", "support"]),
+    targetMode: z.enum(["general", "invoice", "contract", "proposal", "welcome_document", "client", "project", "portal", "time_entry", "meeting", "support"]),
     switching: z.boolean(),
     fields: z.record(z.string()),
     clientId: z.string().max(100),
@@ -113,6 +113,30 @@ function isBusinessDataQuestion(text: string) {
   return !PRICING_QUESTION.test(normalized) && BUSINESS_DATA_QUESTION.test(normalized);
 }
 
+/**
+ * Creating an invoice from tracked time is a mutation-oriented workflow. Keep
+ * advisory questions such as "What unbilled time should I invoice?" on the
+ * read-only business-query path, even though they contain the word "invoice".
+ */
+export function isUnbilledTimeInvoiceAction(message: string): boolean {
+  const normalized = message.trim().toLowerCase();
+  if (!/\bunbilled\b/.test(normalized) || !/\b(invoice|bill)\b/.test(normalized)) {
+    return false;
+  }
+
+  const asksForAdvice =
+    /\b(what|which|how much|should|recommend|review|show|check|tell me|ready)\b/.test(normalized);
+  const explicitCreation =
+    /\b(create|draft|prepare|generate|raise|make)\b[^.?!]*\b(invoice|bill)\b/.test(normalized);
+
+  if (asksForAdvice && !explicitCreation) return false;
+  return (
+    explicitCreation ||
+    /^(?:please\s+)?(?:invoice|bill)\b/.test(normalized) ||
+    /\b(?:invoice|bill)\s+(?:all\s+|my\s+|the\s+|this\s+|these\s+)?unbilled\s+(?:time|hours?)\b/.test(normalized)
+  );
+}
+
 export function meetingListFilter(message: string): "upcoming" | "awaiting" | "all" | null {
   const normalized = message.trim().toLowerCase();
   const mentionsMeetings = /\b(meetings?|calls?|calendar|schedule)\b/.test(normalized);
@@ -136,6 +160,10 @@ export function meetingListFilter(message: string): "upcoming" | "awaiting" | "a
 function listDecision(text: string): IvoRuntimeDecision | null {
   const normalized = text.trim().toLowerCase();
   const show = /\b(show|list|view|see|check|review)\b/.test(normalized);
+  const portalPlanning =
+    /\bportals?\b/.test(normalized) &&
+    /\b(who|which|needs?|should|recommend|next|gap|review|compare)\b/.test(normalized) &&
+    /\b(clients?|customers?)\b/.test(normalized);
   const meetingFilter = meetingListFilter(text);
   if (meetingFilter) {
     return { kind: "list", entityType: "meeting", filter: meetingFilter };
@@ -161,7 +189,7 @@ function listDecision(text: string): IvoRuntimeDecision | null {
       filter: /\b(all|every)\b/.test(normalized) ? "all" : "pending",
     };
   }
-  if (show && /\b(clients?|customers?)\b/.test(normalized)) {
+  if (show && !portalPlanning && /\b(clients?|customers?)\b/.test(normalized)) {
     return { kind: "list", entityType: "client", filter: "all" };
   }
   if (
@@ -247,12 +275,15 @@ export function planIvoRuntime(input: {
     ) {
       return { kind: "overdue_reminders", action: "propose" };
     }
-    if (/unbilled/.test(normalized) && /\b(invoice|bill)\b/.test(normalized)) {
+    if (isUnbilledTimeInvoiceAction(message)) {
       return {
         kind: "unbilled_invoice",
         send: /\bsend\b/.test(normalized),
         ...(interpretation.clientId ? { clientId: interpretation.clientId } : {}),
       };
+    }
+    if (/\bunbilled\b/.test(normalized)) {
+      return { kind: "business_query" };
     }
     const list = listDecision(message);
     if (list) return list;

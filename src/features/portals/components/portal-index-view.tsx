@@ -70,7 +70,7 @@ export function PortalIndexView({
         actions={[
           {
             label: "Who needs a portal?",
-            prompt: `Review my clients and portals. I have ${ownedPortals.length} portal(s), ${activePortals} active, and ${clients.length} client(s). Tell me which clients should get a portal next and why.`,
+            prompt: `Compare my ${clients.length} clients with my ${ownedPortals.length} existing portals (${activePortals} active). Review each client's active projects and shared work, then recommend who should get a portal next and explain why.`,
           },
           {
             label: "Portal checklist",
@@ -78,7 +78,7 @@ export function PortalIndexView({
           },
           {
             label: "Create portal",
-            prompt: "Help me create a client portal and decide what should be shared inside it.",
+            prompt: "Create a client portal for one of my clients. Let me choose the client, preview the live documents that will be shared, and confirm before you create it or email the invitation.",
           },
         ]}
       />

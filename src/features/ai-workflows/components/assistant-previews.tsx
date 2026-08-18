@@ -643,6 +643,67 @@ export function WelcomeDocDeliveryActions({
 const ROW_CHIP =
   "inline-flex items-center gap-1 rounded-md border px-2 py-1 text-[11px] font-medium transition-colors hover:bg-muted disabled:opacity-50";
 
+function documentStatus(status: string): {
+  label: string;
+  badgeClass: string;
+  cardClass: string;
+} {
+  const normalized = status.toLowerCase();
+  if (normalized === "draft") {
+    return {
+      label: "Draft · Not sent",
+      badgeClass: "bg-muted text-muted-foreground ring-border",
+      cardClass: "border-l-muted-foreground/40 bg-muted/15",
+    };
+  }
+  if (["signed", "accepted", "paid", "converted"].includes(normalized)) {
+    return {
+      label: normalized.replace(/_/g, " "),
+      badgeClass:
+        "bg-emerald-500/10 text-emerald-700 ring-emerald-500/20 dark:text-emerald-400",
+      cardClass: "border-l-emerald-500 bg-emerald-500/[0.03]",
+    };
+  }
+  if (["overdue", "declined", "rejected", "expired"].includes(normalized)) {
+    return {
+      label: normalized.replace(/_/g, " "),
+      badgeClass: "bg-destructive/10 text-destructive ring-destructive/20",
+      cardClass: "border-l-destructive bg-destructive/[0.03]",
+    };
+  }
+  if (normalized === "partially_paid") {
+    return {
+      label: "Partially paid",
+      badgeClass:
+        "bg-amber-500/10 text-amber-700 ring-amber-500/20 dark:text-amber-400",
+      cardClass: "border-l-amber-500 bg-amber-500/[0.03]",
+    };
+  }
+  if (normalized === "cancelled") {
+    return {
+      label: "Cancelled",
+      badgeClass: "bg-muted text-muted-foreground ring-border line-through",
+      cardClass: "border-l-muted-foreground/30 bg-muted/10 opacity-75",
+    };
+  }
+  return {
+    label: normalized === "viewed" ? "Live · Viewed" : "Live · Sent",
+    badgeClass: "bg-primary/10 text-primary ring-primary/20",
+    cardClass: "border-l-primary bg-primary/[0.03]",
+  };
+}
+
+function DocumentStatusBadge({ status }: { status: string }) {
+  const presentation = documentStatus(status);
+  return (
+    <span
+      className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold capitalize ring-1 ring-inset ${presentation.badgeClass}`}
+    >
+      {presentation.label}
+    </span>
+  );
+}
+
 export function PreparedEmailBlock({
   action,
   busy,
@@ -708,11 +769,13 @@ export function PreparedEmailBlock({
 
 export function InvoiceListBlock({
   rows,
+  onSend,
   onMarkPaid,
   onRemind,
   busyId,
 }: {
   rows: AiInvoiceListRow[];
+  onSend: (id: string) => void;
   onMarkPaid: (id: string) => void;
   onRemind: (id: string) => void;
   busyId?: string | null;
@@ -724,23 +787,39 @@ export function InvoiceListBlock({
     <div className="space-y-2">
       {rows.map((r) => {
         const paid = r.status === "paid";
+        const draft = r.status === "draft";
+        const sendable = ["draft", "sent", "viewed", "overdue", "partially_paid"].includes(r.status);
         const busy = busyId === r.id;
+        const presentation = documentStatus(r.status);
         return (
-          <div key={r.id} className="rounded-xl border bg-muted/20 p-2.5">
-            <div className="min-w-0">
-              <p className="truncate text-xs font-semibold">
-                {r.invoiceNumber} · {r.clientName}
-              </p>
+          <div key={r.id} className={`rounded-xl border border-l-[3px] p-2.5 ${presentation.cardClass}`}>
+            <div className="flex items-start justify-between gap-2">
+              <div className="min-w-0">
+                <p className="truncate text-xs font-semibold">
+                  {r.invoiceNumber} · {r.clientName}
+                </p>
+              </div>
+              <DocumentStatusBadge status={r.status} />
+            </div>
               <p className="text-[11px] text-muted-foreground">
-                {formatAiMoney(r.totalAmount, r.currency)} · {r.status.replace(/_/g, " ")}
+                {formatAiMoney(r.totalAmount, r.currency)}
                 {r.dueDate ? ` · due ${r.dueDate}` : ""}
               </p>
-            </div>
             <div className="mt-2 flex flex-wrap gap-1.5">
               <a href={`/dashboard/invoices/${r.id}`} className={ROW_CHIP}>
                 <ExternalLink className="h-3 w-3" /> Open
               </a>
-              {!paid ? (
+              {sendable ? (
+                <button
+                  type="button"
+                  onClick={() => onSend(r.id)}
+                  disabled={busy}
+                  className={ROW_CHIP}
+                >
+                  <Send className="h-3 w-3" /> {draft ? "Send invoice" : "Resend invoice"}
+                </button>
+              ) : null}
+              {!paid && !draft && r.status !== "cancelled" ? (
                 <>
                   <button
                     type="button"
@@ -785,11 +864,15 @@ export function ContractListBlock({
     <div className="space-y-2">
       {rows.map((r) => {
         const sendable = r.status === "draft" || r.status === "sent" || r.status === "viewed";
+        const presentation = documentStatus(r.status);
         return (
-          <div key={r.id} className="rounded-xl border bg-muted/20 p-2.5">
-            <p className="truncate text-xs font-semibold">{r.title}</p>
+          <div key={r.id} className={`rounded-xl border border-l-[3px] p-2.5 ${presentation.cardClass}`}>
+            <div className="flex items-start justify-between gap-2">
+              <p className="min-w-0 truncate text-xs font-semibold">{r.title}</p>
+              <DocumentStatusBadge status={r.status} />
+            </div>
             <p className="text-[11px] text-muted-foreground">
-              {r.kind} · {r.clientName} · {r.status.replace(/_/g, " ")}
+              {r.kind} · {r.clientName}
             </p>
             <div className="mt-2 flex flex-wrap gap-1.5">
               <a href={`/dashboard/contracts/${r.id}`} className={ROW_CHIP}>
@@ -833,11 +916,15 @@ export function ProposalListBlock({
     <div className="space-y-2">
       {rows.map((row) => {
         const sendable = ["draft", "sent", "viewed"].includes(row.status);
+        const presentation = documentStatus(row.status);
         return (
-          <div key={row.id} className="rounded-xl border bg-muted/20 p-2.5">
-            <p className="truncate text-xs font-semibold">{row.title}</p>
+          <div key={row.id} className={`rounded-xl border border-l-[3px] p-2.5 ${presentation.cardClass}`}>
+            <div className="flex items-start justify-between gap-2">
+              <p className="min-w-0 truncate text-xs font-semibold">{row.title}</p>
+              <DocumentStatusBadge status={row.status} />
+            </div>
             <p className="text-[11px] text-muted-foreground">
-              {row.clientName} · {formatAiMoney(row.totalAmount, row.currency)} · {row.status.replace(/_/g, " ")}
+              {row.clientName} · {formatAiMoney(row.totalAmount, row.currency)}
               {row.validUntil ? ` · valid until ${row.validUntil}` : ""}
             </p>
             <div className="mt-2 flex flex-wrap gap-1.5">
@@ -885,9 +972,13 @@ export function ProposalListBlock({
 export function ClientListBlock({
   rows,
   onInvoice,
+  onContract,
+  onMeeting,
 }: {
   rows: AiClientListRow[];
   onInvoice: (name: string) => void;
+  onContract: (name: string) => void;
+  onMeeting: (name: string) => void;
 }) {
   if (rows.length === 0) {
     return <p className="text-sm text-muted-foreground">No clients yet.</p>;
@@ -903,6 +994,12 @@ export function ClientListBlock({
             </a>
             <button type="button" onClick={() => onInvoice(r.name)} className={ROW_CHIP}>
               <ReceiptText className="h-3 w-3" /> Invoice
+            </button>
+            <button type="button" onClick={() => onContract(r.name)} className={ROW_CHIP}>
+              <FileSignature className="h-3 w-3" /> Contract
+            </button>
+            <button type="button" onClick={() => onMeeting(r.name)} className={ROW_CHIP}>
+              <CalendarDays className="h-3 w-3" /> Meeting
             </button>
           </div>
         </div>

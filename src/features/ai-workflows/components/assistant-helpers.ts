@@ -82,6 +82,7 @@ export const MODE_PLACEHOLDERS: Partial<Record<AiMode, string>> = {
   welcome_document: "Example: Welcome doc for Acme — weekly Friday updates, feedback in one doc, warm tone",
   client: "Example: Add Riya Sharma, Acme Encore, riya@acme.com, +91 9876543210, Mumbai",
   project: "Example: Website Redesign for Acme — landing page + CMS, starts Monday, due end of month",
+  portal: "Example: Create a client portal for Acme",
   time_entry: "Example: Logged 2h 30m on wireframe revisions for Acme, billable",
   support: "Ask anything — docs, privacy, terms, or raise a support ticket",
 };
@@ -117,6 +118,8 @@ export function modeIntro(mode: AiMode): string {
       return "Let's add a client. Tell me the details and I'll create the record.";
     case "project":
       return "Let's create a project. Tell me the name, scope, and timeline.";
+    case "portal":
+      return "Let's create a client portal. Choose the client and I'll review what can be shared before anything is sent.";
     case "time_entry":
       return "Let's log some time. Which project and how long?";
     case "support":

@@ -1,7 +1,11 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { ivoRuntimeDecisionSchema, planIvoRuntime } from "../runtime-planner";
+import {
+  isUnbilledTimeInvoiceAction,
+  ivoRuntimeDecisionSchema,
+  planIvoRuntime,
+} from "../runtime-planner";
 import type { AiFields, AiInterpretation, AiIntent } from "../types";
 import type { IvoMode } from "../conversation-types";
 
@@ -91,6 +95,23 @@ describe("runtime planner — overdue reminder proposals", () => {
     assert.equal(decision.kind, "overdue_reminders");
     if (decision.kind !== "overdue_reminders") return;
     assert.equal(decision.action, "dismiss");
+  });
+});
+
+describe("runtime planner — unbilled-time review versus invoice action", () => {
+  it("keeps advisory wording on the read-only business path", () => {
+    assert.equal(isUnbilledTimeInvoiceAction("What unbilled time should I invoice?"), false);
+    assert.equal(plan("What unbilled time should I invoice?").kind, "business_query");
+    assert.equal(
+      plan("Review my unbilled time and tell me what is ready to invoice").kind,
+      "business_query",
+    );
+  });
+
+  it("creates a draft only from a direct billing command", () => {
+    assert.equal(isUnbilledTimeInvoiceAction("Create an invoice for my unbilled time"), true);
+    assert.equal(isUnbilledTimeInvoiceAction("Bill my unbilled time"), true);
+    assert.equal(plan("Create an invoice for my unbilled time").kind, "unbilled_invoice");
   });
 });
 

@@ -48,6 +48,7 @@ export type AiMode =
   | "welcome_document"
   | "client"
   | "project"
+  | "portal"
   | "time_entry"
   | "meeting"
   | "support";
@@ -133,7 +134,7 @@ export interface AiWelcomeDocPreview {
 }
 
 export interface AiConfirmSummary {
-  kind: "client" | "project" | "time_entry" | "meeting";
+  kind: "client" | "project" | "portal" | "time_entry" | "meeting";
   title: string;
   lines: Array<[label: string, value: string]>;
 }

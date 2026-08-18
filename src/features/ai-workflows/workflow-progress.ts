@@ -21,6 +21,7 @@ const WORKFLOW_TOOL: Partial<Record<AiWorkflow, IvoWorkflowTool>> = {
   welcome_document: "welcome_document.draft",
   client: "client.create",
   project: "project.create",
+  portal: "portal.create_invite",
   time_entry: "time_entry.create",
   meeting: "meeting.create",
   proposal: "proposal.create",
@@ -297,6 +298,8 @@ export function buildIvoFieldPrompt(
           ? "proposal"
           : workflow === "project"
             ? "project"
+            : workflow === "portal"
+              ? "portal"
             : workflow === "welcome_document"
               ? "welcome document"
               : "";

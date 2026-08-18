@@ -102,15 +102,15 @@ const workflowStateSchema = z.object({
   collected: z.record(z.string().max(6000)).default({}),
   pendingField: pendingFieldSchema.default(null),
   pendingConfirmation: z.object({
-    workflow: z.enum(["client", "project", "time_entry", "meeting"]),
-    tool: z.enum(["client.create", "project.create", "time_entry.create", "meeting.create"]),
+    workflow: z.enum(["client", "project", "portal", "time_entry", "meeting"]),
+    tool: z.enum(["client.create", "project.create", "portal.create_invite", "time_entry.create", "meeting.create"]),
     fields: z.record(z.string().max(6000)),
     cId: z.string().max(100),
     pId: z.string().max(100),
     prompt: z.string().max(6000).default(""),
     toolRequestKey: z.string().trim().min(4).max(100),
     summary: z.object({
-      kind: z.enum(["client", "project", "time_entry", "meeting"]),
+      kind: z.enum(["client", "project", "portal", "time_entry", "meeting"]),
       title: z.string().trim().min(1).max(1000),
       lines: z.array(z.tuple([z.string().max(300), z.string().max(1000)])).max(30),
     }),

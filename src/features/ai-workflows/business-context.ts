@@ -12,6 +12,7 @@ import "server-only";
 import { getPulseAnalytics } from "@/features/pulse/analytics";
 import { getPulseInsights } from "@/features/pulse/insights";
 import { getUnbilledTime } from "@/features/time/server";
+import { getServerSupabase } from "@/lib/supabase/server";
 
 const r2 = (n: number) => Math.round((Number(n) || 0) * 100) / 100;
 const hrs = (seconds: number) => Math.round(((seconds || 0) / 3600) * 10) / 10;
@@ -65,7 +66,16 @@ export interface BusinessFacts {
   unbilled: {
     totalValue: number;
     totalHours: number;
-    byProject: Array<{ project: string; hours: number; value: number }>;
+    byProject: Array<{
+      client: string;
+      clientId: string | null;
+      project: string;
+      hours: number;
+      value: number;
+      effectiveRate: number;
+      earliest: string;
+      latest: string;
+    }>;
   };
   gst: {
     inUse: boolean;
@@ -102,6 +112,62 @@ export async function getBusinessFacts(): Promise<BusinessFacts> {
     getPulseAnalytics({ from: fromMonth, to }),
     getUnbilledTime(),
   ]);
+
+  // The billing workflow groups after selecting a client, but an analysis of
+  // all unbilled time must not merge two clients' no-project entries together.
+  // Build a compact client + project breakdown specifically for IVo.
+  const clientIds = Array.from(
+    new Set(unbilled.entries.map((entry) => entry.clientId).filter((id): id is string => Boolean(id))),
+  );
+  const clientNames = new Map<string, string>();
+  if (clientIds.length > 0) {
+    const supabase = await getServerSupabase();
+    const { data: clients } = await supabase
+      .from("clients")
+      .select("id, full_name, business_name")
+      .in("id", clientIds);
+    for (const client of (clients as Array<{
+      id: string;
+      full_name: string | null;
+      business_name: string | null;
+    }> | null) ?? []) {
+      clientNames.set(client.id, client.business_name || client.full_name || "Unnamed client");
+    }
+  }
+  const projectNames = new Map(
+    unbilled.groups
+      .filter((group) => group.projectId)
+      .map((group) => [group.projectId as string, group.projectName ?? "Unnamed project"]),
+  );
+  const unbilledBreakdown = new Map<
+    string,
+    {
+      client: string;
+      clientId: string | null;
+      project: string;
+      seconds: number;
+      value: number;
+      earliest: string;
+      latest: string;
+    }
+  >();
+  for (const entry of unbilled.entries) {
+    const key = `${entry.clientId ?? "none"}:${entry.projectId ?? "none"}`;
+    const current = unbilledBreakdown.get(key) ?? {
+      client: entry.clientId ? clientNames.get(entry.clientId) ?? "Unknown client" : "No client assigned",
+      clientId: entry.clientId,
+      project: entry.projectId ? projectNames.get(entry.projectId) ?? "Unnamed project" : "No project",
+      seconds: 0,
+      value: 0,
+      earliest: entry.startedAt,
+      latest: entry.startedAt,
+    };
+    current.seconds += entry.durationSeconds;
+    current.value += entry.amount;
+    if (entry.startedAt < current.earliest) current.earliest = entry.startedAt;
+    if (entry.startedAt > current.latest) current.latest = entry.startedAt;
+    unbilledBreakdown.set(key, current);
+  }
 
   return {
     today: to,
@@ -160,11 +226,22 @@ export async function getBusinessFacts(): Promise<BusinessFacts> {
     unbilled: {
       totalValue: r2(unbilled.totalAmount),
       totalHours: hrs(unbilled.totalSeconds),
-      byProject: unbilled.groups.slice(0, 8).map((g) => ({
-        project: g.projectName ?? "No project",
-        hours: hrs(g.seconds),
-        value: r2(g.amount),
-      })),
+      byProject: Array.from(unbilledBreakdown.values())
+        .sort((a, b) => b.value - a.value || b.seconds - a.seconds)
+        .slice(0, 12)
+        .map((group) => {
+          const hours = group.seconds / 3600;
+          return {
+            client: group.client,
+            clientId: group.clientId,
+            project: group.project,
+            hours: hrs(group.seconds),
+            value: r2(group.value),
+            effectiveRate: hours > 0 ? r2(group.value / hours) : 0,
+            earliest: group.earliest.slice(0, 10),
+            latest: group.latest.slice(0, 10),
+          };
+        }),
     },
     gst: {
       inUse: a12.gst.inUse,

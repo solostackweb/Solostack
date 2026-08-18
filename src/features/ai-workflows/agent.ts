@@ -39,6 +39,7 @@ import {
   type GroqToolDefinition,
 } from "./groq";
 import { planIvoWorkflowNextAction } from "./workflow-progress";
+import { isUnbilledTimeInvoiceAction } from "./runtime-planner";
 import type { AiFields, AiWorkflow } from "./types";
 import { AI_WORKFLOWS, NO_CLIENT_SENTINEL, NO_PROJECT_SENTINEL } from "./types";
 import type { IvoMode, IvoRuntimeDecision } from "./conversation-types";
@@ -105,7 +106,7 @@ function buildTools(input: IvoAgentInput): GroqToolDefinition[] {
       function: {
         name: "get_business_snapshot",
         description:
-          "Read the user's real business numbers: revenue (12m/this month), outstanding & overdue invoices with aging, collection rate, avg days to pay, top clients by revenue with concentration %, revenue by project, tracked/billable hours, unbilled time value by project, and GST totals. ALWAYS call this before answering any question about the user's numbers, priorities, follow-ups, risk, or business health. Never invent figures.",
+          "Read the user's real business numbers: revenue (12m/this month), outstanding & overdue invoices with aging, collection rate, avg days to pay, top clients by revenue with concentration %, revenue by project, tracked/billable hours, unbilled time grouped by client and project with value/rate/date range, and GST totals. ALWAYS call this before answering any question about the user's numbers, priorities, follow-ups, risk, or business health. Never invent figures.",
         parameters: { type: "object", properties: {}, required: [] },
       },
     },
@@ -131,6 +132,15 @@ function buildTools(input: IvoAgentInput): GroqToolDefinition[] {
           },
           required: ["entityType", "filter"],
         },
+      },
+    },
+    {
+      type: "function",
+      function: {
+        name: "assess_portal_candidates",
+        description:
+          "Compare every client with the user's existing client portals and current shared-work signals. Returns whether each client already has an active portal plus counts for active projects, open invoices, pending contracts/proposals, upcoming meetings, and welcome documents. ALWAYS use this for 'who needs a portal?', portal-gap reviews, or recommendations about which client should receive a portal next. Analyse the result and answer in text; do not render the generic client directory.",
+        parameters: { type: "object", properties: {}, required: [] },
       },
     },
     {
@@ -221,7 +231,7 @@ function buildTools(input: IvoAgentInput): GroqToolDefinition[] {
       function: {
         name: "start_task",
         description:
-          "Start (or continue) a guided creation task: draft an invoice, a proposal (task='proposal'), a contract/NDA/retainer (task='contract'), a welcome document, create a client, project, or time entry, or schedule a meeting/call (task='meeting'). Pass every detail the user already gave in `fields` so they are never asked twice. The UI then walks the user through anything missing with pickers. A proposal is its OWN task — use task='proposal', NOT task='contract'.",
+          "Start (or continue) a guided creation task: draft an invoice, a proposal (task='proposal'), a contract/NDA/retainer (task='contract'), a welcome document, create a client, project, client portal (task='portal'), or time entry, or schedule a meeting/call (task='meeting'). Pass every detail the user already gave in `fields` so they are never asked twice. The UI then walks the user through anything missing with pickers. A proposal is its OWN task — use task='proposal', NOT task='contract'. A portal is its OWN task — never create a project named Client Portal.",
         parameters: {
           type: "object",
           properties: {
@@ -289,7 +299,7 @@ function buildTools(input: IvoAgentInput): GroqToolDefinition[] {
       function: {
         name: "invoice_unbilled_time",
         description:
-          "Create a draft invoice from the user's unbilled tracked time. Only use when they explicitly ask to bill/invoice their unbilled time — for questions about unbilled time, use get_business_snapshot and answer in text.",
+          "Create a draft invoice from the user's unbilled tracked time. Use only for a direct creation command such as 'Create an invoice for my unbilled time' or 'Bill my unbilled time'. Never use for advisory questions such as 'What unbilled time should I invoice?' or 'Which hours are ready to bill?' — use get_business_snapshot and answer in text instead.",
         parameters: {
           type: "object",
           properties: {
@@ -320,7 +330,25 @@ function buildTools(input: IvoAgentInput): GroqToolDefinition[] {
     });
   }
 
-  return tools;
+  // A portal-gap review is analysis, not a request to browse the client
+  // directory. Withholding show_records here prevents the model from ending
+  // the turn with a generic list before it has read the portal evidence.
+  return tools.filter((tool) => {
+    if (isPortalPlanningRequest(input.message) && tool.function.name === "show_records") {
+      return false;
+    }
+    // Groq cannot accidentally turn a read-only review into a draft when the
+    // mutation tool is absent. The explicit Time-page billing button still
+    // uses wording that passes isUnbilledTimeInvoiceAction.
+    if (
+      /\bunbilled\b/i.test(input.message) &&
+      !isUnbilledTimeInvoiceAction(input.message) &&
+      tool.function.name === "invoice_unbilled_time"
+    ) {
+      return false;
+    }
+    return true;
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -456,6 +484,151 @@ async function execListRecords(
     status: row.status,
     sentAt: row.sent_at,
   })) };
+}
+
+function isPortalPlanningRequest(message: string): boolean {
+  const normalized = message.trim().toLowerCase();
+  return (
+    /\bportals?\b/.test(normalized) &&
+    /\b(who|which|needs?|should|recommend|next|gap|review|compare)\b/.test(normalized) &&
+    /\b(clients?|customers?)\b/.test(normalized)
+  );
+}
+
+async function execAssessPortalCandidates(userId: string): Promise<unknown> {
+  const supabase = await getServerSupabase();
+  const nowIso = new Date().toISOString();
+  const [clientsRes, portalsRes, projectsRes, invoicesRes, contractsRes, proposalsRes, meetingsRes, welcomeRes] =
+    await Promise.all([
+      supabase
+        .from("clients")
+        .select("id, full_name, business_name, email")
+        .eq("user_id", userId)
+        .order("updated_at", { ascending: false })
+        .limit(200),
+      supabase
+        .from("portals")
+        .select("id, name, client_id, status")
+        .eq("owner_user_id", userId)
+        .is("deleted_at", null)
+        .limit(200),
+      supabase
+        .from("projects")
+        .select("client_id, status")
+        .eq("user_id", userId)
+        .limit(500),
+      supabase
+        .from("invoices")
+        .select("client_id, status")
+        .eq("user_id", userId)
+        .limit(500),
+      supabase
+        .from("contracts")
+        .select("client_id, status")
+        .eq("user_id", userId)
+        .limit(500),
+      supabase
+        .from("proposals")
+        .select("client_id, status")
+        .eq("user_id", userId)
+        .limit(500),
+      supabase
+        .from("meetings")
+        .select("client_id, status, scheduled_at")
+        .eq("user_id", userId)
+        .limit(500),
+      supabase
+        .from("welcome_documents")
+        .select("client_id, status")
+        .eq("user_id", userId)
+        .is("deleted_at", null)
+        .limit(500),
+    ]);
+
+  const clients = (clientsRes.data as Array<Record<string, unknown>> | null) ?? [];
+  const portals = (portalsRes.data as Array<Record<string, unknown>> | null) ?? [];
+  const projects = (projectsRes.data as Array<Record<string, unknown>> | null) ?? [];
+  const invoices = (invoicesRes.data as Array<Record<string, unknown>> | null) ?? [];
+  const contracts = (contractsRes.data as Array<Record<string, unknown>> | null) ?? [];
+  const proposals = (proposalsRes.data as Array<Record<string, unknown>> | null) ?? [];
+  const meetings = (meetingsRes.data as Array<Record<string, unknown>> | null) ?? [];
+  const welcomeDocuments = (welcomeRes.data as Array<Record<string, unknown>> | null) ?? [];
+  const countFor = (
+    rows: Array<Record<string, unknown>>,
+    clientId: string,
+    matches: (row: Record<string, unknown>) => boolean,
+  ) => rows.filter((row) => row.client_id === clientId && matches(row)).length;
+
+  const candidates = clients.map((client) => {
+    const clientId = String(client.id);
+    const activePortal = portals.find(
+      (portal) => portal.client_id === clientId && portal.status === "active",
+    );
+    const signals = {
+      activeProjects: countFor(
+        projects,
+        clientId,
+        (row) => !["completed", "cancelled", "archived", "paid"].includes(String(row.status)),
+      ),
+      openInvoices: countFor(
+        invoices,
+        clientId,
+        (row) => ["sent", "viewed", "overdue", "partially_paid"].includes(String(row.status)),
+      ),
+      pendingContracts: countFor(
+        contracts,
+        clientId,
+        (row) => ["draft", "sent", "viewed"].includes(String(row.status)),
+      ),
+      pendingProposals: countFor(
+        proposals,
+        clientId,
+        (row) => ["draft", "sent", "viewed"].includes(String(row.status)),
+      ),
+      upcomingMeetings: countFor(
+        meetings,
+        clientId,
+        (row) => row.status === "proposed" ||
+          (row.status === "confirmed" && typeof row.scheduled_at === "string" && row.scheduled_at >= nowIso),
+      ),
+      welcomeDocuments: countFor(
+        welcomeDocuments,
+        clientId,
+        (row) => row.status !== "archived",
+      ),
+    };
+    const priorityScore =
+      signals.activeProjects * 4 +
+      signals.openInvoices * 3 +
+      signals.pendingContracts * 2 +
+      signals.pendingProposals * 2 +
+      signals.upcomingMeetings * 2 +
+      signals.welcomeDocuments;
+    return {
+      clientId,
+      client: String(client.business_name || client.full_name || "Client"),
+      hasEmail: Boolean(client.email),
+      hasActivePortal: Boolean(activePortal),
+      portalName: activePortal ? String(activePortal.name || "Client portal") : null,
+      priorityScore,
+      signals,
+    };
+  });
+
+  return {
+    summary: {
+      clients: clients.length,
+      portals: portals.length,
+      activePortals: portals.filter((portal) => portal.status === "active").length,
+      clientsWithoutActivePortal: candidates.filter((candidate) => !candidate.hasActivePortal).length,
+    },
+    candidates: candidates.sort((a, b) => {
+      if (a.hasActivePortal !== b.hasActivePortal) return a.hasActivePortal ? 1 : -1;
+      return b.priorityScore - a.priorityScore;
+    }),
+    rankingNote:
+      "Higher scores reflect more active shared work. Recommend only clients without an active portal, explain the strongest real signals, and say when there is not enough activity to justify one yet.",
+  };
 }
 
 async function withClientNames<T>(
@@ -916,8 +1089,10 @@ function buildSystemPrompt(input: IvoAgentInput, memories: string[]): string {
     "- `asOf` is when the data was read. If the user asks how current a number is, quote it.",
     "",
     "- Questions about the user's business (revenue, overdue, follow-ups, priorities, risk, unbilled time) → call get_business_snapshot (plus list_records/find_invoice/list_leads/list_meetings for specifics), then answer SPECIFICALLY for what was asked. Do not recite a generic plan.",
+    "- Treat 'What unbilled time should I invoice?', 'Which hours are ready to bill?', and similar wording as READ-ONLY analysis. Show the real total, break it down by client/project with hours, value, rate and date range when available, call out anything not ready, then offer a focused invoice-creation suggestion. Do not create a draft until the user separately gives a direct command such as 'Create an invoice for my unbilled time'.",
+    "- Portal-gap questions ('who needs a portal?', 'which client should get one next?') → call assess_portal_candidates, compare clients without an active portal, and recommend the strongest candidates using only the returned work signals. Mention clients that already have portals only to exclude them. Never answer these requests with show_records or a generic client list.",
     "- Anything about one specific client (briefing, history, 'has X paid?', drafting for them) → get_client_profile first.",
-    "- Creation requests (invoice / contract / proposal / NDA / retainer / welcome doc / client / project / time entry / meeting or call) → call start_task IMMEDIATELY, even if the user gave no details yet — pass whatever they DID provide in fields and leave the rest out. NEVER ask for the client, scope, amount, or any other detail in a plain-text reply: after start_task the UI shows a client picker dropdown and asks each remaining question one at a time with suggestions. Asking in text instead of calling start_task is a mistake. Example: 'help me generate a proposal' → start_task {task:'proposal', reply:'Starting your proposal.'}. A proposal is its OWN task (task='proposal') — never use task='contract' for a proposal.",
+    "- Creation requests (invoice / contract / proposal / NDA / retainer / welcome doc / client / project / client portal / time entry / meeting or call) → call start_task IMMEDIATELY, even if the user gave no details yet — pass whatever they DID provide in fields and leave the rest out. NEVER ask for the client, scope, amount, or any other detail in a plain-text reply: after start_task the UI shows a client picker dropdown and asks each remaining question one at a time with suggestions. Asking in text instead of calling start_task is a mistake. Example: 'help me generate a proposal' → start_task {task:'proposal', reply:'Starting your proposal.'}. A proposal is its OWN task (task='proposal') — never use task='contract' for a proposal. A client portal is task='portal' — never create a project as a substitute.",
     "- Drafting text (payment reminder, lead reply, follow-up email, client message) → look up the real record first (find_invoice / list_leads / list_records), then WRITE THE FULL DRAFT yourself in the chat for review: greeting, body, sign-off, ready to copy. Do not start a creation task for this, and never claim anything was sent.",
     "- Knowledge/how-to/checklist questions (e.g. 'what should a client portal include?') → just answer well in text. Do not start any task.",
     "- Only call ROUTE tools (start_task, show_records, propose_overdue_reminders, invoice_unbilled_time, refine_active_draft) when the user's message actually asks for that action.",
@@ -986,6 +1161,8 @@ function statusLabel(tool: string, args: Record<string, unknown>): string {
       const entity = String(args.entityType ?? "records").replace(/_/g, " ");
       return `Going through your ${entity}s…`;
     }
+    case "assess_portal_candidates":
+      return "Comparing clients with their portal activity…";
     case "find_invoice":
       return typeof args.query === "string" && args.query.trim()
         ? `Looking up ${args.query.trim()}…`
@@ -1034,6 +1211,8 @@ function retrievalScope(tool: string, args: Record<string, unknown>): string {
       return `client=${String(args.clientName ?? "").slice(0, 60)}`;
     case "get_business_snapshot":
       return "trailing 12 months plus current month";
+    case "assess_portal_candidates":
+      return "all owned clients, portals, and current shared-work signals";
     default:
       return "all";
   }
@@ -1121,6 +1300,8 @@ export async function runIvoAgent(input: IvoAgentInput): Promise<IvoAgentResult 
         try {
           if (call.function.name === "get_business_snapshot") {
             output = await getBusinessFacts();
+          } else if (call.function.name === "assess_portal_candidates") {
+            output = await execAssessPortalCandidates(input.userId);
           } else if (call.function.name === "list_records") {
             output = await execListRecords(
               input.userId,

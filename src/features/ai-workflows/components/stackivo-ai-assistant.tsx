@@ -133,6 +133,7 @@ import {
   createProposalDraftIvoToolAction,
   createInvoiceDraftIvoToolAction,
   createProjectIvoToolAction,
+  createPortalIvoToolAction,
   createTimeEntryIvoToolAction,
   createUnbilledTimeInvoiceIvoToolAction,
   createWelcomeDraftIvoToolAction,
@@ -193,6 +194,11 @@ function activityStatusLabel(item: IvoActivityItem): string {
 }
 
 type ProcessIvoResult = Awaited<ReturnType<typeof processIvoMessageAction>>;
+type PickerOptionsSnapshot = {
+  clients: AiEntityOption[];
+  projects: AiEntityOption[];
+  resources: AiResourceOption[];
+};
 
 /**
  * Send a message through the streaming endpoint, surfacing live progress
@@ -265,16 +271,17 @@ async function processIvoMessageStreaming(
 
 export function StackivoAiAssistant({ user }: StackivoAiAssistantProps) {
   // Picker options are fetched on first open rather than shipped with every
-  // dashboard page. Empty until then, which is safe: a picker can only be
-  // rendered in response to a message sent after the panel is open.
-  const [pickerOptions, setPickerOptions] = React.useState<{
-    clients: AiEntityOption[];
-    projects: AiEntityOption[];
-    resources: AiResourceOption[];
-  }>({ clients: [], projects: [], resources: [] });
-  const clients = pickerOptions.clients;
-  const projects = pickerOptions.projects;
+  // dashboard page. Entry-point prompts can start a workflow immediately, so
+  // picker rendering also awaits the same shared request instead of capturing
+  // this initially empty state.
+  const [pickerOptions, setPickerOptions] = React.useState<PickerOptionsSnapshot>({
+    clients: [],
+    projects: [],
+    resources: [],
+  });
   const pickerOptionsLoadedRef = React.useRef(false);
+  const pickerOptionsRef = React.useRef<PickerOptionsSnapshot>(pickerOptions);
+  const pickerOptionsPromiseRef = React.useRef<Promise<PickerOptionsSnapshot> | null>(null);
   const router = useRouter();
   const [mounted, setMounted] = React.useState(false);
   const [panelSlot, setPanelSlot] = React.useState<HTMLElement | null>(null);
@@ -545,27 +552,36 @@ export function StackivoAiAssistant({ user }: StackivoAiAssistantProps) {
 
   React.useEffect(() => { setMounted(true); }, []);
 
-  // Load picker options the first time the panel opens. Deliberately not
-  // awaited by anything: a picker cannot be rendered until the user has sent a
-  // message, so this always resolves well before the options are needed.
-  React.useEffect(() => {
-    if (!open || pickerOptionsLoadedRef.current) return;
-    pickerOptionsLoadedRef.current = true;
-    void listIvoPickerOptionsAction()
-      .then((options) => {
-        setPickerOptions({
-          clients: options.clients,
-          projects: options.projects,
-          resources: options.resources,
+  const ensurePickerOptions = React.useCallback(async (): Promise<PickerOptionsSnapshot> => {
+    if (pickerOptionsLoadedRef.current) return pickerOptionsRef.current;
+    if (!pickerOptionsPromiseRef.current) {
+      pickerOptionsPromiseRef.current = listIvoPickerOptionsAction()
+        .then((options) => {
+          const snapshot: PickerOptionsSnapshot = {
+            clients: options.clients,
+            projects: options.projects,
+            resources: options.resources,
+          };
+          pickerOptionsRef.current = snapshot;
+          pickerOptionsLoadedRef.current = true;
+          setPickerOptions(snapshot);
+          return snapshot;
+        })
+        .catch((error: unknown) => {
+          pickerOptionsLoadedRef.current = false;
+          pickerOptionsPromiseRef.current = null;
+          throw error;
         });
-      })
-      .catch(() => {
-        // Leave the lists empty and allow a retry on the next open. The picker
-        // renders its own empty state, and the tool that consumes the choice
-        // re-checks ownership regardless.
-        pickerOptionsLoadedRef.current = false;
-      });
-  }, [open]);
+    }
+    return pickerOptionsPromiseRef.current;
+  }, []);
+
+  // Warm the shared request when the panel opens. A workflow that arrives via
+  // an entry-point button awaits this same promise before rendering a picker.
+  React.useEffect(() => {
+    if (!open) return;
+    void ensurePickerOptions().catch(() => undefined);
+  }, [ensurePickerOptions, open]);
 
   const applyConversationSnapshot = React.useCallback((snapshot: IvoConversationSnapshot) => {
     const restored: Message[] = snapshot.messages.map((message) => ({
@@ -1607,6 +1623,8 @@ export function StackivoAiAssistant({ user }: StackivoAiAssistantProps) {
         <ClientListBlock
           rows={rows}
           onInvoice={(name) => submitRef.current?.(`Create an invoice for ${name}`)}
+          onContract={(name) => submitRef.current?.(`Create a contract for ${name}`)}
+          onMeeting={(name) => submitRef.current?.(`Schedule a meeting with ${name}`)}
         />
       ),
     });
@@ -1776,6 +1794,23 @@ export function StackivoAiAssistant({ user }: StackivoAiAssistantProps) {
     [push, router, tools],
   );
 
+  const handleRowSend = React.useCallback(
+    (id: string) => {
+      push({ role: "user", content: "Email invoice to client" });
+      startTransition(async () => {
+        const res = await tools.emailInvoice(id);
+        push({
+          role: "assistant",
+          content: res.ok
+            ? res.response?.content ?? "Invoice sent."
+            : res.error || "Couldn't send that invoice.",
+        });
+        router.refresh();
+      });
+    },
+    [push, router, tools],
+  );
+
   const handleRowRemind = React.useCallback(
     (id: string) => {
       push({ role: "user", content: "Email invoice reminder" });
@@ -1829,13 +1864,14 @@ export function StackivoAiAssistant({ user }: StackivoAiAssistantProps) {
         content: (
           <InvoiceListBlock
             rows={rows}
+            onSend={handleRowSend}
             onMarkPaid={handleRowMarkPaid}
             onRemind={handleRowRemind}
           />
         ),
       });
     },
-    [push, handleRowMarkPaid, handleRowRemind],
+    [push, handleRowSend, handleRowMarkPaid, handleRowRemind],
   );
 
   // ----- Core workflow executor (structured fields → action → preview) -----
@@ -1864,6 +1900,7 @@ export function StackivoAiAssistant({ user }: StackivoAiAssistantProps) {
       if (
         (workflow === "client" ||
           workflow === "project" ||
+          workflow === "portal" ||
           workflow === "time_entry" ||
           workflow === "meeting" ||
           workflow === "proposal" ||
@@ -1884,6 +1921,8 @@ export function StackivoAiAssistant({ user }: StackivoAiAssistantProps) {
             ? { workflow: "client" as const, tool: "client.create" as const }
             : workflow === "project" && sequencedTool === "project.create"
               ? { workflow: "project" as const, tool: "project.create" as const }
+              : workflow === "portal" && sequencedTool === "portal.create_invite"
+                ? { workflow: "portal" as const, tool: "portal.create_invite" as const }
               : workflow === "time_entry" && sequencedTool === "time_entry.create"
                 ? { workflow: "time_entry" as const, tool: "time_entry.create" as const }
                 : workflow === "meeting" && sequencedTool === "meeting.create"
@@ -1951,10 +1990,15 @@ export function StackivoAiAssistant({ user }: StackivoAiAssistantProps) {
         });
       };
 
-      const askMissing = (missing: AiMissingField, prompt: IvoRuntimePromptBlock) => {
+      const askMissing = (
+        missing: AiMissingField,
+        prompt: IvoRuntimePromptBlock,
+        options: PickerOptionsSnapshot,
+      ) => {
         setPendingField(missing);
         if (prompt.type === "picker" && prompt.pickerType === "client") {
           const { label, allowSkip } = prompt;
+          const availableClients = options.clients;
           const proceed = (id: string, display: string) => {
             // Persist the choice — including the "no client" sentinel — so the
             // next message keeps it and the workflow doesn't re-ask.
@@ -1974,11 +2018,11 @@ export function StackivoAiAssistant({ user }: StackivoAiAssistantProps) {
             },
             content: (
               <ClientPicker
-                clients={clients}
+                clients={availableClients}
                 label={label}
                 allowSkip={allowSkip}
                 onSelect={(id) =>
-                  proceed(id, clients.find((c) => c.id === id)?.name ?? "Selected client")
+                  proceed(id, availableClients.find((c) => c.id === id)?.name ?? "Selected client")
                 }
                 onSkip={() => proceed(NO_CLIENT_SENTINEL, "No client (internal)")}
               />
@@ -1987,7 +2031,9 @@ export function StackivoAiAssistant({ user }: StackivoAiAssistantProps) {
         } else if (prompt.type === "picker" && prompt.pickerType === "project") {
           const { label, allowSkip } = prompt;
           // Show projects for the chosen client when one is set, else all.
-          const options = cId ? projects.filter((p) => p.clientId === cId) : projects;
+          const availableProjects = cId
+            ? options.projects.filter((p) => p.clientId === cId)
+            : options.projects;
           const proceed = (id: string, display: string) => {
             // Persist the choice — including the "no project" sentinel — so the
             // next message keeps it and the workflow doesn't re-ask.
@@ -2007,11 +2053,11 @@ export function StackivoAiAssistant({ user }: StackivoAiAssistantProps) {
             },
             content: (
               <ProjectPicker
-                projects={options}
+                projects={availableProjects}
                 label={label}
                 allowSkip={allowSkip}
                 onSelect={(id) =>
-                  proceed(id, projects.find((p) => p.id === id)?.name ?? "Selected project")
+                  proceed(id, availableProjects.find((p) => p.id === id)?.name ?? "Selected project")
                 }
                 onSkip={() => proceed(NO_PROJECT_SENTINEL, "No project (internal)")}
               />
@@ -2130,7 +2176,19 @@ export function StackivoAiAssistant({ user }: StackivoAiAssistantProps) {
           nextAction = { kind: "answer_support" };
         }
         if (nextAction?.kind === "ask_field") {
-          askMissing(nextAction.field, nextAction.prompt);
+          let options = pickerOptionsRef.current;
+          if (nextAction.prompt.type === "picker") {
+            try {
+              options = await ensurePickerOptions();
+            } catch {
+              push({
+                role: "assistant",
+                content: "I couldn't load your workspace options just now. Please try again.",
+              });
+              return;
+            }
+          }
+          askMissing(nextAction.field, nextAction.prompt, options);
           return;
         }
       }
@@ -2236,6 +2294,34 @@ export function StackivoAiAssistant({ user }: StackivoAiAssistantProps) {
                 description={`${res.data.name} is ready.`}
                 actionLabel="Open projects"
                 onAction={() => router.push("/dashboard/projects")}
+              />
+            ),
+          });
+          router.refresh();
+          return;
+        }
+
+        case "portal.create_invite": {
+          if (!toolActionInput) {
+            push({ role: "assistant", content: "I couldn't start this portal. Please try again." });
+            return;
+          }
+          const res = await createPortalIvoToolAction(toolActionInput);
+          if (!res.ok) {
+            if ("needsConfirm" in res && res.needsConfirm) showConfirm(res.summary, res.response);
+            else push({ role: "assistant", content: res.error });
+            return;
+          }
+          finish();
+          push({
+            role: "assistant",
+            persistence: res.response,
+            content: (
+              <ResultBlock
+                title="Client portal ready"
+                description={res.message ?? `${res.data.name} was created for ${res.data.clientName}.`}
+                actionLabel="Open portal"
+                onAction={() => router.push(`/dashboard/portal/${res.data.id}`)}
               />
             ),
           });
@@ -2507,7 +2593,6 @@ export function StackivoAiAssistant({ user }: StackivoAiAssistantProps) {
       }
     },
     [
-      clients,
       push,
       router,
       runSupport,
@@ -2516,8 +2601,8 @@ export function StackivoAiAssistant({ user }: StackivoAiAssistantProps) {
       handleContractWhatsApp,
       handleWelcomeDocApprove,
       handleSaveWelcomeTemplate,
-      projects,
       ensureConversation,
+      ensurePickerOptions,
     ],
   );
 
@@ -3376,7 +3461,7 @@ export function StackivoAiAssistant({ user }: StackivoAiAssistantProps) {
     if (block.type === "entity_list") {
       const rows = (block.data as { rows?: unknown[] }).rows ?? [];
       if (block.entityType === "invoice") {
-        return <InvoiceListBlock rows={rows as AiInvoiceListRow[]} onMarkPaid={handleRowMarkPaid} onRemind={handleRowRemind} />;
+        return <InvoiceListBlock rows={rows as AiInvoiceListRow[]} onSend={handleRowSend} onMarkPaid={handleRowMarkPaid} onRemind={handleRowRemind} />;
       }
       if (block.entityType === "contract") {
         return <ContractListBlock rows={rows as AiContractListRow[]} onSend={handleContractRowSend} />;
@@ -3396,6 +3481,8 @@ export function StackivoAiAssistant({ user }: StackivoAiAssistantProps) {
           <ClientListBlock
             rows={rows as AiClientListRow[]}
             onInvoice={(name) => submitRef.current?.(`Create an invoice for ${name}`)}
+            onContract={(name) => submitRef.current?.(`Create a contract for ${name}`)}
+            onMeeting={(name) => submitRef.current?.(`Schedule a meeting with ${name}`)}
           />
         );
       }

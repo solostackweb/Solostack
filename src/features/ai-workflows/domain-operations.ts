@@ -115,7 +115,7 @@ import {
 /** A field/value row shown in a pre-create confirmation summary. */
 type AiConfirmLine = [label: string, value: string];
 interface AiConfirmSummary {
-  kind: "client" | "project" | "time_entry" | "meeting";
+  kind: "client" | "project" | "portal" | "time_entry" | "meeting";
   title: string;
   lines: AiConfirmLine[];
 }
@@ -791,6 +791,115 @@ export async function createProjectFromAiAction(input: AiCreateInput) {
     ok: true as const,
     data: { id: res.data?.id ?? "", name, description: scope },
     message: res.message,
+  };
+}
+
+export async function createPortalFromAiAction(input: AiCreateInput) {
+  const parsed = aiCreateSchema.safeParse(input);
+  if (!parsed.success) return { ok: false as const, error: "Choose a client for this portal." };
+  const clientId = parsed.data.clientId || "";
+  if (!clientId) {
+    return {
+      ok: false as const,
+      error: "Which client is this portal for?",
+      missing: MISSING_FIELD_QUESTIONS.clientId,
+    };
+  }
+
+  const userId = await requireUserId();
+  const supabase = await getServerSupabase();
+  const { data: clientRaw } = await supabase
+    .from("clients")
+    .select("id, full_name, business_name, email")
+    .eq("id", clientId)
+    .eq("user_id", userId)
+    .maybeSingle();
+  const client = clientRaw as {
+    id: string;
+    full_name: string | null;
+    business_name: string | null;
+    email: string | null;
+  } | null;
+  if (!client) return { ok: false as const, error: "That client is no longer available." };
+  if (!client.email) {
+    return { ok: false as const, error: "Add an email to this client before creating their portal." };
+  }
+
+  const { data: existing } = await supabase
+    .from("portals")
+    .select("id")
+    .eq("owner_user_id", userId)
+    .eq("client_id", clientId)
+    .eq("status", "active")
+    .is("deleted_at", null)
+    .limit(1);
+  if (existing?.length) {
+    return { ok: false as const, error: "This client already has an active portal." };
+  }
+
+  const clientName = client.business_name || client.full_name || "Client";
+  const portalName = (field(parsed.data.fields, "name") || `${clientName} Portal`).slice(0, 120);
+  const [contractsRes, invoicesRes, welcomeRes] = await Promise.all([
+    supabase
+      .from("contracts")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", userId)
+      .eq("client_id", clientId)
+      .neq("status", "draft"),
+    supabase
+      .from("invoices")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", userId)
+      .eq("client_id", clientId)
+      .neq("status", "draft"),
+    supabase
+      .from("welcome_documents")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", userId)
+      .eq("client_id", clientId)
+      .neq("status", "draft")
+      .is("deleted_at", null),
+  ]);
+  const shareSummary = [
+    `${contractsRes.count ?? 0} live contract${contractsRes.count === 1 ? "" : "s"}`,
+    `${invoicesRes.count ?? 0} issued invoice${invoicesRes.count === 1 ? "" : "s"}`,
+    `${welcomeRes.count ?? 0} published welcome document${welcomeRes.count === 1 ? "" : "s"}`,
+  ].join(", ");
+
+  if (!parsed.data.confirm) {
+    return {
+      ok: false as const,
+      needsConfirm: true as const,
+      error: "Review the portal and invitation before creating it.",
+      summary: {
+        kind: "portal" as const,
+        title: "Create this portal and email the invitation?",
+        lines: [
+          ["Portal", portalName],
+          ["Client", clientName],
+          ["Invitation", `Email ${client.email}`],
+          ["Share now", shareSummary],
+          ["Add later", "Files, proposals, meetings, and project updates"],
+        ],
+      } satisfies AiConfirmSummary,
+    };
+  }
+
+  const result = await createPortalAction({
+    name: portalName,
+    clientId,
+    brandColor: "#2563EB",
+  });
+  if (!result.ok) return { ok: false as const, error: result.error };
+  return {
+    ok: true as const,
+    data: {
+      id: result.data?.portalId ?? "",
+      name: portalName,
+      clientName,
+      clientEmail: client.email,
+    },
+    message: result.message,
   };
 }
 

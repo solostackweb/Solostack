@@ -174,7 +174,7 @@ export function TimeDashboardView({
         actions={
           <div className="flex items-center gap-2">
             <IvoEntryPoint
-              prompt="What unbilled time should I invoice?"
+              prompt="Review my unbilled time by client and project. Tell me what is ready to invoice and why; don't create an invoice yet."
               label="Ask Ivo"
               variant="outline"
             />
