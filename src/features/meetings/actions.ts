@@ -21,6 +21,8 @@ import {
 import { createCalendarEvent } from "@/features/scheduling/google";
 import { buildMeetingIcs } from "./calendar";
 import { createDailyRoom, isDailyConfigured } from "./video";
+import { createZoomMeeting, isZoomConfigured } from "./zoom";
+import { effectiveVideoProvider, VIDEO_PROVIDERS } from "./types";
 
 export type MeetingActionResult<T = undefined> =
   | { ok: true; data?: T; message?: string }
@@ -65,6 +67,10 @@ const createSchema = z.object({
   timezone: z.string().trim().max(80).optional(),
   slots: z.array(z.string().trim().min(1)).max(5).optional(),
   mode: z.enum(["slots", "availability"]).optional(),
+  videoProvider: z
+    .enum(VIDEO_PROVIDERS as [string, ...string[]])
+    .optional()
+    .nullable(),
   clientId: z.string().uuid().optional().nullable(),
   projectId: z.string().uuid().optional().nullable(),
   proposalId: z.string().uuid().optional().nullable(),
@@ -114,6 +120,7 @@ export async function createMeetingAction(
       timezone: d.timezone ?? "Asia/Kolkata",
       proposed_slots: slots,
       mode,
+      video_provider: d.videoProvider ?? null,
       client_id: d.clientId ?? null,
       project_id: d.projectId ?? null,
       proposal_id: d.proposalId ?? null,
@@ -168,7 +175,7 @@ export async function confirmMeetingSlotAction(
   const { data: found } = await admin
     .from("meetings")
     .select(
-      "id, proposed_slots, status, user_id, topic, timezone, duration_minutes, client_id, meet_link, mode",
+      "id, proposed_slots, status, user_id, topic, timezone, duration_minutes, client_id, meet_link, mode, video_provider",
     )
     .eq("public_token", parsed.data.token)
     .maybeSingle();
@@ -185,6 +192,7 @@ export async function confirmMeetingSlotAction(
         client_id: string | null;
         meet_link: string | null;
         mode: string;
+        video_provider: string | null;
       }
     | null;
   if (!meeting) {
@@ -217,32 +225,59 @@ export async function confirmMeetingSlotAction(
     }
   }
 
-  // Availability bookings create the event on the freelancer's Google Calendar
-  // and use the generated Meet link.
+  // Resolve the video link for whichever provider the freelancer picked at
+  // creation time. Every branch is best-effort: a provider that fails leaves
+  // meetLink null and the booking still succeeds, exactly as before.
+  const provider = effectiveVideoProvider(meeting.video_provider, meeting.mode);
+  const endIso = new Date(
+    new Date(slot).getTime() + meeting.duration_minutes * 60_000,
+  ).toISOString();
+
   let meetLink = meeting.meet_link;
-  if (meeting.mode === "availability") {
-    // Availability bookings create a real Google Calendar event + Meet link.
+
+  if (!meetLink && provider === "zoom" && isZoomConfigured()) {
+    const zoom = await createZoomMeeting({
+      topic: meeting.topic,
+      startIso: slot,
+      durationMinutes: meeting.duration_minutes,
+      timezone: meeting.timezone || "Asia/Kolkata",
+    });
+    if (zoom) meetLink = zoom.joinUrl;
+  } else if (!meetLink && provider === "daily" && isDailyConfigured()) {
+    // Auto-create an in-app Daily room on confirm — no manual "turn on
+    // video" step. Falls through to a pasted link if this fails.
+    const room = await createDailyRoom({ expiresAt: slot });
+    if (room) meetLink = room.url;
+  }
+  // provider === "manual_link" deliberately does nothing: the freelancer
+  // supplies the link themselves from the meeting detail page.
+
+  // A calendar event is still created for every availability booking — that's
+  // the point of connecting a calendar — and additionally whenever the
+  // freelancer asked for a Meet link, which is what makes Meet usable outside
+  // the availability flow.
+  const wantsCalendarEvent =
+    meeting.mode === "availability" || provider === "google_meet";
+
+  if (wantsCalendarEvent) {
     const token = await accessTokenForBooking(meeting.user_id);
     if (token) {
       const clientEmail = await lookupClientEmail(meeting.client_id);
-      const endIso = new Date(
-        new Date(slot).getTime() + meeting.duration_minutes * 60_000,
-      ).toISOString();
       const event = await createCalendarEvent(token, {
         summary: meeting.topic,
+        // Carry a Zoom/Daily link onto the calendar entry so the event isn't
+        // the one place the join URL is missing.
+        description: meetLink ? `Join: ${meetLink}` : undefined,
         startIso: slot,
         endIso,
         attendeeEmail: clientEmail,
         timezone: meeting.timezone,
-        withMeet: true,
+        withMeet: provider === "google_meet",
       });
-      if (event?.meetLink) meetLink = event.meetLink;
+      if (provider === "google_meet" && event?.meetLink) {
+        meetLink = event.meetLink;
+      }
     }
-  } else if (!meetLink && isDailyConfigured()) {
-    // Slot bookings auto-create an in-app Daily room on confirm — no manual
-    // "turn on video" step. Falls through to a pasted link if this fails.
-    const room = await createDailyRoom({ expiresAt: slot });
-    if (room) meetLink = room.url;
   }
 
   const { error } = await admin

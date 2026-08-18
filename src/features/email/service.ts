@@ -18,6 +18,8 @@ import {
   type BrevoSendInput,
 } from "./client";
 import { getEmailSender, type EmailSenderType } from "./senders";
+import { getGmailSenderIdentity } from "./gmail-sender";
+import { sendGmailMessage } from "./gmail";
 
 export interface EmailRecipient {
   email: string;
@@ -36,11 +38,17 @@ export interface SendEmailInput {
   metadata?: Record<string, unknown>;
   tags?: string[];
   headers?: Record<string, string>;
+  /**
+   * Route through this user's own Gmail when they've connected Google and
+   * opted into send-as. Anything else — or any failure on that path — falls
+   * through to Brevo, which stays the default and the guarantee.
+   */
+  asUserId?: string | null;
 }
 
 export interface SendEmailResult {
   messageId: string;
-  provider: "brevo-api" | "brevo-smtp";
+  provider: "brevo-api" | "brevo-smtp" | "gmail";
   sender: ReturnType<typeof getEmailSender>;
 }
 
@@ -48,6 +56,32 @@ export async function sendEmail(
   input: SendEmailInput,
 ): Promise<SendEmailResult> {
   const sender = getEmailSender(input.type);
+
+  // Opt-in Gmail send-as. Deliberately best-effort: if the user's token has
+  // expired or Gmail rejects the message we still deliver via Brevo rather
+  // than dropping a client's invoice on the floor.
+  if (input.asUserId) {
+    const gmail = await getGmailSenderIdentity(input.asUserId);
+    if (gmail) {
+      try {
+        const result = await sendGmailMessage({
+          accessToken: gmail.accessToken,
+          to: input.to,
+          cc: input.cc,
+          replyTo: input.replyTo,
+          subject: input.subject,
+          html: input.html,
+          text: input.text,
+          attachments: input.attachments,
+          headers: input.headers,
+        });
+        return { messageId: result.messageId, provider: "gmail", sender };
+      } catch {
+        // Fall through to Brevo below.
+      }
+    }
+  }
+
   const config = getBrevoConfig();
   const transportOrder = resolveTransportOrder(config.transport, config);
 

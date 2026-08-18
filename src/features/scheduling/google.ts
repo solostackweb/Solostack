@@ -15,12 +15,29 @@ const GOOGLE_FREEBUSY = "https://www.googleapis.com/calendar/v3/freeBusy";
 const GOOGLE_EVENTS =
   "https://www.googleapis.com/calendar/v3/calendars/primary/events";
 
+/**
+ * Sending mail on the user's behalf. Requested up front with the calendar
+ * scopes so one consent screen unlocks everything, but nothing sends through
+ * Gmail until the user explicitly opts in — see `send_as_gmail`.
+ */
+export const GMAIL_SEND_SCOPE = "https://www.googleapis.com/auth/gmail.send";
+
 const SCOPES = [
   "https://www.googleapis.com/auth/calendar.events",
   "https://www.googleapis.com/auth/calendar.freebusy",
+  GMAIL_SEND_SCOPE,
   "openid",
   "email",
 ];
+
+/**
+ * True when a stored grant actually carries the Gmail send scope. Connections
+ * made before that scope was requested won't have it, so this is what tells
+ * the UI to ask for a reconnect instead of silently doing nothing.
+ */
+export function grantIncludesGmailSend(scope: string | null | undefined): boolean {
+  return Boolean(scope && scope.split(/\s+/).includes(GMAIL_SEND_SCOPE));
+}
 
 export function isGoogleConfigured(): boolean {
   return Boolean(

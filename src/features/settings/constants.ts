@@ -90,7 +90,7 @@ export const SETTINGS_NAV_GROUPS: SettingsNavGroup[] = [
       {
         href: "/dashboard/settings/integrations",
         label: "Integrations",
-        description: "Calendar, email, drive, payments",
+        description: "Calendar, video, email, payments",
         icon: Plug,
       },
       {

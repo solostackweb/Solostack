@@ -50,6 +50,17 @@ export interface DeliveryDispatchInput {
   idempotencyKey?: string | null;
 }
 
+/**
+ * Which deliveries may leave from a freelancer's own Gmail address.
+ *
+ * Restricted on purpose to the documents a client expects *from them*.
+ * Account, auth, and system mail must keep coming from Stackivo's domain —
+ * a password reset arriving from the user's own inbox would be both
+ * confusing and a phishing-shaped signal.
+ */
+const GMAIL_SEND_AS_ENTITIES: ReadonlySet<DeliveryDispatchInput["entityType"]> =
+  new Set(["invoice", "contract", "welcome_document"]);
+
 export type DeliveryDispatchResult =
   | {
       ok: true;
@@ -137,6 +148,9 @@ export async function dispatchDelivery(
   try {
     const result = await sendEmail({
       type: input.senderType,
+      asUserId: GMAIL_SEND_AS_ENTITIES.has(input.entityType)
+        ? input.userId
+        : null,
       to: input.to,
       cc: input.cc,
       replyTo: input.replyTo,
@@ -154,6 +168,9 @@ export async function dispatchDelivery(
     await markDeliveryStatus(logId, {
       status: "sent",
       sent_at: new Date().toISOString(),
+      // Record the transport that actually carried the message, so the
+      // ledger doesn't claim Brevo for a mail that went out via Gmail.
+      provider: result.provider,
       provider_message_id: result.messageId || null,
     });
     return { ok: true, logId: logId ?? "", providerMessageId: result.messageId };
@@ -247,6 +264,7 @@ async function markDeliveryStatus(
       | "delivered_at"
       | "opened_at"
       | "bounced_at"
+      | "provider"
       | "provider_message_id"
     >
   >,

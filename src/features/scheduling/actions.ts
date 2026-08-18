@@ -75,5 +75,7 @@ export async function disconnectCalendarAction(): Promise<SchedulingActionResult
 
   if (error) return { ok: false, error: error.message };
   revalidatePath("/dashboard/meetings/availability");
+  revalidatePath("/dashboard/meetings");
+  revalidatePath("/dashboard/settings/integrations");
   return { ok: true, message: "Calendar disconnected." };
 }

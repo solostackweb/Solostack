@@ -77,6 +77,10 @@ export function SchedulingSettingsView({
     const error = params.get("error");
     if (error === "not_configured")
       toast.error("Google isn't configured on this deployment yet.");
+    else if (error === "storage")
+      toast.error(
+        "Can't store the connection securely — TOKEN_ENCRYPTION_KEY is missing.",
+      );
     else if (error) toast.error("Couldn't connect your calendar. Try again.");
   }, []);
 
@@ -119,7 +123,7 @@ export function SchedulingSettingsView({
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Availability"
+        title="Calendar & availability"
         description="Connect your calendar so clients can book against your real open times, and set your working hours."
         actions={
           <Button asChild variant="outline" size="sm">
@@ -164,7 +168,7 @@ export function SchedulingSettingsView({
                 availability, with events created automatically.
               </p>
               <Button asChild>
-                <a href="/api/google/connect">
+                <a href="/api/google/connect?next=/dashboard/meetings/availability">
                   <Link2 className="h-4 w-4" /> Connect Google Calendar
                 </a>
               </Button>

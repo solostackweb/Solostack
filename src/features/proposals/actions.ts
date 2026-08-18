@@ -573,6 +573,9 @@ export async function sendProposalEmailAction(input: {
   try {
     await sendEmail({
       type: "share",
+      // Client-facing document: honour Gmail send-as when the freelancer
+      // opted in. Falls back to Brevo on its own.
+      asUserId: userId,
       to: { email: client.email, name: clientName },
       replyTo: senderEmail ? { email: senderEmail, name: senderName } : undefined,
       subject: rendered.subject,

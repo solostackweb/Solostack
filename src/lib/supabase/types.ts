@@ -804,6 +804,8 @@ export interface CalendarConnectionRow {
   refresh_token: string | null;
   token_expiry: string | null;
   scope: string | null;
+  /** Opt-in: route client-facing document email through this Gmail account. */
+  send_as_gmail: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -839,6 +841,8 @@ export interface MeetingRow {
   proposed_slots: Json;
   scheduled_at: string | null;
   meet_link: string | null;
+  /** daily | google_meet | zoom | manual_link. Null on pre-picker rows. */
+  video_provider: string | null;
   location: string | null;
   status: MeetingStatus;
   mode: string;

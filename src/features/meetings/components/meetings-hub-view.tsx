@@ -4,9 +4,11 @@ import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
+  CalendarCheck,
   CalendarClock,
   Check,
   Copy,
+  Link2,
   Plus,
   Settings2,
   Video,
@@ -78,7 +80,79 @@ function columnForStatus(status: MeetingStatus): ColumnKey {
   return "wrapped"; // completed | cancelled
 }
 
-export function MeetingsHubView({ meetings }: { meetings: Meeting[] }) {
+/**
+ * Google connection state, passed down from the server page. The Meetings hub
+ * is where a freelancer actually thinks about calendars, so the connection is
+ * surfaced here rather than only inside Settings.
+ */
+export interface MeetingsCalendarState {
+  configured: boolean;
+  tokenStorageReady: boolean;
+  connected: boolean;
+  email: string | null;
+}
+
+const BADGE_BASE =
+  "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold transition-colors";
+
+function CalendarBadge({ calendar }: { calendar: MeetingsCalendarState }) {
+  // Deployment can't do OAuth at all — say so plainly instead of offering a
+  // connect button that would bounce straight back with an error.
+  if (!calendar.configured || !calendar.tokenStorageReady) {
+    return (
+      <Link
+        href="/dashboard/settings/integrations"
+        className={cn(BADGE_BASE, "bg-muted text-muted-foreground hover:bg-muted/70")}
+        title="Google Calendar isn't set up on this deployment. Meetings use manual time slots."
+      >
+        <CalendarClock className="h-3.5 w-3.5" />
+        Calendar not set up
+      </Link>
+    );
+  }
+
+  if (calendar.connected) {
+    return (
+      <Link
+        href="/dashboard/settings/integrations"
+        className={cn(
+          BADGE_BASE,
+          "bg-emerald-500/10 text-emerald-700 hover:bg-emerald-500/15 dark:text-emerald-300",
+        )}
+        title={
+          calendar.email
+            ? `Google Calendar connected as ${calendar.email}`
+            : "Google Calendar connected"
+        }
+      >
+        <CalendarCheck className="h-3.5 w-3.5" />
+        Calendar connected
+      </Link>
+    );
+  }
+
+  return (
+    <a
+      href="/api/google/connect?next=/dashboard/meetings"
+      className={cn(
+        BADGE_BASE,
+        "bg-amber-500/10 text-amber-700 hover:bg-amber-500/15 dark:text-amber-300",
+      )}
+      title="Connect Google Calendar so clients book against your real free time"
+    >
+      <Link2 className="h-3.5 w-3.5" />
+      Connect calendar
+    </a>
+  );
+}
+
+export function MeetingsHubView({
+  meetings,
+  calendar,
+}: {
+  meetings: Meeting[];
+  calendar: MeetingsCalendarState;
+}) {
   const router = useRouter();
   // Optimistic status overrides so a completed card jumps columns instantly.
   const [override, setOverride] = React.useState<Record<string, MeetingStatus>>(
@@ -86,6 +160,20 @@ export function MeetingsHubView({ meetings }: { meetings: Meeting[] }) {
   );
   const draggingId = React.useRef<string | null>(null);
   const [overCol, setOverCol] = React.useState<ColumnKey | null>(null);
+
+  // The OAuth flow can now return here, so report its outcome here too.
+  React.useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (!params.has("connected") && !params.has("error")) return;
+    if (params.get("connected")) {
+      toast.success("Google Calendar connected.");
+    } else if (params.get("error") === "not_configured") {
+      toast.error("Google isn't set up on this deployment yet.");
+    } else {
+      toast.error("Couldn't connect your calendar. Try again.");
+    }
+    window.history.replaceState({}, "", "/dashboard/meetings");
+  }, []);
 
   const statusOf = React.useCallback(
     (m: Meeting): MeetingStatus => override[m.id] ?? m.status,
@@ -149,7 +237,7 @@ export function MeetingsHubView({ meetings }: { meetings: Meeting[] }) {
   if (meetings.length === 0) {
     return (
       <div className="space-y-6">
-        <Header />
+        <Header calendar={calendar} />
         <Card>
           <CardContent className="flex flex-col items-center gap-3 p-10 text-center">
             <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted text-muted-foreground">
@@ -171,7 +259,7 @@ export function MeetingsHubView({ meetings }: { meetings: Meeting[] }) {
 
   return (
     <div className="space-y-5">
-      <Header />
+      <Header calendar={calendar} />
 
       <div className="grid gap-4 md:grid-cols-3">
         {COLUMNS.map((col) => {
@@ -239,17 +327,18 @@ export function MeetingsHubView({ meetings }: { meetings: Meeting[] }) {
   );
 }
 
-function Header() {
+function Header({ calendar }: { calendar: MeetingsCalendarState }) {
   return (
     <PageHeader
       title="Meetings"
       description="Track every client call from request to wrap-up in one board."
       actions={
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <CalendarBadge calendar={calendar} />
           <IvoEntryPoint prompt="What meetings do I have coming up, and who still needs to pick a time?" />
           <Button asChild size="sm" variant="outline">
             <Link href="/dashboard/meetings/availability">
-              <Settings2 className="h-4 w-4" /> Availability
+              <Settings2 className="h-4 w-4" /> Calendar &amp; availability
             </Link>
           </Button>
           <Button asChild size="sm">
