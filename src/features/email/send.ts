@@ -14,6 +14,7 @@ import "server-only";
 import { Buffer } from "node:buffer";
 import { requireServerEnv } from "@/config/env";
 import { getAdminSupabase } from "@/lib/supabase/admin";
+import { log } from "@/lib/logger";
 import { emailSendLimit } from "@/lib/rate-limit";
 import type {
   DeliveryKind,
@@ -28,7 +29,15 @@ import { getSuppression } from "./suppressions";
 export interface DeliveryDispatchInput {
   userId: string;
   kind: DeliveryKind;
-  entityType: "invoice" | "contract" | "welcome_document" | "client" | "portal" | "questionnaire" | "system";
+  entityType:
+    | "invoice"
+    | "contract"
+    | "welcome_document"
+    | "client"
+    | "portal"
+    | "questionnaire"
+    | "meeting"
+    | "system";
   senderType: EmailSenderType;
   entityId?: string | null;
   to: { email: string; name?: string };
@@ -145,6 +154,20 @@ export async function dispatchDelivery(
   // Create the queued row now that every pre-flight gate has passed.
   const logId = await insertDeliveryLog(input, "queued");
 
+  // The idempotency guard *is* the log row: findLogByIdempotencyKey() reads it
+  // back on the next attempt. If the row didn't persist, a retry or the next
+  // cron tick has nothing to find and will send again — so a caller that asked
+  // for idempotency gets an error rather than a silent duplicate. Callers that
+  // didn't ask for it still send; the failure is already logged.
+  if (input.idempotencyKey && !logId) {
+    return {
+      ok: false,
+      logId: null,
+      error:
+        "Could not record this delivery, so sending was stopped to avoid a duplicate. Try again shortly.",
+    };
+  }
+
   try {
     const result = await sendEmail({
       type: input.senderType,
@@ -223,7 +246,23 @@ async function insertDeliveryLog(
     } as never)
     .select("id")
     .single();
-  if (dbError || !data) return null;
+  if (dbError || !data) {
+    // This used to return null silently, which is how a too-narrow CHECK
+    // constraint on `kind` cost us every welcome-document, portal, and
+    // questionnaire log row while the emails kept sending. A lost row is
+    // never routine: it takes the audit trail, the Brevo webhook's join
+    // target (delivered / opened / bounced), and the idempotency guard with
+    // it. Make it loud.
+    log.error("email.delivery_log.insert_failed", {
+      userId: input.userId,
+      kind: input.kind,
+      entityType: input.entityType,
+      entityId: input.entityId ?? null,
+      hasIdempotencyKey: Boolean(input.idempotencyKey),
+      error: dbError?.message ?? "no row returned",
+    });
+    return null;
+  }
   return (data as { id: string }).id;
 }
 

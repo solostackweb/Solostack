@@ -20,7 +20,7 @@ on:
     - cron: "30 3 * * *"
     # Subscription renewal reminders: 3:15 UTC = 8:45 AM IST
     - cron: "15 3 * * *"
-    # ── Admin export (hourly) ───────────────────────────────────────────
+    # ── Hourly tick: admin export + meeting reminders ───────────────────
     - cron: "0 * * * *"
     # ── Operational monitor (every 15 min) ──────────────────────────────
     - cron: "*/15 * * * *"
@@ -43,6 +43,7 @@ on:
           - invoices-due-soon
           - subscription-renewals
           - admin-export
+          - meeting-reminders
           - monitor
           - portal-digest
           - retention
@@ -117,6 +118,31 @@ jobs:
           HTTP_CODE=$(curl -s -L --location-trusted -o /tmp/body.txt -w "%{http_code}" \
             -H "Authorization: Bearer $SECRET" \
             "$BASE_URL/api/cron/invoices-overdue")
+          BODY=$(cat /tmp/body.txt)
+          echo "HTTP status : $HTTP_CODE"
+          echo "Response    : $BODY"
+          if [ "$HTTP_CODE" -lt 200 ] || [ "$HTTP_CODE" -ge 300 ]; then
+            echo "::error::Endpoint returned HTTP $HTTP_CODE — $BODY"
+            exit 1
+          fi
+
+  # ── Meeting reminders (hourly) ───────────────────────────────────────────
+  # Emails clients ~24h and ~1h before a confirmed call. Hourly because the
+  # "starting soon" window is only an hour wide; anything less frequent would
+  # miss calls entirely. Idempotency keys make reruns safe.
+  meeting-reminders:
+    name: Meeting reminders
+    runs-on: ubuntu-latest
+    if: >-
+      (github.event_name == 'workflow_dispatch' && github.event.inputs.job == 'meeting-reminders') ||
+      (github.event_name == 'schedule' && github.event.schedule == '0 * * * *')
+    steps:
+      - name: Call /api/cron/meeting-reminders
+        run: |
+          echo "Calling: $BASE_URL/api/cron/meeting-reminders"
+          HTTP_CODE=$(curl -s -L --location-trusted -o /tmp/body.txt -w "%{http_code}" \
+            -H "Authorization: Bearer $SECRET" \
+            "$BASE_URL/api/cron/meeting-reminders")
           BODY=$(cat /tmp/body.txt)
           echo "HTTP status : $HTTP_CODE"
           echo "Response    : $BODY"

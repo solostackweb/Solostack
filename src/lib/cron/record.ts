@@ -17,6 +17,7 @@ export type CronStatus = "ok" | "error";
 export type CronJob =
   | "invoices-due-soon"
   | "invoices-overdue"
+  | "meeting-reminders"
   | "subscription-renewals"
   | "admin-export"
   | "monitor"

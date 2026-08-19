@@ -700,6 +700,80 @@ export function renderMeetingConfirmedEmail(
   };
 }
 
+// --- Meeting reminder -----------------------------------------------------
+
+export interface MeetingReminderInput {
+  topic: string;
+  /** Pre-formatted local date + time, in the recipient's timezone. */
+  whenFormatted: string;
+  /** How far out the call is — drives the subject line and urgency. */
+  window: "tomorrow" | "soon";
+  durationMinutes?: number;
+  clientName?: string;
+  hostName: string;
+  meetLink?: string | null;
+  brand?: EmailBrand;
+}
+
+/**
+ * Pre-call nudge sent by the meeting-reminders cron.
+ *
+ * Two windows, one template: a day-before heads-up and a shortly-before "join
+ * now". The join link is the entire point of the shortly-before copy, so it
+ * leads with the button rather than burying it under context.
+ */
+export function renderMeetingReminderEmail(
+  input: MeetingReminderInput,
+): EmailRender {
+  const isSoon = input.window === "soon";
+  const subject = isSoon
+    ? `Starting soon: ${input.topic} — ${input.whenFormatted}`
+    : `Tomorrow: ${input.topic} — ${input.whenFormatted}`;
+
+  const paragraphs: string[] = [
+    `Hi ${input.clientName ?? "there"},`,
+    isSoon
+      ? `A quick reminder that your call with ${input.hostName} starts shortly.`
+      : `A reminder that your call with ${input.hostName} is tomorrow.`,
+  ];
+
+  const facts = [
+    { label: "Topic", value: input.topic },
+    { label: "When", value: input.whenFormatted },
+    ...(input.durationMinutes
+      ? [{ label: "Duration", value: `${input.durationMinutes} minutes` }]
+      : []),
+  ];
+
+  return {
+    subject,
+    html: envelope({
+      preheader: `${input.topic} · ${input.whenFormatted}`,
+      eyebrow: isSoon ? "Starting soon" : "Reminder",
+      heading: input.topic,
+      subheading: input.whenFormatted,
+      paragraphs,
+      facts,
+      ...(input.meetLink
+        ? { cta: { label: "Join on Google Meet", href: input.meetLink } }
+        : {}),
+      secondaryParagraphs: input.meetLink
+        ? []
+        : [`${input.hostName} will share the joining link before the call.`],
+      signature: input.hostName,
+      brand: input.brand,
+    }),
+    text: plain(
+      paragraphs,
+      input.meetLink
+        ? { label: "Join on Google Meet", href: input.meetLink }
+        : undefined,
+      input.hostName,
+      facts,
+    ),
+  };
+}
+
 // --- Questionnaire invite -------------------------------------------------
 
 export interface QuestionnaireInviteInput {

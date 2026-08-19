@@ -583,6 +583,7 @@ export type DeliveryKind =
   | "portal_meeting"
   | "portal_file"
   | "questionnaire_sent"
+  | "meeting_reminder"
   | "custom";
 
 export type DeliveryChannel = "email" | "sms" | "inapp";
@@ -602,7 +603,15 @@ export interface DeliveryLogRow {
   user_id: string;
   kind: DeliveryKind;
   channel: DeliveryChannel;
-  entity_type: "invoice" | "contract" | "welcome_document" | "client" | "questionnaire" | "system";
+  entity_type:
+    | "invoice"
+    | "contract"
+    | "welcome_document"
+    | "client"
+    | "portal"
+    | "questionnaire"
+    | "meeting"
+    | "system";
   entity_id: string | null;
   to_email: string | null;
   subject: string | null;
