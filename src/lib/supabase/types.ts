@@ -843,6 +843,8 @@ export interface MeetingRow {
   meet_link: string | null;
   /** Agenda / outcomes the freelancer keeps private. Never shown to clients. */
   private_notes: string | null;
+  /** Google Calendar event id, so the event can be updated or removed later. */
+  google_event_id: string | null;
   location: string | null;
   status: MeetingStatus;
   mode: string;

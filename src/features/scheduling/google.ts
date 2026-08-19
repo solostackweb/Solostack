@@ -184,7 +184,11 @@ export async function createCalendarEvent(
     timezone: string;
     withMeet?: boolean;
   },
-): Promise<{ htmlLink: string | null; meetLink: string | null } | null> {
+): Promise<{
+  eventId: string | null;
+  htmlLink: string | null;
+  meetLink: string | null;
+} | null> {
   const body: Record<string, unknown> = {
     summary: input.summary,
     description: input.description,
@@ -217,6 +221,7 @@ export async function createCalendarEvent(
     );
     if (!res.ok) return null;
     const data = (await res.json()) as {
+      id?: string;
       htmlLink?: string;
       hangoutLink?: string;
       conferenceData?: { entryPoints?: Array<{ uri?: string }> };
@@ -227,8 +232,39 @@ export async function createCalendarEvent(
         entry.uri?.includes("meet.google.com"),
       )?.uri ??
       null;
-    return { htmlLink: data.htmlLink ?? null, meetLink };
+    return {
+      eventId: data.id ?? null,
+      htmlLink: data.htmlLink ?? null,
+      meetLink,
+    };
   } catch {
     return null;
+  }
+}
+
+/**
+ * Remove an event from the freelancer's calendar, cancelling the invite for
+ * any attendee too.
+ *
+ * Treats 404/410 as success: the event is already gone, which is the state the
+ * caller wanted. Returns false only when the deletion genuinely failed, so a
+ * caller can decide whether that's worth surfacing.
+ */
+export async function deleteCalendarEvent(
+  accessToken: string,
+  eventId: string,
+): Promise<boolean> {
+  if (!eventId) return true;
+  try {
+    const res = await fetch(
+      `${GOOGLE_EVENTS}/${encodeURIComponent(eventId)}?sendUpdates=all`,
+      {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${accessToken}` },
+      },
+    );
+    return res.ok || res.status === 404 || res.status === 410;
+  } catch {
+    return false;
   }
 }

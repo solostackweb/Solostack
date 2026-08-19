@@ -22,7 +22,14 @@ import { cn } from "@/lib/utils";
 import { IvoEntryPoint } from "@/features/ai-workflows/components/ivo-entry-point";
 import { MEETING_STATUS_LABEL, type Meeting, type MeetingStatus } from "../types";
 import { cancelMeetingAction, completeMeetingAction } from "../actions";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { MeetingCalendar } from "./meeting-calendar";
+import { WeekStrip } from "./week-strip";
 
 /**
  * Google connection state. Meetings run entirely on Google Calendar + Meet, so
@@ -106,6 +113,7 @@ export function MeetingsHubView({
     {},
   );
   const [selectedDate, setSelectedDate] = React.useState<Date | null>(null);
+  const [monthOpen, setMonthOpen] = React.useState(false);
   const draggingId = React.useRef<string | null>(null);
   const [overCol, setOverCol] = React.useState<ColumnKey | null>(null);
 
@@ -222,106 +230,116 @@ export function MeetingsHubView({
     <div className="space-y-5">
       <Header calendar={calendar} />
 
-      <div className="grid gap-4 lg:grid-cols-[minmax(300px,340px)_1fr]">
-        <Card className="h-fit lg:sticky lg:top-4">
-          <CardContent className="p-4">
-            <MeetingCalendar
-              meetings={meetings}
-              selectedDate={selectedDate}
-              onSelectDate={setSelectedDate}
-              onOpenMeeting={(id) => router.push(`/dashboard/meetings/${id}`)}
-            />
+      <WeekStrip
+        meetings={meetings}
+        onOpenMonth={() => setMonthOpen(true)}
+        onOpenMeeting={(id) => router.push(`/dashboard/meetings/${id}`)}
+      />
+
+      {meetings.length === 0 ? (
+        <Card>
+          <CardContent className="flex flex-col items-center gap-3 p-10 text-center">
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted text-muted-foreground">
+              <CalendarClock className="h-6 w-6" />
+            </div>
+            <p className="text-sm text-muted-foreground">
+              No calls yet. Schedule one and share the link with your client.
+            </p>
+            <Button asChild size="sm">
+              <Link href="/dashboard/meetings/new">
+                <Plus className="h-4 w-4" /> Schedule a call
+              </Link>
+            </Button>
           </CardContent>
         </Card>
-
-        <div className="min-w-0 space-y-3">
-          {meetings.length === 0 ? (
-            <Card>
-              <CardContent className="flex flex-col items-center gap-3 p-10 text-center">
-                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted text-muted-foreground">
-                  <CalendarClock className="h-6 w-6" />
-                </div>
-                <p className="text-sm text-muted-foreground">
-                  No calls yet. Schedule one and share the link with your client.
-                </p>
-                <Button asChild size="sm">
-                  <Link href="/dashboard/meetings/new">
-                    <Plus className="h-4 w-4" /> Schedule a call
-                  </Link>
-                </Button>
-              </CardContent>
-            </Card>
-          ) : (
-            <>
-              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-                {COLUMNS.map((col) => {
-                  const items = byColumn[col.key];
-                  const isTarget = col.key === "wrapped";
-                  const isOver = overCol === col.key && isTarget;
-                  return (
-                    <div
-                      key={col.key}
-                      onDragOver={(e) => {
-                        if (!isTarget) return;
-                        e.preventDefault();
-                        if (overCol !== col.key) setOverCol(col.key);
-                      }}
-                      onDragLeave={() =>
-                        setOverCol((c) => (c === col.key ? null : c))
-                      }
-                      onDrop={(e) => {
-                        e.preventDefault();
-                        handleDrop(col.key);
-                      }}
+      ) : (
+        <>
+          <div className="grid gap-4 md:grid-cols-3">
+            {COLUMNS.map((col) => {
+              const items = byColumn[col.key];
+              const isTarget = col.key === "wrapped";
+              const isOver = overCol === col.key && isTarget;
+              return (
+                <div
+                  key={col.key}
+                  onDragOver={(e) => {
+                    if (!isTarget) return;
+                    e.preventDefault();
+                    if (overCol !== col.key) setOverCol(col.key);
+                  }}
+                  onDragLeave={() =>
+                    setOverCol((c) => (c === col.key ? null : c))
+                  }
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    handleDrop(col.key);
+                  }}
+                  className={cn(
+                    "flex flex-col gap-3 rounded-xl border bg-muted/30 p-3 transition-colors",
+                    isOver && "ring-2 ring-emerald-400/60",
+                  )}
+                >
+                  <div className="flex items-center gap-2 px-1">
+                    <span className={cn("h-2 w-2 rounded-full", col.dot)} />
+                    <h2 className="text-sm font-semibold">{col.label}</h2>
+                    <span
                       className={cn(
-                        "flex flex-col gap-3 rounded-xl border bg-muted/30 p-3 transition-colors",
-                        isOver && "ring-2 ring-emerald-400/60",
+                        "ml-auto text-xs font-semibold tabular-nums",
+                        col.count,
                       )}
                     >
-                      <div className="flex items-center gap-2 px-1">
-                        <span className={cn("h-2 w-2 rounded-full", col.dot)} />
-                        <h2 className="text-sm font-semibold">{col.label}</h2>
-                        <span
-                          className={cn(
-                            "ml-auto text-xs font-semibold tabular-nums",
-                            col.count,
-                          )}
-                        >
-                          {items.length}
-                        </span>
-                      </div>
-                      <div className="flex flex-col gap-2">
-                        {items.length === 0 ? (
-                          <p className="rounded-lg border border-dashed p-4 text-center text-xs text-muted-foreground">
-                            {col.empty}
-                          </p>
-                        ) : (
-                          items.map((m) => (
-                            <MeetingCard
-                              key={m.id}
-                              meeting={m}
-                              status={statusOf(m)}
-                              onMarkDone={() => markDone(m.id)}
-                              onDragStart={() => {
-                                draggingId.current = m.id;
-                              }}
-                            />
-                          ))
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
+                      {items.length}
+                    </span>
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    {items.length === 0 ? (
+                      <p className="rounded-lg border border-dashed p-4 text-center text-xs text-muted-foreground">
+                        {col.empty}
+                      </p>
+                    ) : (
+                      items.map((m) => (
+                        <MeetingCard
+                          key={m.id}
+                          meeting={m}
+                          status={statusOf(m)}
+                          onMarkDone={() => markDone(m.id)}
+                          onDragStart={() => {
+                            draggingId.current = m.id;
+                          }}
+                        />
+                      ))
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
 
-              <p className="text-xs text-muted-foreground">
-                Tip: drag a scheduled call into &ldquo;Wrapped up&rdquo; to mark
-                it done.
-              </p>
-            </>
-          )}
-        </div>
-      </div>
+          <p className="text-xs text-muted-foreground">
+            Tip: drag a scheduled call into &ldquo;Wrapped up&rdquo; to mark it
+            done.
+          </p>
+        </>
+      )}
+
+      {/* Month view lives behind a click so it never competes with the board
+          for horizontal space. */}
+      <Dialog open={monthOpen} onOpenChange={setMonthOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Month</DialogTitle>
+          </DialogHeader>
+          <MeetingCalendar
+            meetings={meetings}
+            selectedDate={selectedDate}
+            onSelectDate={setSelectedDate}
+            onOpenMeeting={(id) => {
+              setMonthOpen(false);
+              router.push(`/dashboard/meetings/${id}`);
+            }}
+          />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

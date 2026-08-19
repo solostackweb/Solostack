@@ -18,7 +18,10 @@ import {
   accessTokenForBooking,
   computeOpenSlots,
 } from "@/features/scheduling/server";
-import { createCalendarEvent } from "@/features/scheduling/google";
+import {
+  createCalendarEvent,
+  deleteCalendarEvent,
+} from "@/features/scheduling/google";
 import { buildMeetingIcs } from "./calendar";
 
 export type MeetingActionResult<T = undefined> =
@@ -225,6 +228,7 @@ export async function confirmMeetingSlotAction(
   ).toISOString();
 
   let meetLink = meeting.meet_link;
+  let googleEventId: string | null = null;
   const token = await accessTokenForBooking(meeting.user_id);
   if (token) {
     const clientEmail = await lookupClientEmail(meeting.client_id);
@@ -238,6 +242,8 @@ export async function confirmMeetingSlotAction(
       withMeet: true,
     });
     if (event?.meetLink) meetLink = event.meetLink;
+    // Keep the id so cancelling or completing can reach this event later.
+    googleEventId = event?.eventId ?? null;
   }
 
   const { error } = await admin
@@ -246,6 +252,7 @@ export async function confirmMeetingSlotAction(
       scheduled_at: slot,
       status: "confirmed",
       meet_link: meetLink,
+      google_event_id: googleEventId,
       updated_at: new Date().toISOString(),
     } as never)
     .eq("public_token", parsed.data.token);
@@ -311,7 +318,9 @@ export async function regenerateMeetingLinkAction(input: {
   const supabase = await getServerSupabase();
   const { data } = await supabase
     .from("meetings")
-    .select("id, topic, notes, scheduled_at, duration_minutes, timezone, client_id")
+    .select(
+      "id, topic, notes, scheduled_at, duration_minutes, timezone, client_id, google_event_id",
+    )
     .eq("id", input.id)
     .eq("user_id", userId)
     .maybeSingle();
@@ -325,6 +334,7 @@ export async function regenerateMeetingLinkAction(input: {
         duration_minutes: number;
         timezone: string;
         client_id: string | null;
+        google_event_id: string | null;
       }
     | null;
   if (!meeting) return { ok: false, error: "Meeting not found." };
@@ -341,6 +351,12 @@ export async function regenerateMeetingLinkAction(input: {
       ok: false,
       error: "Connect Google Calendar first — Meet links are created there.",
     };
+  }
+
+  // Drop the previous event first, otherwise regenerating a link leaves a
+  // duplicate on the calendar and a stale invite with the client.
+  if (meeting.google_event_id) {
+    await deleteCalendarEvent(token, meeting.google_event_id);
   }
 
   const endIso = new Date(
@@ -365,6 +381,7 @@ export async function regenerateMeetingLinkAction(input: {
     .from("meetings")
     .update({
       meet_link: event.meetLink,
+      google_event_id: event.eventId,
       updated_at: new Date().toISOString(),
     } as never)
     .eq("id", input.id)
@@ -381,6 +398,21 @@ export async function regenerateMeetingLinkAction(input: {
   };
 }
 
+/**
+ * Move a meeting to a terminal status, keeping Google Calendar in step.
+ *
+ * Cancelling always removes the event: leaving it behind kept the slot busy in
+ * free/busy (so nobody could rebook that time) and left the invite sitting in
+ * the client's calendar for a call that isn't happening.
+ *
+ * Completing is deliberately asymmetric. A call that already happened should
+ * stay on the calendar as a record, so a past event is left alone. Marking a
+ * *future* call done means it isn't going ahead as scheduled, so that event is
+ * removed and the time freed.
+ *
+ * Calendar cleanup is best-effort — the status change is the user's intent and
+ * must not fail because Google is unreachable.
+ */
 async function setStatus(
   id: string,
   status: "cancelled" | "completed",
@@ -389,14 +421,56 @@ async function setStatus(
   if (!userId) return { ok: false, error: "Please sign in." };
 
   const supabase = await getServerSupabase();
+  const { data } = await supabase
+    .from("meetings")
+    .select("google_event_id, scheduled_at")
+    .eq("id", id)
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  const row = data as
+    | { google_event_id: string | null; scheduled_at: string | null }
+    | null;
+
+  const startsInFuture = Boolean(
+    row?.scheduled_at && new Date(row.scheduled_at).getTime() > Date.now(),
+  );
+  const shouldRemoveEvent =
+    Boolean(row?.google_event_id) &&
+    (status === "cancelled" || startsInFuture);
+
   const { error } = await supabase
     .from("meetings")
-    .update({ status, updated_at: new Date().toISOString() } as never)
+    .update({
+      status,
+      // Clear the id alongside the event so a later action can't try to
+      // delete something that no longer exists.
+      ...(shouldRemoveEvent ? { google_event_id: null } : {}),
+      updated_at: new Date().toISOString(),
+    } as never)
     .eq("id", id)
     .eq("user_id", userId);
 
   if (error) return { ok: false, error: error.message };
-  return { ok: true, message: `Meeting ${status}.` };
+
+  let calendarCleared = false;
+  if (shouldRemoveEvent && row?.google_event_id) {
+    const token = await accessTokenForBooking(userId);
+    if (token) {
+      calendarCleared = await deleteCalendarEvent(token, row.google_event_id);
+    }
+  }
+
+  revalidatePath("/dashboard/meetings");
+  revalidatePath(`/dashboard/meetings/${id}`);
+
+  const verb = status === "cancelled" ? "cancelled" : "marked done";
+  return {
+    ok: true,
+    message: calendarCleared
+      ? `Meeting ${verb} and removed from your calendar.`
+      : `Meeting ${verb}.`,
+  };
 }
 
 export async function cancelMeetingAction(input: {
