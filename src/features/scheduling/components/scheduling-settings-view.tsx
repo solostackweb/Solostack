@@ -3,13 +3,21 @@
 import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, CalendarCheck, Link2, Unlink } from "lucide-react";
+import {
+  ArrowLeft,
+  CalendarCheck,
+  Copy,
+  Link2,
+  Unlink,
+} from "lucide-react";
 import { toast } from "sonner";
 
 import { PageHeader } from "@/components/shared/page-header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
 import { Card, CardContent } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
 import {
   saveSchedulingSettingsAction,
   disconnectCalendarAction,
@@ -23,19 +31,20 @@ interface SchedulingSettings {
   slotIntervalMinutes: number;
 }
 
-const WEEKDAYS: Array<{ key: string; label: string }> = [
-  { key: "1", label: "Monday" },
-  { key: "2", label: "Tuesday" },
-  { key: "3", label: "Wednesday" },
-  { key: "4", label: "Thursday" },
-  { key: "5", label: "Friday" },
-  { key: "6", label: "Saturday" },
-  { key: "0", label: "Sunday" },
+const WEEKDAYS: Array<{ key: string; label: string; short: string }> = [
+  { key: "1", label: "Monday", short: "Mon" },
+  { key: "2", label: "Tuesday", short: "Tue" },
+  { key: "3", label: "Wednesday", short: "Wed" },
+  { key: "4", label: "Thursday", short: "Thu" },
+  { key: "5", label: "Friday", short: "Fri" },
+  { key: "6", label: "Saturday", short: "Sat" },
+  { key: "0", label: "Sunday", short: "Sun" },
 ];
 
 interface DayRow {
   key: string;
   label: string;
+  short: string;
   enabled: boolean;
   start: string;
   end: string;
@@ -64,6 +73,7 @@ export function SchedulingSettingsView({
       return {
         key: day.key,
         label: day.label,
+        short: day.short,
         enabled: Boolean(range),
         start: range?.[0] ?? "09:00",
         end: range?.[1] ?? "17:00",
@@ -89,7 +99,32 @@ export function SchedulingSettingsView({
       prev.map((day) => (day.key === key ? { ...day, ...patch } : day)),
     );
 
+  /** Push one day's hours onto every other enabled day. */
+  const copyToAll = (source: DayRow) =>
+    setDays((prev) =>
+      prev.map((day) =>
+        day.enabled ? { ...day, start: source.start, end: source.end } : day,
+      ),
+    );
+
+  const enabledCount = days.filter((day) => day.enabled).length;
+  const weeklyHours = days.reduce((total, day) => {
+    if (!day.enabled) return total;
+    const [sh, sm] = day.start.split(":").map(Number);
+    const [eh, em] = day.end.split(":").map(Number);
+    const minutes = eh * 60 + em - (sh * 60 + sm);
+    return total + Math.max(0, minutes);
+  }, 0);
+
   const save = async () => {
+    const invalid = days.find(
+      (day) => day.enabled && day.start >= day.end,
+    );
+    if (invalid) {
+      toast.error(`${invalid.label} ends before it starts.`);
+      return;
+    }
+
     const workingHours: Record<string, Array<[string, string]>> = {};
     for (const day of days) {
       if (day.enabled) workingHours[day.key] = [[day.start, day.end]];
@@ -108,6 +143,7 @@ export function SchedulingSettingsView({
       return;
     }
     toast.success(res.message ?? "Saved.");
+    router.refresh();
   };
 
   const disconnect = async () => {
@@ -121,10 +157,10 @@ export function SchedulingSettingsView({
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <PageHeader
         title="Calendar & availability"
-        description="Connect your calendar so clients can book against your real open times, and set your working hours."
+        description="Your Google Calendar decides what clients can book. These hours decide when."
         actions={
           <Button asChild variant="outline" size="sm">
             <Link href="/dashboard/meetings">
@@ -136,22 +172,40 @@ export function SchedulingSettingsView({
 
       {/* Connection */}
       <Card>
-        <CardContent className="space-y-3 p-6">
-          <div className="flex items-center gap-2">
-            <CalendarCheck className="h-4 w-4 text-primary" />
-            <h2 className="text-sm font-semibold">Google Calendar</h2>
-          </div>
+        <CardContent className="p-5">
           {!googleConfigured ? (
-            <p className="text-sm text-muted-foreground">
-              Live availability isn&apos;t enabled on this deployment yet.
-              You can still use manual time slots when booking a call.
-            </p>
+            <div className="flex items-start gap-3">
+              <StatusDot tone="muted" />
+              <div>
+                <p className="text-sm font-medium">
+                  Google isn&apos;t set up on this deployment
+                </p>
+                <p className="mt-0.5 text-sm text-muted-foreground">
+                  Scheduling needs Google Calendar credentials in the
+                  environment before anyone can connect.
+                </p>
+              </div>
+            </div>
           ) : connection.connected ? (
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <p className="text-sm text-muted-foreground">
-                Connected{connection.email ? ` as ${connection.email}` : ""}. Busy
-                times are hidden from clients automatically.
-              </p>
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div className="flex items-start gap-3">
+                <StatusDot tone="emerald" />
+                <div>
+                  <p className="flex items-center gap-2 text-sm font-medium">
+                    <CalendarCheck className="h-4 w-4 text-emerald-600" />
+                    Connected
+                    {connection.email ? (
+                      <span className="font-normal text-muted-foreground">
+                        as {connection.email}
+                      </span>
+                    ) : null}
+                  </p>
+                  <p className="mt-0.5 text-sm text-muted-foreground">
+                    Busy times are hidden from clients automatically, and every
+                    booked call gets a Google Meet link.
+                  </p>
+                </div>
+              </div>
               <Button
                 type="button"
                 variant="outline"
@@ -162,12 +216,18 @@ export function SchedulingSettingsView({
               </Button>
             </div>
           ) : (
-            <div className="space-y-2">
-              <p className="text-sm text-muted-foreground">
-                Connect Google Calendar to let clients pick from your live
-                availability, with events created automatically.
-              </p>
-              <Button asChild>
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div className="flex items-start gap-3">
+                <StatusDot tone="amber" />
+                <div>
+                  <p className="text-sm font-medium">Not connected</p>
+                  <p className="mt-0.5 text-sm text-muted-foreground">
+                    Connect Google Calendar to let clients book against your
+                    real open times.
+                  </p>
+                </div>
+              </div>
+              <Button asChild size="sm">
                 <a href="/api/google/connect?next=/dashboard/meetings/availability">
                   <Link2 className="h-4 w-4" /> Connect Google Calendar
                 </a>
@@ -179,45 +239,79 @@ export function SchedulingSettingsView({
 
       {/* Working hours */}
       <Card>
-        <CardContent className="space-y-5 p-6">
-          <h2 className="text-sm font-semibold">Working hours</h2>
-          <div className="space-y-2">
+        <CardContent className="space-y-5 p-5">
+          <div className="flex flex-wrap items-baseline justify-between gap-2">
+            <h2 className="text-sm font-semibold">Working hours</h2>
+            <p className="text-xs text-muted-foreground">
+              {enabledCount === 0
+                ? "No days available — clients can't book anything"
+                : `${enabledCount} day${enabledCount === 1 ? "" : "s"} · ${(
+                    weeklyHours / 60
+                  ).toFixed(1)} hrs/week bookable`}
+            </p>
+          </div>
+
+          <div className="space-y-1.5">
             {days.map((day) => (
               <div
                 key={day.key}
-                className="flex flex-wrap items-center gap-3 rounded-lg border p-3"
+                className={cn(
+                  "flex flex-wrap items-center gap-3 rounded-lg border p-2.5 transition-colors",
+                  !day.enabled && "bg-muted/30",
+                )}
               >
-                <label className="flex w-32 items-center gap-2 text-sm font-medium">
-                  <input
-                    type="checkbox"
+                <div className="flex w-32 shrink-0 items-center gap-2.5">
+                  <Switch
                     checked={day.enabled}
-                    onChange={(event) =>
-                      updateDay(day.key, { enabled: event.target.checked })
+                    onCheckedChange={(checked) =>
+                      updateDay(day.key, { enabled: checked })
                     }
-                    className="h-4 w-4"
+                    aria-label={day.label}
                   />
-                  {day.label}
-                </label>
+                  <span
+                    className={cn(
+                      "text-sm font-medium",
+                      !day.enabled && "text-muted-foreground",
+                    )}
+                  >
+                    {day.label}
+                  </span>
+                </div>
+
                 {day.enabled ? (
-                  <div className="flex items-center gap-2">
-                    <Input
-                      type="time"
-                      value={day.start}
-                      onChange={(event) =>
-                        updateDay(day.key, { start: event.target.value })
-                      }
-                      className="w-32"
-                    />
-                    <span className="text-muted-foreground">to</span>
-                    <Input
-                      type="time"
-                      value={day.end}
-                      onChange={(event) =>
-                        updateDay(day.key, { end: event.target.value })
-                      }
-                      className="w-32"
-                    />
-                  </div>
+                  <>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        type="time"
+                        value={day.start}
+                        onChange={(event) =>
+                          updateDay(day.key, { start: event.target.value })
+                        }
+                        className="w-32"
+                        aria-label={`${day.label} start`}
+                      />
+                      <span className="text-sm text-muted-foreground">to</span>
+                      <Input
+                        type="time"
+                        value={day.end}
+                        onChange={(event) =>
+                          updateDay(day.key, { end: event.target.value })
+                        }
+                        className="w-32"
+                        aria-label={`${day.label} end`}
+                      />
+                    </div>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="ghost"
+                      className="ml-auto text-xs text-muted-foreground"
+                      onClick={() => copyToAll(day)}
+                      title="Apply these hours to every active day"
+                    >
+                      <Copy className="h-3.5 w-3.5" /> Copy to all
+                    </Button>
+                  </>
                 ) : (
                   <span className="text-sm text-muted-foreground">
                     Unavailable
@@ -226,16 +320,28 @@ export function SchedulingSettingsView({
               </div>
             ))}
           </div>
+        </CardContent>
+      </Card>
 
+      {/* Booking rules */}
+      <Card>
+        <CardContent className="space-y-5 p-5">
+          <h2 className="text-sm font-semibold">Booking rules</h2>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <Labeled label="Timezone">
+            <Labeled
+              label="Timezone"
+              hint="Your working hours are read in this zone."
+            >
               <Input
                 value={timezone}
                 onChange={(event) => setTimezone(event.target.value)}
                 placeholder="Asia/Kolkata"
               />
             </Labeled>
-            <Labeled label="Buffer (min)">
+            <Labeled
+              label="Buffer (min)"
+              hint="Gap kept around existing events."
+            >
               <Input
                 type="number"
                 min={0}
@@ -244,7 +350,10 @@ export function SchedulingSettingsView({
                 onChange={(event) => setBuffer(Number(event.target.value || 0))}
               />
             </Labeled>
-            <Labeled label="Min notice (hrs)">
+            <Labeled
+              label="Min notice (hrs)"
+              hint="How far ahead clients must book."
+            >
               <Input
                 type="number"
                 min={0}
@@ -253,7 +362,10 @@ export function SchedulingSettingsView({
                 onChange={(event) => setNotice(Number(event.target.value || 0))}
               />
             </Labeled>
-            <Labeled label="Slot interval (min)">
+            <Labeled
+              label="Slot interval (min)"
+              hint="Spacing between offered times."
+            >
               <Input
                 type="number"
                 min={10}
@@ -266,9 +378,9 @@ export function SchedulingSettingsView({
             </Labeled>
           </div>
 
-          <div className="flex justify-end">
+          <div className="flex justify-end border-t pt-4">
             <Button type="button" onClick={save} disabled={saving}>
-              {saving ? "Saving..." : "Save availability"}
+              {saving ? "Saving…" : "Save availability"}
             </Button>
           </div>
         </CardContent>
@@ -277,11 +389,27 @@ export function SchedulingSettingsView({
   );
 }
 
+function StatusDot({ tone }: { tone: "emerald" | "amber" | "muted" }) {
+  return (
+    <span
+      aria-hidden="true"
+      className={cn(
+        "mt-1.5 h-2 w-2 shrink-0 rounded-full",
+        tone === "emerald" && "bg-emerald-500",
+        tone === "amber" && "bg-amber-400",
+        tone === "muted" && "bg-muted-foreground/40",
+      )}
+    />
+  );
+}
+
 function Labeled({
   label,
+  hint,
   children,
 }: {
   label: string;
+  hint?: string;
   children: React.ReactNode;
 }) {
   return (
@@ -290,6 +418,9 @@ function Labeled({
         {label}
       </span>
       {children}
+      {hint ? (
+        <span className="block text-[11px] text-muted-foreground">{hint}</span>
+      ) : null}
     </label>
   );
 }

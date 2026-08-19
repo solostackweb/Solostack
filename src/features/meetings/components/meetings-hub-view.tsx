@@ -22,6 +22,19 @@ import { cn } from "@/lib/utils";
 import { IvoEntryPoint } from "@/features/ai-workflows/components/ivo-entry-point";
 import { MEETING_STATUS_LABEL, type Meeting, type MeetingStatus } from "../types";
 import { cancelMeetingAction, completeMeetingAction } from "../actions";
+import { MeetingCalendar } from "./meeting-calendar";
+
+/**
+ * Google connection state. Meetings run entirely on Google Calendar + Meet, so
+ * this is a gate rather than a nicety: without it there is no availability to
+ * offer and no link to join.
+ */
+export interface MeetingsCalendarState {
+  configured: boolean;
+  tokenStorageReady: boolean;
+  connected: boolean;
+  email: string | null;
+}
 
 function formatSlot(iso: string): string {
   const date = new Date(iso);
@@ -80,72 +93,6 @@ function columnForStatus(status: MeetingStatus): ColumnKey {
   return "wrapped"; // completed | cancelled
 }
 
-/**
- * Google connection state, passed down from the server page. The Meetings hub
- * is where a freelancer actually thinks about calendars, so the connection is
- * surfaced here rather than only inside Settings.
- */
-export interface MeetingsCalendarState {
-  configured: boolean;
-  tokenStorageReady: boolean;
-  connected: boolean;
-  email: string | null;
-}
-
-const BADGE_BASE =
-  "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold transition-colors";
-
-function CalendarBadge({ calendar }: { calendar: MeetingsCalendarState }) {
-  // Deployment can't do OAuth at all — say so plainly instead of offering a
-  // connect button that would bounce straight back with an error.
-  if (!calendar.configured || !calendar.tokenStorageReady) {
-    return (
-      <Link
-        href="/dashboard/settings/integrations"
-        className={cn(BADGE_BASE, "bg-muted text-muted-foreground hover:bg-muted/70")}
-        title="Google Calendar isn't set up on this deployment. Meetings use manual time slots."
-      >
-        <CalendarClock className="h-3.5 w-3.5" />
-        Calendar not set up
-      </Link>
-    );
-  }
-
-  if (calendar.connected) {
-    return (
-      <Link
-        href="/dashboard/settings/integrations"
-        className={cn(
-          BADGE_BASE,
-          "bg-emerald-500/10 text-emerald-700 hover:bg-emerald-500/15 dark:text-emerald-300",
-        )}
-        title={
-          calendar.email
-            ? `Google Calendar connected as ${calendar.email}`
-            : "Google Calendar connected"
-        }
-      >
-        <CalendarCheck className="h-3.5 w-3.5" />
-        Calendar connected
-      </Link>
-    );
-  }
-
-  return (
-    <a
-      href="/api/google/connect?next=/dashboard/meetings"
-      className={cn(
-        BADGE_BASE,
-        "bg-amber-500/10 text-amber-700 hover:bg-amber-500/15 dark:text-amber-300",
-      )}
-      title="Connect Google Calendar so clients book against your real free time"
-    >
-      <Link2 className="h-3.5 w-3.5" />
-      Connect calendar
-    </a>
-  );
-}
-
 export function MeetingsHubView({
   meetings,
   calendar,
@@ -158,10 +105,11 @@ export function MeetingsHubView({
   const [override, setOverride] = React.useState<Record<string, MeetingStatus>>(
     {},
   );
+  const [selectedDate, setSelectedDate] = React.useState<Date | null>(null);
   const draggingId = React.useRef<string | null>(null);
   const [overCol, setOverCol] = React.useState<ColumnKey | null>(null);
 
-  // The OAuth flow can now return here, so report its outcome here too.
+  // The OAuth flow returns here, so report its outcome here.
   React.useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (!params.has("connected") && !params.has("error")) return;
@@ -169,6 +117,8 @@ export function MeetingsHubView({
       toast.success("Google Calendar connected.");
     } else if (params.get("error") === "not_configured") {
       toast.error("Google isn't set up on this deployment yet.");
+    } else if (params.get("error") === "storage") {
+      toast.error("Couldn't store the connection securely. Contact support.");
     } else {
       toast.error("Couldn't connect your calendar. Try again.");
     }
@@ -234,118 +184,219 @@ export function MeetingsHubView({
     }
   };
 
-  if (meetings.length === 0) {
+  // ---- Gate: no Google, no meetings ---------------------------------------
+  if (!calendar.configured || !calendar.tokenStorageReady) {
     return (
       <div className="space-y-6">
-        <Header calendar={calendar} />
-        <Card>
-          <CardContent className="flex flex-col items-center gap-3 p-10 text-center">
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted text-muted-foreground">
-              <CalendarClock className="h-6 w-6" />
-            </div>
-            <p className="text-sm text-muted-foreground">
-              No calls yet. Schedule one and share the link with your client.
-            </p>
-            <Button asChild size="sm">
-              <Link href="/dashboard/meetings/new">
-                <Plus className="h-4 w-4" /> Schedule a call
-              </Link>
-            </Button>
-          </CardContent>
-        </Card>
+        <Header calendar={calendar} gated />
+        <GateCard
+          title="Meetings aren't set up on this deployment"
+          body="Scheduling runs on Google Calendar and Google Meet. The Google credentials are missing from this environment, so there's nothing to connect to yet."
+        />
       </div>
     );
   }
 
+  if (!calendar.connected) {
+    return (
+      <div className="space-y-6">
+        <Header calendar={calendar} gated />
+        <GateCard
+          title="Connect Google Calendar to start scheduling"
+          body="Clients book against your real free time, a calendar event is created for both of you, and every call gets a Google Meet link automatically."
+          action={
+            <Button asChild>
+              <a href="/api/google/connect?next=/dashboard/meetings">
+                <Link2 className="h-4 w-4" /> Connect Google Calendar
+              </a>
+            </Button>
+          }
+          footnote="Stackivo reads your busy times and creates events. It never reads the contents of your existing meetings."
+        />
+      </div>
+    );
+  }
+
+  // ---- Connected: calendar + board ----------------------------------------
   return (
     <div className="space-y-5">
       <Header calendar={calendar} />
 
-      <div className="grid gap-4 md:grid-cols-3">
-        {COLUMNS.map((col) => {
-          const items = byColumn[col.key];
-          const isTarget = col.key === "wrapped";
-          const isOver = overCol === col.key && isTarget;
-          return (
-            <div
-              key={col.key}
-              onDragOver={(e) => {
-                if (!isTarget) return;
-                e.preventDefault();
-                if (overCol !== col.key) setOverCol(col.key);
-              }}
-              onDragLeave={() => setOverCol((c) => (c === col.key ? null : c))}
-              onDrop={(e) => {
-                e.preventDefault();
-                handleDrop(col.key);
-              }}
-              className={cn(
-                "flex flex-col gap-3 rounded-xl border bg-muted/30 p-3 transition-colors",
-                isOver && "ring-2 ring-emerald-400/60",
-              )}
-            >
-              <div className="flex items-center gap-2 px-1">
-                <span className={cn("h-2 w-2 rounded-full", col.dot)} />
-                <h2 className="text-sm font-semibold">{col.label}</h2>
-                <span
-                  className={cn(
-                    "ml-auto text-xs font-semibold tabular-nums",
-                    col.count,
-                  )}
-                >
-                  {items.length}
-                </span>
-              </div>
-              <div className="flex flex-col gap-2">
-                {items.length === 0 ? (
-                  <p className="rounded-lg border border-dashed p-4 text-center text-xs text-muted-foreground">
-                    {col.empty}
-                  </p>
-                ) : (
-                  items.map((m) => (
-                    <MeetingCard
-                      key={m.id}
-                      meeting={m}
-                      status={statusOf(m)}
-                      onMarkDone={() => markDone(m.id)}
-                      onDragStart={() => {
-                        draggingId.current = m.id;
-                      }}
-                    />
-                  ))
-                )}
-              </div>
-            </div>
-          );
-        })}
-      </div>
+      <div className="grid gap-4 lg:grid-cols-[minmax(300px,340px)_1fr]">
+        <Card className="h-fit lg:sticky lg:top-4">
+          <CardContent className="p-4">
+            <MeetingCalendar
+              meetings={meetings}
+              selectedDate={selectedDate}
+              onSelectDate={setSelectedDate}
+              onOpenMeeting={(id) => router.push(`/dashboard/meetings/${id}`)}
+            />
+          </CardContent>
+        </Card>
 
-      <p className="text-xs text-muted-foreground">
-        Tip: drag a scheduled call into &ldquo;Wrapped up&rdquo; to mark it done.
-      </p>
+        <div className="min-w-0 space-y-3">
+          {meetings.length === 0 ? (
+            <Card>
+              <CardContent className="flex flex-col items-center gap-3 p-10 text-center">
+                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted text-muted-foreground">
+                  <CalendarClock className="h-6 w-6" />
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  No calls yet. Schedule one and share the link with your client.
+                </p>
+                <Button asChild size="sm">
+                  <Link href="/dashboard/meetings/new">
+                    <Plus className="h-4 w-4" /> Schedule a call
+                  </Link>
+                </Button>
+              </CardContent>
+            </Card>
+          ) : (
+            <>
+              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                {COLUMNS.map((col) => {
+                  const items = byColumn[col.key];
+                  const isTarget = col.key === "wrapped";
+                  const isOver = overCol === col.key && isTarget;
+                  return (
+                    <div
+                      key={col.key}
+                      onDragOver={(e) => {
+                        if (!isTarget) return;
+                        e.preventDefault();
+                        if (overCol !== col.key) setOverCol(col.key);
+                      }}
+                      onDragLeave={() =>
+                        setOverCol((c) => (c === col.key ? null : c))
+                      }
+                      onDrop={(e) => {
+                        e.preventDefault();
+                        handleDrop(col.key);
+                      }}
+                      className={cn(
+                        "flex flex-col gap-3 rounded-xl border bg-muted/30 p-3 transition-colors",
+                        isOver && "ring-2 ring-emerald-400/60",
+                      )}
+                    >
+                      <div className="flex items-center gap-2 px-1">
+                        <span className={cn("h-2 w-2 rounded-full", col.dot)} />
+                        <h2 className="text-sm font-semibold">{col.label}</h2>
+                        <span
+                          className={cn(
+                            "ml-auto text-xs font-semibold tabular-nums",
+                            col.count,
+                          )}
+                        >
+                          {items.length}
+                        </span>
+                      </div>
+                      <div className="flex flex-col gap-2">
+                        {items.length === 0 ? (
+                          <p className="rounded-lg border border-dashed p-4 text-center text-xs text-muted-foreground">
+                            {col.empty}
+                          </p>
+                        ) : (
+                          items.map((m) => (
+                            <MeetingCard
+                              key={m.id}
+                              meeting={m}
+                              status={statusOf(m)}
+                              onMarkDone={() => markDone(m.id)}
+                              onDragStart={() => {
+                                draggingId.current = m.id;
+                              }}
+                            />
+                          ))
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              <p className="text-xs text-muted-foreground">
+                Tip: drag a scheduled call into &ldquo;Wrapped up&rdquo; to mark
+                it done.
+              </p>
+            </>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
 
-function Header({ calendar }: { calendar: MeetingsCalendarState }) {
+function GateCard({
+  title,
+  body,
+  action,
+  footnote,
+}: {
+  title: string;
+  body: string;
+  action?: React.ReactNode;
+  footnote?: string;
+}) {
+  return (
+    <Card>
+      <CardContent className="mx-auto flex max-w-md flex-col items-center gap-4 p-10 text-center">
+        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary">
+          <CalendarCheck className="h-6 w-6" />
+        </div>
+        <div className="space-y-1.5">
+          <h2 className="text-base font-semibold">{title}</h2>
+          <p className="text-sm leading-relaxed text-muted-foreground">{body}</p>
+        </div>
+        {action}
+        {footnote ? (
+          <p className="text-xs text-muted-foreground">{footnote}</p>
+        ) : null}
+      </CardContent>
+    </Card>
+  );
+}
+
+function Header({
+  calendar,
+  gated,
+}: {
+  calendar: MeetingsCalendarState;
+  gated?: boolean;
+}) {
   return (
     <PageHeader
       title="Meetings"
-      description="Track every client call from request to wrap-up in one board."
+      description="Track every client call from request to wrap-up, on your own calendar."
       actions={
         <div className="flex flex-wrap items-center gap-2">
-          <CalendarBadge calendar={calendar} />
-          <IvoEntryPoint prompt="What meetings do I have coming up, and who still needs to pick a time?" />
-          <Button asChild size="sm" variant="outline">
-            <Link href="/dashboard/meetings/availability">
-              <Settings2 className="h-4 w-4" /> Calendar &amp; availability
-            </Link>
-          </Button>
-          <Button asChild size="sm">
-            <Link href="/dashboard/meetings/new">
-              <Plus className="h-4 w-4" /> Schedule a call
-            </Link>
-          </Button>
+          {calendar.connected ? (
+            <span
+              className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-2.5 py-1 text-[11px] font-semibold text-emerald-700 dark:text-emerald-300"
+              title={
+                calendar.email
+                  ? `Google Calendar connected as ${calendar.email}`
+                  : "Google Calendar connected"
+              }
+            >
+              <CalendarCheck className="h-3.5 w-3.5" />
+              {calendar.email ?? "Calendar connected"}
+            </span>
+          ) : null}
+          {gated ? null : (
+            <>
+              <IvoEntryPoint prompt="What meetings do I have coming up, and who still needs to pick a time?" />
+              <Button asChild size="sm" variant="outline">
+                <Link href="/dashboard/meetings/availability">
+                  <Settings2 className="h-4 w-4" /> Calendar &amp; availability
+                </Link>
+              </Button>
+              <Button asChild size="sm">
+                <Link href="/dashboard/meetings/new">
+                  <Plus className="h-4 w-4" /> Schedule a call
+                </Link>
+              </Button>
+            </>
+          )}
         </div>
       }
     />

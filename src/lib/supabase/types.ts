@@ -841,8 +841,8 @@ export interface MeetingRow {
   proposed_slots: Json;
   scheduled_at: string | null;
   meet_link: string | null;
-  /** daily | google_meet | zoom | manual_link. Null on pre-picker rows. */
-  video_provider: string | null;
+  /** Agenda / outcomes the freelancer keeps private. Never shown to clients. */
+  private_notes: string | null;
   location: string | null;
   status: MeetingStatus;
   mode: string;

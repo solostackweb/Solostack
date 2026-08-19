@@ -10,7 +10,6 @@ import {
   Monitor,
   Wallet,
   Gift,
-  Plug,
   Sparkles,
 } from "lucide-react";
 
@@ -86,12 +85,6 @@ export const SETTINGS_NAV_GROUPS: SettingsNavGroup[] = [
         label: "Payments",
         description: "Razorpay for client invoices",
         icon: Wallet,
-      },
-      {
-        href: "/dashboard/settings/integrations",
-        label: "Integrations",
-        description: "Calendar, video, email, payments",
-        icon: Plug,
       },
       {
         href: "/dashboard/settings/appearance",

@@ -5,8 +5,6 @@ import {
   getCalendarConnection,
   isGoogleConfigured,
 } from "@/features/scheduling/server";
-import { isDailyConfigured } from "@/features/meetings/video";
-import { isZoomConfigured } from "@/features/meetings/zoom";
 
 export const metadata = { title: "Schedule a call | Stackivo" };
 export const dynamic = "force-dynamic";
@@ -36,12 +34,6 @@ export default async function NewMeetingPage({ searchParams }: PageProps) {
         name: client.businessName || client.fullName,
       }))}
       availabilityEnabled={isGoogleConfigured() && connection.connected}
-      videoProviders={{
-        daily: isDailyConfigured(),
-        googleConfigured: isGoogleConfigured(),
-        googleConnected: connection.connected,
-        zoom: isZoomConfigured(),
-      }}
       prefill={{
         topic: sp.topic,
         clientId: sp.clientId ?? null,

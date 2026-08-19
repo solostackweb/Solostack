@@ -31,14 +31,12 @@ const SIMPLE_ICON_SLUGS: Record<string, { slug: string; label: string }> = {
   upi: { slug: "upi", label: "UPI" },
   whatsapp: { slug: "whatsapp", label: "WhatsApp" },
   wise: { slug: "wise", label: "Wise" },
-  zoom: { slug: "zoom", label: "Zoom" },
 };
 
 const FALLBACKS: Record<string, ComponentType<{ className?: string }>> = {
   apple_calendar: Apple,
   bank_wire: Banknote,
   calendar: CalendarDays,
-  daily: Video,
   email: Mail,
   google_calendar: CalendarDays,
   google_drive: Globe2,
@@ -47,7 +45,6 @@ const FALLBACKS: Record<string, ComponentType<{ className?: string }>> = {
   other: Globe2,
   payment: CreditCard,
   upi: Smartphone,
-  zoom: Video,
 };
 
 export function IntegrationLogo({ id, className = "h-5 w-5" }: IntegrationLogoProps) {

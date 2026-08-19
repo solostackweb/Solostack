@@ -20,9 +20,6 @@ import {
 } from "@/features/scheduling/server";
 import { createCalendarEvent } from "@/features/scheduling/google";
 import { buildMeetingIcs } from "./calendar";
-import { createDailyRoom, isDailyConfigured } from "./video";
-import { createZoomMeeting, isZoomConfigured } from "./zoom";
-import { effectiveVideoProvider, VIDEO_PROVIDERS } from "./types";
 
 export type MeetingActionResult<T = undefined> =
   | { ok: true; data?: T; message?: string }
@@ -67,10 +64,6 @@ const createSchema = z.object({
   timezone: z.string().trim().max(80).optional(),
   slots: z.array(z.string().trim().min(1)).max(5).optional(),
   mode: z.enum(["slots", "availability"]).optional(),
-  videoProvider: z
-    .enum(VIDEO_PROVIDERS as [string, ...string[]])
-    .optional()
-    .nullable(),
   clientId: z.string().uuid().optional().nullable(),
   projectId: z.string().uuid().optional().nullable(),
   proposalId: z.string().uuid().optional().nullable(),
@@ -120,7 +113,6 @@ export async function createMeetingAction(
       timezone: d.timezone ?? "Asia/Kolkata",
       proposed_slots: slots,
       mode,
-      video_provider: d.videoProvider ?? null,
       client_id: d.clientId ?? null,
       project_id: d.projectId ?? null,
       proposal_id: d.proposalId ?? null,
@@ -175,7 +167,7 @@ export async function confirmMeetingSlotAction(
   const { data: found } = await admin
     .from("meetings")
     .select(
-      "id, proposed_slots, status, user_id, topic, timezone, duration_minutes, client_id, meet_link, mode, video_provider",
+      "id, proposed_slots, status, user_id, topic, timezone, duration_minutes, client_id, meet_link, mode, notes",
     )
     .eq("public_token", parsed.data.token)
     .maybeSingle();
@@ -192,7 +184,7 @@ export async function confirmMeetingSlotAction(
         client_id: string | null;
         meet_link: string | null;
         mode: string;
-        video_provider: string | null;
+        notes: string | null;
       }
     | null;
   if (!meeting) {
@@ -225,59 +217,27 @@ export async function confirmMeetingSlotAction(
     }
   }
 
-  // Resolve the video link for whichever provider the freelancer picked at
-  // creation time. Every branch is best-effort: a provider that fails leaves
-  // meetLink null and the booking still succeeds, exactly as before.
-  const provider = effectiveVideoProvider(meeting.video_provider, meeting.mode);
+  // Every confirmed meeting becomes a real event on the freelancer's Google
+  // Calendar with a Meet link attached. That is the only video path — there is
+  // no in-app room and no pasted link to fall back to.
   const endIso = new Date(
     new Date(slot).getTime() + meeting.duration_minutes * 60_000,
   ).toISOString();
 
   let meetLink = meeting.meet_link;
-
-  if (!meetLink && provider === "zoom" && isZoomConfigured()) {
-    const zoom = await createZoomMeeting({
-      topic: meeting.topic,
+  const token = await accessTokenForBooking(meeting.user_id);
+  if (token) {
+    const clientEmail = await lookupClientEmail(meeting.client_id);
+    const event = await createCalendarEvent(token, {
+      summary: meeting.topic,
+      description: meeting.notes ?? undefined,
       startIso: slot,
-      durationMinutes: meeting.duration_minutes,
-      timezone: meeting.timezone || "Asia/Kolkata",
+      endIso,
+      attendeeEmail: clientEmail,
+      timezone: meeting.timezone,
+      withMeet: true,
     });
-    if (zoom) meetLink = zoom.joinUrl;
-  } else if (!meetLink && provider === "daily" && isDailyConfigured()) {
-    // Auto-create an in-app Daily room on confirm — no manual "turn on
-    // video" step. Falls through to a pasted link if this fails.
-    const room = await createDailyRoom({ expiresAt: slot });
-    if (room) meetLink = room.url;
-  }
-  // provider === "manual_link" deliberately does nothing: the freelancer
-  // supplies the link themselves from the meeting detail page.
-
-  // A calendar event is still created for every availability booking — that's
-  // the point of connecting a calendar — and additionally whenever the
-  // freelancer asked for a Meet link, which is what makes Meet usable outside
-  // the availability flow.
-  const wantsCalendarEvent =
-    meeting.mode === "availability" || provider === "google_meet";
-
-  if (wantsCalendarEvent) {
-    const token = await accessTokenForBooking(meeting.user_id);
-    if (token) {
-      const clientEmail = await lookupClientEmail(meeting.client_id);
-      const event = await createCalendarEvent(token, {
-        summary: meeting.topic,
-        // Carry a Zoom/Daily link onto the calendar entry so the event isn't
-        // the one place the join URL is missing.
-        description: meetLink ? `Join: ${meetLink}` : undefined,
-        startIso: slot,
-        endIso,
-        attendeeEmail: clientEmail,
-        timezone: meeting.timezone,
-        withMeet: provider === "google_meet",
-      });
-      if (provider === "google_meet" && event?.meetLink) {
-        meetLink = event.meetLink;
-      }
-    }
+    if (event?.meetLink) meetLink = event.meetLink;
   }
 
   const { error } = await admin
@@ -335,33 +295,90 @@ export async function confirmMeetingSlotAction(
 // OWNER updates — video link, cancel, complete
 // ---------------------------------------------------------------------------
 
-const linkSchema = z.object({
-  id: z.string().uuid(),
-  meetLink: z.string().trim().url().max(600).or(z.literal("")),
-});
-
-export async function setMeetingLinkAction(
-  input: z.infer<typeof linkSchema>,
-): Promise<MeetingActionResult> {
+/**
+ * Create (or replace) the Google Meet link for a confirmed meeting.
+ *
+ * Normally the link is generated the moment a client books. This is the
+ * recovery path for the one case that can leave a meeting without one — the
+ * freelancer's Google connection was missing or expired at confirmation time.
+ */
+export async function regenerateMeetingLinkAction(input: {
+  id: string;
+}): Promise<MeetingActionResult<{ meetLink: string | null }>> {
   const userId = await requireUserId();
   if (!userId) return { ok: false, error: "Please sign in." };
-  const parsed = linkSchema.safeParse(input);
-  if (!parsed.success) {
-    return { ok: false, error: "Enter a valid meeting URL." };
-  }
 
   const supabase = await getServerSupabase();
+  const { data } = await supabase
+    .from("meetings")
+    .select("id, topic, notes, scheduled_at, duration_minutes, timezone, client_id")
+    .eq("id", input.id)
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  const meeting = data as
+    | {
+        id: string;
+        topic: string;
+        notes: string | null;
+        scheduled_at: string | null;
+        duration_minutes: number;
+        timezone: string;
+        client_id: string | null;
+      }
+    | null;
+  if (!meeting) return { ok: false, error: "Meeting not found." };
+  if (!meeting.scheduled_at) {
+    return {
+      ok: false,
+      error: "This meeting doesn't have a confirmed time yet.",
+    };
+  }
+
+  const token = await accessTokenForBooking(userId);
+  if (!token) {
+    return {
+      ok: false,
+      error: "Connect Google Calendar first — Meet links are created there.",
+    };
+  }
+
+  const endIso = new Date(
+    new Date(meeting.scheduled_at).getTime() + meeting.duration_minutes * 60_000,
+  ).toISOString();
+  const clientEmail = await lookupClientEmail(meeting.client_id);
+  const event = await createCalendarEvent(token, {
+    summary: meeting.topic,
+    description: meeting.notes ?? undefined,
+    startIso: meeting.scheduled_at,
+    endIso,
+    attendeeEmail: clientEmail,
+    timezone: meeting.timezone,
+    withMeet: true,
+  });
+
+  if (!event?.meetLink) {
+    return { ok: false, error: "Google didn't return a Meet link. Try again." };
+  }
+
   const { error } = await supabase
     .from("meetings")
     .update({
-      meet_link: parsed.data.meetLink || null,
+      meet_link: event.meetLink,
       updated_at: new Date().toISOString(),
     } as never)
-    .eq("id", parsed.data.id)
+    .eq("id", input.id)
     .eq("user_id", userId);
 
   if (error) return { ok: false, error: error.message };
-  return { ok: true, message: "Meeting link saved." };
+
+  revalidatePath(`/dashboard/meetings/${input.id}`);
+  revalidatePath("/dashboard/meetings");
+  return {
+    ok: true,
+    data: { meetLink: event.meetLink },
+    message: "Meet link created.",
+  };
 }
 
 async function setStatus(
@@ -589,4 +606,48 @@ async function notifyClientOfConfirm(args: {
     attachments: args.attachment ? [args.attachment] : undefined,
     tags: ["meeting-confirmed-client"],
   });
+}
+
+// ---------------------------------------------------------------------------
+// NOTES — client-facing brief and the freelancer's private notes
+// ---------------------------------------------------------------------------
+
+const notesSchema = z.object({
+  id: z.string().uuid(),
+  /** Shown to the client on the public booking page. */
+  notes: z.string().trim().max(4000).nullable().optional(),
+  /** Never leaves the dashboard. */
+  privateNotes: z.string().trim().max(8000).nullable().optional(),
+});
+
+export async function updateMeetingNotesAction(
+  input: z.infer<typeof notesSchema>,
+): Promise<MeetingActionResult> {
+  const userId = await requireUserId();
+  if (!userId) return { ok: false, error: "Please sign in." };
+
+  const parsed = notesSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: "Please check your notes." };
+  const d = parsed.data;
+
+  // Only write the fields the caller actually sent, so saving private notes
+  // can never blank out the client brief (or the reverse).
+  const patch: Record<string, unknown> = {
+    updated_at: new Date().toISOString(),
+  };
+  if (d.notes !== undefined) patch.notes = d.notes || null;
+  if (d.privateNotes !== undefined) patch.private_notes = d.privateNotes || null;
+
+  const supabase = await getServerSupabase();
+  const { error } = await supabase
+    .from("meetings")
+    .update(patch as never)
+    .eq("id", d.id)
+    .eq("user_id", userId);
+
+  if (error) return { ok: false, error: error.message };
+
+  revalidatePath(`/dashboard/meetings/${d.id}`);
+  revalidatePath("/dashboard/meetings");
+  return { ok: true, message: "Notes saved." };
 }

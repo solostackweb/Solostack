@@ -5,7 +5,6 @@ import { CheckCircle2, Video } from "lucide-react";
 import { toast } from "sonner";
 
 import { confirmMeetingSlotAction } from "../actions";
-import { DailyEmbed, isEmbeddableRoom } from "./daily-embed";
 
 interface PortalMeeting {
   id: string;
@@ -64,7 +63,6 @@ function PortalCallCard({ meeting }: { meeting: PortalMeeting }) {
     meeting.status === "confirmed" ? meeting.scheduledAt : null,
   );
   const [busy, setBusy] = React.useState(false);
-  const [joined, setJoined] = React.useState(false);
 
   const pick = async (slot: string) => {
     setBusy(true);
@@ -95,32 +93,14 @@ function PortalCallCard({ meeting }: { meeting: PortalMeeting }) {
             {formatSlot(confirmedAt)}
           </div>
           {meeting.meetLink ? (
-            isEmbeddableRoom(meeting.meetLink) ? (
-              joined ? (
-                <DailyEmbed
-                  url={meeting.meetLink}
-                  title={meeting.topic}
-                  onLeft={() => setJoined(false)}
-                />
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => setJoined(true)}
-                  className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground"
-                >
-                  <Video className="h-4 w-4" /> Join call
-                </button>
-              )
-            ) : (
-              <a
-                href={meeting.meetLink}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground"
-              >
-                <Video className="h-4 w-4" /> Join call
-              </a>
-            )
+            <a
+              href={meeting.meetLink}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground"
+            >
+              <Video className="h-4 w-4" /> Join Google Meet
+            </a>
           ) : (
             <p className="text-xs text-muted-foreground">
               The video link will appear here before the call.

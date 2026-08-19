@@ -4,9 +4,9 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import { getServerSupabase } from "@/lib/supabase/server";
-import { getGmailSendAsState } from "@/features/email/gmail-sender";
+import { getGmailSendAsState } from "./gmail-sender";
 
-export type IntegrationActionResult =
+export type GmailSendAsActionResult =
   | { ok: true; message?: string }
   | { ok: false; error: string };
 
@@ -21,7 +21,7 @@ const toggleSchema = z.object({ enabled: z.boolean() });
  */
 export async function setGmailSendAsAction(
   input: z.infer<typeof toggleSchema>,
-): Promise<IntegrationActionResult> {
+): Promise<GmailSendAsActionResult> {
   const parsed = toggleSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: "Invalid input." };
 
@@ -53,7 +53,7 @@ export async function setGmailSendAsAction(
 
   if (error) return { ok: false, error: error.message };
 
-  revalidatePath("/dashboard/settings/integrations");
+  revalidatePath("/dashboard/settings/notifications");
   return {
     ok: true,
     message: parsed.data.enabled

@@ -5,7 +5,6 @@ import { CalendarClock, Check, Clock, Video } from "lucide-react";
 import { toast } from "sonner";
 
 import { confirmMeetingSlotAction } from "../actions";
-import { DailyEmbed, isEmbeddableRoom } from "./daily-embed";
 
 interface PublicMeeting {
   topic: string;
@@ -74,14 +73,22 @@ export function MeetingConfirmView({
     meeting.meetLink,
   );
   const [busy, setBusy] = React.useState(false);
-  const [joined, setJoined] = React.useState(false);
-  const [left, setLeft] = React.useState(false);
   const [pendingSlot, setPendingSlot] = React.useState<string | null>(null);
   const [now, setNow] = React.useState(() => Date.now());
 
   React.useEffect(() => {
     const timer = setInterval(() => setNow(Date.now()), 30_000);
     return () => clearInterval(timer);
+  }, []);
+
+  // Booking across timezones is the single most common way these pages go
+  // wrong, so name the zone the times are actually rendered in.
+  const viewerTimezone = React.useMemo(() => {
+    try {
+      return Intl.DateTimeFormat().resolvedOptions().timeZone;
+    } catch {
+      return null;
+    }
   }, []);
 
   const grouped = React.useMemo(() => {
@@ -132,31 +139,9 @@ export function MeetingConfirmView({
     (joinClosesMs !== null && now > joinClosesMs) ||
     meeting.status === "completed";
   const canJoin = joinOpensMs !== null && now >= joinOpensMs && !ended;
-  const embeddable = isEmbeddableRoom(meetLink);
   const cancelled = meeting.status === "cancelled";
-
-  // ---- Full-width in-call stage --------------------------------------------
-  if (confirmedAt && joined && embeddable && meetLink && !left && !ended) {
-    return (
-      <div
-        className="min-h-screen bg-slate-950 text-white"
-        style={{ colorScheme: "dark" }}
-      >
-        <div className="mx-auto max-w-5xl px-4 py-6">
-          <div className="mb-3 flex items-center gap-2 text-sm font-medium text-slate-200">
-            <Video className="h-4 w-4" /> {meeting.topic}
-          </div>
-          <DailyEmbed
-            url={meetLink}
-            onLeft={() => {
-              setJoined(false);
-              setLeft(true);
-            }}
-          />
-        </div>
-      </div>
-    );
-  }
+  const minutesToStart =
+    startMs !== null ? Math.round((startMs - now) / 60_000) : null;
 
   return (
     <div
@@ -208,12 +193,6 @@ export function MeetingConfirmView({
               This meeting has been cancelled. Please reach out to {hostName} to
               reschedule.
             </p>
-          ) : left ? (
-            <Centered
-              tone="emerald"
-              title="You've left the call"
-              body={`Thanks! You can close this tab now. ${hostName} will follow up if anything else is needed.`}
-            />
           ) : confirmedAt && ended ? (
             <Centered
               title="This meeting has ended"
@@ -233,37 +212,47 @@ export function MeetingConfirmView({
                 </p>
               </div>
 
+              {viewerTimezone ? (
+                <p className="text-xs text-slate-400">{viewerTimezone}</p>
+              ) : null}
+
               {canJoin ? (
                 meetLink ? (
-                  embeddable ? (
-                    <button
-                      type="button"
-                      onClick={() => setJoined(true)}
-                      className="mx-auto inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground"
-                    >
-                      <Video className="h-4 w-4" /> Join the call
-                    </button>
-                  ) : (
-                    <a
-                      href={meetLink}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="mx-auto inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground"
-                    >
-                      <Video className="h-4 w-4" /> Join the call
-                    </a>
-                  )
+                  <a
+                    href={meetLink}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="mx-auto inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground"
+                  >
+                    <Video className="h-4 w-4" /> Join on Google Meet
+                  </a>
                 ) : (
                   <p className="text-xs text-slate-500">
                     {hostName} will share the video link before the call.
                   </p>
                 )
               ) : (
-                <p className="rounded-lg bg-slate-50 px-4 py-3 text-xs text-slate-500">
-                  You can join {JOIN_OPEN_MIN} minutes before your call — this
-                  page updates automatically. A calendar invite is in your
-                  inbox.
-                </p>
+                <div className="space-y-2 rounded-lg bg-slate-50 px-4 py-3">
+                  {minutesToStart !== null && minutesToStart > 0 ? (
+                    <p className="text-sm font-semibold tabular-nums text-slate-700">
+                      Starts in{" "}
+                      {minutesToStart >= 1440
+                        ? `${Math.round(minutesToStart / 1440)} day${
+                            Math.round(minutesToStart / 1440) === 1 ? "" : "s"
+                          }`
+                        : minutesToStart >= 60
+                          ? `${Math.round(minutesToStart / 60)} hour${
+                              Math.round(minutesToStart / 60) === 1 ? "" : "s"
+                            }`
+                          : `${minutesToStart} minutes`}
+                    </p>
+                  ) : null}
+                  <p className="text-xs text-slate-500">
+                    The Google Meet button appears {JOIN_OPEN_MIN} minutes
+                    before the start — this page updates on its own. A calendar
+                    invite is already in your inbox.
+                  </p>
+                </div>
               )}
             </div>
           ) : meeting.proposedSlots.length === 0 ? (
@@ -301,7 +290,15 @@ export function MeetingConfirmView({
                 </div>
               ))}
               <p className="text-xs text-slate-400">
-                Times are shown in your local timezone.
+                Times shown in{" "}
+                {viewerTimezone ? (
+                  <span className="font-medium text-slate-500">
+                    {viewerTimezone}
+                  </span>
+                ) : (
+                  "your local timezone"
+                )}
+                .
               </p>
             </div>
           )}
