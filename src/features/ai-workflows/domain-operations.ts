@@ -1622,7 +1622,7 @@ export async function createMeetingFromAiAction(input: AiCreateInput) {
       ok: false as const,
       availabilitySetup: true as const,
       error:
-        "Your Google Calendar isn't connected yet. Connect it to use live availability, or schedule this call with specific times.",
+        "Your Google Calendar isn't connected yet. Every call is booked on it and joined over Google Meet, so connect it first and I'll set this up.",
     };
   }
   const openSlots = await computeOpenSlots(userId, { durationMinutes });

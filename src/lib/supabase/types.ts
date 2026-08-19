@@ -1280,6 +1280,8 @@ export interface PortalMeetingRow {
   topic: string;
   proposed_time: string | null;
   meet_link: string | null;
+  /** Google Calendar event id, so the event can be removed later. */
+  google_event_id: string | null;
   notes: string | null;
   status: PortalMeetingStatus;
   scheduled_at: string | null;

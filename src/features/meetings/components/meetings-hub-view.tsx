@@ -8,7 +8,6 @@ import {
   CalendarClock,
   Check,
   Copy,
-  Link2,
   Plus,
   Settings2,
   Video,
@@ -21,6 +20,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { IvoEntryPoint } from "@/features/ai-workflows/components/ivo-entry-point";
 import { MEETING_STATUS_LABEL, type Meeting, type MeetingStatus } from "../types";
+import type { MeetingsCalendarState } from "../calendar-state";
 import { cancelMeetingAction, completeMeetingAction } from "../actions";
 import {
   Dialog,
@@ -30,18 +30,7 @@ import {
 } from "@/components/ui/dialog";
 import { MeetingCalendar } from "./meeting-calendar";
 import { WeekStrip } from "./week-strip";
-
-/**
- * Google connection state. Meetings run entirely on Google Calendar + Meet, so
- * this is a gate rather than a nicety: without it there is no availability to
- * offer and no link to join.
- */
-export interface MeetingsCalendarState {
-  configured: boolean;
-  tokenStorageReady: boolean;
-  connected: boolean;
-  email: string | null;
-}
+import { MeetingsGate } from "./meetings-gate";
 
 function formatSlot(iso: string): string {
   const date = new Date(iso);
@@ -193,34 +182,11 @@ export function MeetingsHubView({
   };
 
   // ---- Gate: no Google, no meetings ---------------------------------------
-  if (!calendar.configured || !calendar.tokenStorageReady) {
+  if (!calendar.configured || !calendar.tokenStorageReady || !calendar.connected) {
     return (
       <div className="space-y-6">
         <Header calendar={calendar} gated />
-        <GateCard
-          title="Meetings aren't set up on this deployment"
-          body="Scheduling runs on Google Calendar and Google Meet. The Google credentials are missing from this environment, so there's nothing to connect to yet."
-        />
-      </div>
-    );
-  }
-
-  if (!calendar.connected) {
-    return (
-      <div className="space-y-6">
-        <Header calendar={calendar} gated />
-        <GateCard
-          title="Connect Google Calendar to start scheduling"
-          body="Clients book against your real free time, a calendar event is created for both of you, and every call gets a Google Meet link automatically."
-          action={
-            <Button asChild>
-              <a href="/api/google/connect?next=/dashboard/meetings">
-                <Link2 className="h-4 w-4" /> Connect Google Calendar
-              </a>
-            </Button>
-          }
-          footnote="Stackivo reads your busy times and creates events. It never reads the contents of your existing meetings."
-        />
+        <MeetingsGate calendar={calendar} />
       </div>
     );
   }
@@ -341,36 +307,6 @@ export function MeetingsHubView({
         </DialogContent>
       </Dialog>
     </div>
-  );
-}
-
-function GateCard({
-  title,
-  body,
-  action,
-  footnote,
-}: {
-  title: string;
-  body: string;
-  action?: React.ReactNode;
-  footnote?: string;
-}) {
-  return (
-    <Card>
-      <CardContent className="mx-auto flex max-w-md flex-col items-center gap-4 p-10 text-center">
-        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary">
-          <CalendarCheck className="h-6 w-6" />
-        </div>
-        <div className="space-y-1.5">
-          <h2 className="text-base font-semibold">{title}</h2>
-          <p className="text-sm leading-relaxed text-muted-foreground">{body}</p>
-        </div>
-        {action}
-        {footnote ? (
-          <p className="text-xs text-muted-foreground">{footnote}</p>
-        ) : null}
-      </CardContent>
-    </Card>
   );
 }
 

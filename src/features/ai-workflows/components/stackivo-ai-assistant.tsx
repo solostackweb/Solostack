@@ -2380,8 +2380,10 @@ export function StackivoAiAssistant({ user }: StackivoAiAssistantProps) {
           if (!res.ok) {
             if ("needsConfirm" in res && res.needsConfirm) showConfirm(res.summary, res.response);
             else if ("availabilitySetup" in res && res.availabilitySetup) {
-              const manualParams = new URLSearchParams({ topic: fields.topic || "Call" });
-              if (cId) manualParams.set("clientId", cId);
+              // Connecting the calendar is the only recovery path. There used
+              // to be a "choose specific times" fallback here, but scheduling
+              // without Google no longer exists — that button routed to a page
+              // which would have produced a call with no Meet link.
               push({
                 role: "assistant",
                 content: (
@@ -2393,17 +2395,7 @@ export function StackivoAiAssistant({ user }: StackivoAiAssistantProps) {
                         size="sm"
                         onClick={() => router.push("/dashboard/meetings/availability")}
                       >
-                        <CalendarClock className="h-4 w-4" /> Set availability
-                      </Button>
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="outline"
-                        onClick={() =>
-                          router.push(`/dashboard/meetings/new?${manualParams.toString()}`)
-                        }
-                      >
-                        Choose specific times
+                        <CalendarClock className="h-4 w-4" /> Connect calendar
                       </Button>
                     </div>
                   </div>

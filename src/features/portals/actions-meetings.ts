@@ -16,6 +16,60 @@ import {
   dispatchPortalMeetingConfirmedComms,
 } from "./email";
 import { sendPushToPortal } from "./push";
+import {
+  accessTokenForBooking,
+  getCalendarConnection,
+  isGoogleConfigured,
+} from "@/features/scheduling/server";
+import {
+  createCalendarEvent,
+  deleteCalendarEvent,
+} from "@/features/scheduling/google";
+
+/**
+ * Remove a portal meeting's calendar event, mirroring the rule the main
+ * meetings flow uses: declining or cancelling always clears the event so the
+ * slot frees up and the client's invite disappears, while completing only
+ * clears one that hasn't happened yet — a past call stays as a record.
+ *
+ * Best-effort throughout: the status change is the user's intent and must not
+ * fail because Google is unreachable.
+ */
+async function clearPortalMeetingEvent(
+  ownerUserId: string,
+  meetingId: string,
+  portalId: string,
+  opts: { onlyIfFuture?: boolean } = {},
+): Promise<void> {
+  const admin = getAdminSupabase();
+  const { data } = await admin
+    .from("portal_meetings")
+    .select("google_event_id, scheduled_at")
+    .eq("id", meetingId)
+    .eq("portal_id", portalId)
+    .maybeSingle();
+
+  const row = data as
+    | { google_event_id: string | null; scheduled_at: string | null }
+    | null;
+  if (!row?.google_event_id) return;
+
+  if (opts.onlyIfFuture) {
+    const startsInFuture =
+      Boolean(row.scheduled_at) &&
+      new Date(row.scheduled_at as string).getTime() > Date.now();
+    if (!startsInFuture) return;
+  }
+
+  const token = await accessTokenForBooking(ownerUserId);
+  if (token) await deleteCalendarEvent(token, row.google_event_id);
+
+  await admin
+    .from("portal_meetings")
+    .update({ google_event_id: null, updated_at: new Date().toISOString() } as never)
+    .eq("id", meetingId)
+    .eq("portal_id", portalId);
+}
 
 // =============================================================================
 // REQUEST MEETING  (owner or client can request)
@@ -116,17 +170,74 @@ export async function acceptPortalMeetingAction(
     return { ok: false, error: mapAccessError(access) };
   }
 
-  // The owner supplies the video link (Google Meet / Zoom). We no longer
-  // auto-generate a public Jitsi room — meet.jit.si now requires a logged-in
-  // moderator, so anonymous rooms get stuck "waiting for a moderator".
-  const meetLink = parsed.data.meetLink?.trim() || null;
+  // Accepting books the call on the owner's Google Calendar and takes the Meet
+  // link from that event, same as every other meeting in the product. The old
+  // behaviour — owner pastes a link by hand — meant portal calls never hit
+  // free/busy, so the slot stayed bookable and double-bookings were possible.
+  const calendar = await getCalendarConnection(access.userId);
+  if (!isGoogleConfigured() || !calendar.connected) {
+    return {
+      ok: false,
+      error:
+        "Connect Google Calendar before accepting — the call is booked on it and joined over Meet.",
+    };
+  }
 
   const admin = getAdminSupabase();
+  const { data: existingRow } = await admin
+    .from("portal_meetings")
+    .select("topic, notes, duration_minutes, timezone, google_event_id")
+    .eq("id", parsed.data.meetingId)
+    .eq("portal_id", parsed.data.portalId)
+    .maybeSingle();
+  const existing = existingRow as
+    | {
+        topic: string;
+        notes: string | null;
+        duration_minutes: number;
+        timezone: string;
+        google_event_id: string | null;
+      }
+    | null;
+
+  const scheduledAt = parsed.data.scheduledAt ?? null;
+  const durationMinutes =
+    parsed.data.durationMinutes ?? existing?.duration_minutes ?? 30;
+
+  let meetLink: string | null = null;
+  let googleEventId: string | null = null;
+
+  if (scheduledAt) {
+    const token = await accessTokenForBooking(access.userId);
+    if (token) {
+      // Re-accepting an already-accepted request must replace its event, not
+      // leave a duplicate behind.
+      if (existing?.google_event_id) {
+        await deleteCalendarEvent(token, existing.google_event_id);
+      }
+      const endIso = new Date(
+        new Date(scheduledAt).getTime() + durationMinutes * 60_000,
+      ).toISOString();
+      const event = await createCalendarEvent(token, {
+        summary: existing?.topic ?? "Client call",
+        description: existing?.notes ?? undefined,
+        startIso: scheduledAt,
+        endIso,
+        attendeeEmail: await lookupPortalMemberEmail(parsed.data.meetingId),
+        timezone: existing?.timezone || "Asia/Kolkata",
+        withMeet: true,
+      });
+      meetLink = event?.meetLink ?? null;
+      googleEventId = event?.eventId ?? null;
+    }
+  }
+
   const { error } = await admin
     .from("portal_meetings")
     .update({
       status: "accepted",
       meet_link: meetLink,
+      google_event_id: googleEventId,
       proposed_time: parsed.data.proposedTime ?? undefined,
       scheduled_at: parsed.data.scheduledAt ?? undefined,
       duration_minutes: parsed.data.durationMinutes ?? undefined,
@@ -196,6 +307,8 @@ export async function declinePortalMeetingAction(input: {
     .eq("id", input.meetingId)
     .eq("portal_id", input.portalId);
 
+  await clearPortalMeetingEvent(access.userId, input.meetingId, input.portalId);
+
   await recordPortalActivity({
     portalId: input.portalId,
     actorId: access.userId,
@@ -229,6 +342,10 @@ export async function completePortalMeetingAction(input: {
     .update({ status: "completed", updated_at: new Date().toISOString() } as never)
     .eq("id", input.meetingId)
     .eq("portal_id", input.portalId);
+
+  await clearPortalMeetingEvent(access.userId, input.meetingId, input.portalId, {
+    onlyIfFuture: true,
+  });
 
   await recordPortalActivity({
     portalId: input.portalId,
@@ -280,6 +397,18 @@ export async function cancelPortalMeetingAction(input: {
     .update({ status: "cancelled", updated_at: new Date().toISOString() } as never)
     .eq("id", input.meetingId)
     .eq("portal_id", input.portalId);
+
+  // A client can cancel too, and the event lives on the *owner's* calendar —
+  // so clean it up with the portal owner's token, never the canceller's.
+  const { data: portalRow } = await admin
+    .from("portals")
+    .select("user_id")
+    .eq("id", input.portalId)
+    .maybeSingle();
+  const ownerUserId = (portalRow as { user_id: string } | null)?.user_id;
+  if (ownerUserId) {
+    await clearPortalMeetingEvent(ownerUserId, input.meetingId, input.portalId);
+  }
 
   revalidatePath(portalClientHome(input.portalId));
   revalidatePath(portalDashboardDetail(input.portalId));
@@ -338,4 +467,32 @@ function mapAccessError(err: PortalAccessError): string {
     case "forbidden":       return "You don't have permission to do that.";
     case "not_found":       return "Portal not found.";
   }
+}
+
+/**
+ * The email of whoever requested a portal meeting, so the calendar invite
+ * actually reaches them. Returns null when the member has no address on file —
+ * the event is still created, just without an attendee.
+ */
+async function lookupPortalMemberEmail(
+  meetingId: string,
+): Promise<string | null> {
+  const admin = getAdminSupabase();
+  const { data: meetingRow } = await admin
+    .from("portal_meetings")
+    .select("requested_by")
+    .eq("id", meetingId)
+    .maybeSingle();
+  const requestedBy = (meetingRow as { requested_by: string } | null)
+    ?.requested_by;
+  if (!requestedBy) return null;
+
+  // portal_members is keyed by (portal_id, user_id) and carries no address, so
+  // the email comes from the requester's profile.
+  const { data } = await admin
+    .from("user_profiles")
+    .select("email")
+    .eq("id", requestedBy)
+    .maybeSingle();
+  return (data as { email: string | null } | null)?.email ?? null;
 }

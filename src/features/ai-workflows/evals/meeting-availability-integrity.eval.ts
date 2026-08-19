@@ -41,9 +41,27 @@ test("Ivo checks calendar readiness and real open times before requesting approv
   );
 });
 
-test("Ivo offers recovery paths instead of a dead booking link", () => {
+test("Ivo routes an unconnected calendar to the one real recovery path", () => {
   assert.match(PANEL, /"availabilitySetup" in res && res\.availabilitySetup/);
   assert.match(PANEL, /router\.push\("\/dashboard\/meetings\/availability"\)/);
-  assert.match(PANEL, /Choose specific times/);
-  assert.match(PANEL, /dashboard\/meetings\/new\?\$\{manualParams\.toString\(\)\}/);
+});
+
+test("Ivo never offers scheduling without a connected calendar", () => {
+  // Meetings are booked on Google Calendar and joined over Meet, so there is
+  // no manual-times fallback to fall back to. Offering one sent people to a
+  // page that produced a call which could never get a join link.
+  assert.doesNotMatch(PANEL, /Choose specific times/);
+  assert.doesNotMatch(PANEL, /dashboard\/meetings\/new\?\$\{manualParams/);
+});
+
+test("creating a meeting requires a connected calendar server-side", () => {
+  // The pages gate too, but the action is the only thing a direct call, a
+  // stale tab, or a future caller has to get past.
+  const gate = MEETING_ACTIONS.indexOf("const calendar = await getCalendarConnection(userId)");
+  const insertion = MEETING_ACTIONS.indexOf('.from("meetings")');
+  assert.ok(gate >= 0 && gate < insertion);
+  assert.match(
+    MEETING_ACTIONS.slice(gate, insertion),
+    /!isGoogleConfigured\(\) \|\| !calendar\.connected/,
+  );
 });

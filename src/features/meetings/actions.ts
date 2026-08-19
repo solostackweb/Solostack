@@ -17,6 +17,8 @@ import { getPublicAppUrl } from "@/features/documents/urls";
 import {
   accessTokenForBooking,
   computeOpenSlots,
+  getCalendarConnection,
+  isGoogleConfigured,
 } from "@/features/scheduling/server";
 import {
   createCalendarEvent,
@@ -89,6 +91,20 @@ export async function createMeetingAction(
   const d = parsed.data;
   const mode = d.mode ?? "slots";
   const slots = d.slots ?? [];
+
+  // Every meeting is booked onto Google Calendar and joined over Meet, so a
+  // connection is a hard requirement rather than an enhancement. The pages
+  // gate on this too; enforcing it here means a direct action call, a stale
+  // tab, or a future caller can't slip past and create a meeting that could
+  // never produce a join link.
+  const calendar = await getCalendarConnection(userId);
+  if (!isGoogleConfigured() || !calendar.connected) {
+    return {
+      ok: false,
+      error:
+        "Connect Google Calendar before scheduling — every call is booked on it and joined over Meet.",
+    };
+  }
   if (mode === "slots" && slots.length === 0) {
     return { ok: false, error: "Offer at least one time slot." };
   }

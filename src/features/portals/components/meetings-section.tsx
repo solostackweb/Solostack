@@ -124,7 +124,6 @@ function MeetingCard({
 }) {
   const router = useRouter();
   const [acceptOpen, setAcceptOpen] = React.useState(false);
-  const [meetLink, setMeetLink] = React.useState(meeting.meet_link ?? "");
   // Confirmed time is now a real date+time picker. We hold an ISO-ish
   // `datetime-local` value and format it to a readable string on submit.
   const [confirmedAt, setConfirmedAt] = React.useState("");
@@ -157,7 +156,6 @@ function MeetingCard({
       : meeting.proposed_time ?? undefined;
     const res = await acceptPortalMeetingAction({
       portalId, meetingId: meeting.id,
-      meetLink: meetLink.trim() || undefined,
       proposedTime: formattedTime || undefined,
       scheduledAt: confirmedAt ? new Date(confirmedAt).toISOString() : undefined,
       durationMinutes,
@@ -167,7 +165,6 @@ function MeetingCard({
     setAcceptOpen(false);
     onPatch(meeting.id, {
       status: "accepted",
-      meet_link: meetLink.trim() || meeting.meet_link,
       proposed_time: formattedTime ?? meeting.proposed_time,
       scheduled_at: confirmedAt ? new Date(confirmedAt).toISOString() : meeting.scheduled_at,
     });
@@ -245,7 +242,7 @@ function MeetingCard({
           )}
         </div>
 
-        {/* Meeting details: time + link + notes */}
+        {/* Meeting details: time + Meet link + notes */}
         {(meeting.proposed_time || meeting.meet_link || meeting.notes) && (
           <div className="space-y-1.5 rounded-md bg-muted/40 px-3 py-2.5">
             {meeting.proposed_time && (
@@ -314,7 +311,7 @@ function MeetingCard({
                 Decline
               </Button>
             )}
-            {/* Owner: Edit link / time of a confirmed meeting */}
+            {/* Owner: reschedule a confirmed meeting (replaces its calendar event) */}
             {isOwner && meeting.status === "accepted" && (
               <Button
                 size="sm"
@@ -396,7 +393,7 @@ function MeetingCard({
         open={acceptOpen}
         onOpenChange={(next) => { setAcceptOpen(next); if (!next) setError(null); }}
         title={meeting.status === "accepted" ? "Edit meeting" : "Confirm meeting"}
-        description="Set a date and time, and add a video call link (Google Meet or Zoom)."
+        description="Pick the date and time. The calendar event and Google Meet link are created for you."
       >
           <form onSubmit={handleAccept} className="space-y-4">
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
@@ -431,25 +428,12 @@ function MeetingCard({
                 </select>
               </div>
             </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="accept-link" className="text-xs">
-                Video call link
-              </Label>
-              <Input
-                id="accept-link"
-                placeholder="https://meet.google.com/xxx-xxxx-xxx"
-                value={meetLink}
-                onChange={(e) => setMeetLink(e.target.value)}
-              />
-              <a
-                href="https://meet.google.com/new"
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground"
-              >
-                <IntegrationLogo id="google_meet" className="h-3 w-3" />
-                Create a new Google Meet
-              </a>
+            <div className="flex items-start gap-2 rounded-lg border border-dashed bg-muted/30 p-2.5">
+              <IntegrationLogo id="google_meet" className="mt-0.5 h-3.5 w-3.5" />
+              <p className="text-[11px] leading-relaxed text-muted-foreground">
+                Confirming adds this call to your Google Calendar and creates
+                the Google Meet link — no need to make one yourself.
+              </p>
             </div>
             {error && (
               <p className="rounded-md bg-destructive/10 p-2 text-xs text-destructive">
@@ -604,13 +588,12 @@ function RequestMeetingDialog({
   const [open, setOpen] = React.useState(false);
   const [topic, setTopic] = React.useState("");
   const [time, setTime] = React.useState("");
-  const [link, setLink] = React.useState("");
   const [notes, setNotes] = React.useState("");
   const [pending, setPending] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
 
   function reset() {
-    setTopic(""); setTime(""); setLink(""); setNotes(""); setError(null);
+    setTopic(""); setTime(""); setNotes(""); setError(null);
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -633,7 +616,6 @@ function RequestMeetingDialog({
       portalId,
       topic: topic.trim(),
       proposedTime: formattedTime,
-      meetLink: link.trim() || undefined,
       notes: notes.trim() || undefined,
     });
     setPending(false);
@@ -644,7 +626,10 @@ function RequestMeetingDialog({
       requested_by: currentUserId,
       topic: topic.trim(),
       proposed_time: formattedTime ?? null,
-      meet_link: link.trim() || null,
+      // A pending request has no call yet — the Meet link and its calendar
+      // event are created when the owner confirms a time.
+      meet_link: null,
+      google_event_id: null,
       notes: notes.trim() || null,
       status: "pending",
       scheduled_at: null,
@@ -702,28 +687,6 @@ function RequestMeetingDialog({
                 value={time}
                 onChange={(e) => setTime(e.target.value)}
               />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="req-link" className="text-xs">
-                Google Meet link{" "}
-                <span className="font-normal text-muted-foreground">(optional)</span>
-              </Label>
-              <Input
-                id="req-link"
-                placeholder="https://meet.google.com/xxx-xxxx-xxx"
-                value={link}
-                onChange={(e) => setLink(e.target.value)}
-                maxLength={500}
-              />
-              <a
-                href="https://meet.google.com/new"
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground"
-              >
-                <IntegrationLogo id="google_meet" className="h-3 w-3" />
-                Create a new Google Meet
-              </a>
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="req-notes" className="text-xs">
