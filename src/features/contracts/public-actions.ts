@@ -5,6 +5,7 @@ import { env } from "@/config/env";
 import { isValidPublicShareToken } from "@/features/share/server";
 import { getClientIp, publicSignLimit } from "@/lib/rate-limit";
 import { dispatchDelivery, pdfAttachment } from "@/features/email/send";
+import { resolveEmailLogoUrl } from "@/features/email/logo";
 import {
   buildEmailBrand,
   renderContractSignedCopyEmail,
@@ -250,7 +251,7 @@ async function sendSignedContractCopyToClient({
     admin
       .from("user_profiles")
       .select(
-        "business_name, legal_name, full_name, email, brand_color, business_email, business_phone, website",
+        "business_name, legal_name, full_name, email, brand_color, logo_url, business_email, business_phone, website",
       )
       .eq("id", contract.user_id)
       .maybeSingle(),
@@ -267,6 +268,7 @@ async function sendSignedContractCopyToClient({
         full_name?: string | null;
         email?: string | null;
         brand_color?: string | null;
+        logo_url?: string | null;
         business_email?: string | null;
         business_phone?: string | null;
         website?: string | null;
@@ -292,7 +294,7 @@ async function sendSignedContractCopyToClient({
       legalName: p?.legal_name ?? pdfData.seller.legalName,
       fullName: p?.full_name ?? null,
       brandColor: p?.brand_color ?? pdfData.brandColor,
-      logoUrl: pdfData.seller.logoDataUrl,
+      logoUrl: await resolveEmailLogoUrl(p?.logo_url, admin),
       businessEmail: p?.business_email ?? pdfData.seller.email,
       businessPhone: p?.business_phone ?? pdfData.seller.phone,
       email: p?.email ?? null,

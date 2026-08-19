@@ -22,6 +22,7 @@ import {
 } from "@/features/email/templates";
 import { dispatchDelivery, pdfAttachment } from "@/features/email/send";
 import { getEmailSender } from "@/features/email/senders";
+import { resolveEmailLogoUrl } from "@/features/email/logo";
 import { recordActivity } from "@/features/activity/server";
 import { createNotification } from "@/features/notifications/server";
 import { getContractShareUrl } from "@/features/documents/urls";
@@ -108,14 +109,15 @@ export async function sendContractAction(
   const senderName =
     p?.business_name ?? p?.legal_name ?? p?.full_name ?? "Stackivo";
 
-  // Reuse the logo URL already resolved for the PDF so the email shows
-  // the same brand mark.
+  // Email gets a signed https URL, never the PDF's base64 data URL — mail
+  // clients strip `data:` images and filters penalise the bulk. See
+  // features/email/logo.ts.
   const emailBrand = buildEmailBrand({
     businessName: p?.business_name ?? null,
     legalName: p?.legal_name ?? null,
     fullName: p?.full_name ?? null,
     brandColor: p?.brand_color ?? null,
-    logoUrl: pdfData.seller.logoDataUrl,
+    logoUrl: await resolveEmailLogoUrl(p?.logo_url, supabase),
     businessEmail: p?.business_email ?? null,
     businessPhone: p?.business_phone ?? null,
     email: p?.email ?? null,

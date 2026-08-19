@@ -211,7 +211,11 @@ function buildHeader({
   businessName: string;
   logoUrl: string | null;
 }): string {
-  const logo = logoUrl
+  // Only ever emit an <img> for a real http(s) URL. `data:` URIs are stripped
+  // by Gmail and Outlook, so inlining one shows nothing while bloating the
+  // body with base64 — a strong spam signal for no benefit. See
+  // features/email/logo.ts.
+  const logo = logoUrl && /^https?:\/\//i.test(logoUrl)
     ? `<img src="${escapeAttr(logoUrl)}" alt="${escapeAttr(businessName)}" width="32" height="32" style="display:block;border-radius:6px;margin-right:10px;border:0;outline:none;" />`
     : `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${accent};margin-right:10px;vertical-align:middle;"></span>`;
 
@@ -1401,13 +1405,18 @@ export function buildEmailBrand(input: {
   phone?: string | null;
   website?: string | null;
 }): EmailBrand {
+  const logoUrl =
+    input.logoUrl && /^https?:\/\//i.test(input.logoUrl)
+      ? input.logoUrl
+      : null;
+
   return {
     businessName:
       input.businessName ??
       input.legalName ??
       input.fullName ??
       "Stackivo",
-    logoUrl: input.logoUrl ?? null,
+    logoUrl,
     accent: input.brandColor ?? null,
     contact: {
       email: input.businessEmail ?? input.email ?? null,

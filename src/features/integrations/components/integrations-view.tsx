@@ -3,7 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { CalendarCheck, Link2, Loader2, Unlink } from "lucide-react";
+import { CalendarCheck, Info, Link2, Loader2, Unlink } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -226,6 +226,65 @@ function GmailSendAsRow({
   );
 }
 
+/**
+ * The honest caveat that belongs beside the switch, not in a support article.
+ *
+ * Sending as a personal Gmail is authenticated correctly (SPF/DKIM/DMARC all
+ * pass), but a personal address carries no domain reputation, and a branded
+ * document email with an attachment from one — to a client who has never
+ * replied — is shaped like the phishing filters are built to catch. Telling
+ * people up front costs one paragraph; letting them discover it via an
+ * invoice a client never saw costs a lot more.
+ */
+function GmailSendAsNotice({
+  enabled,
+  email,
+}: {
+  enabled: boolean;
+  email: string | null;
+}) {
+  return (
+    <div className="mt-3 flex gap-2 rounded-lg border border-dashed bg-muted/20 p-3">
+      <Info
+        className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground"
+        aria-hidden="true"
+      />
+      <div className="min-w-0 space-y-1.5 text-xs leading-relaxed text-muted-foreground">
+        {enabled ? (
+          <p>
+            <span className="font-medium text-foreground">
+              Every invoice, contract, proposal, and welcome document now sends
+              from {email ?? "your Gmail address"}.
+            </span>{" "}
+            Clients see that address instead of Stackivo&apos;s.
+          </p>
+        ) : (
+          <p>
+            <span className="font-medium text-foreground">
+              Before you turn this on:
+            </span>{" "}
+            your documents would send from your own Gmail address instead of
+            Stackivo&apos;s.
+          </p>
+        )}
+        <p>
+          A personal Gmail address has no sending reputation of its own, so a
+          first email to a new client can land in their spam folder — more
+          often than mail sent through Stackivo. It usually settles once
+          they&apos;ve replied to you at least once.
+        </p>
+        <p>
+          Worth doing either way: tell a new client to check spam for your
+          first document and mark it{" "}
+          <span className="font-medium text-foreground">Not spam</span>. If you
+          have your own domain, sending from that is more reliable than a
+          personal Gmail.
+        </p>
+      </div>
+    </div>
+  );
+}
+
 export function IntegrationsView({ state }: { state: IntegrationsViewState }) {
   const router = useRouter();
   const [disconnecting, setDisconnecting] = React.useState(false);
@@ -371,6 +430,12 @@ export function IntegrationsView({ state }: { state: IntegrationsViewState }) {
                 />
                 <GmailSendAsRow gmail={gmail} />
               </ul>
+              {gmail.connected && gmail.scopeGranted ? (
+                <GmailSendAsNotice
+                  enabled={gmail.enabled}
+                  email={gmail.email}
+                />
+              ) : null}
             </IntegrationCard>
 
             <IntegrationCard

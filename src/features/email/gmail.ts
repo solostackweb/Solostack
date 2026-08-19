@@ -125,9 +125,9 @@ function buildMimeMessage(input: GmailSendInput): string {
   for (const attachment of input.attachments ?? []) {
     parts.push(
       `--${mixedBoundary}`,
-      `Content-Type: application/octet-stream; name="${sanitizeHeaderValue(
+      `Content-Type: ${attachmentContentType(
         attachment.name,
-      )}"`,
+      )}; name="${sanitizeHeaderValue(attachment.name)}"`,
       "Content-Transfer-Encoding: base64",
       `Content-Disposition: attachment; filename="${sanitizeHeaderValue(
         attachment.name,
@@ -142,6 +142,34 @@ function buildMimeMessage(input: GmailSendInput): string {
   return parts.join("\r\n");
 }
 
+/**
+ * Declare what an attachment actually is. `application/octet-stream` on a PDF
+ * both renders worse in mail clients and scores worse with filters, which
+ * treat unidentified binary as more suspicious than a named document type.
+ */
+function attachmentContentType(name: string): string {
+  const ext = name.toLowerCase().split(".").pop() ?? "";
+  switch (ext) {
+    case "pdf":
+      return "application/pdf";
+    case "ics":
+      return "text/calendar; charset=UTF-8; method=REQUEST";
+    case "png":
+      return "image/png";
+    case "jpg":
+    case "jpeg":
+      return "image/jpeg";
+    case "webp":
+      return "image/webp";
+    case "csv":
+      return "text/csv; charset=UTF-8";
+    case "txt":
+      return "text/plain; charset=UTF-8";
+    default:
+      return "application/octet-stream";
+  }
+}
+
 function stripHtml(html: string): string {
   return html
     .replace(/<style[\s\S]*?<\/style>/gi, "")
@@ -154,12 +182,15 @@ function stripHtml(html: string): string {
 }
 
 export class GmailSendError extends Error {
-  constructor(
-    message: string,
-    readonly status: number | null,
-  ) {
+  // Written as a plain field rather than a constructor parameter property:
+  // the repo's eval runner uses Node's strip-only TypeScript mode, which
+  // rejects parameter properties outright.
+  readonly status: number | null;
+
+  constructor(message: string, status: number | null) {
     super(message);
     this.name = "GmailSendError";
+    this.status = status;
   }
 }
 

@@ -24,6 +24,7 @@ import { ensureInvoicePublicToken } from "@/features/share/server";
 import { env } from "@/config/env";
 import { dispatchDelivery, pdfAttachment } from "@/features/email/send";
 import { getEmailSender } from "@/features/email/senders";
+import { resolveEmailLogoUrl } from "@/features/email/logo";
 import { recordActivity } from "@/features/activity/server";
 import { createNotification } from "@/features/notifications/server";
 import { formatCurrencyAmount } from "@/lib/format";
@@ -115,14 +116,15 @@ export async function sendInvoiceAction(
   const senderName =
     p?.business_name ?? p?.legal_name ?? p?.full_name ?? "Stackivo";
 
-  // Reuse the PDF's already-resolved logo URL so the email and the PDF
-  // header show the same image (no duplicated signed-URL roundtrip).
+  // Email gets a signed https URL, never the PDF's base64 data URL — mail
+  // clients strip `data:` images and filters penalise the bulk. See
+  // features/email/logo.ts.
   const emailBrand = buildEmailBrand({
     businessName: p?.business_name ?? null,
     legalName: p?.legal_name ?? null,
     fullName: p?.full_name ?? null,
     brandColor: pdfData.brandColor,
-    logoUrl: pdfData.seller.logoDataUrl,
+    logoUrl: await resolveEmailLogoUrl(p?.logo_url, supabase),
     businessEmail: p?.business_email ?? null,
     businessPhone: p?.business_phone ?? null,
     email: p?.email ?? null,
@@ -317,7 +319,7 @@ export async function sendInvoiceReceiptAction(input: {
     legalName: p?.legal_name ?? null,
     fullName: p?.full_name ?? null,
     brandColor: pdfData.brandColor,
-    logoUrl: pdfData.seller.logoDataUrl,
+    logoUrl: await resolveEmailLogoUrl(p?.logo_url, admin),
     businessEmail: p?.business_email ?? null,
     businessPhone: p?.business_phone ?? null,
     email: p?.email ?? null,

@@ -10,12 +10,18 @@ export async function createSignedStorageUrl(
   bucket: "profile-images" | "branding-assets",
   path: string | null | undefined,
   client?: AnySupabase,
+  /**
+   * Lifetime of the signed link. The one-hour default suits in-app previews.
+   * Email needs far longer — a recipient opening an invoice a week later must
+   * still see the logo, not a broken image.
+   */
+  expiresInSeconds = 60 * 60,
 ): Promise<string | null> {
   if (!path) return null;
   const sb = client ?? (await getServerSupabase());
   const { data, error } = await sb.storage
     .from(bucket)
-    .createSignedUrl(path, 60 * 60);
+    .createSignedUrl(path, expiresInSeconds);
   if (error || !data?.signedUrl) return null;
   return data.signedUrl;
 }

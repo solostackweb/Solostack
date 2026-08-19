@@ -9,6 +9,7 @@ import { ContractPdf } from "@/features/documents/pdf/contract-pdf";
 import { renderPdfToBuffer } from "@/features/documents/pdf/render";
 import { getProposalShareUrl } from "@/features/documents/urls";
 import { pdfAttachment } from "@/features/email/send";
+import { resolveEmailLogoUrl } from "@/features/email/logo";
 import { sendEmail } from "@/features/email/service";
 import {
   buildEmailBrand,
@@ -451,7 +452,7 @@ export async function sendProposalEmailAction(input: {
       .maybeSingle(),
     supabase
       .from("user_profiles")
-      .select("full_name,business_name,company_name,email,business_email")
+      .select("full_name,business_name,company_name,email,business_email,logo_url")
       .eq("id", userId)
       .maybeSingle(),
   ]);
@@ -533,6 +534,7 @@ export async function sendProposalEmailAction(input: {
     company_name: string | null;
     email: string | null;
     business_email: string | null;
+    logo_url: string | null;
   } | null;
   const senderName =
     profile?.business_name || profile?.company_name || profile?.full_name || "Your freelancer";
@@ -564,7 +566,7 @@ export async function sendProposalEmailAction(input: {
       businessName: profile?.business_name ?? profile?.company_name ?? null,
       fullName: profile?.full_name ?? null,
       brandColor: pdfData.brandColor,
-      logoUrl: pdfData.seller.logoDataUrl,
+      logoUrl: await resolveEmailLogoUrl(profile?.logo_url, supabase),
       businessEmail: profile?.business_email ?? null,
       email: profile?.email ?? null,
     }),

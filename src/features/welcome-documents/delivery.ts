@@ -30,6 +30,7 @@ import {
 } from "@/features/email/templates";
 import { dispatchDelivery, pdfAttachment } from "@/features/email/send";
 import { getEmailSender } from "@/features/email/senders";
+import { resolveEmailLogoUrl } from "@/features/email/logo";
 import { recordActivity } from "@/features/activity/server";
 import { createNotification } from "@/features/notifications/server";
 import { getWelcomeShareUrl, welcomeDocumentDetail } from "./routes";
@@ -149,7 +150,7 @@ export async function sendWelcomeDocumentAction(
     legalName: p?.legal_name ?? null,
     fullName: p?.full_name ?? null,
     brandColor: doc.brandColor ?? p?.brand_color ?? null,
-    logoUrl: pdfData.seller.logoDataUrl,
+    logoUrl: await resolveEmailLogoUrl(p?.logo_url, supabase),
     businessEmail: p?.business_email ?? null,
     businessPhone: p?.business_phone ?? null,
     email: p?.email ?? null,

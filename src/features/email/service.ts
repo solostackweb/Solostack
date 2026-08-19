@@ -63,12 +63,22 @@ export async function sendEmail(
   if (input.asUserId) {
     const gmail = await getGmailSenderIdentity(input.asUserId);
     if (gmail) {
+      // Drop a Reply-To that just points back at the sender. From and
+      // Reply-To naming two different addresses for one person is a
+      // needless mismatch for filters to weigh, and replying to yourself
+      // was never the intent.
+      const replyTo =
+        input.replyTo &&
+        input.replyTo.email.toLowerCase() !== gmail.email.toLowerCase()
+          ? input.replyTo
+          : undefined;
+
       try {
         const result = await sendGmailMessage({
           accessToken: gmail.accessToken,
           to: input.to,
           cc: input.cc,
-          replyTo: input.replyTo,
+          replyTo,
           subject: input.subject,
           html: input.html,
           text: input.text,
