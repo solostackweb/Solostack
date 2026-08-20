@@ -2,13 +2,22 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Upload, Users } from "lucide-react";
+import {
+  ArrowRight,
+  BadgeIndianRupee,
+  FileText,
+  FolderKanban,
+  Plus,
+  Upload,
+  Users,
+} from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { DataTable } from "@/components/data-table/data-table";
-import { EmptyState } from "@/components/shared/empty-state";
-import { IvoEntryPoint, openIvo } from "@/features/ai-workflows/components/ivo-entry-point";
-import { cn } from "@/lib/utils";
+import {
+  IvoEntryPoint,
+  openIvo,
+} from "@/features/ai-workflows/components/ivo-entry-point";
 
 import type { ClientRecord } from "../server";
 import { ClientsToolbar } from "./clients-toolbar";
@@ -43,9 +52,8 @@ export function ClientsListView({ clients, autoCreate }: ClientsListViewProps) {
       setFormOpen(true);
     }
   }, [autoCreate]);
-  const [deletingClient, setDeletingClient] = React.useState<ClientRecord | null>(
-    null,
-  );
+  const [deletingClient, setDeletingClient] =
+    React.useState<ClientRecord | null>(null);
   const [deleteOpen, setDeleteOpen] = React.useState(false);
   const [importOpen, setImportOpen] = React.useState(false);
 
@@ -76,80 +84,70 @@ export function ClientsListView({ clients, autoCreate }: ClientsListViewProps) {
   }, [clients]);
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6 sm:space-y-8">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div className="space-y-1">
           <h1 className="text-2xl font-semibold tracking-tight">Clients</h1>
           <p className="text-sm text-muted-foreground">
-            Manage your clients, contacts, and billing details.
+            The people and businesses behind your work and revenue.
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <IvoEntryPoint
-            prompt="Show my clients and tell me who I should follow up with."
-            label="Ask Ivo"
-            variant="outline"
-          />
+        <div
+          className={
+            clients.length === 0
+              ? "flex items-center gap-2"
+              : "grid grid-cols-3 gap-1.5 sm:flex sm:items-center sm:gap-2"
+          }
+        >
+          {clients.length > 0 ? (
+            <IvoEntryPoint
+              prompt="Show my clients and tell me who I should follow up with."
+              label="Ask Ivo"
+              variant="secondary"
+            />
+          ) : null}
           <Button
             onClick={() => setImportOpen(true)}
-            variant="outline"
+            variant="ghost"
             size="sm"
+            className="px-2 sm:px-3"
           >
-            <Upload className="h-3.5 w-3.5" /> Import CSV
+            <Upload className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">Import CSV</span>
+            <span className="sm:hidden">Import</span>
           </Button>
-          <Button onClick={handleAdd} size="sm">
-            <Plus /> Add client
-          </Button>
+          {clients.length > 0 ? (
+            <Button onClick={handleAdd} size="sm" className="px-2 sm:px-3">
+              <Plus /> <span className="hidden sm:inline">Add </span>client
+            </Button>
+          ) : null}
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4">
-        <StatCard label="Total clients" value={stats.total} featured />
-        <StatCard label="GST registered" value={stats.gst} />
-        <StatCard label="Unregistered" value={stats.unregistered} />
-      </div>
-
-      <DataTable
-        columns={columns}
-        data={clients}
-        initialPageSize={10}
-        onRowClick={(c) => router.push(`/dashboard/clients/${c.id}`)}
-        toolbar={(table) => <ClientsToolbar table={table} />}
-        mobileCard={(client, { isSelected, toggleSelected, onOpen }) => (
-          <ClientMobileCard
-            client={client}
-            isSelected={isSelected}
-            onToggleSelected={toggleSelected}
-            onOpen={onOpen}
-            onEdit={() => handleEdit(client)}
-            onDelete={() => handleDelete(client)}
+      {clients.length === 0 ? (
+        <EmptyClientBook onAdd={handleAdd} />
+      ) : (
+        <>
+          <ClientStats {...stats} />
+          <DataTable
+            columns={columns}
+            data={clients}
+            initialPageSize={10}
+            onRowClick={(c) => router.push(`/dashboard/clients/${c.id}`)}
+            toolbar={(table) => <ClientsToolbar table={table} />}
+            mobileCard={(client, { isSelected, toggleSelected, onOpen }) => (
+              <ClientMobileCard
+                client={client}
+                isSelected={isSelected}
+                onToggleSelected={toggleSelected}
+                onOpen={onOpen}
+                onEdit={() => handleEdit(client)}
+                onDelete={() => handleDelete(client)}
+              />
+            )}
           />
-        )}
-        emptyState={
-          <EmptyState
-            icon={Users}
-            title={
-              clients.length === 0
-                ? "No clients yet"
-                : "No clients match your filters"
-            }
-            description={
-              clients.length === 0
-                ? "Add your first client to start sending invoices and tracking work."
-                : "Try adjusting your search or filters, or add a new client."
-            }
-            action={{ label: "Add client", onClick: handleAdd }}
-            secondaryAction={
-              clients.length === 0
-                ? {
-                    label: "Ask Ivo",
-                    onClick: () => openIvo("Help me add my first client."),
-                  }
-                : undefined
-            }
-          />
-        }
-      />
+        </>
+      )}
 
       <ClientFormDialog
         open={formOpen}
@@ -163,31 +161,124 @@ export function ClientsListView({ clients, autoCreate }: ClientsListViewProps) {
         client={deletingClient}
       />
 
-      <CsvImportDialog
-        open={importOpen}
-        onOpenChange={setImportOpen}
-      />
+      <CsvImportDialog open={importOpen} onOpenChange={setImportOpen} />
     </div>
   );
 }
 
-function StatCard({
+function ClientStats({
+  total,
+  gst,
+  unregistered,
+}: {
+  total: number;
+  gst: number;
+  unregistered: number;
+}) {
+  return (
+    <div className="grid grid-cols-3 overflow-hidden rounded-2xl border border-border/70 bg-card">
+      <ClientStat label="Total clients" value={total} />
+      <ClientStat label="GST registered" value={gst} divided />
+      <ClientStat label="Unregistered" value={unregistered} divided />
+    </div>
+  );
+}
+
+function ClientStat({
   label,
   value,
-  featured,
+  divided = false,
 }: {
   label: string;
   value: number;
-  featured?: boolean;
+  divided?: boolean;
 }) {
   return (
-    <div className={cn("rounded-lg border bg-card p-4", featured && "col-span-2 sm:col-span-1")}>
+    <div
+      className={
+        divided ? "border-l border-border/60 p-4 sm:p-5" : "p-4 sm:p-5"
+      }
+    >
       <p className="text-micro font-medium uppercase tracking-wider text-muted-foreground">
         {label}
       </p>
-      <p className="mt-2 text-2xl font-semibold tabular-nums tracking-tight">
+      <p className="mt-2 font-mono text-2xl font-semibold tabular-nums tracking-tight">
         {value}
       </p>
     </div>
+  );
+}
+
+const clientFlow = [
+  { label: "Client", icon: Users },
+  { label: "Project", icon: FolderKanban },
+  { label: "Invoice", icon: FileText },
+  { label: "Paid", icon: BadgeIndianRupee },
+];
+
+function EmptyClientBook({ onAdd }: { onAdd: () => void }) {
+  return (
+    <section className="overflow-hidden rounded-2xl border border-border/70 bg-card">
+      <div className="grid lg:grid-cols-[minmax(0,0.88fr)_minmax(0,1.12fr)]">
+        <div className="border-b border-border/60 bg-primary/[0.025] p-6 sm:p-8 lg:border-b-0 lg:border-r lg:p-10">
+          <p className="text-micro font-semibold uppercase tracking-[0.16em] text-primary">
+            Your client book
+          </p>
+          <h2 className="mt-3 max-w-md font-display text-2xl font-semibold tracking-tight sm:text-3xl">
+            Every paid invoice starts with one client.
+          </h2>
+          <p className="mt-3 max-w-md text-sm leading-6 text-muted-foreground">
+            Add a person or business once, then carry their details cleanly
+            through projects, invoices, and payments.
+          </p>
+          <div className="mt-6 flex flex-wrap gap-2">
+            <Button onClick={onAdd}>
+              <Plus /> Add your first client
+            </Button>
+            <Button
+              variant="ghost"
+              onClick={() => openIvo("Help me add my first client.")}
+            >
+              Ask Ivo <ArrowRight />
+            </Button>
+          </div>
+        </div>
+
+        <div className="flex min-h-64 items-center p-6 sm:p-10">
+          <div className="relative grid w-full grid-cols-4">
+            <div
+              aria-hidden
+              className="absolute left-[12.5%] right-[12.5%] top-5 h-px bg-primary/25"
+            />
+            {clientFlow.map(({ label, icon: Icon }, index) => (
+              <div
+                key={label}
+                className="relative z-10 flex flex-col items-center text-center"
+              >
+                <span
+                  className={
+                    index === 0
+                      ? "flex h-10 w-10 items-center justify-center rounded-lg bg-primary text-primary-foreground"
+                      : "flex h-10 w-10 items-center justify-center rounded-lg border border-primary/20 bg-background text-primary"
+                  }
+                >
+                  <Icon className="h-4 w-4" />
+                </span>
+                <span className="mt-3 text-xs font-semibold">{label}</span>
+                <span className="mt-1 hidden text-micro text-muted-foreground sm:block">
+                  {index === 0
+                    ? "Add once"
+                    : index === 1
+                      ? "Do the work"
+                      : index === 2
+                        ? "Send the bill"
+                        : "Track revenue"}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </section>
   );
 }

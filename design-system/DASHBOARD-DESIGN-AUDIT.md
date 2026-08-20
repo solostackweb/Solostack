@@ -58,6 +58,23 @@ and a clearer distinction between primary work and secondary guidance.
 
 ## Next design slice
 
-Carry the same hierarchy into clients, projects, and invoices: one dominant job
-per page, fewer bordered containers, financial values in mono type, restrained
-blue emphasis, and the Flowline motif only where it explains a real relationship.
+### Clients — completed
+
+The zero-client state no longer renders three zero-value KPI cards, inactive
+search and filter controls, table columns, or pagination. It now explains the
+real product relationship — Client → Project → Invoice → Paid — and offers one
+clear primary action. Search, filters, metrics, and the data table remain
+available when records exist. The add-client dialog was opened and closed in the
+authenticated browser to verify that the redesigned action preserved behavior.
+
+Evidence:
+
+- `screenshots/clients-baseline.png` — pre-change zero-client state.
+- `screenshots/clients-calm-command.png` — desktop result.
+- `screenshots/clients-mobile-calm-command.png` — mobile result.
+
+### Next
+
+Carry the same hierarchy into projects and invoices: one dominant job per page,
+fewer bordered containers, financial values in mono type, restrained blue
+emphasis, and the Flowline motif only where it explains a real relationship.
