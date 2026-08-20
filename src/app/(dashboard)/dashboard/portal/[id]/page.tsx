@@ -57,8 +57,6 @@ export default async function PortalDetailPage({
     snapshot.welcomeDocuments.length;
   const clientName =
     snapshot.client?.fullName ?? snapshot.client?.businessName ?? null;
-  const isActive = portal.status === "active";
-
   // Money totals for the brand header strip.
   const paidAmount = formatGroupedMoney(
     snapshot.invoices.filter((invoice) => invoice.status === "paid"),
@@ -102,7 +100,7 @@ export default async function PortalDetailPage({
       </section>
 
       {/* ── Compact overview strip ─────────────────────────────────────────── */}
-      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <section className="grid grid-cols-2 gap-2 sm:gap-3 xl:grid-cols-4">
         <PortalMetric
           icon={Users}
           label="Client access"
@@ -136,42 +134,6 @@ export default async function PortalDetailPage({
       </section>
 
       <div className="flex flex-wrap gap-2 text-micro">
-        {/* Status */}
-        <span
-          className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 font-semibold ${
-            isActive
-              ? "border-success-subtle bg-success-subtle text-success-strong"
-              : "border-border bg-muted text-muted-foreground"
-          }`}
-        >
-          <span
-            className={`h-1.5 w-1.5 rounded-full ${isActive ? "bg-success" : "bg-muted-foreground/40"}`}
-            aria-hidden
-          />
-          {isActive ? "Active" : portal.status}
-        </span>
-
-        {/* Client */}
-        {snapshot.members.length > 0 ? (
-          <span className="inline-flex items-center gap-1.5 rounded-full border bg-card px-2.5 py-1 font-medium text-foreground">
-            <Users className="h-3 w-3 text-muted-foreground" />
-            {snapshot.members.find((m) => m.role !== "owner")?.profile?.full_name
-              ?? snapshot.members.find((m) => m.role !== "owner")?.profile?.email
-              ?? "Client connected"}
-          </span>
-        ) : (
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-dashed bg-card px-2.5 py-1 text-muted-foreground">
-            <Users className="h-3 w-3" />
-            No client yet
-          </span>
-        )}
-
-        {/* Files */}
-        <span className="inline-flex items-center gap-1.5 rounded-full border bg-card px-2.5 py-1 font-medium text-foreground">
-          <Files className="h-3 w-3 text-muted-foreground" />
-          {snapshot.files.length} file{snapshot.files.length !== 1 ? "s" : ""}
-        </span>
-
         {/* Active meetings */}
         {activeMeetings > 0 && (
           <Link
@@ -270,15 +232,15 @@ function PortalMetric({
   };
 
   return (
-    <div className="rounded-lg border bg-card p-4 shadow-sm">
+    <div className="rounded-lg border bg-card p-3 shadow-sm sm:p-4">
       <div className="flex items-start justify-between gap-3">
-        <div>
+        <div className="min-w-0">
           <p className="text-micro font-semibold uppercase tracking-[0.16em] text-muted-foreground">
             {label}
           </p>
-          <p className="mt-2 text-xl font-bold tracking-tight">{value}</p>
+          <p className="mt-1.5 truncate text-base font-bold tracking-tight sm:mt-2 sm:text-xl">{value}</p>
         </div>
-        <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border ${tones[tone]}`}>
+        <span className={`hidden h-10 w-10 shrink-0 items-center justify-center rounded-lg border sm:flex ${tones[tone]}`}>
           <Icon className="h-4 w-4" />
         </span>
       </div>
