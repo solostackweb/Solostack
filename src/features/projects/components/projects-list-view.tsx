@@ -55,7 +55,7 @@ interface ProjectsListViewProps {
  * Filtering happens locally on the snapshot passed from the server page.
  */
 export function ProjectsListView({ projects, clients, autoCreate }: ProjectsListViewProps) {
-  const [view, setView] = React.useState<ViewMode>("kanban");
+  const [view, setView] = React.useState<ViewMode>("grid");
   const [search, setSearch] = React.useState("");
   const [statusFilter, setStatusFilter] = React.useState<
     ProjectStatusRow | "all"
@@ -166,6 +166,7 @@ export function ProjectsListView({ projects, clients, autoCreate }: ProjectsList
               onClick={() => setView("kanban")}
               icon={Columns3}
               label="Kanban"
+              className="hidden sm:inline-flex"
             />
           </div>
         </div>
@@ -293,11 +294,13 @@ function ViewToggleButton({
   onClick,
   icon: Icon,
   label,
+  className,
 }: {
   active: boolean;
   onClick: () => void;
   icon: typeof LayoutGrid;
   label: string;
+  className?: string;
 }) {
   return (
     <button
@@ -309,6 +312,7 @@ function ViewToggleButton({
         active
           ? "bg-background text-foreground shadow-sm"
           : "text-muted-foreground hover:text-foreground",
+        className,
       )}
     >
       <Icon className="h-3.5 w-3.5" />
