@@ -141,8 +141,39 @@ invoice. Clean desktop and mobile reloads produced no runtime console errors.
 The populated summary card mosaic and its legacy gradients are deferred until a
 populated invoice state can be visually verified without fabricating data.
 
+### Meetings — completed
+
+The unavailable-calendar state is no longer a centered technical dead end. It
+now distinguishes missing Google credentials from unavailable secure token
+storage, tells the user who needs to act, and provides a direct setup-help path.
+The supporting Flowline explains the real availability → client choice → Meet
+link lifecycle without implying that scheduling is already available.
+
+Evidence:
+
+- `screenshots/meetings-baseline.png` — pre-change desktop state.
+- `screenshots/meetings-mobile-baseline.png` — pre-change mobile state.
+- `screenshots/meetings-calm-command.png` — desktop result.
+- `screenshots/meetings-mobile-calm-command.png` — mobile result.
+
+Quick wins completed:
+
+1. Replaced the generic centered deployment error with an actionable setup gate.
+2. Separated credential and secure-storage failure copy.
+3. Added a verified recovery route to Help & support.
+4. Explained the real scheduling lifecycle and privacy boundary.
+
+Meetings design score: **D → B**.
+
+Meetings AI slop score: **C → B**.
+
+The setup-help destination was verified at `/help`. Clean desktop and mobile
+reloads produced no runtime console errors. Connected calendars, the populated
+meeting board, status actions, availability, and scheduling behavior remain
+unchanged because this finding is limited to the deployment gate.
+
 ### Next
 
-Carry Calm Command into Meetings: make the schedule and next commitment the
-primary information, then reveal filters and management controls only when
-meetings exist.
+Replace the Documents card catalogue with a compact client-delivery journey that
+makes the relationship between proposals, agreements, intake, and onboarding
+obvious on desktop and mobile.
