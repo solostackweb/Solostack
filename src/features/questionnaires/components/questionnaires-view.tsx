@@ -3,7 +3,6 @@ import {
   CheckCircle2,
   FileQuestion,
   Inbox,
-  Pencil,
   Plus,
   Send,
   Trash2,
@@ -197,38 +196,36 @@ export function QuestionnairesView({
           <h2 className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
             Your questionnaires
           </h2>
-          <div className="grid gap-3 sm:grid-cols-2">
+          <Card>
+            <CardContent className="divide-y p-0">
             {questionnaires.map((q) => (
-              <Card key={q.id}>
-                <CardContent className="flex h-full flex-col p-5">
-                  <div className="flex items-start gap-3">
+              <div key={q.id} className="flex min-w-0 items-start gap-3 p-4 sm:items-center sm:px-5">
                     <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border bg-background text-primary">
                       <FileQuestion className="h-5 w-5" />
                     </div>
                     <div className="min-w-0 flex-1">
-                      <h3 className="truncate text-sm font-semibold">
+                      <Link
+                        href={`/dashboard/questionnaires/${q.id}`}
+                        className="block truncate text-sm font-semibold hover:text-primary"
+                      >
                         {q.title}
-                      </h3>
-                      <p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">
+                      </Link>
+                      <p className="mt-0.5 line-clamp-2 text-sm text-muted-foreground">
                         {q.description ?? `${q.questions.length} questions`}
                       </p>
+                      <div className="mt-2 flex items-center gap-3 text-xs text-muted-foreground">
+                        <span>
+                          {q.questions.length} question{q.questions.length === 1 ? "" : "s"}
+                        </span>
+                        <Link
+                          href={`/dashboard/questionnaires/${q.id}/responses`}
+                          className="inline-flex items-center gap-1 font-medium text-foreground hover:text-primary"
+                        >
+                          <Inbox className="h-3.5 w-3.5" /> Responses
+                        </Link>
+                      </div>
                     </div>
-                  </div>
-                  <p className="mt-3 text-xs text-muted-foreground">
-                    {q.questions.length} question
-                    {q.questions.length === 1 ? "" : "s"}
-                  </p>
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    <Button asChild size="sm" variant="outline">
-                      <Link href={`/dashboard/questionnaires/${q.id}`}>
-                        <Pencil className="h-3.5 w-3.5" /> Edit
-                      </Link>
-                    </Button>
-                    <Button asChild size="sm" variant="outline">
-                      <Link href={`/dashboard/questionnaires/${q.id}/responses`}>
-                        <Inbox className="h-3.5 w-3.5" /> Responses
-                      </Link>
-                    </Button>
+                  <div className="flex shrink-0 flex-col items-end gap-2 sm:flex-row sm:items-center">
                     <SendQuestionnaireDialog
                       questionnaireId={q.id}
                       clients={clients}
@@ -240,15 +237,20 @@ export function QuestionnairesView({
                     />
                     <form action={deleteQuestionnaireAction}>
                       <input type="hidden" name="id" value={q.id} />
-                      <Button size="sm" variant="ghost" className="text-destructive">
-                        <Trash2 className="h-3.5 w-3.5" /> Delete
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="h-9 w-9 text-muted-foreground hover:text-destructive"
+                        aria-label={`Delete ${q.title}`}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
                       </Button>
                     </form>
                   </div>
-                </CardContent>
-              </Card>
+              </div>
             ))}
-          </div>
+            </CardContent>
+          </Card>
         </section>
       ) : (
         <QuestionnaireStartDesk />
