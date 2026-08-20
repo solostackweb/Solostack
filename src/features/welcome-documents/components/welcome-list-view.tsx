@@ -87,7 +87,9 @@ function EmptyWelcomeDesk() {
           <div className="mt-6 flex flex-wrap gap-2">
             <Button asChild className="min-h-11">
               <Link href={WELCOME_DOCUMENT_NEW}>
-                <Plus /> New welcome doc
+                <Plus />
+                <span className="sm:hidden">New guide</span>
+                <span className="hidden sm:inline">New welcome doc</span>
               </Link>
             </Button>
             <Button

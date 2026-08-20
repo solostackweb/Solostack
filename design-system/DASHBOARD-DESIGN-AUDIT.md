@@ -416,7 +416,43 @@ Desktop and mobile reloads produced no application runtime errors; mobile layout
 was measured at 375px with no horizontal overflow. Development logs contain only
 report-only analytics CSP notices.
 
+### Document cross-flow — completed
+
+The proposal → contract → questionnaire → welcome-document surfaces now read as
+one product family. Each first-use screen uses the same calm page header, split
+work desk, primary-plus-Ivo action hierarchy, and three-state Flowline. The
+different language remains specific to the job instead of forcing generic shared
+copy across legally and operationally different documents.
+
+Evidence:
+
+- `screenshots/proposals-calm-command.png` — Proposal desk comparison state.
+- `screenshots/contracts-calm-command.png` — Contract desk comparison state.
+- `screenshots/questionnaires-calm-command.png` — Brief desk comparison state.
+- `screenshots/welcome-calm-command.png` — Welcome desk comparison state.
+- `screenshots/welcome-mobile-calm-command.png` — pre-fix mobile action wrap.
+- `screenshots/crossflow-welcome-after.png` — corrected mobile action hierarchy.
+
+Quick wins completed:
+
+1. Compared the four first-use desks as a single connected document family.
+2. Preserved one primary action and one quiet Ivo action on every surface.
+3. Kept each Flowline tied to real document state rather than decoration.
+4. Shortened only the mobile Welcome Documents action to “New guide.”
+5. Restored the shared one-line action rhythm without changing its destination.
+
+Cross-flow design score: **B → B**.
+
+Cross-flow AI slop score: **B → B**.
+
+The mobile Welcome Documents result was verified at 375px with no horizontal
+overflow. Its primary link remains unchanged; only the responsive label changes.
+The four surfaces pass the workspace trunk test and preserve their existing
+creation and Ivo behaviors. Local console output contains the known Next.js
+smooth-scroll warning plus external analytics DNS failures in the restricted
+development browser, not application runtime errors.
+
 ### Next
 
-Run the cross-flow consistency pass from proposal through client onboarding,
-then address the remaining shared-shell design-token drift before broader QA.
+Remove the remaining retired radius and undersized-type tokens from the shared
+dashboard shell, then run the broader behavioral QA pass.
