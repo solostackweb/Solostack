@@ -127,6 +127,14 @@ export function PulseDashboardView({
 
   const { revenue, invoices, receivables, cashFlow, funnel } = analytics;
   const rangeLabel = isCustom ? "Selected range" : RANGE_LABEL[range];
+  const hasPulseData = Boolean(
+    invoices.issuedCount > 0 ||
+      receivables.outstandingCount > 0 ||
+      insights.proposals.sent > 0 ||
+      insights.proposals.accepted > 0 ||
+      insights.proposals.open > 0 ||
+      insights.profitability.hasTimeData,
+  );
 
   const exportHref = (format: "csv" | "pdf", report?: string) => {
     const sp = new URLSearchParams();
@@ -146,7 +154,7 @@ export function PulseDashboardView({
       <PageHeader
         title="Pulse"
         description="Revenue, receivables, collection health, and your top clients — at a glance."
-        actions={
+        actions={hasPulseData ? (
           <div className="flex items-center gap-2">
             <IvoEntryPoint
               prompt="Give me a business summary from Pulse and tell me what needs attention."
@@ -185,9 +193,13 @@ export function PulseDashboardView({
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
-        }
+        ) : null}
       />
 
+      {!hasPulseData ? (
+        <PulseFirstRun />
+      ) : (
+      <>
       <IvoContextActions
         title="Ask about this Pulse period"
         description="Send Ivo the current range, cash, collection, and concentration context."
@@ -405,11 +417,93 @@ export function PulseDashboardView({
         </CardContent>
       </Card>
 
+      </>
+      )}
     </div>
   );
 }
 
 // --- Premium pulse modules --------------------------------------------------
+
+function PulseFirstRun() {
+  const steps = [
+    {
+      icon: FileText,
+      number: "01",
+      title: "Issue the work",
+      description: "Send an invoice or proposal so Pulse has a real commercial event to follow.",
+    },
+    {
+      icon: CircleDollarSign,
+      number: "02",
+      title: "Collect the money",
+      description: "Payment activity builds your revenue, receivables, and collection picture.",
+    },
+    {
+      icon: LineChart,
+      number: "03",
+      title: "Read the signal",
+      description: "Pulse turns that activity into trends, risks, and the next useful decision.",
+    },
+  ];
+
+  return (
+    <section className="overflow-hidden rounded-2xl border bg-card">
+      <div className="grid gap-8 p-5 sm:p-7 lg:grid-cols-[minmax(0,0.85fr)_minmax(480px,1.15fr)] lg:items-center lg:p-9">
+        <div className="max-w-xl">
+          <span className="inline-flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary ring-1 ring-primary/15">
+            <TrendingUp className="h-5 w-5" />
+          </span>
+          <p className="mt-5 text-sm font-semibold text-primary">No empty metrics. Just the next move.</p>
+          <h2 className="mt-2 text-2xl font-semibold tracking-tight sm:text-3xl">
+            Your business pulse begins with real activity.
+          </h2>
+          <p className="mt-3 text-sm leading-6 text-muted-foreground sm:text-base">
+            Once invoices, payments, proposals, or billable time arrive, this becomes your decision desk—not a wall of decorative zeroes.
+          </p>
+          <div className="mt-6 flex flex-wrap gap-2">
+            <Button asChild size="sm">
+              <Link href="/dashboard/invoices/new">Create first invoice</Link>
+            </Button>
+            <Button asChild size="sm" variant="outline">
+              <Link href="/dashboard/proposals/new">Create proposal</Link>
+            </Button>
+          </div>
+        </div>
+
+        <ol className="grid gap-3">
+          {steps.map(({ icon: Icon, number, title, description }) => (
+            <li key={title} className="flex gap-3 rounded-lg border bg-background/80 p-4">
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                <Icon className="h-4 w-4" />
+              </span>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-baseline justify-between gap-3">
+                  <p className="text-sm font-semibold">{title}</p>
+                  <span className="font-mono text-xs text-muted-foreground">{number}</span>
+                </div>
+                <p className="mt-1 text-sm leading-5 text-muted-foreground">{description}</p>
+              </div>
+            </li>
+          ))}
+        </ol>
+      </div>
+      <div className="flex flex-col gap-3 border-t bg-muted/20 px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-7 lg:px-9">
+        <div>
+          <p className="text-sm font-semibold">Want a clean starting plan?</p>
+          <p className="mt-0.5 text-sm text-muted-foreground">
+            Ivo can help decide what to invoice and track first.
+          </p>
+        </div>
+        <IvoEntryPoint
+          prompt="Help me set up Pulse. Review my current clients and projects, then tell me the first invoice, proposal, or time-tracking action I should take and why."
+          label="Plan with Ivo"
+          variant="outline"
+        />
+      </div>
+    </section>
+  );
+}
 
 function formatMonthLabel(key: string) {
   const [year, month] = key.split("-").map(Number);
