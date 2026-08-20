@@ -380,7 +380,43 @@ server action and its success and failure feedback were preserved unchanged.
 Development logs contain only report-only analytics CSP notices. Populated form
 and submission rows are deferred for visual verification with representative data.
 
+### Templates — completed
+
+Templates now reads as a reusable document system rather than a 20-card starter
+catalogue. The three direct creation routes remain at the top, the saved library
+has a compact first-use notice, and the starter library is grouped by document
+type with honest counts and denser rows. All proposal, contract, and welcome
+document starters remain reachable, previewable, and adaptable.
+
+Evidence:
+
+- `screenshots/templates-baseline.png` — pre-change desktop state.
+- `screenshots/templates-mobile-baseline.png` — pre-change mobile state.
+- `screenshots/templates-calm-command.png` — desktop result.
+- `screenshots/templates-mobile-calm-command.png` — mobile result.
+
+Quick wins completed:
+
+1. Reframed starters as proven starting points inside the document system.
+2. Added Proposal, Contract, and Welcome document filters with library counts.
+3. Reduced twenty simultaneously visible cards to the selected document family.
+4. Converted oversized cards into denser preview-and-adapt rows.
+5. Removed a mobile horizontal overflow while retaining the 44px action floor.
+
+Templates design score: **C → B**.
+
+Templates AI slop score: **D → B**.
+
+The Proposal, Contract, and Welcome document filters were verified without page
+reloads; Contract correctly exposed all eight starters. The primary Proposal
+creation link was verified in the authenticated browser and reached
+`/dashboard/templates/new?type=proposal`, where the existing editor rendered.
+No starter was cloned during QA because that would create workspace data.
+Desktop and mobile reloads produced no application runtime errors; mobile layout
+was measured at 375px with no horizontal overflow. Development logs contain only
+report-only analytics CSP notices.
+
 ### Next
 
-Make the Templates starter library scannable without removing any creation,
-preview, or cloning behavior, then run the cross-flow consistency pass.
+Run the cross-flow consistency pass from proposal through client onboarding,
+then address the remaining shared-shell design-token drift before broader QA.

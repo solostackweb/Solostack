@@ -37,6 +37,7 @@ export function TemplatesView({
   templates: TemplateRecord[];
   builtins?: TemplateRecord[];
 }) {
+  const [starterType, setStarterType] = React.useState<TemplateType>("proposal");
   const groupedTemplates = React.useMemo(
     () =>
       TYPE_OPTIONS.map((option) => ({
@@ -47,6 +48,18 @@ export function TemplatesView({
       })),
     [templates],
   );
+  const groupedBuiltins = React.useMemo(
+    () =>
+      TYPE_OPTIONS.map((option) => ({
+        ...option,
+        templates: builtins.filter(
+          (template) => template.templateType === option.value,
+        ),
+      })),
+    [builtins],
+  );
+  const visibleBuiltins =
+    groupedBuiltins.find((group) => group.value === starterType)?.templates ?? [];
 
   return (
     <div className="space-y-6">
@@ -94,8 +107,13 @@ export function TemplatesView({
         </p>
         <div className="mt-4 space-y-6">
           {templates.length === 0 ? (
-            <div className="rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground">
-              No saved templates yet. Create one, or fork a starter below.
+            <div className="flex items-center gap-3 rounded-lg border border-dashed p-4 text-sm text-muted-foreground">
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                <BookTemplate className="h-4 w-4" />
+              </span>
+              <span>
+                No saved templates yet. Create one above or adapt a proven starter below.
+              </span>
             </div>
           ) : (
             groupedTemplates
@@ -117,16 +135,41 @@ export function TemplatesView({
       </section>
 
       {builtins.length > 0 ? (
-        <section className="space-y-4">
-          <div>
-            <h2 className="text-sm font-semibold">Starter templates</h2>
-            <p className="text-xs text-muted-foreground">
-              Battle-tested structures for Indian freelancers. Fork one to get your
-              own editable copy.
-            </p>
+        <section className="rounded-lg border bg-card p-5 shadow-sm">
+          <div className="flex flex-col gap-4 border-b pb-4 lg:flex-row lg:items-end lg:justify-between">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">
+                Proven starting points
+              </p>
+              <h2 className="mt-1 text-xl font-semibold tracking-tight">Starter library</h2>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Choose the document you are building, then preview or adapt a structure.
+              </p>
+            </div>
+            <div className="grid grid-cols-3 gap-1 rounded-lg bg-muted p-1" aria-label="Starter template type">
+              {groupedBuiltins.map((group) => (
+                <button
+                  key={group.value}
+                  type="button"
+                  onClick={() => setStarterType(group.value)}
+                  aria-pressed={starterType === group.value}
+                  className={`flex min-h-10 items-center justify-center gap-2 rounded-lg px-3 text-xs font-semibold transition-colors ${
+                    starterType === group.value
+                      ? "bg-background text-foreground shadow-sm"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  <span className="hidden sm:inline">{group.label}</span>
+                  <span className="sm:hidden">{group.label.replace("Welcome doc", "Welcome")}</span>
+                  <span className="font-mono text-micro text-muted-foreground">
+                    {group.templates.length}
+                  </span>
+                </button>
+              ))}
+            </div>
           </div>
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-            {builtins.map((template) => (
+          <div className="mt-4 grid gap-3 xl:grid-cols-2">
+            {visibleBuiltins.map((template) => (
               <BuiltinTemplateCard key={template.id} template={template} />
             ))}
           </div>
@@ -138,7 +181,7 @@ export function TemplatesView({
 
 function BuiltinTemplateCard({ template }: { template: TemplateRecord }) {
   return (
-    <article className="flex h-full flex-col rounded-lg border bg-background p-4">
+    <article className="min-w-0 rounded-lg border bg-background p-4">
       <div className="flex items-center gap-2">
         <TemplateTypeIcon type={template.templateType} />
         <h3 className="min-w-0 flex-1 truncate text-sm font-semibold">
@@ -151,13 +194,15 @@ function BuiltinTemplateCard({ template }: { template: TemplateRecord }) {
       <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">
         {template.description ?? template.category}
       </p>
-      <TemplatePreview template={template} />
-      <form action={cloneTemplateRedirectAction} className="mt-auto pt-3">
-        <input type="hidden" name="sourceId" value={template.id} />
-        <Button type="submit" size="sm" variant="outline" className="w-full">
-          <Wand2 className="h-3.5 w-3.5" /> Use as starting point
-        </Button>
-      </form>
+      <div className="mt-3 flex flex-col gap-3 border-t pt-3 sm:flex-row sm:items-start sm:justify-between">
+        <TemplatePreview template={template} compact />
+        <form action={cloneTemplateRedirectAction} className="shrink-0">
+          <input type="hidden" name="sourceId" value={template.id} />
+          <Button type="submit" size="sm" variant="outline" className="w-full sm:w-auto">
+            <Wand2 className="h-3.5 w-3.5" /> Use as starting point
+          </Button>
+        </form>
+      </div>
     </article>
   );
 }
@@ -236,7 +281,13 @@ function TemplateTypeIcon({ type }: { type: TemplateType }) {
   );
 }
 
-function TemplatePreview({ template }: { template: TemplateRecord }) {
+function TemplatePreview({
+  template,
+  compact = false,
+}: {
+  template: TemplateRecord;
+  compact?: boolean;
+}) {
   const c = (template.content ?? {}) as Record<string, unknown>;
   const type = template.templateType;
   const blocks: Array<{ heading: string; body: string }> = [];
@@ -259,7 +310,7 @@ function TemplatePreview({ template }: { template: TemplateRecord }) {
   }
   if (blocks.length === 0) return null;
   return (
-    <details className="group mt-2">
+    <details className={`group min-w-0 ${compact ? "" : "mt-2"}`}>
       <summary className="cursor-pointer list-none text-xs font-medium text-primary hover:underline">
         Preview
       </summary>

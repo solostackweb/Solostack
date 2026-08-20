@@ -1,0 +1,34 @@
+{
+  "date": "2026-08-21",
+  "url": "http://localhost:3000/dashboard/templates",
+  "designScore": "B",
+  "aiSlopScore": "B",
+  "categoryGrades": {
+    "hierarchy": "B",
+    "typography": "B",
+    "spacing": "B",
+    "color": "A",
+    "interaction": "B",
+    "responsive": "B",
+    "content": "B",
+    "aiSlop": "B",
+    "motion": "B",
+    "performanceFeel": "C"
+  },
+  "findings": [
+    {
+      "id": "TEMPLATES-001",
+      "title": "Twenty equal starter cards obscured the reusable document system and produced an excessive mobile catalogue",
+      "impact": "high",
+      "category": "hierarchy",
+      "status": "verified"
+    },
+    {
+      "id": "TEMPLATES-002",
+      "title": "Populated saved-template controls still need visual verification with representative workspace data",
+      "impact": "medium",
+      "category": "interaction",
+      "status": "deferred"
+    }
+  ]
+}
