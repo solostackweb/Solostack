@@ -141,6 +141,11 @@ export function TimeDashboardView({
 
   const thisWeek = summaryEntries;
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  const hasActiveFilters = Boolean(
+    filters.q || filters.project !== "all" || filters.status !== "all",
+  );
+  const isFirstUse =
+    total === 0 && thisWeek.length === 0 && !runningTimer && !hasActiveFilters;
 
   const perProject = React.useMemo(() => {
     const map = new Map<string, { seconds: number; amount: number }>();
@@ -173,16 +178,13 @@ export function TimeDashboardView({
         description="Track billable hours, log time, and see where your week went."
         actions={
           <div className="flex items-center gap-2">
-            <IvoEntryPoint
-              prompt="Review my unbilled time by client and project. Tell me what is ready to invoice and why; don't create an invoice yet."
-              label="Ask Ivo"
-              variant="outline"
-            />
-            <IvoEntryPoint
-              prompt="Log time for a project"
-              label="Log with AI"
-              variant="secondary"
-            />
+            {!isFirstUse ? (
+              <IvoEntryPoint
+                prompt="Review my unbilled time by client and project. Tell me what is ready to invoice and why; don't create an invoice yet."
+                label="Ask Ivo"
+                variant="outline"
+              />
+            ) : null}
             <Button size="sm" onClick={() => setManualOpen(true)}>
               <Plus /> Log time
             </Button>
@@ -223,13 +225,17 @@ export function TimeDashboardView({
         <div className="min-w-0 space-y-6">
       <UnbilledBanner seconds={unbilled.seconds} amount={unbilled.amount} />
 
-      <TimeSummaryCards entries={thisWeek} />
-
       <ActiveTimerWidget
         running={runningTimer}
         projects={projects}
         defaultHourlyRate={defaultHourlyRate}
       />
+
+      {isFirstUse ? (
+        <TimeFirstRun onManualEntry={() => setManualOpen(true)} />
+      ) : (
+      <>
+      <TimeSummaryCards entries={thisWeek} />
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,320px)]">
         {/* Entries */}
@@ -337,6 +343,8 @@ export function TimeDashboardView({
           </Card>
         </aside>
       </div>
+      </>
+      )}
         </div>
 
       </div>
@@ -374,6 +382,70 @@ export function TimeDashboardView({
         editing={editingEntry}
       />
     </div>
+  );
+}
+
+function TimeFirstRun({ onManualEntry }: { onManualEntry: () => void }) {
+  const steps = [
+    {
+      icon: Clock,
+      title: "Track the work",
+      description: "Start the timer above while you work, or add a finished block manually.",
+    },
+    {
+      icon: BarChart3,
+      title: "Review the week",
+      description: "See where hours went once your first entries are recorded.",
+    },
+    {
+      icon: FileText,
+      title: "Turn time into revenue",
+      description: "Billable entries stay ready for the next client invoice.",
+    },
+  ];
+
+  return (
+    <section className="overflow-hidden rounded-2xl border bg-card">
+      <div className="grid gap-6 p-5 sm:p-7 lg:grid-cols-[minmax(0,0.75fr)_minmax(480px,1.25fr)] lg:items-center">
+        <div>
+          <p className="text-sm font-semibold text-primary">Your tracking desk is ready</p>
+          <h2 className="mt-2 text-xl font-semibold tracking-tight sm:text-2xl">
+            Start with one honest block of work.
+          </h2>
+          <p className="mt-2 text-sm leading-6 text-muted-foreground">
+            No setup ceremony. Describe the task, choose a project if needed, and start the timer above.
+          </p>
+          <div className="mt-5 flex flex-wrap gap-2">
+            <Button type="button" size="sm" variant="outline" onClick={onManualEntry}>
+              <Plus /> Add finished time
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant="secondary"
+              onClick={() => openIvo("Help me log time for a project")}
+            >
+              Log with Ivo
+            </Button>
+          </div>
+        </div>
+
+        <ol className="grid gap-3 sm:grid-cols-3">
+          {steps.map(({ icon: Icon, title, description }, index) => (
+            <li key={title} className="border-l-2 border-primary/20 pl-4">
+              <div className="flex items-center justify-between gap-3">
+                <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                  <Icon className="h-4 w-4" />
+                </span>
+                <span className="font-mono text-xs text-muted-foreground">0{index + 1}</span>
+              </div>
+              <p className="mt-3 text-sm font-semibold">{title}</p>
+              <p className="mt-1 text-sm leading-5 text-muted-foreground">{description}</p>
+            </li>
+          ))}
+        </ol>
+      </div>
+    </section>
   );
 }
 
