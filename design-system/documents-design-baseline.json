@@ -1,0 +1,34 @@
+{
+  "date": "2026-08-21",
+  "url": "http://localhost:3000/dashboard/documents",
+  "designScore": "B",
+  "aiSlopScore": "B",
+  "categoryGrades": {
+    "hierarchy": "B",
+    "typography": "B",
+    "spacing": "B",
+    "color": "A",
+    "interaction": "B",
+    "responsive": "B",
+    "content": "B",
+    "aiSlop": "B",
+    "motion": "B",
+    "performanceFeel": "C"
+  },
+  "findings": [
+    {
+      "id": "DOCUMENTS-001",
+      "title": "Documents hub used a generic card catalogue instead of the client journey",
+      "impact": "high",
+      "category": "aiSlop",
+      "status": "verified"
+    },
+    {
+      "id": "DOCUMENTS-002",
+      "title": "Individual document workspaces have not yet been migrated to Calm Command",
+      "impact": "medium",
+      "category": "hierarchy",
+      "status": "deferred"
+    }
+  ]
+}

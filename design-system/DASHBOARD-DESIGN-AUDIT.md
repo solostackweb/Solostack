@@ -172,8 +172,40 @@ reloads produced no runtime console errors. Connected calendars, the populated
 meeting board, status actions, availability, and scheduling behavior remain
 unchanged because this finding is limited to the deployment gate.
 
+### Documents — completed
+
+The Documents hub no longer presents five equal icon cards as a generic feature
+catalogue. Its primary surface now follows the actual client-delivery sequence:
+proposal → contract → questionnaire → welcome document. Lead forms sit apart as
+the pre-client acquisition path, so they no longer compete with delivery work.
+All original destinations and the Ivo guidance entry point remain available.
+
+Evidence:
+
+- `screenshots/documents-baseline.png` — pre-change desktop state.
+- `screenshots/documents-mobile-baseline.png` — pre-change mobile state.
+- `screenshots/documents-calm-command.png` — desktop result.
+- `screenshots/documents-mobile-calm-command.png` — mobile result.
+
+Quick wins completed:
+
+1. Removed the repeated three-column icon-card pattern.
+2. Reordered document types around the real client journey.
+3. Added one meaningful Flowline instead of five decorative card icons.
+4. Separated lead capture from post-sale client delivery.
+5. Reduced mobile scanning from five oversized cards to compact workflow rows.
+
+Documents design score: **C → B**.
+
+Documents AI slop score: **D → B**.
+
+The Proposals and Lead forms destinations were opened in the authenticated
+browser and rendered successfully. Clean desktop and mobile reloads produced no
+runtime console errors. The browser reports only the pre-existing Next.js
+development warning about smooth scrolling during route transitions.
+
 ### Next
 
-Replace the Documents card catalogue with a compact client-delivery journey that
-makes the relationship between proposals, agreements, intake, and onboarding
-obvious on desktop and mobile.
+Continue through the individual document workspaces in journey order, starting
+with Proposals and Contracts, while preserving their creation and conversion
+behavior.
