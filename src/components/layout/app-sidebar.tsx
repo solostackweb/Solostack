@@ -84,8 +84,8 @@ export function AppSidebar() {
   return (
     <aside
       className={cn(
-        "hidden md:flex h-screen sticky top-0 shrink-0 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground shadow-sm shadow-black/[0.02] transition-[width] duration-200",
-        collapsed ? "w-[68px]" : "w-[288px]",
+        "hidden md:flex h-screen sticky top-0 shrink-0 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground transition-[width] duration-200",
+        collapsed ? "w-[68px]" : "w-[264px]",
       )}
     >
       <div
@@ -128,8 +128,8 @@ export function AppSidebar() {
         </Button>
       </div>
 
-      <div className="flex-1 overflow-y-auto scrollbar-thin px-2 py-3">
-        <div className="space-y-4">
+      <div className="flex-1 overflow-y-auto scrollbar-thin px-2 py-5">
+        <div className="space-y-5">
           {SIDEBAR_GROUPS.map((group) => (
             <div key={group.label}>
               {!collapsed && (

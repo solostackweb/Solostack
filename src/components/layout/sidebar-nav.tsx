@@ -4,7 +4,6 @@ import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { UpgradeBadge } from "@/components/shared/upgrade-badge";
 import type { NavItem } from "@/constants/navigation";
 
 interface SidebarNavProps {
@@ -33,11 +32,10 @@ export function SidebarNav({ items, collapsed, onNavigate, isFreePlan = false }:
             data-tour={item.href}
             onClick={onNavigate}
             className={cn(
-              "group relative flex h-9 items-center gap-3 rounded-lg px-2.5 text-xs font-medium",
+              "group relative flex h-9 items-center gap-3 rounded-md px-2.5 text-xs font-medium",
               "transition-colors duration-150 ease-out",
               "text-sidebar-foreground/58 hover:bg-sidebar-accent/80 hover:text-sidebar-foreground",
-              isActive &&
-                "bg-sidebar-accent text-sidebar-foreground shadow-sm ring-1 ring-sidebar-border/70",
+              isActive && "bg-sidebar-accent text-sidebar-accent-foreground",
               collapsed && "justify-center px-0",
             )}
             title={collapsed ? item.title : undefined}
@@ -46,8 +44,7 @@ export function SidebarNav({ items, collapsed, onNavigate, isFreePlan = false }:
             {isActive && !collapsed && (
               <span
                 aria-hidden
-                className="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r-full bg-primary"
-                style={{ boxShadow: "0 0 8px hsl(243 75% 62% / 0.65)" }}
+                className="absolute left-0 top-1/2 h-4 w-0.5 -translate-y-1/2 rounded-r-full bg-primary"
               />
             )}
             {/* Active collapsed dot */}
@@ -55,7 +52,6 @@ export function SidebarNav({ items, collapsed, onNavigate, isFreePlan = false }:
               <span
                 aria-hidden
                 className="absolute right-1 top-1/2 h-1.5 w-1.5 -translate-y-1/2 rounded-full bg-primary"
-                style={{ boxShadow: "0 0 6px hsl(243 75% 62% / 0.8)" }}
               />
             )}
             <Icon
@@ -65,7 +61,6 @@ export function SidebarNav({ items, collapsed, onNavigate, isFreePlan = false }:
                   ? "text-primary"
                   : "text-sidebar-foreground/50 group-hover:text-sidebar-foreground/90",
               )}
-              style={isActive ? { filter: "drop-shadow(0 0 4px hsl(243 75% 62% / 0.45))" } : undefined}
             />
             {!collapsed && <span className="truncate">{item.title}</span>}
             {!collapsed && item.badge && !showProBadge ? (
@@ -74,8 +69,8 @@ export function SidebarNav({ items, collapsed, onNavigate, isFreePlan = false }:
               </span>
             ) : null}
             {showProBadge && (
-              <span className="ml-auto">
-                <UpgradeBadge linkable={false} />
+              <span className="ml-auto text-[9px] font-semibold uppercase tracking-[0.12em] text-sidebar-foreground/35">
+                Pro
               </span>
             )}
           </Link>

@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { ArrowRight, Sparkles, X } from "lucide-react";
+import { ArrowRight, X } from "lucide-react";
 
 interface FreePlanBannerProps {
   /** The user's lifetime client count — used to calculate how close they are to the 5-client limit. */
@@ -66,19 +66,11 @@ export function FreePlanBanner({
       role="status"
       className={
         isBlocked
-          ? "flex items-center justify-between gap-3 rounded-lg border border-destructive/20 bg-destructive/[0.04] px-4 py-3 text-sm"
-          : "flex items-center justify-between gap-3 rounded-lg border border-primary/20 bg-gradient-to-r from-primary/[0.05] to-violet-500/[0.03] px-4 py-3 text-sm"
+          ? "flex min-h-14 items-center justify-between gap-3 rounded-lg border border-destructive/20 bg-destructive/[0.04] px-4 py-3 text-sm"
+          : "flex min-h-14 items-center justify-between gap-3 rounded-lg border border-border/70 bg-card px-4 py-3 text-sm"
       }
     >
       <div className="flex items-center gap-2.5">
-        <Sparkles
-          className={
-            isBlocked
-              ? "h-4 w-4 shrink-0 text-destructive"
-              : "h-4 w-4 shrink-0 text-primary"
-          }
-          aria-hidden
-        />
         <span className="text-xs text-muted-foreground">
           {message}{" "}
           <Link

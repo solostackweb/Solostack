@@ -34,7 +34,7 @@ export function DashboardSetupChecklist({ hasSignature }: Props) {
   const [mounted, setMounted] = React.useState(false);
   const [dismissed, setDismissed] = React.useState(false);
   const [invoiceVisited, setInvoiceVisited] = React.useState(false);
-  const [mobileExpanded, setMobileExpanded] = React.useState(false);
+  const [expanded, setExpanded] = React.useState(false);
 
   React.useEffect(() => {
     setMounted(true);
@@ -93,17 +93,16 @@ export function DashboardSetupChecklist({ hasSignature }: Props) {
   const percent = Math.round((done / total) * 100);
 
   return (
-    <>
-      <div className="sm:hidden">
-        {!mobileExpanded ? (
-          <div className="flex items-center gap-2 rounded-lg border bg-primary/[0.04] p-3">
+    <div>
+        {!expanded ? (
+          <div className="flex min-h-14 items-center gap-2 rounded-lg border border-border/70 bg-card px-3 py-2.5">
             <button
               type="button"
-              onClick={() => setMobileExpanded(true)}
+              onClick={() => setExpanded(true)}
               className="flex flex-1 items-center gap-3 text-left"
               aria-expanded={false}
             >
-              <span className="relative flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/15 text-primary">
+              <span className="relative flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
                 <CheckCircle2 className="h-4 w-4" aria-hidden />
                 <span className="absolute -bottom-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-micro font-bold tabular-nums text-primary-foreground ring-2 ring-background">
                   {remaining}
@@ -111,10 +110,10 @@ export function DashboardSetupChecklist({ hasSignature }: Props) {
               </span>
               <span className="min-w-0 flex-1">
                 <p className="truncate text-sm font-semibold">
-                  Finish setting up
+                  Finish your workspace
                 </p>
                 <p className="truncate text-micro text-muted-foreground">
-                  {remaining} {remaining === 1 ? "task" : "tasks"} left -{" "}
+                  {remaining} {remaining === 1 ? "task" : "tasks"} left ·{" "}
                   {percent}% done
                 </p>
               </span>
@@ -138,22 +137,10 @@ export function DashboardSetupChecklist({ hasSignature }: Props) {
             remaining={remaining}
             onDismiss={onDismiss}
             collapsible
-            onCollapse={() => setMobileExpanded(false)}
+            onCollapse={() => setExpanded(false)}
           />
         )}
-      </div>
-
-      <div className="hidden sm:block">
-        <ChecklistFullCard
-          items={items}
-          done={done}
-          total={total}
-          percent={percent}
-          remaining={remaining}
-          onDismiss={onDismiss}
-        />
-      </div>
-    </>
+    </div>
   );
 }
 
@@ -188,11 +175,7 @@ function ChecklistFullCard({
   onCollapse,
 }: FullCardProps) {
   return (
-    <Card className="relative overflow-hidden p-4 sm:p-5">
-      <div
-        aria-hidden
-        className="pointer-events-none absolute -right-16 -top-16 h-44 w-44 rounded-full bg-primary/10 blur-3xl"
-      />
+    <Card className="relative overflow-hidden border-border/70 p-4 sm:p-5">
       <button
         type="button"
         aria-label="Dismiss setup checklist"

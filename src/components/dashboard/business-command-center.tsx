@@ -101,13 +101,13 @@ export function BusinessCommandCenter({
           };
 
   return (
-    <section className="overflow-hidden rounded-lg border border-border/70 bg-card shadow-sm shadow-primary/[0.03]">
+    <section className="overflow-hidden rounded-2xl border border-border/70 bg-card">
       <div className="grid gap-0 lg:grid-cols-[minmax(0,0.92fr)_minmax(0,1.38fr)]">
-        <div className="border-b border-border/60 p-5 sm:p-6 lg:border-b-0 lg:border-r">
+        <div className="border-b border-border/60 bg-primary/[0.025] p-5 sm:p-7 lg:border-b-0 lg:border-r">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div className="min-w-0">
               <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-                Business command center
+                Business pulse
               </p>
               <h2 className="mt-2 text-2xl font-semibold tracking-tight sm:text-3xl">
                 {formatINR(collectedAllTime, { compact: true })}
@@ -152,7 +152,7 @@ export function BusinessCommandCenter({
               </div>
             </div>
 
-            <div className="grid gap-3 sm:grid-cols-2">
+            <div className="grid grid-cols-2 gap-x-5 border-t border-border/60">
               <Metric
                 icon={ReceiptText}
                 label="Outstanding"
@@ -194,7 +194,7 @@ export function BusinessCommandCenter({
           </div>
         </div>
 
-        <div className="p-5 sm:p-6">
+        <div className="p-5 sm:p-7">
           <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
             <div>
               <p className="text-sm font-semibold tracking-tight">Revenue trend</p>
@@ -202,7 +202,7 @@ export function BusinessCommandCenter({
                 Paid invoice revenue over the last {revenueSeries.length} months
               </p>
             </div>
-            <div className="flex items-center gap-2 rounded-full border bg-background px-2.5 py-1 text-xs">
+            <div className="flex items-center gap-2 border-l border-border pl-3 text-xs">
               <Wallet className="h-3.5 w-3.5 text-primary" />
               <span className="font-mono font-semibold tabular-nums">
                 {formatINR(currentMonth, { compact: true })}
@@ -318,7 +318,7 @@ interface MetricProps {
 
 function Metric({ icon: Icon, label, value, note, tone }: MetricProps) {
   return (
-    <div className="rounded-lg border border-border/60 bg-background/70 p-3">
+    <div className="py-4">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="text-micro font-semibold uppercase tracking-wider text-muted-foreground">
@@ -330,12 +330,11 @@ function Metric({ icon: Icon, label, value, note, tone }: MetricProps) {
         </div>
         <span
           className={cn(
-            "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ring-1",
-            tone === "default" && "bg-primary/10 text-primary ring-primary/15",
-            tone === "warning" &&
-              "bg-warning-subtle text-warning-strong ring-warning-subtle",
-            tone === "danger" && "bg-destructive/10 text-destructive ring-destructive/20",
-            tone === "muted" && "bg-muted text-muted-foreground ring-border",
+            "flex h-7 w-7 shrink-0 items-center justify-center",
+            tone === "default" && "text-primary",
+            tone === "warning" && "text-warning-strong",
+            tone === "danger" && "text-destructive",
+            tone === "muted" && "text-muted-foreground",
           )}
         >
           <Icon className="h-4 w-4" />

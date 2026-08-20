@@ -220,57 +220,58 @@ export default async function DashboardPage() {
   const greetingName = firstNameOf(profile);
 
   return (
-    <div className="space-y-5 sm:space-y-7">
+    <div className="space-y-6 sm:space-y-8">
       <PageHeader
         title={`Welcome back, ${greetingName}`}
-        description="Here's what's happening with your business today."
+        description="Your money, work, and next moves in one clear view."
+        className="border-b-0 pb-0 sm:pb-0"
         actions={
-          <div className="flex flex-wrap items-center justify-end gap-2">
-            <Button asChild size="sm" variant="outline">
+          <div className="grid w-full grid-cols-3 gap-1.5 sm:flex sm:w-auto sm:flex-wrap sm:items-center sm:justify-end sm:gap-2">
+            <Button asChild size="sm" variant="ghost" className="px-2 sm:px-3">
               <Link href="/dashboard/clients?create=1">
-                <UserPlus /> New client
+                <UserPlus /> <span><span className="hidden sm:inline">New </span>client</span>
               </Link>
             </Button>
-            <Button asChild size="sm" variant="outline">
+            <Button asChild size="sm" variant="ghost" className="px-2 sm:px-3">
               <Link href="/dashboard/projects?create=1">
-                <FolderKanban /> New project
+                <FolderKanban /> <span><span className="hidden sm:inline">New </span>project</span>
               </Link>
             </Button>
             <Button
               asChild
               size="sm"
-              className="shadow-md shadow-primary/15 transition-shadow hover:shadow-lg hover:shadow-primary/20"
+              className="rounded-md px-2 sm:px-3"
             >
               <Link href="/dashboard/invoices/new">
-                <FileText /> New invoice
+                <FileText /> <span><span className="hidden sm:inline">New </span>invoice</span>
               </Link>
             </Button>
           </div>
         }
       />
 
-      {/* Free plan upgrade nudge */}
-      {(!sub || sub.plan === "free") && (
-        <FreePlanBanner clientsUsed={profile?.lifetimeClientsCreated ?? 0} />
-      )}
-
-      {profile ? (
-        <DashboardSetupChecklist
-          hasSignature={Boolean(
-            profile.signatureType ||
-              profile.signatureImageUrl ||
-              profile.signatureTextValue ||
-              profile.signatureUpdatedAt,
-          )}
-        />
-      ) : null}
-
-      {profile ? <ProfileCompletenessAlert profile={profile} /> : null}
-
       {/* KPI tiles + revenue chart — fast DB aggregates */}
       <Suspense fallback={<KpiSkeleton />}>
         <KpiSection />
       </Suspense>
+
+      <div className="grid items-start gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(320px,0.72fr)]">
+        {profile ? (
+          <DashboardSetupChecklist
+            hasSignature={Boolean(
+              profile.signatureType ||
+                profile.signatureImageUrl ||
+                profile.signatureTextValue ||
+                profile.signatureUpdatedAt,
+            )}
+          />
+        ) : null}
+        {(!sub || sub.plan === "free") && (
+          <FreePlanBanner clientsUsed={profile?.lifetimeClientsCreated ?? 0} />
+        )}
+      </div>
+
+      {profile ? <ProfileCompletenessAlert profile={profile} /> : null}
 
       {/* Recent invoices + activity — hydration waterfall */}
       <Suspense fallback={<FeedSkeleton />}>

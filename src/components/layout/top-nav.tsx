@@ -21,7 +21,7 @@ interface TopNavProps {
 export function TopNav({ aiUser }: TopNavProps) {
   return (
     <header
-      className="sticky top-0 z-30 flex items-center gap-2 border-b bg-background/80 px-3 shadow-sm backdrop-blur-xl md:gap-3 md:px-6"
+      className="sticky top-0 z-30 flex items-center gap-2 border-b border-border/70 bg-background/90 px-3 backdrop-blur-xl md:gap-3 md:px-7"
       style={{
         height: "calc(3.5rem + env(safe-area-inset-top, 0px))",
         paddingTop: "env(safe-area-inset-top, 0px)",
