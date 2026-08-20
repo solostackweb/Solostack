@@ -1,130 +1,78 @@
-import { ArrowRight, FileText, IndianRupee, Mail, Sparkles } from "lucide-react";
 import Link from "next/link";
-import { Section } from "../section";
-import { Reveal, StaggerItem, StaggerReveal } from "../motion";
-
-/**
- * Stackivo AI — an assistant that lives inside the workspace and acts on the
- * user's real data, shown as a realistic chat exchange plus quick-action chips.
- */
-const QUICK_ACTIONS = [
-  { icon: Mail, label: "Draft a payment reminder" },
-  { icon: FileText, label: "Summarise this project" },
-  { icon: IndianRupee, label: "Who owes me money?" },
-];
+import { ArrowRight, Sparkles } from "lucide-react";
+import { SectionBand } from "../section";
+import { Reveal } from "../motion";
 
 export function AiSection() {
   return (
-    <Section id="ai" size="ultra">
-      <div className="grid items-center gap-12 lg:grid-cols-2 lg:gap-16">
-        {/* Copy */}
+    <SectionBand id="ai" size="wide" className="overflow-hidden">
+      <div className="grid items-center gap-12 lg:grid-cols-[.82fr_1.18fr] lg:gap-20">
         <Reveal>
           <div className="max-w-xl">
-            <p className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-3.5 py-1.5 text-micro font-semibold uppercase tracking-widest text-primary">
-              <Sparkles className="h-3 w-3" />
-              Stackivo AI
+            <p className="font-mono text-micro font-medium uppercase tracking-[0.14em] text-background/70">
+              Ivo · inside your workspace
             </p>
-            <h2 className="mt-4 text-balance font-display text-2xl font-semibold tracking-tight sm:text-3xl lg:text-4xl lg:tracking-[-0.018em]">
-              An assistant that knows your business, not just words.
+            <h2 className="mt-6 text-balance font-display text-4xl font-semibold tracking-[-0.045em] text-background sm:text-5xl">
+              An assistant with the missing context already attached.
             </h2>
-            <p className="mt-4 text-pretty text-base leading-[1.75] text-muted-foreground sm:text-lg">
-              Stackivo AI works inside your workspace — your clients, invoices,
-              and projects — so it answers with your numbers and drafts in your
-              voice. Ask it to chase an overdue invoice, summarise a project for
-              a client update, or tell you who your most profitable client is.
+            <p className="mt-6 text-base leading-7 text-background/70 sm:text-lg sm:leading-8">
+              Ivo can see the client, invoice state and project history you are looking at.
+              It drafts the next action from that context instead of asking you to paste the
+              story into another chat window.
             </p>
-            <ul className="mt-6 space-y-3">
-              {[
-                "Drafts reminders, updates, and welcome docs in seconds",
-                "Answers questions from your real revenue and time data",
-                "Flags overdue invoices and stalled projects before you ask",
-              ].map((line) => (
-                <li key={line} className="flex items-start gap-3 text-sm text-foreground/90">
-                  <span className="mt-1 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
-                    <Sparkles className="h-3 w-3" />
-                  </span>
-                  {line}
-                </li>
-              ))}
-            </ul>
             <Link
               href="/signup"
               data-cta="ai_section"
-              className="group mt-7 inline-flex items-center gap-1.5 text-sm font-semibold text-primary"
+              className="group mt-8 inline-flex items-center gap-2 text-sm font-semibold text-background"
             >
-              Meet your new back office
+              Put Ivo to work
               <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
             </Link>
           </div>
         </Reveal>
 
-        {/* Chat mockup */}
-        <Reveal delay={0.1}>
-          <div className="relative">
-            <div
-              aria-hidden
-              className="pointer-events-none absolute -inset-8 -z-10 rounded-[3rem] bg-gradient-to-br from-primary/[0.10] via-primary/[0.04] to-transparent blur-2xl"
-            />
-            <div className="overflow-hidden rounded-2xl border border-border/80 bg-card shadow-xl shadow-primary/[0.08]" aria-hidden>
-              <div className="flex items-center gap-2.5 border-b border-border/70 bg-muted/40 px-5 py-3">
-                <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                  <Sparkles className="h-3.5 w-3.5" />
-                </span>
-                <span className="text-xs font-semibold text-foreground">Stackivo AI</span>
-                <span className="ml-auto rounded-full bg-success/10 px-2 py-0.5 text-micro font-semibold text-success">
-                  Connected to your workspace
-                </span>
+        <Reveal delay={0.08}>
+          <div className="overflow-hidden rounded-2xl border border-background/15 bg-card shadow-[0_32px_80px_-34px_hsl(220_80%_2%/0.7)]" aria-hidden>
+            <div className="flex items-center gap-3 border-b border-border bg-muted/45 px-5 py-3">
+              <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent text-primary">
+                <Sparkles className="h-4 w-4" />
+              </span>
+              <div>
+                <p className="text-xs font-semibold text-foreground">Ivo</p>
+                <p className="text-micro text-muted-foreground">Viewing Karta Studio · INV-0041</p>
               </div>
-
-              <div className="space-y-4 p-5 sm:p-6">
-                {/* User message */}
-                <div className="flex justify-end">
-                  <p className="max-w-[85%] rounded-2xl rounded-br-lg bg-primary px-4 py-2.5 text-xs leading-relaxed text-primary-foreground">
-                    Karta Studio&rsquo;s invoice is 12 days overdue. Draft a polite reminder.
-                  </p>
+              <span className="ml-auto rounded-full bg-success-subtle px-2.5 py-1 text-micro font-semibold text-success-strong">
+                Workspace connected
+              </span>
+            </div>
+            <div className="space-y-5 p-5 sm:p-7">
+              <div className="flex justify-end">
+                <p className="max-w-[84%] rounded-2xl rounded-br-sm bg-primary px-4 py-3 text-xs leading-5 text-primary-foreground">
+                  This invoice is 12 days overdue. Draft a polite reminder using the project context.
+                </p>
+              </div>
+              <div className="max-w-[92%] rounded-2xl rounded-bl-sm border border-border bg-background p-4">
+                <p className="text-xs leading-5 text-foreground">
+                  Karta approved the launch files on 16 August. Here is a reminder for
+                  <strong> INV-0041 · ₹62,500</strong>:
+                </p>
+                <div className="mt-3 rounded-lg bg-muted p-3 text-xs leading-5 text-muted-foreground">
+                  Hi Meera — glad the launch files are approved. A quick reminder that
+                  INV-0041 was due on 8 August. I’ve included the payment link below for convenience.
                 </div>
-
-                {/* AI reply */}
-                <div className="flex justify-start">
-                  <div className="max-w-[90%] rounded-2xl rounded-bl-lg border border-border/70 bg-background px-4 py-3.5">
-                    <p className="text-xs leading-relaxed text-foreground">
-                      Here&rsquo;s a draft for <span className="font-semibold">INV-0041 (₹62,500)</span>:
-                    </p>
-                    <div className="mt-2.5 rounded-lg bg-muted/60 p-3 text-xs leading-relaxed text-muted-foreground">
-                      Hi Meera — hope the launch went well! A gentle nudge that
-                      invoice INV-0041 (₹62,500) was due on 29 May. The payment
-                      link is below whenever convenient. Thanks!
-                    </div>
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      <span className="rounded-full bg-primary px-3 py-1.5 text-micro font-semibold text-primary-foreground">
-                        Send via email
-                      </span>
-                      <span className="rounded-full border border-border bg-background px-3 py-1.5 text-micro font-medium text-foreground">
-                        Share on WhatsApp
-                      </span>
-                      <span className="rounded-full border border-border bg-background px-3 py-1.5 text-micro font-medium text-foreground">
-                        Edit draft
-                      </span>
-                    </div>
-                  </div>
+                <div className="mt-4 flex flex-wrap gap-2">
+                  <span className="rounded-lg bg-primary px-3 py-2 text-micro font-semibold text-primary-foreground">Send email</span>
+                  <span className="rounded-lg border border-border bg-card px-3 py-2 text-micro font-medium text-foreground">Edit draft</span>
                 </div>
-
-                {/* Quick actions */}
-                <StaggerReveal className="flex flex-wrap gap-2 border-t border-border/60 pt-4">
-                  {QUICK_ACTIONS.map((a) => (
-                    <StaggerItem key={a.label}>
-                      <span className="inline-flex items-center gap-1.5 rounded-full border border-border/80 bg-background px-3 py-1.5 text-micro font-medium text-muted-foreground">
-                        <a.icon className="h-3 w-3 text-primary" />
-                        {a.label}
-                      </span>
-                    </StaggerItem>
-                  ))}
-                </StaggerReveal>
+              </div>
+              <div className="flex items-center justify-between border-t border-border pt-4 text-micro text-muted-foreground">
+                <span>Used: invoice · client · project timeline</span>
+                <span className="font-mono tabular-nums">Drafted in 1.4s</span>
               </div>
             </div>
           </div>
         </Reveal>
       </div>
-    </Section>
+    </SectionBand>
   );
 }

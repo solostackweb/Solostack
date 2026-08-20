@@ -6,7 +6,13 @@ import { usePathname } from "next/navigation";
 import { ArrowRight, Menu, X } from "lucide-react";
 import { StackivoLogo } from "@/components/brand/stackivo-logo";
 import { Button } from "@/components/ui/button";
-import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 import type { MarketingAuthState } from "@/features/marketing/types";
 
@@ -16,12 +22,11 @@ import type { MarketingAuthState } from "@/features/marketing/types";
  * brand-blue underline on hover.
  */
 const NAV_LINKS = [
-  { href: "/#features", label: "Features" },
-  { href: "/#ai", label: "Stackivo AI" },
+  { href: "/#product", label: "Product" },
   { href: "/#workflow", label: "How it works" },
+  { href: "/#ai", label: "Ivo AI" },
   { href: "/pricing", label: "Pricing" },
   { href: "/tools", label: "Free tools" },
-  { href: "/blog", label: "Blog" },
   { href: "/docs", label: "Docs" },
 ];
 
@@ -39,14 +44,16 @@ export function MarketingHeader({ authState }: { authState: MarketingAuthState }
 
   return (
     <header
-      className={cn(
-        "sticky top-0 z-40 w-full border-b transition-all duration-300",
-        scrolled
-          ? "border-border/60 bg-background/85 shadow-sm shadow-primary/[0.03] backdrop-blur-xl"
-          : "border-transparent bg-background/60 backdrop-blur-sm",
-      )}
+      className="sticky top-3 z-40 w-full px-3 sm:px-5"
     >
-      <div className="relative mx-auto flex h-16 w-full max-w-[1600px] items-center px-5 sm:px-8 lg:px-12 2xl:px-16">
+      <div
+        className={cn(
+          "relative mx-auto flex h-16 w-full max-w-[1280px] items-center rounded-2xl border bg-card/90 px-4 backdrop-blur-xl transition-shadow duration-200 sm:px-5",
+          scrolled
+            ? "border-border shadow-[0_12px_38px_-24px_hsl(224_45%_28%/0.45)]"
+            : "border-border/70 shadow-[0_8px_24px_-22px_hsl(224_45%_28%/0.35)]",
+        )}
+      >
         <Link href="/" aria-label="Stackivo home" className="flex shrink-0 items-center gap-2">
           <StackivoLogo />
         </Link>
@@ -62,7 +69,7 @@ export function MarketingHeader({ authState }: { authState: MarketingAuthState }
               href={l.href}
               className={cn(
                 "relative px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground",
-                "after:absolute after:inset-x-3 after:bottom-0.5 after:h-[2px] after:origin-center after:scale-x-0 after:rounded-full after:bg-primary after:transition-transform after:duration-300 after:ease-out hover:after:scale-x-100",
+                "after:absolute after:inset-x-3 after:bottom-0.5 after:h-px after:origin-center after:scale-x-0 after:bg-primary after:transition-transform after:duration-300 after:ease-out hover:after:scale-x-100",
                 pathname === l.href && "text-foreground after:scale-x-100",
               )}
             >
@@ -83,6 +90,9 @@ export function MarketingHeader({ authState }: { authState: MarketingAuthState }
             </SheetTrigger>
             <SheetContent side="right" className="w-80 bg-background p-0">
               <SheetTitle className="sr-only">Navigation</SheetTitle>
+              <SheetDescription className="sr-only">
+                Navigate Stackivo marketing pages or access your account.
+              </SheetDescription>
               <div className="flex h-16 items-center border-b px-5">
                 <Link href="/" onClick={() => setOpen(false)} aria-label="Stackivo home" className="flex items-center gap-2">
                   <StackivoLogo />
@@ -122,7 +132,7 @@ function HeaderCtas({ authState }: { authState: MarketingAuthState }) {
             Upgrade to Pro
           </Link>
         ) : null}
-        <Button asChild size="sm" className="btn-gradient h-9 rounded-full border-0 px-4 text-sm font-semibold">
+        <Button asChild size="sm" className="h-10 rounded-lg px-4 text-sm font-semibold shadow-[0_8px_20px_-12px_hsl(var(--primary)/0.8)]">
           <Link href="/dashboard" data-cta="header_dashboard">
             Open dashboard <ArrowRight className="ml-1 h-3.5 w-3.5" />
           </Link>
@@ -133,10 +143,10 @@ function HeaderCtas({ authState }: { authState: MarketingAuthState }) {
 
   return (
     <div className="hidden items-center gap-1.5 lg:flex">
-      <Button asChild variant="ghost" size="sm" className="rounded-full px-4 text-sm font-medium text-muted-foreground hover:text-foreground">
+      <Button asChild variant="ghost" size="sm" className="rounded-lg px-4 text-sm font-medium text-muted-foreground hover:text-foreground">
         <Link href="/login" data-cta="header_login">Log in</Link>
       </Button>
-      <Button asChild size="sm" className="btn-gradient h-9 rounded-full border-0 px-4 text-sm font-semibold">
+      <Button asChild size="sm" className="h-10 rounded-lg px-4 text-sm font-semibold shadow-[0_8px_20px_-12px_hsl(var(--primary)/0.8)]">
         <Link href="/signup" data-cta="header_primary">
           Start free <ArrowRight className="ml-1 h-3.5 w-3.5" />
         </Link>
@@ -158,7 +168,7 @@ function MobileCtas({ authState, onNavigate }: { authState: MarketingAuthState; 
             Upgrade to Pro
           </Link>
         ) : null}
-        <Button asChild className="btn-gradient h-11 w-full justify-center rounded-full border-0 font-semibold">
+        <Button asChild className="h-11 w-full justify-center rounded-lg font-semibold">
           <Link href="/dashboard" onClick={onNavigate}>Open dashboard</Link>
         </Button>
       </div>
@@ -167,10 +177,10 @@ function MobileCtas({ authState, onNavigate }: { authState: MarketingAuthState; 
 
   return (
     <div className="grid gap-2">
-      <Button asChild className="btn-gradient h-11 w-full justify-center rounded-full border-0 font-semibold">
+      <Button asChild className="h-11 w-full justify-center rounded-lg font-semibold">
         <Link href="/signup" onClick={onNavigate} data-cta="mobile_menu_primary">Start free</Link>
       </Button>
-      <Button asChild variant="outline" className="h-11 w-full justify-center rounded-full">
+      <Button asChild variant="outline" className="h-11 w-full justify-center rounded-lg">
         <Link href="/login" onClick={onNavigate} data-cta="mobile_menu_login">Log in</Link>
       </Button>
       <Link

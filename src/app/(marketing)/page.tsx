@@ -2,9 +2,8 @@ import type { Metadata } from "next";
 import { Hero } from "@/components/marketing/home/hero";
 import { TaxSection } from "@/components/marketing/home/tax-section";
 import { FounderNote } from "@/components/marketing/founder-note";
-import { ProblemSection } from "@/components/marketing/home/problem-section";
-import { ShowcaseSection } from "@/components/marketing/home/showcase-section";
-import { CapabilitiesSection } from "@/components/marketing/home/capabilities-section";
+import { ProductSection } from "@/components/marketing/home/product-section";
+import { ConnectedWorkflowSection } from "@/components/marketing/home/connected-workflow-section";
 import { AiSection } from "@/components/marketing/home/ai-section";
 import { PricingTeaser } from "@/components/marketing/home/pricing-teaser";
 import { FinalCta } from "@/components/marketing/home/final-cta";
@@ -26,26 +25,7 @@ export const metadata: Metadata = {
   },
 };
 
-/**
- * Homepage — eight sections, down from twelve (MASTER.md §8).
- *
- *   Hero (the artifact) → GST (the thing nobody else does) → Problem (the
- *   scattered stack) → Showcase (the product) → Capabilities (the details)
- *   → AI (the multiplier) → Founder note (who is behind it) → Pricing (the
- *   ask), then FAQ and the close.
- *
- * Cut in v2, and why:
- *   TrustStrip          — logo wall with no logos to put in it
- *   InternationalSection — an export invoice is a GST treatment, so it folds
- *                          into TaxSection rather than repeating the argument
- *   WorkflowSection     — restated what Showcase already demonstrates
- *   Testimonials        — no real customers yet, and invented proof is worse
- *                          than none. FounderNote takes the slot until there
- *                          are named names and real numbers.
- *
- * The rule that drove the cut: never two card grids in a row, and every
- * section earns its scroll.
- */
+/** Calm Command homepage: connected product evidence before feature breadth. */
 export default async function LandingPage() {
   const authState = await getMarketingAuthState();
 
@@ -88,10 +68,9 @@ export default async function LandingPage() {
         }}
       />
       <Hero authState={authState} />
+      <ProductSection />
+      <ConnectedWorkflowSection />
       <TaxSection />
-      <ProblemSection />
-      <ShowcaseSection />
-      <CapabilitiesSection />
       <AiSection />
       <FounderNote />
       <PricingTeaser />

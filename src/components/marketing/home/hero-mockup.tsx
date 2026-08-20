@@ -51,7 +51,7 @@ export function HeroMockup() {
               Good morning, Aarav
             </p>
             <p className="text-micro text-muted-foreground">
-              June 2026 · 4 active projects
+              August 2026 · 4 active projects
             </p>
           </div>
           <span className="hidden rounded-full bg-primary px-3.5 py-1.5 text-micro font-semibold text-primary-foreground sm:block">
@@ -62,7 +62,7 @@ export function HeroMockup() {
         {/* Stat cards */}
         <div className="mt-4 grid grid-cols-2 gap-2.5 sm:grid-cols-4 sm:gap-3">
           <Stat label="Outstanding" value="₹1,24,500" delta="3 invoices" />
-          <Stat label="Paid this month" value="₹2,86,000" delta="+18% vs May" positive />
+          <Stat label="Paid this month" value="₹2,86,000" delta="+18% vs Jul" positive />
           <Stat label="Hours tracked" value="96.5h" delta="this month" />
           <Stat label="Active clients" value="12" delta="2 new" positive />
         </div>
@@ -76,12 +76,12 @@ export function HeroMockup() {
             </div>
             <div className="mt-3 flex h-24 items-end gap-1.5 sm:h-28 sm:gap-2">
               {[34, 48, 40, 62, 55, 74, 68, 92].map((h, i) => (
-                <div key={i} className="flex-1">
+                <div key={i} className="flex h-full flex-1 items-end">
                   <div
                     className={cn(
                       "w-full rounded-t-lg",
                       i === 7
-                        ? "bg-gradient-to-t from-primary to-primary/70"
+                        ? "bg-primary"
                         : "bg-primary/15",
                     )}
                     style={{ height: `${h}%` }}
@@ -90,7 +90,7 @@ export function HeroMockup() {
               ))}
             </div>
             <div className="mt-2 flex justify-between text-xs text-muted-foreground/70">
-              {["Nov", "Dec", "Jan", "Feb", "Mar", "Apr", "May", "Jun"].map((m) => (
+              {["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug"].map((m) => (
                 <span key={m}>{m}</span>
               ))}
             </div>

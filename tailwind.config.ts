@@ -34,9 +34,10 @@ const config: Config = {
         xl: ["1.25rem", { lineHeight: "1.75rem" }],
         "2xl": ["1.5rem", { lineHeight: "2rem" }],
         "3xl": ["1.875rem", { lineHeight: "2.25rem" }],
-        "4xl": ["2.25rem", { lineHeight: "1.1", letterSpacing: "-0.02em" }],
-        "5xl": ["3rem", { lineHeight: "1.05", letterSpacing: "-0.02em" }],
-        "6xl": ["3.75rem", { lineHeight: "1.02", letterSpacing: "-0.025em" }],
+        "4xl": ["2.25rem", { lineHeight: "2.625rem", letterSpacing: "-0.04em" }],
+        "5xl": ["3rem", { lineHeight: "3.25rem", letterSpacing: "-0.045em" }],
+        "6xl": ["4rem", { lineHeight: "4.125rem", letterSpacing: "-0.05em" }],
+        "7xl": ["5rem", { lineHeight: "5.125rem", letterSpacing: "-0.055em" }],
       },
       fontFamily: {
         sans: ["var(--font-sans)", "system-ui", "sans-serif"],
@@ -109,6 +110,7 @@ const config: Config = {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
+        "2xl": "1rem",
       },
       keyframes: {
         "accordion-down": {

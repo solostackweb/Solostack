@@ -93,7 +93,7 @@ export function NewsletterForm({
       onSubmit={onSubmit}
       className={
         compact
-          ? "flex w-full max-w-sm gap-2"
+          ? "flex w-full min-w-0 max-w-sm flex-col gap-2 min-[360px]:flex-row"
           : "flex w-full max-w-sm flex-col gap-2 sm:flex-row"
       }
     >
@@ -116,7 +116,7 @@ export function NewsletterForm({
         value={email}
         onChange={(e) => setEmail(e.target.value)}
         placeholder={placeholder}
-        className="h-9 flex-1 rounded-lg border bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
+        className="h-9 min-w-0 flex-1 rounded-lg border bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
       />
       <button
         type="submit"

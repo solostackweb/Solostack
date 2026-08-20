@@ -58,7 +58,7 @@ export function MarketingFooter({
     <footer className="border-t bg-muted/20">
       <div className="mx-auto w-full max-w-[1600px] px-5 pb-8 pt-12 sm:px-8 sm:pt-14 lg:px-12 2xl:px-16">
         <div className="grid gap-10 md:grid-cols-2 lg:grid-cols-[1.6fr_1fr_1fr_1fr] lg:gap-8">
-          <div className="space-y-4">
+          <div className="min-w-0 space-y-4">
             <Link href="/" className="flex items-center gap-2.5 font-bold tracking-tight">
               <StackivoMark className="h-8 w-8" />
               <span className="text-base">{siteConfig.name}</span>
@@ -108,7 +108,7 @@ export function MarketingFooter({
           <p>
             © {new Date().getFullYear()} {siteConfig.name}. Built for independent professionals.
           </p>
-          <div className="flex items-center gap-4">
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
             {bottomLinks.map((l) => (
               <Link
                 key={l.href}

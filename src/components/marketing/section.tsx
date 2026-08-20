@@ -1,17 +1,7 @@
 import * as React from "react";
 import { cn } from "@/lib/utils";
 
-/**
- * Marketing layout primitives — the Ledger surface.
- *
- * These own the page rhythm so no section hand-rolls padding. See
- * design-system/MASTER.md §4 (spacing) and §8 (composition).
- *
- * The composition rules these exist to enforce:
- *   - left-aligned by default; centre is the exception, twice per page at most
- *   - hairline rules instead of pills and cards
- *   - real air between sections (Ledger reads as cramped without it)
- */
+/** Calm Command marketing rhythm and composition primitives. */
 
 const SIZE_CLASSES = {
   /** Readable prose and text-led sections. */
@@ -19,15 +9,14 @@ const SIZE_CLASSES = {
   /** Visual-heavy sections — documents, tables, mockups. */
   wide: "max-w-[1400px]",
   /** Cinematic / full-bleed compositions. */
-  ultra: "max-w-[1600px]",
+  ultra: "max-w-[1440px]",
   /** No max width; the caller handles it. */
   full: "max-w-none",
 } as const;
 
 const HORIZONTAL_PADDING = "px-5 sm:px-8 lg:px-10 xl:px-14 2xl:px-20";
 
-/** MASTER.md §4. Ledger needs air; v1's py-12 read as cramped. */
-const VERTICAL_PADDING = "py-16 sm:py-20 lg:py-28";
+const VERTICAL_PADDING = "py-20 sm:py-24 lg:py-28 xl:py-[120px]";
 
 export function Section({
   children,
@@ -49,7 +38,7 @@ export function Section({
     <section
       id={id}
       className={cn(
-        "relative w-full",
+        "relative w-full scroll-mt-24",
         rule && "border-t border-border",
         !bleed && VERTICAL_PADDING,
         className,
@@ -63,20 +52,21 @@ export function Section({
 }
 
 /**
- * Full-bleed inverted band. MASTER.md §8 asks for at least two sections per
- * page that break the container — this is one of the two ways to do it.
+ * Full-bleed deep-blue band for one decisive change of pace.
  */
 export function SectionBand({
   children,
+  id,
   className,
   size = "default",
 }: {
   children: React.ReactNode;
+  id?: string;
   className?: string;
   size?: keyof typeof SIZE_CLASSES;
 }) {
   return (
-    <section className={cn("relative w-full bg-foreground py-14 text-background sm:py-16", className)}>
+    <section id={id} className={cn("relative w-full scroll-mt-24 bg-foreground py-16 text-background sm:py-20", className)}>
       <div className={cn("mx-auto w-full", SIZE_CLASSES[size], HORIZONTAL_PADDING)}>
         {children}
       </div>
@@ -85,9 +75,8 @@ export function SectionBand({
 }
 
 /**
- * Eyebrow — a mono label followed by a rule that runs to the edge of the
- * column. Replaces v1's pill. The rule is half of Ledger's signature and it
- * appears on every marketing page (MASTER.md §8).
+ * A mono label with a hairline extension. It echoes the Flowline without
+ * turning every heading into a badge.
  */
 export function SectionEyebrow({
   children,
@@ -99,12 +88,12 @@ export function SectionEyebrow({
   return (
     <p
       className={cn(
-        "flex items-center gap-3 font-mono text-micro font-medium uppercase tracking-[0.16em] text-primary",
+        "flex items-center gap-3 font-mono text-micro font-medium uppercase tracking-[0.14em] text-primary",
         className,
       )}
     >
       {children}
-      <span aria-hidden className="h-px flex-1 bg-border" />
+      <span aria-hidden className="h-px flex-1 bg-primary/25" />
     </p>
   );
 }
@@ -142,7 +131,7 @@ export function SectionHeading({
 
       <h2
         className={cn(
-          "text-balance font-display font-normal tracking-[-0.015em] text-foreground",
+          "text-balance font-display font-semibold tracking-[-0.045em] text-foreground",
           size === "large" ? "text-4xl sm:text-5xl lg:text-6xl" : "text-3xl sm:text-4xl lg:text-5xl",
         )}
       >
@@ -159,8 +148,7 @@ export function SectionHeading({
 }
 
 /**
- * Column set separated by hairlines rather than gaps. The other half of
- * Ledger's signature — content sits *on* the page, not inside boxes.
+ * Column set separated by hairlines rather than repeated generic cards.
  */
 export function RuledColumns({
   children,
@@ -174,7 +162,7 @@ export function RuledColumns({
   return (
     <div
       className={cn(
-        "grid border-t border-foreground",
+        "grid border-t border-border",
         cols === 2 && "sm:grid-cols-2",
         cols === 3 && "sm:grid-cols-2 lg:grid-cols-3",
         cols === 4 && "sm:grid-cols-2 lg:grid-cols-4",
@@ -208,7 +196,7 @@ export function RuledColumn({
       {index ? (
         <p className="mb-4 font-mono text-micro uppercase tracking-[0.16em] text-primary">{index}</p>
       ) : null}
-      <h3 className="font-display text-xl font-normal leading-tight tracking-[-0.015em] text-foreground sm:text-2xl">
+      <h3 className="font-display text-xl font-semibold leading-tight tracking-[-0.035em] text-foreground sm:text-2xl">
         {title}
       </h3>
       <div className="mt-3 max-w-[46ch] text-sm leading-[1.7] text-muted-foreground sm:text-base">
@@ -219,9 +207,7 @@ export function RuledColumn({
 }
 
 /**
- * Paper — a white surface with a flat offset block behind it. This is the
- * only depth mechanism on the marketing surface; blur is retired (MASTER.md §6).
- * Square corners: paper does not have rounded ones.
+ * Crisp artifact surface. Use for documents that need to read as real output.
  */
 export function Paper({
   children,
@@ -237,10 +223,10 @@ export function Paper({
       {offset ? (
         <div
           aria-hidden
-          className="pointer-events-none absolute inset-0 translate-x-3 translate-y-3 bg-muted"
+          className="pointer-events-none absolute inset-0 translate-x-3 translate-y-3 rounded-2xl bg-accent/55"
         />
       ) : null}
-      <div className={cn("relative border border-border bg-card", className)}>{children}</div>
+      <div className={cn("relative rounded-2xl border border-border bg-card", className)}>{children}</div>
     </div>
   );
 }

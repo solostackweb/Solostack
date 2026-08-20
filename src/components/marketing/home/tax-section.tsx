@@ -1,26 +1,15 @@
 import { Section, SectionHeading, RuledColumns, RuledColumn } from "../section";
 import { Reveal } from "../motion";
 
-/**
- * GST — promoted to a full section in v2.
- *
- * In v1 this was the third card in a six-card capabilities grid. It is the
- * single thing Stackivo does that the international competition does not do
- * at all, and it was being presented as a feature footnote. Keka leads with
- * navigating labour law across 28 states; the equivalent move here is to let
- * place-of-supply carry a section of its own.
- *
- * Also absorbs what used to be `InternationalSection` — an export invoice is
- * a GST treatment, not a separate topic.
- */
+/** The India-specific proof section: real treatments, not a generic tax claim. */
 export function TaxSection() {
   return (
     <Section id="gst" size="wide" rule>
       <Reveal>
         <SectionHeading
           eyebrow="Place of supply"
-          title="Tax, handled quietly."
-          subtitle="Place of supply, reverse charge, export invoices without GST — the unglamorous parts are exactly where the software should be doing the thinking. You pick the client; Stackivo picks the treatment."
+          title="GST decisions, visible before you send."
+          subtitle="Choose the client and Stackivo applies the treatment from place of supply. You still see the reasoning, the rates and the final invoice before anything leaves your workspace."
         />
       </Reveal>
 

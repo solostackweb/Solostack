@@ -36,7 +36,7 @@ export function PricingTeaser() {
   const plans = [PLANS.free, PLANS.pro, PLANS.business];
 
   return (
-    <Section id="pricing" size="ultra" className="border-t bg-muted/30">
+    <Section id="pricing" size="wide" className="border-t border-border bg-muted/30">
       <Reveal>
         <SectionHeading
           eyebrow="Pricing"
@@ -54,12 +54,12 @@ export function PricingTeaser() {
                 className={cn(
                   "relative flex h-full flex-col rounded-2xl border bg-card p-7",
                   featured
-                    ? "border-primary/30 shadow-xl shadow-primary/10 ring-1 ring-primary/20"
+                    ? "border-primary/35 shadow-[0_24px_60px_-38px_hsl(224_45%_28%/0.42)]"
                     : "border-border/80",
                 )}
               >
                 {featured ? (
-                  <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-primary px-3 py-1 text-micro font-bold uppercase tracking-wider text-primary-foreground">
+                  <span className="absolute -top-3 left-6 rounded-lg bg-primary px-3 py-1 text-micro font-semibold uppercase tracking-[0.12em] text-primary-foreground">
                     Most popular
                   </span>
                 ) : null}
@@ -87,8 +87,7 @@ export function PricingTeaser() {
                 <Button
                   asChild
                   className={cn(
-                    "mt-7 h-11 w-full rounded-full text-sm font-semibold",
-                    featured ? "btn-gradient border-0" : "",
+                    "mt-7 h-11 w-full rounded-lg text-sm font-semibold",
                   )}
                   variant={featured ? "default" : "outline"}
                 >
@@ -102,7 +101,7 @@ export function PricingTeaser() {
         })}
       </StaggerReveal>
 
-      <Reveal delay={0.2} className="mt-8 text-center">
+      <Reveal delay={0.2} className="mt-8">
         <Link
           href="/pricing"
           data-cta="pricing_teaser_compare"

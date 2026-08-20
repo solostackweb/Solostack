@@ -3,22 +3,7 @@ import { ArrowRight, MessageCircle, Mail } from "lucide-react";
 import { Section, SectionEyebrow } from "./section";
 import { Reveal } from "./motion";
 
-/**
- * Founder note — Ledger.
- *
- * This occupies the slot testimonials used to. Stackivo is at early access
- * with no named customers, and MASTER.md §8 is explicit: no invented social
- * proof. A signed first-person note from the person who wrote the code is
- * both honest and, at this stage, more persuasive than three fabricated
- * quotes would be.
- *
- * v1 wrapped this in a rounded card with two blur washes. Blur is retired
- * (MASTER.md §6); the note now sits on the page between rules, set as
- * correspondence, because that is what it is.
- *
- * When there are real customers with real numbers, this stays and the proof
- * section is added beside it — it does not get replaced.
- */
+/** Honest founder context until Stackivo has named, verifiable customer proof. */
 export function FounderNote() {
   return (
     <Section size="default" rule>
@@ -26,8 +11,8 @@ export function FounderNote() {
         <div className="grid gap-12 lg:grid-cols-[.8fr_1.2fr] lg:gap-20">
           <div>
             <SectionEyebrow>Who is behind it</SectionEyebrow>
-            <h2 className="mt-6 text-balance font-display text-3xl font-normal leading-[1.08] tracking-[-0.015em] text-foreground sm:text-4xl">
-              Built solo, in the open.
+            <h2 className="mt-6 text-balance font-display text-3xl font-semibold leading-[1.08] tracking-[-0.045em] text-foreground sm:text-4xl">
+              Built here, for the way independents work here.
             </h2>
           </div>
 

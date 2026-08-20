@@ -44,7 +44,7 @@ export function FaqSection({
         <SectionHeading eyebrow={eyebrow} title={title} subtitle={subtitle} />
       </Reveal>
 
-      <Reveal className="mx-auto mt-12 max-w-2xl divide-y overflow-hidden rounded-2xl border bg-card shadow-sm">
+      <Reveal className="mt-12 max-w-3xl divide-y overflow-hidden rounded-2xl border border-border bg-card shadow-[0_18px_48px_-38px_hsl(224_45%_28%/0.35)]">
         {faqs.map((f, i) => {
           const isOpen = open === i;
           return (

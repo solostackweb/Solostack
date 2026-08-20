@@ -42,3 +42,6 @@ next-env.d.ts
 # scratch
 /_to_delete
 /_sync
+
+# gstack local browser/runtime state
+/.gstack/

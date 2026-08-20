@@ -22,20 +22,20 @@
 /** Stackivo blue. Mirrors `--primary` (221 83% 53%) in globals.css. */
 export const BRAND_PRIMARY = "#2563EB";
 
-/** Deeper blue used as the end stop of brand gradients. */
-export const BRAND_PRIMARY_DEEP = "#1D4ED8";
+/** Deep action blue used for hover, pressed, and high-contrast blue text. */
+export const BRAND_PRIMARY_DEEP = "#173EA5";
 
-/** Indigo used as the second stop of the logo gradient. */
-export const BRAND_ACCENT = "#4F46E5";
+/** Periwinkle support colour. It is atmosphere, never a primary action. */
+export const BRAND_ACCENT = "#7186E8";
 
 /** Light blue for text on dark brand surfaces (OG images). */
-export const BRAND_ON_DARK = "#60A5FA";
+export const BRAND_ON_DARK = "#6B9CFF";
 
 /** Near-black canvas. Must equal `background_color` in the web manifest. */
-export const BRAND_CANVAS_DARK = "#0a1020";
+export const BRAND_CANVAS_DARK = "#081020";
 
 /** Default brand colour for documents when a user hasn't chosen one. */
-export const DEFAULT_DOCUMENT_BRAND = "#0F172A";
+export const DEFAULT_DOCUMENT_BRAND = "#111936";
 
 /**
  * WhatsApp's own brand colours. Third-party marks must not be recoloured, so
