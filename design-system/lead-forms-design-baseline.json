@@ -1,0 +1,34 @@
+{
+  "date": "2026-08-21",
+  "url": "http://localhost:3000/dashboard/lead-forms",
+  "designScore": "B",
+  "aiSlopScore": "B",
+  "categoryGrades": {
+    "hierarchy": "B",
+    "typography": "B",
+    "spacing": "B",
+    "color": "A",
+    "interaction": "B",
+    "responsive": "B",
+    "content": "B",
+    "aiSlop": "B",
+    "motion": "B",
+    "performanceFeel": "C"
+  },
+  "findings": [
+    {
+      "id": "LEAD-FORMS-001",
+      "title": "The first-use workspace gave navigation and two inactive reporting shells equal weight to creating the acquisition path",
+      "impact": "high",
+      "category": "hierarchy",
+      "status": "verified"
+    },
+    {
+      "id": "LEAD-FORMS-002",
+      "title": "Populated form controls and submission follow-up still need visual verification with representative data",
+      "impact": "medium",
+      "category": "interaction",
+      "status": "deferred"
+    }
+  ]
+}

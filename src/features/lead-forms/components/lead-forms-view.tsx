@@ -4,7 +4,16 @@ import * as React from "react";
 import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
 import Link from "next/link";
-import { Copy, ExternalLink, FolderKanban, Inbox, Pencil, Plus } from "lucide-react";
+import {
+  ArrowRight,
+  Copy,
+  ExternalLink,
+  FolderKanban,
+  Inbox,
+  Pencil,
+  Plus,
+  UserRound,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -47,7 +56,7 @@ export function LeadFormsView({
             straight into Projects as a lead.
           </p>
         </div>
-        <Button asChild>
+        <Button asChild variant="outline">
           <Link href="/dashboard/projects">
             <FolderKanban className="h-4 w-4" />
             View projects
@@ -55,7 +64,7 @@ export function LeadFormsView({
         </Button>
       </header>
 
-      <section className="grid gap-4 lg:grid-cols-[0.9fr_1.1fr]">
+      <section className={`grid gap-4 ${forms.length === 0 ? "lg:grid-cols-[1.05fr_0.95fr]" : "lg:grid-cols-[0.9fr_1.1fr]"}`}>
         <form action={action} className="rounded-lg border bg-card p-5 shadow-sm">
           <div className="flex items-center gap-2">
             <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
@@ -116,16 +125,16 @@ export function LeadFormsView({
           <SubmitButton label="Create form" className="mt-4 w-full" />
         </form>
 
-        <section className="rounded-lg border bg-card p-5 shadow-sm">
-          <h2 className="text-sm font-semibold">Active forms</h2>
-          <p className="mt-1 text-xs text-muted-foreground">
-            Toggle forms off when you are not accepting new inquiries.
-          </p>
-          <div className="mt-4 space-y-3">
-            {forms.length === 0 ? (
-              <EmptyState icon={Inbox} title="No lead forms yet" text="Create your first intake form to start capturing leads." />
-            ) : (
-              forms.map((form) => {
+        {forms.length === 0 ? (
+          <AcquisitionPath />
+        ) : (
+          <section className="rounded-lg border bg-card p-5 shadow-sm">
+            <h2 className="text-sm font-semibold">Active forms</h2>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Toggle forms off when you are not accepting new inquiries.
+            </p>
+            <div className="mt-4 space-y-3">
+              {forms.map((form) => {
                 const url = `${publicBaseUrl}/lead/${form.slug}`;
                 return (
                   <article key={form.id} className="rounded-lg border bg-background p-4">
@@ -179,13 +188,14 @@ export function LeadFormsView({
                     </div>
                   </article>
                 );
-              })
-            )}
-          </div>
-        </section>
+              })}
+            </div>
+          </section>
+        )}
       </section>
 
-      <section className="rounded-lg border bg-card p-5 shadow-sm">
+      {forms.length > 0 ? (
+        <section className="rounded-lg border bg-card p-5 shadow-sm">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h2 className="text-sm font-semibold">Recent submissions</h2>
@@ -244,8 +254,71 @@ export function LeadFormsView({
             ))
           )}
         </div>
-      </section>
+        </section>
+      ) : null}
     </div>
+  );
+}
+
+function AcquisitionPath() {
+  const steps = [
+    {
+      icon: ExternalLink,
+      label: "Share the form",
+      text: "Publish one link wherever prospects discover your work.",
+    },
+    {
+      icon: UserRound,
+      label: "Capture the client",
+      text: "Each complete inquiry becomes a client automatically.",
+    },
+    {
+      icon: FolderKanban,
+      label: "Qualify the lead",
+      text: "The opportunity arrives in Projects, ready for follow-up.",
+    },
+  ];
+
+  return (
+    <aside className="rounded-lg border bg-card p-5 shadow-sm lg:p-6">
+      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">
+        Acquisition path
+      </p>
+      <h2 className="mt-2 text-xl font-semibold tracking-tight">
+        One form, then a lead ready to work.
+      </h2>
+      <p className="mt-2 max-w-lg text-sm leading-relaxed text-muted-foreground">
+        Set the promise prospects see. Stackivo handles the handoff into your
+        client and project records after they submit.
+      </p>
+      <div className="mt-6 grid gap-2 sm:grid-cols-3 lg:grid-cols-1">
+        {steps.map((step, index) => {
+          const Icon = step.icon;
+          return (
+            <div key={step.label} className="flex items-start gap-3 rounded-lg border bg-background p-3.5">
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                <Icon className="h-4 w-4" />
+              </span>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2">
+                  <p className="text-sm font-semibold">{step.label}</p>
+                  {index < steps.length - 1 ? (
+                    <ArrowRight className="hidden h-3.5 w-3.5 text-muted-foreground sm:block lg:hidden" />
+                  ) : null}
+                </div>
+                <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
+                  {step.text}
+                </p>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      <p className="mt-4 border-t pt-4 text-xs text-muted-foreground">
+        Active forms and submission history will appear here after your first
+        form is created.
+      </p>
+    </aside>
   );
 }
 

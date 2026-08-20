@@ -346,7 +346,41 @@ analytics CSP notices and the known Next.js smooth-scroll warning. Populated
 document rows and actions are deferred for visual verification with real data;
 their implementation was not changed.
 
+### Lead Forms — completed
+
+The empty Lead Forms workspace now makes form creation the primary job and shows
+the operational handoff it unlocks. The acquisition path connects public link →
+client record → lead project, while inactive form management and submission
+history stay out of the way until there is something to operate on. Populated
+form toggles, customization, copying, public links, submissions, project links,
+and Ivo response drafting remain unchanged.
+
+Evidence:
+
+- `screenshots/lead-forms-baseline.png` — pre-change desktop state.
+- `screenshots/lead-forms-mobile-baseline.png` — pre-change mobile state.
+- `screenshots/lead-forms-calm-command.png` — desktop result.
+- `screenshots/lead-forms-mobile-calm-command.png` — mobile result.
+
+Quick wins completed:
+
+1. Demoted project navigation from the page's primary action to an outline action.
+2. Hid empty form-management and submission-reporting shells before first use.
+3. Kept the intake form as the dominant work surface.
+4. Explained share → capture → qualify with one acquisition-specific Flowline.
+5. Preserved every populated-state control and server action.
+
+Lead Forms design score: **C → B**.
+
+Lead Forms AI slop score: **C → B**.
+
+Desktop and mobile reloads produced no application runtime errors. Form creation
+was not submitted during QA because it would create workspace data; the existing
+server action and its success and failure feedback were preserved unchanged.
+Development logs contain only report-only analytics CSP notices. Populated form
+and submission rows are deferred for visual verification with representative data.
+
 ### Next
 
-Audit the remaining document surfaces, beginning with Lead Forms and Templates,
-then run a cross-flow consistency pass from proposal through client onboarding.
+Make the Templates starter library scannable without removing any creation,
+preview, or cloning behavior, then run the cross-flow consistency pass.
