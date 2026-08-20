@@ -4,12 +4,12 @@ import type { ContractStatusRow } from "@/lib/supabase/types";
 import { CONTRACT_STATUS_LABEL } from "../status";
 
 const STATUS_STYLES: Record<ContractStatusRow, string> = {
-  draft: "bg-muted text-muted-foreground ring-muted-foreground/20",
-  sent: "bg-primary/10 text-primary ring-primary/20",
-  viewed: "bg-violet-500/10 text-violet-700 ring-violet-500/20 dark:text-violet-400",
-  signed: "bg-success-subtle text-success-strong ring-success-subtle",
-  declined: "bg-destructive/10 text-destructive ring-destructive/20",
-  expired: "bg-warning-subtle text-warning-strong ring-warning-subtle",
+  draft: "border-border bg-muted/70 text-muted-foreground",
+  sent: "border-primary/20 bg-primary/10 text-primary",
+  viewed: "border-violet-500/20 bg-violet-500/10 text-violet-700 dark:text-violet-400",
+  signed: "border-success-subtle bg-success-subtle text-success-strong",
+  declined: "border-destructive/20 bg-destructive/10 text-destructive",
+  expired: "border-warning-subtle bg-warning-subtle text-warning-strong",
 };
 
 const STATUS_DOT: Record<ContractStatusRow, string> = {
@@ -28,26 +28,15 @@ export function ContractStatusBadge({
   status: ContractStatusRow;
   className?: string;
 }) {
-  const isLive = status === "sent" || status === "viewed";
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-micro font-semibold uppercase tracking-wider ring-1 ring-inset",
+        "inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-xs font-medium",
         STATUS_STYLES[status],
         className,
       )}
     >
-      <span className="relative flex h-1.5 w-1.5">
-        {isLive ? (
-          <span
-            className={cn(
-              "absolute inline-flex h-full w-full animate-ping rounded-full opacity-60",
-              STATUS_DOT[status],
-            )}
-          />
-        ) : null}
-        <span className={cn("relative inline-flex h-1.5 w-1.5 rounded-full", STATUS_DOT[status])} />
-      </span>
+      <span className={cn("h-1.5 w-1.5 rounded-full", STATUS_DOT[status])} />
       {CONTRACT_STATUS_LABEL[status]}
     </span>
   );

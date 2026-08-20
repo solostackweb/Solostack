@@ -266,11 +266,6 @@ export function ContractsListView({
                 label="Ask Ivo"
                 variant="secondary"
               />
-              <IvoEntryPoint
-                prompt="Draft a contract for a client"
-                label="Draft with Ivo"
-                variant="ghost"
-              />
               <Button asChild size="sm">
                 <Link href="/dashboard/contracts/new">
                   <Plus /> New contract
@@ -286,24 +281,14 @@ export function ContractsListView({
       ) : (
         <div className={cn("grid items-start gap-6", "grid-cols-1")}>
           <div className="min-w-0 space-y-6">
-            <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
-              <Stat
-                label="Total contracts"
-                value={stats.total.toString()}
-                featured
-              />
-              <Stat
-                label="Signed"
-                value={stats.signed.toString()}
-                tone="success"
-              />
-              <Stat
-                label="Awaiting signature"
-                value={stats.awaiting.toString()}
-                tone="warning"
-              />
-              <Stat label="Signed value" value={formatINR(stats.value)} />
-            </div>
+            <Card>
+              <CardContent className="grid grid-cols-2 divide-x-0 divide-y p-0 sm:grid-cols-4 sm:divide-x sm:divide-y-0">
+                <Stat label="Total contracts" value={stats.total.toString()} />
+                <Stat label="Signed" value={stats.signed.toString()} tone="success" />
+                <Stat label="Awaiting signature" value={stats.awaiting.toString()} tone="warning" />
+                <Stat label="Signed value" value={formatINR(stats.value)} />
+              </CardContent>
+            </Card>
 
       <div className="grid gap-2 sm:flex sm:min-w-0 sm:items-center">
         <div className="relative w-full sm:w-96 sm:shrink-0">
@@ -363,8 +348,15 @@ export function ContractsListView({
           </div>
 
           {/* Tablet+: dense table-style row list */}
-          <Card className="hidden md:block">
+          <Card className="hidden overflow-hidden md:block">
             <CardContent className="p-0">
+              <div className="grid grid-cols-[minmax(180px,1fr)_110px_110px_110px_32px] items-center gap-3 border-b bg-muted/20 px-5 py-2.5 text-xs font-medium text-muted-foreground">
+                <span>Agreement</span>
+                <span>Status</span>
+                <span>Created</span>
+                <span className="text-right">Value</span>
+                <span className="sr-only">Actions</span>
+              </div>
               <ul className="divide-y">
                 {filtered.map((c) => (
                   <ContractRow
@@ -410,7 +402,7 @@ function ContractRow({
 
   return (
     <li>
-      <div className="flex items-center justify-between gap-4 px-5 py-3.5 hover:bg-muted/20">
+      <div className="grid grid-cols-[minmax(180px,1fr)_110px_110px_110px_32px] items-center gap-3 px-5 py-3.5 transition-colors hover:bg-muted/20">
         <Link
           href={`/dashboard/contracts/${contract.id}`}
           className="flex min-w-0 flex-1 items-center gap-3"
@@ -419,25 +411,22 @@ function ContractRow({
             <FileSignature className="h-4 w-4" />
           </div>
           <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2">
-              <p className="truncate text-sm font-medium">{contract.title}</p>
-              <ContractStatusBadge status={contract.status} />
-            </div>
-            <p className="mt-0.5 truncate text-xs text-muted-foreground">
+            <p className="truncate text-base font-semibold">{contract.title}</p>
+            <p className="mt-1 truncate text-sm text-muted-foreground">
               {CONTRACT_KIND_LABEL[contract.kind]}
               {clientName && <> · {clientName}</>}
-              {" · "}
-              <span className="tabular-nums">{issued}</span>
             </p>
           </div>
         </Link>
 
-        <div className="flex items-center gap-4">
-          {contract.valueAmount != null && contract.valueAmount > 0 && (
-            <span className="hidden text-sm tabular-nums text-muted-foreground sm:inline">
-              {formatMoney(contract.valueAmount, contract.currency)}
-            </span>
-          )}
+        <div><ContractStatusBadge status={contract.status} /></div>
+        <span className="text-sm tabular-nums text-muted-foreground">{issued}</span>
+        <span className="text-right text-sm font-semibold tabular-nums">
+          {contract.valueAmount != null && contract.valueAmount > 0
+            ? formatMoney(contract.valueAmount, contract.currency)
+            : "—"}
+        </span>
+        <div>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
@@ -486,16 +475,13 @@ function Stat({
   label,
   value,
   tone = "default",
-  featured,
 }: {
   label: string;
   value: string;
   tone?: "default" | "success" | "warning";
-  featured?: boolean;
 }) {
   return (
-    <Card className={cn(featured && "col-span-2 lg:col-span-1")}>
-      <CardContent className="min-h-28 space-y-1 p-4 sm:p-5">
+      <div className="min-h-24 space-y-1 p-4 sm:p-5">
         <p className="text-micro font-semibold uppercase tracking-wider text-muted-foreground">
           {label}
         </p>
@@ -511,7 +497,6 @@ function Stat({
         >
           {value}
         </p>
-      </CardContent>
-    </Card>
+      </div>
   );
 }
