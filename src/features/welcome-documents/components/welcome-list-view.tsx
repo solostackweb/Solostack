@@ -304,15 +304,17 @@ export function WelcomeListView({ documents }: Props) {
       ) : (
         <div className={cn("grid items-start gap-6", "grid-cols-1")}>
           <div className="min-w-0 space-y-6">
-      <div className="grid gap-4 sm:grid-cols-3">
-        <Stat label="Total documents" value={stats.total.toString()} />
-        <Stat
-          label="Published"
-          value={stats.published.toString()}
-          tone="success"
-        />
-        <Stat label="Views" value={stats.totalViews.toString()} />
-      </div>
+      <Card>
+        <CardContent className="grid grid-cols-3 divide-x p-0">
+          <Stat label="Total" value={stats.total.toString()} />
+          <Stat
+            label="Published"
+            value={stats.published.toString()}
+            tone="success"
+          />
+          <Stat label="Views" value={stats.totalViews.toString()} />
+        </CardContent>
+      </Card>
 
       <div className="grid gap-2 sm:flex sm:min-w-0 sm:items-center">
         <div className="relative w-full sm:w-96 sm:shrink-0">
@@ -428,8 +430,8 @@ function WelcomeRow({
             <BookOpen className="h-4 w-4" />
           </div>
           <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2">
-              <p className="truncate text-sm font-medium">{doc.title}</p>
+            <div className="flex flex-col items-start gap-1 sm:flex-row sm:items-center sm:gap-2">
+              <p className="w-full truncate text-sm font-medium">{doc.title}</p>
               <WelcomeStatusBadge status={doc.status} />
             </div>
             <p className="mt-0.5 truncate text-xs text-muted-foreground">
@@ -498,24 +500,22 @@ function Stat({
   tone?: "default" | "success" | "warning";
 }) {
   return (
-    <Card>
-      <CardContent className="space-y-1 p-5">
-        <p className="text-micro font-semibold uppercase tracking-wider text-muted-foreground">
-          {label}
-        </p>
-        <p
-          className={
-            "text-2xl font-semibold tabular-nums tracking-tight " +
-            (tone === "success"
-              ? "text-success"
-              : tone === "warning"
-                ? "text-warning"
-                : "")
-          }
-        >
-          {value}
-        </p>
-      </CardContent>
-    </Card>
+    <div className="min-w-0 space-y-1 p-4 sm:p-5">
+      <p className="truncate text-micro font-semibold uppercase tracking-wider text-muted-foreground">
+        {label}
+      </p>
+      <p
+        className={
+          "text-2xl font-semibold tabular-nums tracking-tight " +
+          (tone === "success"
+            ? "text-success"
+            : tone === "warning"
+              ? "text-warning"
+              : "")
+        }
+      >
+        {value}
+      </p>
+    </div>
   );
 }
