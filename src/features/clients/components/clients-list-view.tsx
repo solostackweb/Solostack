@@ -92,19 +92,15 @@ export function ClientsListView({ clients, autoCreate }: ClientsListViewProps) {
             The people and businesses behind your work and revenue.
           </p>
         </div>
-        <div
-          className={
-            clients.length === 0
-              ? "flex items-center gap-2"
-              : "grid grid-cols-3 gap-1.5 sm:flex sm:items-center sm:gap-2"
-          }
-        >
+        <div className="flex items-center gap-2">
           {clients.length > 0 ? (
-            <IvoEntryPoint
-              prompt="Show my clients and tell me who I should follow up with."
-              label="Ask Ivo"
-              variant="secondary"
-            />
+            <div className="hidden sm:block">
+              <IvoEntryPoint
+                prompt="Show my clients and tell me who I should follow up with."
+                label="Ask Ivo"
+                variant="secondary"
+              />
+            </div>
           ) : null}
           <Button
             onClick={() => setImportOpen(true)}
@@ -118,7 +114,7 @@ export function ClientsListView({ clients, autoCreate }: ClientsListViewProps) {
           </Button>
           {clients.length > 0 ? (
             <Button onClick={handleAdd} size="sm" className="px-2 sm:px-3">
-              <Plus /> <span className="hidden sm:inline">Add </span>client
+              <Plus /> Add client
             </Button>
           ) : null}
         </div>
@@ -176,10 +172,22 @@ function ClientStats({
   unregistered: number;
 }) {
   return (
-    <div className="grid grid-cols-3 overflow-hidden rounded-2xl border border-border/70 bg-card">
-      <ClientStat label="Total clients" value={total} />
-      <ClientStat label="GST registered" value={gst} divided />
-      <ClientStat label="Unregistered" value={unregistered} divided />
+    <div className="grid grid-cols-2 overflow-hidden rounded-2xl border border-border/70 bg-card sm:grid-cols-3">
+      <ClientStat
+        label="Total clients"
+        value={total}
+        className="col-span-2 sm:col-span-1"
+      />
+      <ClientStat
+        label="GST registered"
+        value={gst}
+        className="border-t border-border/60 sm:border-l sm:border-t-0"
+      />
+      <ClientStat
+        label="Unregistered"
+        value={unregistered}
+        className="border-l border-t border-border/60 sm:border-t-0"
+      />
     </div>
   );
 }
@@ -187,18 +195,14 @@ function ClientStats({
 function ClientStat({
   label,
   value,
-  divided = false,
+  className = "",
 }: {
   label: string;
   value: number;
-  divided?: boolean;
+  className?: string;
 }) {
   return (
-    <div
-      className={
-        divided ? "border-l border-border/60 p-4 sm:p-5" : "p-4 sm:p-5"
-      }
-    >
+    <div className={`p-4 sm:p-5 ${className}`}>
       <p className="text-micro font-medium uppercase tracking-wider text-muted-foreground">
         {label}
       </p>
