@@ -238,9 +238,9 @@ export function PulseDashboardView({
             </button>
           ))}
         </div>
-        <div className="space-y-1">
-          <div className="flex items-end gap-2">
-            <label className="space-y-1">
+        <div className="min-w-0 space-y-1">
+          <div className="grid grid-cols-2 gap-2 sm:flex sm:items-end">
+            <label className="min-w-0 space-y-1">
               <span className="text-micro font-medium text-muted-foreground">From</span>
               <Input
                 type="date"
@@ -248,11 +248,11 @@ export function PulseDashboardView({
                 onChange={(e) =>
                   setDraftRange((current) => ({ ...current, from: e.target.value }))
                 }
-                className="h-9 w-[150px]"
+                className="h-9 w-full sm:w-[150px]"
                 max={draftRange.to || undefined}
               />
             </label>
-            <label className="space-y-1">
+            <label className="min-w-0 space-y-1">
               <span className="text-micro font-medium text-muted-foreground">To</span>
               <Input
                 type="date"
@@ -260,7 +260,7 @@ export function PulseDashboardView({
                 onChange={(e) =>
                   setDraftRange((current) => ({ ...current, to: e.target.value }))
                 }
-                className="h-9 w-[150px]"
+                className="h-9 w-full sm:w-[150px]"
                 min={draftRange.from || undefined}
               />
             </label>
@@ -269,12 +269,12 @@ export function PulseDashboardView({
               size="sm"
               onClick={applyCustom}
               disabled={!draftRange.from || !draftRange.to || customRangeInvalid}
-              className="h-9"
+              className="col-span-2 h-9 w-full sm:w-auto"
             >
               Apply
             </Button>
             {(draftRange.from || draftRange.to || isCustom) ? (
-              <Button type="button" size="sm" variant="ghost" onClick={clearCustom} className="h-9">
+              <Button type="button" size="sm" variant="ghost" onClick={clearCustom} className="col-span-2 h-9 w-full sm:w-auto">
                 Clear
               </Button>
             ) : null}
@@ -288,7 +288,8 @@ export function PulseDashboardView({
       </div>
 
       {/* KPI row */}
-      <div className="grid gap-4 [grid-template-columns:repeat(auto-fit,minmax(180px,1fr))]">
+      <Card>
+        <CardContent className="grid grid-cols-2 p-0 sm:grid-cols-4">
         <Kpi
           icon={CircleDollarSign}
           label={`Revenue (${rangeLabel})`}
@@ -296,6 +297,7 @@ export function PulseDashboardView({
           tone="primary"
           delta={revenue.momGrowthPct}
           helper={`Avg ${formatINR(revenue.averageMonthly)}/mo`}
+          className="border-b border-r sm:border-b-0"
         />
         <Kpi
           icon={Wallet}
@@ -307,6 +309,7 @@ export function PulseDashboardView({
               ? `${formatINR(receivables.overdueTotal)} overdue`
               : "Nothing overdue"
           }
+          className="border-b sm:border-b-0 sm:border-r"
         />
         <Kpi
           icon={Clock}
@@ -317,6 +320,7 @@ export function PulseDashboardView({
               ? `Median ${cashFlow.medianDaysToPay}d`
               : "No paid invoices yet"
           }
+          className="border-r"
         />
         <Kpi
           icon={Percent}
@@ -329,7 +333,8 @@ export function PulseDashboardView({
           tone="success"
           helper={`${invoices.paidCount}/${invoices.issuedCount} invoices paid`}
         />
-      </div>
+        </CardContent>
+      </Card>
 
       <RevenueStudio
         series={revenue.series}
@@ -1461,6 +1466,7 @@ function Kpi({
   helper,
   delta,
   tone = "default",
+  className,
 }: {
   icon: React.ComponentType<{ className?: string }>;
   label: string;
@@ -1468,6 +1474,7 @@ function Kpi({
   helper?: string;
   delta?: number | null;
   tone?: KpiTone;
+  className?: string;
 }) {
   const iconTone =
     tone === "success"
@@ -1488,13 +1495,12 @@ function Kpi({
           : "text-muted-foreground";
 
   return (
-    <Card className="group transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/20 hover:shadow-lg hover:shadow-primary/[0.05]">
-      <CardContent className="space-y-2 p-5">
+    <div className={cn("min-w-0 space-y-2 p-4 sm:p-5", className)}>
         <div className="flex items-center justify-between gap-2">
           <p className="min-w-0 break-words text-micro font-semibold uppercase tracking-widest text-muted-foreground">
             {label}
           </p>
-          <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ring-1 ${iconTone}`}>
+          <span className={`hidden h-8 w-8 shrink-0 items-center justify-center rounded-lg ring-1 sm:flex ${iconTone}`}>
             <Icon className="h-4 w-4" />
           </span>
         </div>
@@ -1508,7 +1514,6 @@ function Kpi({
           ) : null}
         </div>
         {helper && <p className="text-xs text-muted-foreground">{helper}</p>}
-      </CardContent>
-    </Card>
+    </div>
   );
 }
