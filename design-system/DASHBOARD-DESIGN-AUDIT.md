@@ -590,9 +590,58 @@ files, reaching the design-review risk checkpoint of 25%; further UI edits are
 deferred to a fresh review window. TypeScript, targeted ESLint, the design-token
 gate, and whitespace validation pass.
 
+### Populated growth workspaces — completed with one deferred fix
+
+Questionnaires, Portal, Time, and Pulse now use the same restrained operating
+grammar as the rest of the populated workspace. Repeated action cards and KPI
+mosaics became compact lists or summary strips. Pulse's custom date range is
+fully operable at 390px instead of overflowing beyond the viewport.
+
+Evidence:
+
+- `screenshots/questionnaires-populated-baseline.png` and `screenshots/questionnaires-populated-mobile-baseline.png` — action-heavy questionnaire cards.
+- `screenshots/questionnaires-populated-after.png` and `screenshots/questionnaires-populated-mobile-after.png` — scannable brief library.
+- `screenshots/portal-populated-baseline.png` and `screenshots/portal-populated-mobile-baseline.png` — stacked metrics and portal card mosaic.
+- `screenshots/portal-populated-after.png` and `screenshots/portal-populated-mobile-after.png` — compact portal summary and operating list.
+- `screenshots/time-populated-baseline.png` and `screenshots/time-populated-mobile-baseline.png` — oversized populated time metrics.
+- `screenshots/time-populated-after.png` and `screenshots/time-populated-mobile-after.png` — responsive time summary strip.
+- `screenshots/pulse-populated-baseline.png` and `screenshots/pulse-populated-mobile-baseline.png` — clipped date controls and stacked analytics cards.
+- `screenshots/pulse-populated-after.png` and `screenshots/pulse-populated-mobile-after.png` — mobile-safe controls and consolidated analytics.
+- `screenshots/dashboard-populated-baseline.png` and `screenshots/dashboard-populated-mobile-baseline.png` — populated Dashboard review baseline.
+
+Quick wins completed:
+
+1. Replaced Questionnaire cards with one list and one clear Send action per brief.
+2. Consolidated Portal metrics and replaced brand-topped portal cards with linked rows.
+3. Consolidated Time metrics into a 2×2 mobile and four-column desktop strip.
+4. Reflowed Pulse date inputs and Apply into a mobile-safe control group.
+5. Consolidated Pulse metrics and removed decorative mobile KPI icons.
+
+Questionnaires populated-state design score: **D → B**.
+
+Portal populated-state design score: **D → B**.
+
+Time populated-state design score: **D → B**.
+
+Pulse populated-state design score: **F → B**.
+
+Dashboard populated-state design score: **C → C**.
+
+The populated Dashboard was reviewed at both target widths. A mobile
+prioritisation attempt hid the embedded Recharts plot so recent operations could
+surface sooner, but Recharts then mounted at zero size and emitted repeated
+runtime warnings. The commit was reverted immediately; the baseline Dashboard
+remains unchanged and its mobile hierarchy is deferred to a render-aware
+solution.
+
+Four `QA -` Questionnaires, three `QA -` Portals, five `QA -` Time entries, and
+four `QA -` Activity events were added only to the dedicated Stackivo QA user.
+No customer data was changed. Four verified TSX fixes plus one reverted TSX fix
+produce a design-review risk score of 40%, so further UI work stops at this
+checkpoint.
+
 ### Next
 
-Continue with populated Questionnaires, then inspect populated Portal, Time, and
-Pulse states using representative QA-only records. Reuse list and summary-strip
-grammar only where it improves scan speed; do not force every surface into a
-table or card mosaic.
+Solve the Dashboard mobile hierarchy without mounting hidden Recharts
+containers. Then review populated Portal detail screens and Time reports; both
+are distinct operational states beyond their corrected index views.
