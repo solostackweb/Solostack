@@ -1,0 +1,34 @@
+{
+  "date": "2026-08-21",
+  "url": "http://localhost:3000/dashboard/invoices",
+  "designScore": "B",
+  "aiSlopScore": "B",
+  "categoryGrades": {
+    "hierarchy": "B",
+    "typography": "B",
+    "spacing": "B",
+    "color": "A",
+    "interaction": "B",
+    "responsive": "B",
+    "content": "B",
+    "aiSlop": "B",
+    "motion": "B",
+    "performanceFeel": "C"
+  },
+  "findings": [
+    {
+      "id": "INVOICES-001",
+      "title": "Empty invoices state buried the first bill under inactive finance chrome",
+      "impact": "high",
+      "category": "hierarchy",
+      "status": "verified"
+    },
+    {
+      "id": "INVOICES-002",
+      "title": "Populated invoice summary retains a card mosaic and legacy gradients",
+      "impact": "medium",
+      "category": "aiSlop",
+      "status": "deferred"
+    }
+  ]
+}

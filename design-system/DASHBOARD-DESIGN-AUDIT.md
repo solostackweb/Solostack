@@ -106,8 +106,43 @@ A clean console reload produced no runtime errors. Existing sub-44px controls in
 the shared mobile shell remain a cross-product accessibility finding and were
 not changed in this feature-scoped slice.
 
+### Invoices — completed
+
+The zero-invoice state no longer presents four zero-value KPI cards, inactive
+filters, an empty table, or pagination. It now gives the page one financial job:
+create the next invoice. The billing desk uses the authoritative next invoice
+number and explains the real Draft → Sent → Paid lifecycle without inventing
+revenue or payment data. Summary metrics, filters, bulk actions, status changes,
+exports, cancellation, deletion, and the table remain unchanged for populated
+accounts.
+
+Evidence:
+
+- `screenshots/invoices-baseline.png` — pre-change desktop state.
+- `screenshots/invoices-mobile-baseline.png` — pre-change mobile state.
+- `screenshots/invoices-calm-command.png` — desktop result.
+- `screenshots/invoices-mobile-calm-command.png` — mobile result.
+
+Quick wins completed:
+
+1. Hid zero-value metrics and controls with no invoice data to operate on.
+2. Removed duplicate creation and Ivo actions from the empty page header.
+3. Replaced the generic empty-table illustration with a billing-specific desk.
+4. Exposed the real next invoice number and raised actions to the 44px touch floor.
+
+Invoices design score: **C → B**.
+
+Invoices AI slop score: **D → B**.
+
+The primary action was verified in the authenticated browser. It opens
+`/dashboard/invoices/new`, where the existing signature prerequisite correctly
+offers signature setup and profile settings rather than allowing an incomplete
+invoice. Clean desktop and mobile reloads produced no runtime console errors.
+The populated summary card mosaic and its legacy gradients are deferred until a
+populated invoice state can be visually verified without fabricating data.
+
 ### Next
 
-Carry the hierarchy into invoices: one dominant job per page, financial values
-in mono type, restrained blue emphasis, and controls shown only when they can do
-useful work.
+Carry Calm Command into Meetings: make the schedule and next commitment the
+primary information, then reveal filters and management controls only when
+meetings exist.
