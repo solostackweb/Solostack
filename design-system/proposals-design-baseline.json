@@ -1,0 +1,34 @@
+{
+  "date": "2026-08-21",
+  "url": "http://localhost:3000/dashboard/proposals",
+  "designScore": "B",
+  "aiSlopScore": "B",
+  "categoryGrades": {
+    "hierarchy": "B",
+    "typography": "B",
+    "spacing": "B",
+    "color": "A",
+    "interaction": "B",
+    "responsive": "B",
+    "content": "B",
+    "aiSlop": "B",
+    "motion": "B",
+    "performanceFeel": "C"
+  },
+  "findings": [
+    {
+      "id": "PROPOSALS-001",
+      "title": "The empty proposal workspace obscured the first client decision behind zero metrics and duplicate actions",
+      "impact": "high",
+      "category": "hierarchy",
+      "status": "verified"
+    },
+    {
+      "id": "PROPOSALS-002",
+      "title": "Populated proposal cards and actions still need visual verification with representative data",
+      "impact": "medium",
+      "category": "interaction",
+      "status": "deferred"
+    }
+  ]
+}

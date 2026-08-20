@@ -5,12 +5,14 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   CalendarDays,
+  CheckCircle2,
   ExternalLink,
   FilePlus2,
   Mail,
   MoreHorizontal,
   Plus,
   Search,
+  Send,
   Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -28,7 +30,10 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
-import { IvoEntryPoint } from "@/features/ai-workflows/components/ivo-entry-point";
+import {
+  IvoEntryPoint,
+  openIvo,
+} from "@/features/ai-workflows/components/ivo-entry-point";
 import { formatMoney } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
@@ -61,6 +66,99 @@ interface ProposalsListViewProps {
   proposals: ProposalRecord[];
   clients: ClientOption[];
   projects: ProjectOption[];
+}
+
+const proposalFlow = [
+  { label: "Draft", icon: FilePlus2 },
+  { label: "Client review", icon: Send },
+  { label: "Accepted", icon: CheckCircle2 },
+];
+
+function EmptyProposalDesk() {
+  return (
+    <section className="overflow-hidden rounded-2xl border border-border/70 bg-card">
+      <div className="grid lg:grid-cols-[minmax(0,0.88fr)_minmax(0,1.12fr)]">
+        <div className="border-b border-border/60 bg-primary/[0.025] p-6 sm:p-8 lg:border-b-0 lg:border-r lg:p-10">
+          <p className="text-micro font-semibold uppercase tracking-[0.16em] text-primary">
+            Proposal desk
+          </p>
+          <h2 className="mt-3 max-w-md font-display text-2xl font-semibold tracking-tight sm:text-3xl">
+            Make the next yes easy.
+          </h2>
+          <p className="mt-3 max-w-md text-sm leading-6 text-muted-foreground">
+            Put the scope, price, validity, and next step in one offer your
+            client can act on.
+          </p>
+          <div className="mt-6 flex flex-wrap gap-2">
+            <Button asChild className="min-h-11">
+              <Link href="/dashboard/proposals/new">
+                <Plus /> New proposal
+              </Link>
+            </Button>
+            <Button
+              variant="ghost"
+              className="min-h-11"
+              onClick={() => openIvo("Help me draft my first proposal.")}
+            >
+              Ask Ivo
+            </Button>
+          </div>
+        </div>
+
+        <div className="p-6 sm:p-8 lg:p-10">
+          <div className="mx-auto max-w-lg rounded-lg border border-border/70 bg-background p-5 sm:p-6">
+            <div className="border-b border-border/60 pb-5">
+              <p className="text-micro font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                Client decision
+              </p>
+              <p className="mt-2 text-base font-semibold">
+                One offer, one clear next step
+              </p>
+            </div>
+
+            <div className="relative mt-6 grid grid-cols-3">
+              <div
+                aria-hidden
+                className="absolute left-[16.66%] right-[16.66%] top-4 h-px bg-primary/25"
+              />
+              {proposalFlow.map(({ label, icon: Icon }, index) => (
+                <div
+                  key={label}
+                  className="relative z-10 flex flex-col items-center text-center"
+                >
+                  <span
+                    className={
+                      index === 0
+                        ? "flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground"
+                        : "flex h-8 w-8 items-center justify-center rounded-lg border border-primary/20 bg-background text-primary"
+                    }
+                  >
+                    <Icon className="h-3.5 w-3.5" />
+                  </span>
+                  <span className="mt-2 text-xs font-semibold">{label}</span>
+                </div>
+              ))}
+            </div>
+
+            <div className="mt-6 divide-y divide-border/60 border-t border-border/60">
+              {[
+                "Scope and deliverables",
+                "Price and validity",
+                "Convert after acceptance",
+              ].map((label, index) => (
+                <div key={label} className="flex items-center gap-3 py-3 text-sm">
+                  <span className="font-mono text-micro text-primary">
+                    {String(index + 1).padStart(2, "0")}
+                  </span>
+                  <span className="text-muted-foreground">{label}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
 }
 
 export function ProposalsListView({
@@ -145,66 +243,72 @@ export function ProposalsListView({
         title="Proposals"
         description="Package scope, pricing, and next steps before a contract or invoice."
         actions={
-          <div className="flex flex-wrap items-center gap-2">
-            <IvoEntryPoint
-              prompt="Review my open proposals and suggest what I should follow up on."
-              label="Ask Ivo"
-              variant="outline"
-            />
-            <Button asChild size="sm">
-              <Link href="/dashboard/proposals/new">
-              <Plus /> New proposal
-              </Link>
-            </Button>
-          </div>
+          proposals.length > 0 ? (
+            <div className="flex flex-wrap items-center gap-2">
+              <IvoEntryPoint
+                prompt="Review my open proposals and suggest what I should follow up on."
+                label="Ask Ivo"
+                variant="secondary"
+              />
+              <Button asChild size="sm">
+                <Link href="/dashboard/proposals/new">
+                  <Plus /> New proposal
+                </Link>
+              </Button>
+            </div>
+          ) : null
         }
       />
 
-      <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
-        <Stat label="Total proposals" value={stats.total.toString()} />
-        <Stat label="Open" value={stats.open.toString()} tone="blue" />
-        <Stat label="Accepted" value={stats.accepted.toString()} tone="green" />
-        <Stat label="Open value" value={formatMoney(stats.openValue, "INR")} />
-      </div>
-
-      <div className="grid gap-2 sm:flex sm:items-center">
-        <div className="relative w-full sm:max-w-sm">
-          <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
-            placeholder="Search proposals, clients, projects..."
-            className="h-9 pl-9"
-          />
-        </div>
-        <select
-          value={statusFilter}
-          onChange={(event) => setStatusFilter(event.target.value as ProposalStatusRow | "all")}
-          className="h-9 rounded-lg border bg-background px-3 text-sm"
-        >
-          <option value="all">All statuses</option>
-          {PROPOSAL_STATUSES.map((status) => (
-            <option key={status} value={status}>
-              {PROPOSAL_STATUS_LABEL[status]}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      {filtered.length === 0 ? (
-        <EmptyState
-          icon={FilePlus2}
-          title={proposals.length === 0 ? "No proposals yet" : "No proposals match your filters"}
-          description={
-            proposals.length === 0
-              ? "Create your first proposal to turn a client conversation into a packaged offer."
-              : "Try a different search term or status filter."
-          }
-          action={{ label: "New proposal", href: "/dashboard/proposals/new" }}
-        />
+      {proposals.length === 0 ? (
+        <EmptyProposalDesk />
       ) : (
-        <div className="grid gap-3">
-          {filtered.map((proposal) => {
+        <>
+          <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+            <Stat label="Total proposals" value={stats.total.toString()} />
+            <Stat label="Open" value={stats.open.toString()} tone="blue" />
+            <Stat label="Accepted" value={stats.accepted.toString()} tone="green" />
+            <Stat
+              label="Open value"
+              value={formatMoney(stats.openValue, "INR")}
+            />
+          </div>
+
+          <div className="grid gap-2 sm:flex sm:items-center">
+            <div className="relative w-full sm:max-w-sm">
+              <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                placeholder="Search proposals, clients, projects..."
+                className="h-9 pl-9"
+              />
+            </div>
+            <select
+              value={statusFilter}
+              onChange={(event) =>
+                setStatusFilter(event.target.value as ProposalStatusRow | "all")
+              }
+              className="h-9 rounded-lg border bg-background px-3 text-sm"
+            >
+              <option value="all">All statuses</option>
+              {PROPOSAL_STATUSES.map((status) => (
+                <option key={status} value={status}>
+                  {PROPOSAL_STATUS_LABEL[status]}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {filtered.length === 0 ? (
+            <EmptyState
+              icon={FilePlus2}
+              title="No proposals match your filters"
+              description="Try a different search term or status filter."
+            />
+          ) : (
+            <div className="grid gap-3">
+              {filtered.map((proposal) => {
             const client = proposal.clientId ? clientById.get(proposal.clientId) : null;
             const project = proposal.projectId ? projectById.get(proposal.projectId) : null;
             return (
@@ -270,8 +374,10 @@ export function ProposalsListView({
                 </CardContent>
               </Card>
             );
-          })}
-        </div>
+              })}
+            </div>
+          )}
+        </>
       )}
     </div>
   );

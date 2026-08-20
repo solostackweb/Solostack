@@ -204,8 +204,41 @@ browser and rendered successfully. Clean desktop and mobile reloads produced no
 runtime console errors. The browser reports only the pre-existing Next.js
 development warning about smooth scrolling during route transitions.
 
+### Proposals — completed
+
+The empty Proposals workspace now starts with the decision the user needs to
+prepare, rather than four zero-value metrics, inactive filters, and repeated
+creation actions. The Proposal desk frames the real draft → client review →
+accepted lifecycle and names the commercial details that make an offer
+actionable. Populated proposal lists, filters, sending, deletion, status, and
+conversion behavior remain unchanged.
+
+Evidence:
+
+- `screenshots/proposals-baseline.png` — pre-change desktop state.
+- `screenshots/proposals-mobile-baseline.png` — pre-change mobile state.
+- `screenshots/proposals-calm-command.png` — desktop result.
+- `screenshots/proposals-mobile-calm-command.png` — mobile result.
+
+Quick wins completed:
+
+1. Hid zero-value metrics and controls when there are no proposals to operate on.
+2. Removed duplicate creation and Ivo actions from the empty page header.
+3. Replaced the generic empty state with a proposal-specific decision desk.
+4. Explained the draft → review → acceptance journey with one meaningful Flowline.
+5. Kept the primary action at the 44px touch floor on desktop and mobile.
+
+Proposals design score: **C → B**.
+
+Proposals AI slop score: **D → B**.
+
+The primary action was verified in the authenticated browser. It opens
+`/dashboard/proposals/new`, where both the blank proposal path and existing
+templates render successfully. Clean desktop and mobile reloads produced no
+runtime console errors. Populated proposal cards and their actions are deferred
+for visual verification with real data; their implementation was not changed.
+
 ### Next
 
-Continue through the individual document workspaces in journey order, starting
-with Proposals and Contracts, while preserving their creation and conversion
-behavior.
+Apply the same first-use clarity to Contracts, preserving the populated signing,
+resending, deletion, and status behavior.
