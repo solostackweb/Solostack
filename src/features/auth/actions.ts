@@ -108,6 +108,26 @@ function getAuthErrorName(err: unknown): string | undefined {
   return typeof name === "string" ? name : undefined;
 }
 
+function isAuthServiceUnavailable(err: unknown): boolean {
+  const status = getAuthErrorStatus(err);
+  if (status === 0 || (status !== undefined && status >= 500)) return true;
+
+  const name = getAuthErrorName(err)?.toLowerCase() ?? "";
+  if (name.includes("retryablefetch") || name.includes("fetcherror")) return true;
+
+  const message =
+    err instanceof Error
+      ? err.message.toLowerCase()
+      : typeof err === "string"
+        ? err.toLowerCase()
+        : "";
+  return (
+    message.includes("fetch failed") ||
+    message.includes("network request failed") ||
+    message.includes("failed to fetch")
+  );
+}
+
 async function getOrigin(): Promise<string> {
   // SECURITY: this origin is embedded in password-reset + email-verification
   // links, so it must never be derived from an attacker-controlled Host
@@ -419,6 +439,15 @@ export async function loginAction(
     password,
   });
   if (error) {
+    const serviceUnavailable = isAuthServiceUnavailable(error);
+    log.warn("auth.login.supabase_failed", {
+      error_code: (error as { code?: unknown }).code,
+      error_status: (error as { status?: unknown }).status,
+      error_name: error.name,
+      error_message: error.message,
+      service_unavailable: serviceUnavailable,
+      email_hash: await safeHashedEmail(email),
+    });
     // Audit-log the failed attempt with a hashed email so repeated
     // targeting of a single account is visible without storing the
     // plaintext address.
@@ -428,7 +457,12 @@ export async function loginAction(
       metadata: { email_hash: await hashedEmail(email) },
     });
     // Don't leak whether the email exists — generic message.
-    return { ok: false, error: "Invalid email or password." };
+    return {
+      ok: false,
+      error: serviceUnavailable
+        ? "The sign-in service is temporarily unavailable. Please try again in a moment."
+        : "Invalid email or password.",
+    };
   }
 
   // Success: identify in analytics + fire the login event. Both are
