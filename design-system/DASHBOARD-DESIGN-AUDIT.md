@@ -547,9 +547,52 @@ Stackivo QA user to render these states. No customer records were read, copied,
 or changed. TypeScript, targeted ESLint, the design-token gate, and whitespace
 validation pass across all files in this review window.
 
+### Populated operating lists — completed
+
+Projects, Invoices, Clients, and Welcome Documents now expose real work sooner
+and retain readable labels at mobile widths. Projects defaults to the complete
+grid instead of a horizontally clipped fourteen-stage board. Invoice and
+Welcome Document metrics use compact summary strips. Client registration counts
+reflow without clipping, and populated Welcome Document statuses no longer take
+width away from their titles.
+
+Evidence:
+
+- `screenshots/projects-populated-baseline.png` and `screenshots/projects-populated-mobile-baseline.png` — clipped Kanban default.
+- `screenshots/projects-populated-after.png` and `screenshots/projects-populated-mobile-after.png` — complete project inventory.
+- `screenshots/invoices-populated-baseline.png` and `screenshots/invoices-populated-mobile-baseline.png` — oversized invoice summary.
+- `screenshots/invoices-summary-after.png` and `screenshots/invoices-summary-mobile-after.png` — compact financial summary.
+- `screenshots/invoices-status-after.png` and `screenshots/invoices-status-mobile-after.png` — quiet sentence-case invoice states.
+- `screenshots/clients-populated-after.png` and `screenshots/clients-populated-mobile-after.png` — readable client actions and registration summary.
+- `screenshots/welcome-populated-baseline.png` and `screenshots/welcome-populated-mobile-baseline.png` — document records pushed below oversized metrics.
+- `screenshots/welcome-populated-after.png` and `screenshots/welcome-populated-mobile-after.png` — records and status context visible together.
+
+Quick wins completed:
+
+1. Made the complete Projects grid the default while retaining Kanban on larger screens.
+2. Consolidated four Invoice KPI cards into one responsive financial strip.
+3. Removed animated uppercase Invoice states in favour of quiet sentence-case labels.
+4. Reflowed Client metrics and preserved explicit mobile Import and Add client actions.
+5. Consolidated Welcome Document metrics and separated mobile titles from their statuses.
+
+Projects populated-state design score: **D → B**.
+
+Invoices populated-state design score: **C → B**.
+
+Clients populated-state design score: **C → B**.
+
+Welcome Documents populated-state design score: **D → B**.
+
+Four `QA -` Clients, four `QA -` Projects, five `QA-INV-` Invoices, and three
+`QA -` Welcome Documents exist only under the dedicated Stackivo QA user. No
+customer records were changed. The five implementation fixes touch five TSX
+files, reaching the design-review risk checkpoint of 25%; further UI edits are
+deferred to a fresh review window. TypeScript, targeted ESLint, the design-token
+gate, and whitespace validation pass.
+
 ### Next
 
-Continue the populated-state audit with invoice, client, project, Welcome
-Document, and questionnaire lists. Reuse the summary-strip and aligned-row
+Continue with populated Questionnaires, then inspect populated Portal, Time, and
+Pulse states using representative QA-only records. Reuse list and summary-strip
 grammar only where it improves scan speed; do not force every surface into a
-table.
+table or card mosaic.
