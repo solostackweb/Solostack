@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { ThemeProvider } from "./theme-provider";
+import { MotionProvider } from "./motion-provider";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "@/components/ui/sonner";
 import { ServiceWorkerRegister } from "@/features/pwa/service-worker-register";
@@ -22,25 +23,27 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
       enableSystem
       disableTransitionOnChange
     >
-      <PostHogProvider>
-        <TooltipProvider delayDuration={200}>
-          <ConfirmDialogProvider>
-            {/* Premium route transition progress bar — fires on every navigation */}
-            <RouteProgressBar />
-            {/* PWA cold-start splash screen — standalone mode only */}
-            <PwaSplash />
-            {children}
-            <Toaster />
-            <OfflineIndicator />
-            <InstallPrompt />
-            <UpdatePrompt />
-            <ServiceWorkerRegister />
-            {/* Microsoft Clarity heatmaps + replay. No-ops when the env var
-                isn't set, so safe to leave mounted globally. */}
-            <ClarityProvider />
-          </ConfirmDialogProvider>
-        </TooltipProvider>
-      </PostHogProvider>
+      <MotionProvider>
+        <PostHogProvider>
+          <TooltipProvider delayDuration={200}>
+            <ConfirmDialogProvider>
+              {/* Premium route transition progress bar — fires on every navigation */}
+              <RouteProgressBar />
+              {/* PWA cold-start splash screen — standalone mode only */}
+              <PwaSplash />
+              {children}
+              <Toaster />
+              <OfflineIndicator />
+              <InstallPrompt />
+              <UpdatePrompt />
+              <ServiceWorkerRegister />
+              {/* Microsoft Clarity heatmaps + replay. No-ops when the env var
+                  isn't set, so safe to leave mounted globally. */}
+              <ClarityProvider />
+            </ConfirmDialogProvider>
+          </TooltipProvider>
+        </PostHogProvider>
+      </MotionProvider>
     </ThemeProvider>
   );
 }

@@ -2,34 +2,32 @@ import * as React from "react";
 import { cn } from "@/lib/utils";
 
 /**
- * Marketing container sizes.
+ * Marketing layout primitives — the Ledger surface.
  *
- *   default  — typical content (readable prose, cards)   max-w-7xl   (1280)
- *   wide     — visual-heavy sections (mockups, hero)     max-w-[1400px]
- *   ultra    — cinematic / full-bleed compositions       max-w-[1600px]
- *   full     — no max width, caller handles it
+ * These own the page rhythm so no section hand-rolls padding. See
+ * design-system/MASTER.md §4 (spacing) and §8 (composition).
+ *
+ * The composition rules these exist to enforce:
+ *   - left-aligned by default; centre is the exception, twice per page at most
+ *   - hairline rules instead of pills and cards
+ *   - real air between sections (Ledger reads as cramped without it)
  */
+
 const SIZE_CLASSES = {
+  /** Readable prose and text-led sections. */
   default: "max-w-7xl",
+  /** Visual-heavy sections — documents, tables, mockups. */
   wide: "max-w-[1400px]",
+  /** Cinematic / full-bleed compositions. */
   ultra: "max-w-[1600px]",
+  /** No max width; the caller handles it. */
   full: "max-w-none",
 } as const;
 
-/**
- * Horizontal padding scales with viewport — tight on phones, luxurious on
- * ultra-wide desktops. Using clamp-like step-ups keeps the content from
- * hugging the edges on 1440p / 4K screens.
- */
-const HORIZONTAL_PADDING =
-  "px-5 sm:px-8 lg:px-10 xl:px-14 2xl:px-20";
+const HORIZONTAL_PADDING = "px-5 sm:px-8 lg:px-10 xl:px-14 2xl:px-20";
 
-/**
- * Vertical spacing scales up more aggressively on large screens so the
- * rhythm feels cinematic rather than cramped.
- */
-const VERTICAL_PADDING =
-  "py-12 sm:py-14 lg:py-16";
+/** MASTER.md §4. Ledger needs air; v1's py-12 read as cramped. */
+const VERTICAL_PADDING = "py-16 sm:py-20 lg:py-28";
 
 export function Section({
   children,
@@ -37,40 +35,76 @@ export function Section({
   className,
   bleed = false,
   size = "default",
+  /** Draws the hairline that separates this section from the one above. */
+  rule = false,
 }: {
   children: React.ReactNode;
   id?: string;
   className?: string;
   bleed?: boolean;
   size?: keyof typeof SIZE_CLASSES;
+  rule?: boolean;
 }) {
   return (
     <section
       id={id}
       className={cn(
         "relative w-full",
+        rule && "border-t border-border",
         !bleed && VERTICAL_PADDING,
         className,
       )}
     >
-      <div
-        className={cn(
-          "mx-auto w-full",
-          SIZE_CLASSES[size],
-          HORIZONTAL_PADDING,
-        )}
-      >
+      <div className={cn("mx-auto w-full", SIZE_CLASSES[size], HORIZONTAL_PADDING)}>
         {children}
       </div>
     </section>
   );
 }
 
-export function SectionEyebrow({ children }: { children: React.ReactNode }) {
+/**
+ * Full-bleed inverted band. MASTER.md §8 asks for at least two sections per
+ * page that break the container — this is one of the two ways to do it.
+ */
+export function SectionBand({
+  children,
+  className,
+  size = "default",
+}: {
+  children: React.ReactNode;
+  className?: string;
+  size?: keyof typeof SIZE_CLASSES;
+}) {
   return (
-    <p className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-3.5 py-1.5 text-micro font-semibold uppercase tracking-widest text-primary">
-      <span className="h-1 w-1 rounded-full bg-primary/80" />
+    <section className={cn("relative w-full bg-foreground py-14 text-background sm:py-16", className)}>
+      <div className={cn("mx-auto w-full", SIZE_CLASSES[size], HORIZONTAL_PADDING)}>
+        {children}
+      </div>
+    </section>
+  );
+}
+
+/**
+ * Eyebrow — a mono label followed by a rule that runs to the edge of the
+ * column. Replaces v1's pill. The rule is half of Ledger's signature and it
+ * appears on every marketing page (MASTER.md §8).
+ */
+export function SectionEyebrow({
+  children,
+  className,
+}: {
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <p
+      className={cn(
+        "flex items-center gap-3 font-mono text-micro font-medium uppercase tracking-[0.16em] text-primary",
+        className,
+      )}
+    >
       {children}
+      <span aria-hidden className="h-px flex-1 bg-border" />
     </p>
   );
 }
@@ -79,41 +113,134 @@ export function SectionHeading({
   eyebrow,
   title,
   subtitle,
-  align = "center",
+  /** MASTER.md §8: left is the default. Centre is the exception. */
+  align = "left",
   size = "default",
+  className,
 }: {
   eyebrow?: React.ReactNode;
   title: React.ReactNode;
   subtitle?: React.ReactNode;
   align?: "center" | "left";
-  /** `large` bumps the heading one step — used on landing/pricing intros. */
+  /** `large` bumps one step — landing and pricing intros only. */
   size?: "default" | "large";
+  className?: string;
 }) {
   return (
     <div
       className={cn(
-        "flex flex-col gap-3",
-        align === "center"
-          ? "mx-auto max-w-3xl items-center text-center"
-          : "max-w-2xl items-start text-left",
+        "flex flex-col",
+        align === "center" ? "mx-auto max-w-3xl items-center text-center" : "max-w-2xl items-start text-left",
+        className,
       )}
     >
-      {eyebrow ? <SectionEyebrow>{eyebrow}</SectionEyebrow> : null}
+      {eyebrow ? (
+        <SectionEyebrow className={cn("mb-6 w-full", align === "center" && "justify-center")}>
+          {eyebrow}
+        </SectionEyebrow>
+      ) : null}
+
       <h2
         className={cn(
-          "text-balance font-display font-semibold tracking-tight",
-          size === "large"
-            ? "text-3xl sm:text-4xl lg:text-5xl lg:tracking-[-0.02em]"
-            : "text-2xl sm:text-3xl lg:text-4xl lg:tracking-[-0.018em]",
+          "text-balance font-display font-normal tracking-[-0.015em] text-foreground",
+          size === "large" ? "text-4xl sm:text-5xl lg:text-6xl" : "text-3xl sm:text-4xl lg:text-5xl",
         )}
       >
         {title}
       </h2>
+
       {subtitle ? (
-        <p className="text-pretty text-base leading-[1.75] text-muted-foreground sm:text-lg">
+        <p className="mt-5 max-w-[60ch] text-pretty text-base leading-[1.7] text-muted-foreground sm:text-lg">
           {subtitle}
         </p>
       ) : null}
+    </div>
+  );
+}
+
+/**
+ * Column set separated by hairlines rather than gaps. The other half of
+ * Ledger's signature — content sits *on* the page, not inside boxes.
+ */
+export function RuledColumns({
+  children,
+  className,
+  cols = 3,
+}: {
+  children: React.ReactNode;
+  className?: string;
+  cols?: 2 | 3 | 4;
+}) {
+  return (
+    <div
+      className={cn(
+        "grid border-t border-foreground",
+        cols === 2 && "sm:grid-cols-2",
+        cols === 3 && "sm:grid-cols-2 lg:grid-cols-3",
+        cols === 4 && "sm:grid-cols-2 lg:grid-cols-4",
+        className,
+      )}
+    >
+      {children}
+    </div>
+  );
+}
+
+export function RuledColumn({
+  index,
+  title,
+  children,
+  className,
+}: {
+  /** Rendered as the mono ordinal above the title. */
+  index?: string;
+  title: React.ReactNode;
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <article
+      className={cn(
+        "border-b border-border py-8 pr-8 last:border-b-0 sm:border-b-0 sm:border-r sm:last:border-r-0 sm:[&:not(:first-child)]:pl-8",
+        className,
+      )}
+    >
+      {index ? (
+        <p className="mb-4 font-mono text-micro uppercase tracking-[0.16em] text-primary">{index}</p>
+      ) : null}
+      <h3 className="font-display text-xl font-normal leading-tight tracking-[-0.015em] text-foreground sm:text-2xl">
+        {title}
+      </h3>
+      <div className="mt-3 max-w-[46ch] text-sm leading-[1.7] text-muted-foreground sm:text-base">
+        {children}
+      </div>
+    </article>
+  );
+}
+
+/**
+ * Paper — a white surface with a flat offset block behind it. This is the
+ * only depth mechanism on the marketing surface; blur is retired (MASTER.md §6).
+ * Square corners: paper does not have rounded ones.
+ */
+export function Paper({
+  children,
+  className,
+  offset = true,
+}: {
+  children: React.ReactNode;
+  className?: string;
+  offset?: boolean;
+}) {
+  return (
+    <div className="relative">
+      {offset ? (
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 translate-x-3 translate-y-3 bg-muted"
+        />
+      ) : null}
+      <div className={cn("relative border border-border bg-card", className)}>{children}</div>
     </div>
   );
 }

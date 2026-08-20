@@ -1,99 +1,86 @@
 import Link from "next/link";
 import { ArrowRight, MessageCircle, Mail } from "lucide-react";
-import { Section } from "./section";
+import { Section, SectionEyebrow } from "./section";
 import { Reveal } from "./motion";
 
 /**
- * Founder note block.
+ * Founder note — Ledger.
  *
- * Solo / small-team SaaS converts ~15-30% better when the marketing
- * site shows a real human is on the other side. This block is the
- * visible "we are here, we read every message" callout — placed
- * between Pulse + Testimonials on the landing page.
+ * This occupies the slot testimonials used to. Stackivo is at early access
+ * with no named customers, and MASTER.md §8 is explicit: no invented social
+ * proof. A signed first-person note from the person who wrote the code is
+ * both honest and, at this stage, more persuasive than three fabricated
+ * quotes would be.
  *
- * Copy is intentionally generic-team voice (per founder request).
- * When you're ready to personalise, swap the H3 and the paragraph
- * for first-person founder voice + a photo.
+ * v1 wrapped this in a rounded card with two blur washes. Blur is retired
+ * (MASTER.md §6); the note now sits on the page between rules, set as
+ * correspondence, because that is what it is.
+ *
+ * When there are real customers with real numbers, this stays and the proof
+ * section is added beside it — it does not get replaced.
  */
 export function FounderNote() {
   return (
-    <Section size="default" className="py-16 sm:py-20 lg:py-24">
+    <Section size="default" rule>
       <Reveal>
-        <div className="relative mx-auto max-w-3xl overflow-hidden rounded-2xl border bg-card p-7 shadow-sm sm:p-10">
-          <div
-            aria-hidden
-            className="pointer-events-none absolute -right-16 -top-16 h-56 w-56 rounded-full bg-primary/10 blur-3xl"
-          />
-          <div
-            aria-hidden
-            className="pointer-events-none absolute -bottom-16 -left-16 h-48 w-48 rounded-full bg-primary/10 blur-3xl"
-          />
+        <div className="grid gap-12 lg:grid-cols-[.8fr_1.2fr] lg:gap-20">
+          <div>
+            <SectionEyebrow>Who is behind it</SectionEyebrow>
+            <h2 className="mt-6 text-balance font-display text-3xl font-normal leading-[1.08] tracking-[-0.015em] text-foreground sm:text-4xl">
+              Built solo, in the open.
+            </h2>
+          </div>
 
-          <div className="relative">
-            <span className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-3 py-1 text-micro font-semibold uppercase tracking-wider text-primary">
-              Built solo · Built in the open
-            </span>
-
-            <h3 className="mt-4 text-2xl font-semibold tracking-tight sm:text-2xl">
-              No tier-one queue. The team that built it answers your messages.
-            </h3>
-
-            <div className="mt-4 space-y-3 text-sm leading-7 text-muted-foreground">
+          <div className="max-w-[62ch]">
+            <div className="space-y-5 text-base leading-[1.75] text-foreground">
               <p>
-                Most freelance SaaS pretends India doesn&rsquo;t exist or
-                bolts on GST as an afterthought. Stackivo is built solo from
-                India for Indian freelancers &mdash; GST, place-of-supply
-                rules, INR pricing and Razorpay payments are first-class
-                citizens, not patches.
+                Most freelance software pretends India doesn&rsquo;t exist, or
+                bolts GST on as an afterthought. Stackivo is built here, for
+                people working here. Place-of-supply rules, INR pricing and
+                Razorpay are first-class parts of the product, not patches over
+                something designed for somewhere else.
               </p>
               <p>
-                That means:
+                It is early. There is no support tier and no ticket queue —
+                messages reach the person who wrote the code, and features ship
+                because someone asked for them. The roadmap is public and the
+                changelog is honest about what is not finished yet.
               </p>
-              <ul className="space-y-1.5">
-                <li className="flex items-start gap-2">
-                  <span className="mt-2 h-1 w-1 shrink-0 rounded-full bg-foreground/60" />
-                  <span>
-                    Every feature ships because <em>you</em> asked for it
-                    &mdash; the public roadmap is on the homepage.
-                  </span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="mt-2 h-1 w-1 shrink-0 rounded-full bg-foreground/60" />
-                  <span>
-                    Support replies come from the people who wrote the code.
-                  </span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="mt-2 h-1 w-1 shrink-0 rounded-full bg-foreground/60" />
-                  <span>
-                    Free is genuinely free. 5 clients, every workflow, no
-                    feature lock-out.
-                  </span>
-                </li>
-              </ul>
+              <p>
+                Free is genuinely free: five clients, every workflow, nothing
+                locked behind an upgrade prompt. If Stackivo is useful you will
+                know before you are asked to pay for it.
+              </p>
             </div>
 
-            <div className="mt-7 flex flex-wrap items-center gap-x-6 gap-y-3">
-              <Link
-                href="/about"
-                className="inline-flex items-center gap-1.5 text-sm font-medium text-foreground hover:opacity-80"
-              >
-                What we believe <ArrowRight className="h-3.5 w-3.5" />
-              </Link>
-              <Link
-                href="/contact"
-                className="inline-flex items-center gap-1.5 text-sm font-medium text-foreground hover:opacity-80"
-              >
-                <MessageCircle className="h-3.5 w-3.5" />
-                Talk to us
-              </Link>
-              <a
-                href="mailto:support@stackivo.me"
-                className="inline-flex items-center gap-1.5 text-sm font-medium text-foreground hover:opacity-80"
-              >
-                <Mail className="h-3.5 w-3.5" />
-                support@stackivo.me
-              </a>
+            <div className="mt-8 border-t border-border pt-6">
+              <p className="font-mono text-micro uppercase tracking-[0.16em] text-muted-foreground">
+                Stackivo · Indore, Madhya Pradesh
+              </p>
+
+              <div className="mt-5 flex flex-wrap items-center gap-x-7 gap-y-3 text-sm font-medium">
+                <Link
+                  href="/about"
+                  className="group inline-flex items-center gap-1.5 border-b border-foreground pb-0.5 text-foreground transition-colors hover:border-primary hover:text-primary"
+                >
+                  What we believe
+                  <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
+                </Link>
+                <Link
+                  href="/contact"
+                  className="inline-flex items-center gap-2 text-muted-foreground transition-colors hover:text-foreground"
+                >
+                  <MessageCircle className="h-3.5 w-3.5" aria-hidden />
+                  Talk to us
+                </Link>
+                <a
+                  href="mailto:support@stackivo.me"
+                  className="inline-flex items-center gap-2 font-mono text-xs text-muted-foreground transition-colors hover:text-foreground"
+                >
+                  <Mail className="h-3.5 w-3.5" aria-hidden />
+                  support@stackivo.me
+                </a>
+              </div>
             </div>
           </div>
         </div>

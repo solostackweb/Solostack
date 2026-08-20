@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Stackivo — Three Visual Directions</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Instrument+Serif:ital@0;1&family=IBM+Plex+Mono:wght@400;500;600&family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,600;12..96,700;12..96,800&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   SHELL — the presentation chrome, deliberately neutral so the
+   three directions are judged against each other, not against it.
+   ============================================================ */
+*,*::before,*::after{box-sizing:border-box}
+html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
+body{
+  margin:0;background:#0a0a0b;color:#e7e7ea;
+  font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+  font-size:16px;line-height:1.6;-webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:1240px;margin:0 auto;padding:0 24px}
+a{color:inherit}
+
+.topbar{
+  position:sticky;top:0;z-index:100;
+  background:rgba(10,10,11,.82);backdrop-filter:blur(14px);
+  border-bottom:1px solid #26262b;
+}
+.topbar .wrap{display:flex;align-items:center;gap:20px;height:56px;flex-wrap:wrap}
+.topbar strong{font-size:13px;font-weight:600;letter-spacing:-.01em}
+.topbar nav{display:flex;gap:4px;margin-left:auto;flex-wrap:wrap}
+.topbar nav a{
+  font-size:12px;font-weight:500;text-decoration:none;color:#a1a1aa;
+  padding:6px 11px;border-radius:999px;transition:background .15s ease,color .15s ease;
+}
+.topbar nav a:hover{background:#1c1c20;color:#fff}
+
+.intro{padding:72px 0 56px;border-bottom:1px solid #26262b}
+.kicker{
+  font-family:"IBM Plex Mono",ui-monospace,monospace;
+  font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:#71717a;margin:0 0 18px;
+}
+.intro h1{
+  font-size:clamp(30px,5vw,50px);line-height:1.06;letter-spacing:-.03em;
+  font-weight:700;margin:0 0 20px;max-width:19ch;
+}
+.intro p{color:#a1a1aa;max-width:66ch;margin:0 0 14px;font-size:16.5px}
+.intro .grid{display:grid;gap:18px;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));margin-top:38px}
+.intro .grid div{border:1px solid #26262b;border-radius:12px;padding:16px 18px;background:#111114}
+.intro .grid h4{margin:0 0 6px;font-size:12px;letter-spacing:.07em;text-transform:uppercase;color:#71717a;font-weight:600}
+.intro .grid p{margin:0;font-size:14px;color:#d4d4d8;line-height:1.55}
+
+/* Direction header strip */
+.dhead{padding:64px 0 28px}
+.dhead .row{display:flex;align-items:baseline;gap:16px;flex-wrap:wrap}
+.dhead .letter{
+  font-family:"IBM Plex Mono",monospace;font-size:12px;font-weight:600;
+  border:1px solid #3f3f46;border-radius:6px;padding:3px 9px;color:#a1a1aa;
+}
+.dhead h2{font-size:clamp(26px,3.6vw,38px);letter-spacing:-.025em;margin:0;font-weight:700}
+.dhead .thesis{color:#a1a1aa;max-width:70ch;margin:14px 0 0;font-size:16px}
+
+.spec{
+  display:grid;gap:20px;grid-template-columns:repeat(auto-fit,minmax(215px,1fr));
+  border:1px solid #26262b;border-radius:14px;padding:22px;background:#111114;margin:26px 0 30px;
+}
+.spec h5{margin:0 0 10px;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:#71717a;font-weight:600}
+.spec .sw{display:flex;gap:7px;flex-wrap:wrap}
+.spec .sw span{
+  width:38px;height:38px;border-radius:8px;display:block;
+  border:1px solid rgba(255,255,255,.11);position:relative;
+}
+.spec .hexes{
+  font-family:"IBM Plex Mono",monospace;font-size:10.5px;color:#71717a;
+  margin-top:9px;line-height:1.7;letter-spacing:.02em;
+}
+.spec .tp{font-size:13.5px;color:#d4d4d8;line-height:1.65;margin:0}
+.spec .tp b{color:#fff;font-weight:600}
+
+.label{
+  font-family:"IBM Plex Mono",monospace;font-size:10.5px;letter-spacing:.15em;
+  text-transform:uppercase;color:#71717a;margin:0 0 10px;
+}
+.frame{
+  border:1px solid #26262b;border-radius:16px;overflow:hidden;margin-bottom:34px;
+  box-shadow:0 24px 60px -20px rgba(0,0,0,.7);
+}
+
+/* ============================================================
+   A — LEDGER
+   Warm paper, ink, one restrained accent. Serif display against
+   a mono figure face. Left-aligned editorial, rules not cards.
+   Reads like a well-set financial document.
+   ============================================================ */
+.A{
+  --paper:#F6F2EA; --paper-2:#EDE7DB; --ink:#14140F; --ink-2:#5A564C;
+  --rule:#D6CFC0; --accent:#7A2E1E; --accent-soft:#EFE2DC;
+  background:var(--paper);color:var(--ink);
+  font-family:Inter,sans-serif;
+}
+.A .serif{font-family:"Instrument Serif",Georgia,serif;font-weight:400}
+.A .mono{font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums}
+.A .inner{max-width:1180px;margin:0 auto;padding:0 clamp(22px,5vw,66px)}
+
+.A .nav{display:flex;align-items:center;gap:30px;height:70px;border-bottom:1px solid var(--rule)}
+.A .nav .logo{font-family:"Instrument Serif",serif;font-size:25px;letter-spacing:-.01em}
+.A .nav .links{display:flex;gap:24px;font-size:13.5px;color:var(--ink-2);margin-left:12px}
+.A .nav .links span:first-child{color:var(--ink);font-weight:500}
+.A .nav .right{margin-left:auto;display:flex;align-items:center;gap:18px;font-size:13.5px}
+.A .nav .btn{
+  background:var(--ink);color:var(--paper);padding:9px 17px;border-radius:3px;
+  font-size:13px;font-weight:500;
+}
+
+.A .hero{padding:78px 0 20px;display:grid;grid-template-columns:1.08fr .92fr;gap:60px;align-items:start}
+.A .eyebrow{
+  font-family:"IBM Plex Mono",monospace;font-size:10.5px;letter-spacing:.19em;
+  text-transform:uppercase;color:var(--accent);margin:0 0 26px;
+  display:flex;align-items:center;gap:11px;
+}
+.A .eyebrow::after{content:"";height:1px;flex:1;background:var(--rule)}
+.A .hero h1{
+  font-family:"Instrument Serif",serif;font-weight:400;
+  font-size:clamp(42px,5.6vw,72px);line-height:1.02;letter-spacing:-.018em;margin:0 0 26px;
+}
+.A .hero h1 em{font-style:italic;color:var(--accent)}
+.A .hero .lede{font-size:17.5px;line-height:1.68;color:var(--ink-2);max-width:44ch;margin:0 0 34px}
+.A .cta{display:flex;gap:13px;align-items:center;flex-wrap:wrap}
+.A .cta .p{background:var(--ink);color:var(--paper);padding:14px 25px;border-radius:3px;font-size:14.5px;font-weight:500}
+.A .cta .s{border-bottom:1px solid var(--ink);padding-bottom:2px;font-size:14.5px;font-weight:500}
+.A .meta{margin-top:26px;font-size:12.5px;color:var(--ink-2);display:flex;gap:20px;flex-wrap:wrap}
+.A .meta span{display:flex;align-items:center;gap:7px}
+.A .meta i{width:4px;height:4px;border-radius:99px;background:var(--accent);display:block}
+
+/* the "document" — a real invoice, set properly, as the hero visual */
+.A .doc{
+  background:#fff;border:1px solid var(--rule);padding:30px 32px;
+  box-shadow:14px 14px 0 var(--paper-2);
+}
+.A .doc .dtop{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:1px solid var(--rule);padding-bottom:16px}
+.A .doc .dtop h3{font-family:"Instrument Serif",serif;font-size:26px;margin:0;font-weight:400}
+.A .doc .dtop .no{font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--ink-2);text-align:right;line-height:1.9}
+.A .doc .paid{
+  display:inline-block;font-family:"IBM Plex Mono",monospace;font-size:9.5px;letter-spacing:.13em;
+  text-transform:uppercase;border:1px solid var(--accent);color:var(--accent);padding:2px 7px;margin-top:5px;
+}
+.A .doc table{width:100%;border-collapse:collapse;margin-top:18px;font-size:13px}
+.A .doc th{
+  text-align:left;font-family:"IBM Plex Mono",monospace;font-size:9.5px;letter-spacing:.13em;
+  text-transform:uppercase;color:var(--ink-2);font-weight:500;padding-bottom:9px;border-bottom:1px solid var(--rule);
+}
+.A .doc th:last-child,.A .doc td:last-child{text-align:right}
+.A .doc td{padding:11px 0;border-bottom:1px solid var(--paper-2);color:var(--ink)}
+.A .doc td.n{font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums;font-size:12.5px}
+.A .doc .sum{margin-top:15px;font-size:12.5px}
+.A .doc .sum div{display:flex;justify-content:space-between;padding:5px 0;color:var(--ink-2)}
+.A .doc .sum div span:last-child{font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums;color:var(--ink)}
+.A .doc .sum .tot{
+  border-top:1.5px solid var(--ink);margin-top:9px;padding-top:11px;
+  color:var(--ink);font-weight:600;font-size:15px;
+}
+.A .doc .sum .tot span:last-child{font-size:18px;font-weight:600}
+
+.A .strip{border-top:1px solid var(--rule);border-bottom:1px solid var(--rule);margin-top:70px;padding:22px 0}
+.A .strip .inner{display:flex;gap:44px;align-items:center;flex-wrap:wrap;font-size:12.5px;color:var(--ink-2)}
+.A .strip b{
+  font-family:"IBM Plex Mono",monospace;font-size:19px;color:var(--ink);
+  font-variant-numeric:tabular-nums;font-weight:500;margin-right:9px;
+}
+
+.A .sec{padding:76px 0 84px}
+.A .sec .head{display:grid;grid-template-columns:.85fr 1.15fr;gap:56px;align-items:end;margin-bottom:44px}
+.A .sec h2{font-family:"Instrument Serif",serif;font-weight:400;font-size:clamp(30px,4vw,46px);line-height:1.08;margin:0;letter-spacing:-.015em}
+.A .sec .head p{margin:0;color:var(--ink-2);font-size:16px;line-height:1.7;max-width:52ch}
+.A .cols{display:grid;grid-template-columns:repeat(3,1fr);gap:0;border-top:1px solid var(--ink)}
+.A .cols article{padding:26px 26px 30px 0;border-right:1px solid var(--rule)}
+.A .cols article:last-child{border-right:0;padding-right:0}
+.A .cols article:not(:first-child){padding-left:26px}
+.A .cols .num{font-family:"IBM Plex Mono",monospace;font-size:10.5px;color:var(--accent);letter-spacing:.13em;margin:0 0 14px}
+.A .cols h3{font-family:"Instrument Serif",serif;font-weight:400;font-size:23px;margin:0 0 11px;line-height:1.2}
+.A .cols p{margin:0;font-size:14.5px;line-height:1.68;color:var(--ink-2)}
+
+/* ============================================================
+   B — WORKBENCH
+   Near-black, hairline structure, one high-voltage accent.
+   Zero shadow. Mono labels. Reads like an instrument, not a brochure.
+   ============================================================ */
+.B{
+  --bg:#08090A; --surf:#0E1011; --line:#1E2224; --line-2:#2A2F32;
+  --fg:#F2F4F3; --fg-2:#8A9296; --volt:#C6F24E; --volt-dim:rgba(198,242,78,.11);
+  background:var(--bg);color:var(--fg);font-family:Inter,sans-serif;
+  background-image:linear-gradient(var(--line) 1px,transparent 1px),linear-gradient(90deg,var(--line) 1px,transparent 1px);
+  background-size:72px 72px;
+}
+.B .inner{max-width:1240px;margin:0 auto;padding:0 clamp(20px,4vw,52px);
+  border-left:1px solid var(--line);border-right:1px solid var(--line);background:var(--bg)}
+.B .mono{font-family:"IBM Plex Mono",monospace}
+
+.B .nav{display:flex;align-items:center;gap:28px;height:62px;border-bottom:1px solid var(--line)}
+.B .nav .logo{font-size:16px;font-weight:700;letter-spacing:-.03em}
+.B .nav .logo i{color:var(--volt);font-style:normal}
+.B .nav .links{display:flex;gap:22px;font-family:"IBM Plex Mono",monospace;font-size:11px;
+  letter-spacing:.08em;text-transform:uppercase;color:var(--fg-2)}
+.B .nav .right{margin-left:auto;display:flex;align-items:center;gap:16px}
+.B .nav .btn{background:var(--volt);color:#0A0C05;padding:8px 15px;font-size:12px;font-weight:600;
+  font-family:"IBM Plex Mono",monospace;letter-spacing:.03em}
+
+.B .hero{padding:76px 0 66px;border-bottom:1px solid var(--line)}
+.B .tag{
+  display:inline-flex;align-items:center;gap:9px;border:1px solid var(--line-2);
+  padding:5px 11px;font-family:"IBM Plex Mono",monospace;font-size:10.5px;
+  letter-spacing:.13em;text-transform:uppercase;color:var(--fg-2);margin-bottom:32px;
+}
+.B .tag i{width:5px;height:5px;background:var(--volt);display:block}
+.B .hero h1{
+  font-size:clamp(38px,6.2vw,82px);line-height:.98;letter-spacing:-.042em;
+  font-weight:700;margin:0 0 26px;max-width:15ch;
+}
+.B .hero h1 u{text-decoration:none;color:var(--volt)}
+.B .hero .lede{font-size:17px;line-height:1.62;color:var(--fg-2);max-width:52ch;margin:0 0 36px}
+.B .cta{display:flex;gap:11px;flex-wrap:wrap;align-items:center}
+.B .cta .p{background:var(--volt);color:#0A0C05;padding:13px 24px;font-size:13.5px;font-weight:600;
+  font-family:"IBM Plex Mono",monospace;letter-spacing:.02em}
+.B .cta .s{border:1px solid var(--line-2);padding:13px 24px;font-size:13.5px;font-weight:500;
+  font-family:"IBM Plex Mono",monospace;color:var(--fg-2)}
+
+/* readouts — the signature: live-instrument panels on hairlines */
+.B .readout{display:grid;grid-template-columns:repeat(4,1fr);border-top:1px solid var(--line);margin-top:56px}
+.B .readout div{padding:20px 22px 20px 0;border-right:1px solid var(--line)}
+.B .readout div:not(:first-child){padding-left:22px}
+.B .readout div:last-child{border-right:0}
+.B .readout .k{font-family:"IBM Plex Mono",monospace;font-size:10px;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--fg-2);margin:0 0 10px}
+.B .readout .v{font-family:"IBM Plex Mono",monospace;font-size:27px;font-variant-numeric:tabular-nums;
+  letter-spacing:-.03em;margin:0;font-weight:500}
+.B .readout .v u{text-decoration:none;color:var(--volt)}
+.B .readout .d{font-size:11.5px;color:var(--fg-2);margin:6px 0 0;font-family:"IBM Plex Mono",monospace}
+
+.B .sec{padding:74px 0 80px}
+.B .sec .lab{font-family:"IBM Plex Mono",monospace;font-size:10.5px;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--volt);margin:0 0 18px}
+.B .sec h2{font-size:clamp(26px,3.8vw,42px);letter-spacing:-.032em;line-height:1.06;margin:0 0 16px;
+  font-weight:700;max-width:20ch}
+.B .sec .sub{color:var(--fg-2);max-width:58ch;margin:0 0 44px;font-size:16px;line-height:1.65}
+.B .bento{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--line);border:1px solid var(--line)}
+.B .bento article{background:var(--bg);padding:26px 24px 30px;min-height:186px;position:relative}
+.B .bento article.span2{grid-column:span 2}
+.B .bento .n{font-family:"IBM Plex Mono",monospace;font-size:10px;color:var(--fg-2);
+  letter-spacing:.14em;margin:0 0 16px}
+.B .bento h3{font-size:17.5px;letter-spacing:-.018em;margin:0 0 9px;font-weight:600}
+.B .bento p{margin:0;font-size:14px;line-height:1.6;color:var(--fg-2)}
+.B .bento .rows{margin-top:18px;border-top:1px solid var(--line)}
+.B .bento .rows div{display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--line);
+  font-family:"IBM Plex Mono",monospace;font-size:12px;font-variant-numeric:tabular-nums}
+.B .bento .rows div:last-child{border-bottom:0}
+.B .bento .rows span:first-child{color:var(--fg-2)}
+.B .bento .rows u{text-decoration:none;color:var(--volt)}
+
+/* ============================================================
+   C — DAYLIGHT
+   Warm off-white, terracotta against deep green, soft geometry.
+   Human voice. Made-in-India as a feature, not an apology.
+   ============================================================ */
+.C{
+  --cream:#FBF7F0; --cream-2:#F2EBDF; --forest:#12352A; --forest-2:#1D4D3D;
+  --terra:#D4562A; --terra-soft:#FBE6DC; --ink:#1A1A17; --ink-2:#65625A;
+  --line:#E4DBCB;
+  background:var(--cream);color:var(--ink);font-family:Inter,sans-serif;
+}
+.C .disp{font-family:"Bricolage Grotesque",Inter,sans-serif}
+.C .inner{max-width:1200px;margin:0 auto;padding:0 clamp(22px,5vw,56px)}
+
+.C .nav{display:flex;align-items:center;gap:28px;height:74px}
+.C .nav .logo{font-family:"Bricolage Grotesque",sans-serif;font-size:22px;font-weight:700;letter-spacing:-.035em}
+.C .nav .links{display:flex;gap:24px;font-size:14px;color:var(--ink-2);font-weight:500}
+.C .nav .right{margin-left:auto;display:flex;align-items:center;gap:16px;font-size:14px;font-weight:500}
+.C .nav .btn{background:var(--forest);color:var(--cream);padding:10px 19px;border-radius:999px;font-size:13.5px;font-weight:600}
+
+.C .hero{padding:64px 0 74px;text-align:left;display:grid;grid-template-columns:1.05fr .95fr;gap:56px;align-items:center}
+.C .pill{
+  display:inline-flex;align-items:center;gap:9px;background:var(--terra-soft);color:var(--terra);
+  padding:7px 15px;border-radius:999px;font-size:12.5px;font-weight:600;margin-bottom:24px;
+}
+.C .pill i{width:6px;height:6px;border-radius:99px;background:var(--terra);display:block}
+.C .hero h1{
+  font-family:"Bricolage Grotesque",sans-serif;font-weight:700;
+  font-size:clamp(38px,5.4vw,66px);line-height:1.02;letter-spacing:-.04em;margin:0 0 22px;
+}
+.C .hero h1 mark{background:none;color:var(--terra)}
+.C .hero .lede{font-size:17.5px;line-height:1.68;color:var(--ink-2);max-width:46ch;margin:0 0 32px}
+.C .cta{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+.C .cta .p{background:var(--forest);color:var(--cream);padding:14px 27px;border-radius:999px;font-size:15px;font-weight:600}
+.C .cta .s{border:1.5px solid var(--line);background:#fff;padding:13px 25px;border-radius:999px;font-size:15px;font-weight:600}
+.C .meta{margin-top:22px;font-size:13.5px;color:var(--ink-2)}
+
+/* stacked warm cards — the visual */
+.C .stack{position:relative}
+.C .card{
+  background:#fff;border:1px solid var(--line);border-radius:20px;padding:22px 24px;
+  box-shadow:0 2px 0 var(--cream-2);
+}
+.C .card.back{position:absolute;inset:-16px -16px auto auto;width:88%;height:88%;
+  background:var(--terra-soft);border-color:transparent;z-index:0;border-radius:22px}
+.C .card.front{position:relative;z-index:1}
+.C .card .ch{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
+.C .card .ch h4{margin:0;font-size:15px;font-weight:700;letter-spacing:-.015em}
+.C .card .ch .st{background:#E7F3EC;color:var(--forest-2);font-size:11.5px;font-weight:700;
+  padding:4px 11px;border-radius:999px}
+.C .card .line{display:flex;justify-content:space-between;align-items:center;padding:11px 0;
+  border-bottom:1px solid var(--cream-2);font-size:14px}
+.C .card .line:last-of-type{border-bottom:0}
+.C .card .line .who{display:flex;align-items:center;gap:11px}
+.C .card .line .av{width:30px;height:30px;border-radius:999px;background:var(--forest);color:var(--cream);
+  display:grid;place-items:center;font-size:11.5px;font-weight:700}
+.C .card .line .av.t{background:var(--terra)}
+.C .card .line .amt{font-variant-numeric:tabular-nums;font-weight:600;font-family:"IBM Plex Mono",monospace;font-size:13.5px}
+.C .card .foot{margin-top:16px;padding-top:15px;border-top:1.5px solid var(--ink);
+  display:flex;justify-content:space-between;align-items:baseline}
+.C .card .foot span:first-child{font-size:13px;color:var(--ink-2);font-weight:500}
+.C .card .foot span:last-child{font-family:"Bricolage Grotesque",sans-serif;font-size:25px;font-weight:700;
+  letter-spacing:-.035em;font-variant-numeric:tabular-nums}
+
+.C .band{background:var(--forest);color:var(--cream);padding:20px 0}
+.C .band .inner{display:flex;gap:40px;align-items:center;flex-wrap:wrap;font-size:14px;opacity:.92}
+.C .band b{font-family:"Bricolage Grotesque",sans-serif;font-size:19px;font-weight:700;margin-right:8px;letter-spacing:-.02em}
+
+.C .sec{padding:76px 0 84px}
+.C .sec .head{max-width:60ch;margin-bottom:44px}
+.C .sec h2{font-family:"Bricolage Grotesque",sans-serif;font-weight:700;
+  font-size:clamp(28px,4vw,46px);line-height:1.05;letter-spacing:-.04em;margin:0 0 14px}
+.C .sec .head p{margin:0;color:var(--ink-2);font-size:17px;line-height:1.68}
+.C .cards3{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+.C .cards3 article{background:#fff;border:1px solid var(--line);border-radius:20px;padding:26px 24px 28px}
+.C .cards3 article.dark{background:var(--forest);color:var(--cream);border-color:transparent}
+.C .cards3 .ic{width:40px;height:40px;border-radius:12px;background:var(--terra-soft);color:var(--terra);
+  display:grid;place-items:center;font-size:18px;font-weight:700;margin-bottom:17px}
+.C .cards3 article.dark .ic{background:rgba(251,247,240,.13);color:var(--cream)}
+.C .cards3 h3{font-family:"Bricolage Grotesque",sans-serif;font-size:19px;font-weight:700;
+  letter-spacing:-.025em;margin:0 0 9px}
+.C .cards3 p{margin:0;font-size:14.5px;line-height:1.65;color:var(--ink-2)}
+.C .cards3 article.dark p{color:rgba(251,247,240,.72)}
+
+/* ============================================================
+   Comparison + close
+   ============================================================ */
+.compare{padding:70px 0 30px;border-top:1px solid #26262b}
+.compare h2{font-size:clamp(24px,3.4vw,34px);letter-spacing:-.028em;margin:0 0 12px;font-weight:700}
+.compare>.wrap>p{color:#a1a1aa;max-width:64ch;margin:0 0 34px}
+table.cmp{width:100%;border-collapse:collapse;font-size:14px}
+table.cmp th,table.cmp td{text-align:left;padding:14px 16px;border-bottom:1px solid #26262b;vertical-align:top}
+table.cmp th{
+  font-family:"IBM Plex Mono",monospace;font-size:10.5px;letter-spacing:.13em;text-transform:uppercase;
+  color:#71717a;font-weight:500;border-bottom:1px solid #3f3f46;
+}
+table.cmp td:first-child{color:#a1a1aa;width:190px;font-weight:500}
+table.cmp td b{color:#fff;font-weight:600}
+.closing{padding:44px 0 96px}
+.closing .box{border:1px solid #26262b;border-radius:16px;padding:28px 30px;background:#111114}
+.closing h3{margin:0 0 12px;font-size:18px;letter-spacing:-.02em;font-weight:600}
+.closing p{margin:0 0 10px;color:#a1a1aa;font-size:15px;max-width:76ch}
+.closing ul{margin:14px 0 0;padding-left:20px;color:#a1a1aa;font-size:15px}
+.closing li{margin-bottom:9px}
+.closing b{color:#e7e7ea;font-weight:600}
+
+@media(max-width:900px){
+  .A .hero,.A .sec .head,.C .hero{grid-template-columns:1fr;gap:36px}
+  .A .cols,.B .bento,.C .cards3{grid-template-columns:1fr}
+  .A .cols article{border-right:0;border-bottom:1px solid var(--rule);padding-left:0!important;padding-right:0}
+  .B .bento article.span2{grid-column:span 1}
+  .B .readout{grid-template-columns:repeat(2,1fr)}
+  .B .readout div{padding-left:0!important;border-bottom:1px solid var(--line)}
+  .A .nav .links,.B .nav .links,.C .nav .links{display:none}
+  .C .card.back{display:none}
+}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+
+<div class="topbar"><div class="wrap">
+  <strong>Stackivo — visual directions</strong>
+  <nav>
+    <a href="#a">A · Ledger</a>
+    <a href="#b">B · Workbench</a>
+    <a href="#c">C · Daylight</a>
+    <a href="#compare">Compare</a>
+  </nav>
+</div></div>
+
+<section class="intro"><div class="wrap">
+  <p class="kicker">Concept · 20 August 2026 · pick one</p>
+  <h1>Three ways Stackivo could stop looking like every other SaaS site.</h1>
+  <p>Each direction below is a working hero plus one supporting section, built with real Stackivo copy. They are deliberately far apart — the point is to find out which end of the range you actually want before I rewrite <code>MASTER.md</code> and rebuild seventeen pages.</p>
+  <p>All three keep the things that already work: semantic tokens, a 12px type floor, four radii, tabular figures for money, and light/dark parity. What changes is palette, type pairing, section rhythm, and the signature visual idea.</p>
+  <div class="grid">
+    <div><h4>What's wrong today</h4><p>Eleven sections in a row, each one an eyebrow pill, a centred display heading, a subtitle, then a grid of cards. Competent, entirely anonymous.</p></div>
+    <div><h4>Who you're selling to</h4><p>Freelance designers, developers and studios. People who look at a lot of websites and can tell a template on sight.</p></div>
+    <div><h4>The unused asset</h4><p>GST-native, INR-first, built in India for Indian independents. Currently styled as though you were hiding it.</p></div>
+  </div>
+</div></section>
+
+<!-- ══════════════ A ══════════════ -->
+<div class="wrap" id="a">
+  <div class="dhead">
+    <div class="row"><span class="letter">A</span><h2>Ledger</h2></div>
+    <p class="thesis">Trust through craft. Warm paper, real ink, a serif with authority, and numbers set like a proper financial document. The argument: you are asking freelancers to run their money through you, so look like something that takes money seriously. Almost nobody in this category is doing left-aligned editorial — it reads as considered rather than assembled.</p>
+  </div>
+  <div class="spec">
+    <div><h5>Palette</h5>
+      <div class="sw"><span style="background:#F6F2EA"></span><span style="background:#EDE7DB"></span><span style="background:#D6CFC0"></span><span style="background:#7A2E1E"></span><span style="background:#5A564C"></span><span style="background:#14140F"></span></div>
+      <p class="hexes">#F6F2EA paper · #EDE7DB raised · #D6CFC0 rule<br>#7A2E1E accent · #5A564C muted · #14140F ink</p>
+    </div>
+    <div><h5>Type</h5><p class="tp"><b>Instrument Serif</b> display · <b>Inter</b> UI and body · <b>IBM Plex Mono</b> figures, labels, IDs. Three faces, three jobs, no overlap.</p></div>
+    <div><h5>Signature</h5><p class="tp">Hairline rules instead of cards. Content sits <b>on</b> the page, not in floating boxes. Offset paper shadow, never a blur.</p></div>
+    <div><h5>Risk</h5><p class="tp">Can drift formal or dated if the serif is over-used. Needs strict discipline: display only, never body.</p></div>
+  </div>
+</div>
+<div class="wrap"><p class="label">A · Hero</p></div>
+<div class="wrap"><div class="frame">
+  <div class="A">
+    <div class="inner">
+      <div class="nav">
+        <span class="logo">Stackivo</span>
+        <span class="links"><span>Product</span><span>Pricing</span><span>GST</span><span>Docs</span></span>
+        <span class="right"><span>Sign in</span><span class="btn">Start free</span></span>
+      </div>
+      <div class="hero">
+        <div>
+          <p class="eyebrow">For Indian independents</p>
+          <h1>Every rupee you've earned, <em>accounted for.</em></h1>
+          <p class="lede">Clients, invoices, contracts, projects and payments in one workspace. GST computed correctly the first time, whether the client is in Karnataka, Maharashtra, or Berlin.</p>
+          <div class="cta"><span class="p">Start free — 5 clients</span><span class="s">See a live invoice →</span></div>
+          <div class="meta">
+            <span><i></i>No card required</span>
+            <span><i></i>GSTR-1 ready exports</span>
+            <span><i></i>Two-minute setup</span>
+          </div>
+        </div>
+        <div class="doc">
+          <div class="dtop">
+            <div><h3>Invoice</h3><span class="paid">Paid · 12 Aug</span></div>
+            <div class="no">STK-2026-0184<br>Raised 02 Aug 2026<br>Terms — Net 10</div>
+          </div>
+          <table>
+            <tr><th>Description</th><th>Hrs</th><th>Amount</th></tr>
+            <tr><td>Brand identity — discovery</td><td class="n">14.0</td><td class="n">42,000.00</td></tr>
+            <tr><td>Design system build</td><td class="n">28.5</td><td class="n">85,500.00</td></tr>
+            <tr><td>Handoff &amp; documentation</td><td class="n">6.0</td><td class="n">18,000.00</td></tr>
+          </table>
+          <div class="sum">
+            <div><span>Subtotal</span><span>1,45,500.00</span></div>
+            <div><span>CGST @ 9%</span><span>13,095.00</span></div>
+            <div><span>SGST @ 9%</span><span>13,095.00</span></div>
+            <div class="tot"><span>Total due</span><span>₹1,71,690.00</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="strip"><div class="inner">
+      <span><b>₹1.2 Cr</b> invoiced through Stackivo</span>
+      <span><b>11 days</b> average time to payment</span>
+      <span><b>0</b> GST corrections filed</span>
+    </div></div>
+  </div>
+</div></div>
+<div class="wrap"><p class="label">A · Supporting section</p></div>
+<div class="wrap"><div class="frame">
+  <div class="A"><div class="inner"><div class="sec">
+    <div class="head">
+      <h2>Tax, handled quietly.</h2>
+      <p>The unglamorous parts of running a practice — place of supply, reverse charge, export invoices without GST — are exactly where the software should be doing the thinking. You pick the client; Stackivo picks the treatment.</p>
+    </div>
+    <div class="cols">
+      <article>
+        <p class="num">01 / INTRASTATE</p>
+        <h3>Same state, split tax</h3>
+        <p>Client in Karnataka, you in Karnataka. CGST 9% and SGST 9%, applied separately and shown separately, because that is how the return expects it.</p>
+      </article>
+      <article>
+        <p class="num">02 / INTERSTATE</p>
+        <h3>Different state, one line</h3>
+        <p>Client in Maharashtra. IGST 18% as a single line. No mental arithmetic, no template you edited last quarter and forgot to change back.</p>
+      </article>
+      <article>
+        <p class="num">03 / EXPORT</p>
+        <h3>Overseas, zero-rated</h3>
+        <p>Client in Berlin paying in euros. LUT declaration on the invoice, zero-rated supply, FX recorded at the date of issue for your books.</p>
+      </article>
+    </div>
+  </div></div></div>
+</div></div>
+
+<!-- ══════════════ B ══════════════ -->
+<div class="wrap" id="b">
+  <div class="dhead">
+    <div class="row"><span class="letter">B</span><h2>Workbench</h2></div>
+    <p class="thesis">An instrument, not a brochure. Near-black canvas, a real 1px structural grid, zero drop shadows, and one high-voltage accent used sparingly enough that it still means something. The argument: your buyers are technical and design-literate, and they respect tools that look like tools. This is the closest to where you already are — but it commits, where the current site hedges with soft blur.</p>
+  </div>
+  <div class="spec">
+    <div><h5>Palette</h5>
+      <div class="sw"><span style="background:#08090A"></span><span style="background:#0E1011"></span><span style="background:#1E2224"></span><span style="background:#C6F24E"></span><span style="background:#8A9296"></span><span style="background:#F2F4F3"></span></div>
+      <p class="hexes">#08090A canvas · #0E1011 surface · #1E2224 hairline<br>#C6F24E volt · #8A9296 muted · #F2F4F3 fg</p>
+    </div>
+    <div><h5>Type</h5><p class="tp"><b>Inter</b> at tight tracking (−0.04em) for display · <b>IBM Plex Mono</b> for every label, eyebrow and figure. Two faces doing very different jobs.</p></div>
+    <div><h5>Signature</h5><p class="tp">Everything sits on a visible hairline grid. Gaps are 1px lines, not whitespace. Numbers are always mono and always tabular.</p></div>
+    <div><h5>Risk</h5><p class="tp">Dark-first sites convert worse for non-technical buyers, and the lime is polarising. Needs a genuinely good light mode too, not an afterthought.</p></div>
+  </div>
+</div>
+<div class="wrap"><p class="label">B · Hero</p></div>
+<div class="wrap"><div class="frame">
+  <div class="B"><div class="inner">
+    <div class="nav">
+      <span class="logo">stackivo<i>.</i></span>
+      <span class="links"><span>Product</span><span>Pricing</span><span>Changelog</span><span>Docs</span></span>
+      <span class="right"><span class="mono" style="font-size:11px;color:var(--fg-2)">SIGN IN</span><span class="btn">START FREE</span></span>
+    </div>
+    <div class="hero">
+      <span class="tag"><i></i>Early access · v0.9</span>
+      <h1>The workspace freelancers actually <u>run on</u>.</h1>
+      <p class="lede">Clients, invoices, contracts, time, payments and portals — one system, one database, one place where the numbers are true. Built for Indian independents billing anywhere.</p>
+      <div class="cta"><span class="p">START FREE →</span><span class="s">READ THE DOCS</span></div>
+      <div class="readout">
+        <div><p class="k">Outstanding</p><p class="v">₹4,82,400</p><p class="d">6 invoices</p></div>
+        <div><p class="k">Overdue</p><p class="v"><u>₹64,000</u></p><p class="d">1 · 9 days</p></div>
+        <div><p class="k">Unbilled hours</p><p class="v">37.5</p><p class="d">≈ ₹1,12,500</p></div>
+        <div><p class="k">Avg. days to pay</p><p class="v">11.2</p><p class="d">↓ 3.4 vs Q1</p></div>
+      </div>
+    </div>
+    <div class="sec">
+      <p class="lab">// Capabilities</p>
+      <h2>Small details, handled properly.</h2>
+      <p class="sub">Tax treatment, onboarding, chasing, reporting. The parts nobody sells software on, and the parts that quietly eat your week.</p>
+      <div class="bento">
+        <article class="span2">
+          <p class="n">01 — GST</p>
+          <h3>GST without the guesswork</h3>
+          <p>Place of supply resolved from the client record. Intrastate splits, interstate IGST, and zero-rated exports each get the right treatment automatically.</p>
+          <div class="rows">
+            <div><span>Karnataka → Karnataka</span><span>CGST 9% + SGST 9%</span></div>
+            <div><span>Karnataka → Maharashtra</span><span>IGST 18%</span></div>
+            <div><span>Karnataka → Germany</span><span><u>Zero-rated · LUT</u></span></div>
+          </div>
+        </article>
+        <article>
+          <p class="n">02 — PULSE</p>
+          <h3>Pulse analytics</h3>
+          <p>Revenue, realised rate, client concentration and collection speed, computed from the work you already logged.</p>
+        </article>
+        <article>
+          <p class="n">03 — CHASING</p>
+          <h3>Polite, persistent reminders</h3>
+          <p>Scheduled follow-ups that stop the moment payment lands. You never have to write the awkward second email.</p>
+        </article>
+        <article>
+          <p class="n">04 — PORTALS</p>
+          <h3>A portal per client</h3>
+          <p>Contracts, invoices, files and status on one link. No login gymnastics, no attachments lost in a thread.</p>
+        </article>
+        <article>
+          <p class="n">05 — ISOLATION</p>
+          <h3>Your data, isolated</h3>
+          <p>Row-level security per workspace. Your clients cannot see each other, and neither can anyone else.</p>
+        </article>
+      </div>
+    </div>
+  </div></div>
+</div></div>
+
+<!-- ══════════════ C ══════════════ -->
+<div class="wrap" id="c">
+  <div class="dhead">
+    <div class="row"><span class="letter">C</span><h2>Daylight</h2></div>
+    <p class="thesis">Warm, human, and unmistakably made here. Cream paper, deep forest green, terracotta accent, generous rounded geometry and a plain-spoken voice. The argument: every competitor is a cold blue imitation of a Bay Area product. Being visibly Indian-made and warm about it is a positioning moat, not a limitation — and it is the friendliest of the three to a non-technical buyer.</p>
+  </div>
+  <div class="spec">
+    <div><h5>Palette</h5>
+      <div class="sw"><span style="background:#FBF7F0"></span><span style="background:#F2EBDF"></span><span style="background:#D4562A"></span><span style="background:#12352A"></span><span style="background:#65625A"></span><span style="background:#1A1A17"></span></div>
+      <p class="hexes">#FBF7F0 cream · #F2EBDF raised · #D4562A terracotta<br>#12352A forest · #65625A muted · #1A1A17 ink</p>
+    </div>
+    <div><h5>Type</h5><p class="tp"><b>Bricolage Grotesque</b> display, tight and characterful · <b>Inter</b> body · <b>IBM Plex Mono</b> for money only.</p></div>
+    <div><h5>Signature</h5><p class="tp">Soft stacked cards with a flat offset behind them — depth without blur. Full-bleed forest bands to break the cream.</p></div>
+    <div><h5>Risk</h5><p class="tp">Warmth can read as "small" to enterprise buyers. Less of a concern for a freelancer product, but it does cap you if you move upmarket.</p></div>
+  </div>
+</div>
+<div class="wrap"><p class="label">C · Hero</p></div>
+<div class="wrap"><div class="frame">
+  <div class="C">
+    <div class="inner">
+      <div class="nav">
+        <span class="logo">Stackivo</span>
+        <span class="links"><span>Product</span><span>Pricing</span><span>For studios</span><span>Help</span></span>
+        <span class="right"><span>Sign in</span><span class="btn">Start free</span></span>
+      </div>
+      <div class="hero">
+        <div>
+          <span class="pill"><i></i>Free for your first 5 clients</span>
+          <h1>Run your studio like a business, not a <mark>group chat</mark>.</h1>
+          <p class="lede">Stackivo keeps clients, invoices, contracts, projects and payments in one place — with GST that works out of the box and reminders that chase so you don't have to.</p>
+          <div class="cta"><span class="p">Start free</span><span class="s">Watch a 2-min tour</span></div>
+          <p class="meta">No card required · Set up in two minutes · Cancel whenever</p>
+        </div>
+        <div class="stack">
+          <div class="card back"></div>
+          <div class="card front">
+            <div class="ch"><h4>This month</h4><span class="st">On track</span></div>
+            <div class="line"><span class="who"><span class="av">MR</span>Meridian Retail</span><span class="amt">₹1,71,690</span></div>
+            <div class="line"><span class="who"><span class="av t">KS</span>Kaya Studio</span><span class="amt">₹86,000</span></div>
+            <div class="line"><span class="who"><span class="av">NW</span>Northwind GmbH</span><span class="amt">€2,400</span></div>
+            <div class="line"><span class="who"><span class="av t">AP</span>Anand &amp; Partners</span><span class="amt">₹48,500</span></div>
+            <div class="foot"><span>Collected · August</span><span>₹5,42,190</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="band"><div class="inner">
+      <span><b>2,400+</b> invoices raised</span>
+      <span><b>11 days</b> to payment, on average</span>
+      <span><b>GSTR-1</b> exports that reconcile</span>
+    </div></div>
+    <div class="inner"><div class="sec">
+      <div class="head">
+        <h2>Built for the way you actually work.</h2>
+        <p>You bill in rupees and euros. Half your clients are on WhatsApp. Your accountant wants clean exports in the second week of every month. Stackivo assumes all of that.</p>
+      </div>
+      <div class="cards3">
+        <article>
+          <div class="ic">₹</div>
+          <h3>GST that's just right</h3>
+          <p>CGST and SGST when you're in-state, IGST when you're not, zero-rated when the client is abroad. Worked out from the client record, not from you remembering.</p>
+        </article>
+        <article class="dark">
+          <div class="ic">◷</div>
+          <h3>Chasing, done gently</h3>
+          <p>Reminders go out on a schedule you set and stop the instant money lands. Firm enough to work, warm enough that you keep the client.</p>
+        </article>
+        <article>
+          <div class="ic">◇</div>
+          <h3>One link per client</h3>
+          <p>Contracts, invoices, files and project status on a single page they can open on a phone. No portal login they'll forget by Thursday.</p>
+        </article>
+      </div>
+    </div></div>
+  </div>
+</div></div>
+
+<!-- ══════════════ Compare ══════════════ -->
+<section class="compare" id="compare"><div class="wrap">
+  <h2>Side by side</h2>
+  <p>The differences that will matter six months from now, not the ones that are obvious today.</p>
+  <table class="cmp">
+    <tr><th></th><th>A · Ledger</th><th>B · Workbench</th><th>C · Daylight</th></tr>
+    <tr><td>Feels like</td><td>A well-set financial document</td><td>An instrument you operate</td><td>A capable, friendly business partner</td></tr>
+    <tr><td>Wins on</td><td><b>Trust and craft.</b> Best fit for "we hold your money"</td><td><b>Credibility with technical buyers.</b> Signals product depth</td><td><b>Warmth and distinctiveness.</b> The clearest positioning moat</td></tr>
+    <tr><td>Distance from today</td><td>Far — new palette, new face, new layout logic</td><td>Medium — same dark lineage, much more committed</td><td>Far — full palette and voice change</td></tr>
+    <tr><td>Effort to ship</td><td>High. Editorial layouts need real copy everywhere</td><td>Medium. Closest to your existing components</td><td>High. New palette must survive the whole app shell</td></tr>
+    <tr><td>Dark mode</td><td>Hardest — warm paper has no obvious dark twin</td><td>Native. Light mode is the work here</td><td>Workable — forest becomes the canvas</td></tr>
+    <tr><td>App shell impact</td><td>Heavy. Dashboard would need its own restrained variant</td><td>Light. Dashboard already leans this way</td><td>Heavy. Cream doesn't suit dense data screens</td></tr>
+    <tr><td>Ages well?</td><td>Yes — editorial rarely dates</td><td>Risk — the lime accent is very 2026</td><td>Yes, if the terracotta stays disciplined</td></tr>
+  </table>
+</div></section>
+
+<section class="closing"><div class="wrap"><div class="box">
+  <h3>What I'd suggest, and what I need from you</h3>
+  <p>If it were mine: <b>A · Ledger for marketing, B · Workbench for the app.</b> A product that holds contracts and money should feel considered on the way in and precise once you're inside, and that split is honest rather than inconsistent — the marketing site and the dashboard are doing genuinely different jobs. C is the boldest positioning play and the one a competitor could not copy quickly, but the cream palette fights dense data screens, so it would stay marketing-only too.</p>
+  <p>Three things worth knowing before you pick:</p>
+  <ul>
+    <li><b>The heroes here use a real invoice, real GST cases and real figures.</b> That is not decoration — the reason your current hero reads as generic is that its floating fragments say nothing specific. Whichever direction wins, the product visuals should show actual Stackivo output.</li>
+    <li><b>Each direction implies a different voice</b>, and I have written the copy accordingly. Look at the headlines as carefully as the colours; tone will outlast the palette.</li>
+    <li><b>A mixed answer is fine.</b> "C's palette with A's layout discipline" is a legitimate result, and cheaper than it sounds.</li>
+  </ul>
+</div></div></section>
+
+</body>
+</html>

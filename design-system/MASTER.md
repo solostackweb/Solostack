@@ -1,81 +1,76 @@
-# Stackivo Design System — Master
+# Stackivo Design System — Master (v2)
 
 Source of truth for visual decisions. Every UI change should be justifiable
 against this file; where it and a component disagree, the component is wrong.
 
-**Direction:** refined professional. The existing blue identity stays. What
-changes is craft — a real typeface, a wider type scale, one spacing rhythm,
-three radii instead of seven, and semantic colour everywhere. Stackivo holds
-people's invoices and contracts; it should read like a tool you'd trust with
-money, not a dashboard template.
+**Direction:** two atmospheres, one system.
+
+*Ledger* on marketing — warm paper, a serif that carries authority, hairline
+rules instead of cards, and numbers set like a financial document. You are
+asking freelancers to run their money through Stackivo; the way in should feel
+considered.
+
+*Workbench* in the app — near-black, a visible 1px structure, zero decorative
+blur, mono tabular figures. Once someone is inside, they are operating an
+instrument and want precision, not warmth.
+
+This is not inconsistency. The two surfaces do different jobs. What binds them
+is a single type system, a single spacing scale, a single set of colour *roles*,
+and one brand accent expressed at two brightnesses.
+
+v1 is preserved at `MASTER.v1.md`. Its adherence programme worked and its
+numbers are quoted below; what changes here is the visual language, not the
+discipline.
 
 ---
 
-## 0. Why this exists (measured, not opinion)
+## 0. Where we start (measured, August 2026)
 
-Audit of `src/` at the time of writing:
+v1 set out to fix token adherence before restyling. That worked:
 
-| Finding | Count | Consequence |
+| Finding | v1 baseline | Now |
 |---|---|---|
-| Text below 12px (`text-[11px]` 545, `text-[10px]` 216, `text-[9px]` 13) | **761** | Reads cramped; below any accessibility floor |
-| Raw palette classes bypassing tokens (`text-emerald-600`, `bg-amber-500`, …) | **1,201** | Tokens don't control the UI; dark mode unreliable |
-| Files hardcoding hex (incl. brand blue `#2563EB` ×20) | **34** | Two sources of truth for one colour |
-| Distinct corner radii in live use | **7** | No rule for which means what |
-| Web fonts loaded | **0** | Running on the bare system stack |
+| Text below 12px | 761 | **0** |
+| Raw palette classes bypassing tokens | 1,201 | **196** |
+| Files hardcoding hex | 34 | **27** |
+| Distinct radii in live use | 7 | **4** (+10 `rounded-none`) |
+| Web fonts loaded | 0 | Inter Variable, self-hosted |
 
-The second row is the important one: **a redesign driven by tokens cannot work
-while 1,201 places ignore them.** Fix adherence first, then restyle.
+The remaining 196 and 27 are the migration backlog in §9. They matter more now
+than they did in v1: a two-palette architecture **cannot work** while any
+component names a colour directly. A hardcoded `#2563EB` does not know which
+surface it is on.
 
 ---
 
-## 1. Typography
+## 1. Architecture: one token set, two surfaces
 
-### Family
+Semantic token **names** never change. Their **values** are scoped.
 
-| Token | Value | Use |
-|---|---|---|
-| `--font-sans` | **Inter** (variable, `next/font/google`) | All UI text |
-| `--font-display` | Inter, `letter-spacing: -0.02em`, weight 600–700 | h1–h3, page titles, marketing headlines |
-| `--font-mono` | existing system mono stack | IDs, tokens, code, API keys |
+```
+:root                      → app surface, light   (Workbench light)
+.dark                      → app surface, dark    (Workbench dark)
+[data-surface="marketing"] → marketing surface    (Ledger, light only)
+```
 
-Inter is chosen for one specific reason beyond looks: it ships true **tabular
-figures**. An invoicing product aligns numbers in columns constantly, and
-proportional digits make totals jitter as they change.
+`[data-surface="marketing"]` goes on the `(marketing)` route group layout and
+redefines the same custom properties. Every component keeps writing `bg-card`,
+`text-foreground`, `border-border` and lands correctly on either surface
+without knowing which one it is on.
 
-Load with `next/font` and `display: "swap"`. Never add a second display face —
-one family, varied by weight and tracking, is what makes a system feel coherent.
+**Marketing is light-only.** Ledger has no honest dark twin — warm paper
+inverted is just brown. The marketing layout sets `forcedTheme="light"`. The
+theme toggle stays, and lives in the app where it belongs.
 
-### Scale
+**The app is dark-first with a real light mode.** Not an inversion; designed.
 
-Eleven steps. Nothing outside this list; no arbitrary `text-[Npx]`.
+Consequences to respect:
 
-The three display steps exist because a marketing hero genuinely needs to be
-larger than anything in the app — capping the scale at 48px made the homepage
-headline *smaller* than it was.
-
-| Token | Size / line-height | Use |
-|---|---|---|
-| `text-micro` | 12 / 16, `tracking-wide`, uppercase | Eyebrows, table headers, badge text |
-| `text-xs` | 12 / 18 | Dense metadata, timestamps |
-| `text-sm` | 14 / 20 | **Default UI text.** Labels, table cells, secondary copy |
-| `text-base` | 16 / 24 | **Default body.** Paragraphs, form inputs, anything read in sequence |
-| `text-lg` | 18 / 28 | Card titles, section leads |
-| `text-xl` | 20 / 28 | Sub-headings |
-| `text-2xl` | 24 / 32 | Page titles (dashboard) |
-| `text-3xl` | 30 / 36 | Section headings (marketing) |
-| `text-4xl` | 36 / 1.1, `tracking-tight` | Marketing section headings, hero on mobile |
-| `text-5xl` | 48 / 1.05, `tracking-tight` | Hero at tablet |
-| `text-6xl` | 60 / 1.02, `tracking-tight` | Hero at desktop |
-
-**Hard floor: 12px.** Nothing smaller ships. The 761 existing violations map
-to `text-micro` (labels/badges) or `text-xs` (metadata) — see §8.
-
-**Form inputs are 16px on mobile.** Below that, iOS auto-zooms on focus.
-
-### Weight
-
-400 body · 500 labels and table headers · 600 headings and buttons · 700 hero
-only. Weight carries hierarchy before size does; reach for it first.
+- No component branches on theme in JS. If it needs to know, a token is missing.
+- Anything shared (`components/ui/*`) is written against roles only and must be
+  checked on all three surfaces.
+- Marketing-only components live in `components/marketing/`, app-only in
+  `components/dashboard/`. Shared primitives stay neutral.
 
 ---
 
@@ -84,205 +79,326 @@ only. Weight carries hierarchy before size does; reach for it first.
 ### The rule
 
 **Components never name a colour.** No hex, no `emerald-600`, no `slate-500`.
-They name a *role*. This is what makes both dark mode and any future redesign
-a token change rather than a 1,201-file edit.
+They name a role. This is what makes a two-surface system a token change rather
+than a 196-file edit.
 
-### Semantic tokens
+### Brand: one ember, two brightnesses
 
-Existing tokens stay: `background` `foreground` `card` `popover` `primary`
-`secondary` `muted` `accent` `destructive` `border` `input` `ring` `sidebar`.
+The accent is a warm ember. On paper it is a deep oxblood that passes as body
+text (8.4:1 on the marketing background). On near-black it brightens to stay
+legible. Same hue family, so the brand reads as one thing across both surfaces.
 
-Status colours already exist as `success` `warning` `info` but only as solid
-fills. Most real usage is *tinted text on a tinted background* (a status pill),
-which is why components reached for `text-emerald-700 bg-emerald-500/10`
-instead. Add the missing halves so they don't have to:
+| Surface | HSL | Hex | Use |
+|---|---|---|---|
+| Marketing | `13 61% 30%` | `#7A2E1E` | Eyebrows, rules, emphasis, primary fill |
+| App dark | `13 79% 57%` | `#E8623C` | Primary actions, focus, active nav |
+| App light | `13 68% 42%` | `#B4441F` | Same, contrast-corrected for white |
+
+The `#2563EB` brand blue is retired. All 27 files hardcoding it become
+`primary`. Third-party brand colours (WhatsApp green, Razorpay, payment logos)
+are the **only** permitted literals and live in `brand-colors.ts`.
+
+### Marketing surface — Ledger
+
+| Role | HSL | Hex |
+|---|---|---|
+| `background` | `40 38% 94%` | `#F6F2EA` paper |
+| `card` | `0 0% 100%` | `#FFFFFF` |
+| `muted` | `40 33% 89%` | `#EDE7DB` raised paper |
+| `border` / `input` | `41 21% 80%` | `#D6CFC0` rule |
+| `foreground` | `60 14% 7%` | `#14140F` ink |
+| `muted-foreground` | `43 8% 33%` | `#5A564C` |
+| `primary` | `13 61% 30%` | `#7A2E1E` |
+| `primary-foreground` | `40 38% 94%` | paper |
+| `accent` | `19 37% 90%` | `#EFE2DC` |
+| `ring` | `13 61% 30%` | ember |
+
+### App surface — Workbench dark
+
+| Role | HSL | Hex |
+|---|---|---|
+| `background` | `210 11% 4%` | `#08090A` canvas |
+| `card` | `200 10% 6%` | `#0E1011` surface |
+| `popover` | `200 9% 9%` | one step above card |
+| `border` / `input` | `200 9% 13%` | `#1E2224` hairline |
+| `foreground` | `150 8% 95%` | `#F2F4F3` |
+| `muted-foreground` | `200 5% 56%` | `#8A9296` |
+| `primary` | `13 79% 57%` | `#E8623C` |
+| `sidebar` | `200 10% 3%` | deepest |
+
+The elevation ladder is now **four steps, not five**, each a lightness change of
+2–4% only. Workbench separates regions with hairlines, not contrast between fills.
+
+### Status
+
+Every status surface is a tinted background with a strong foreground. Both
+halves defined per surface, no exceptions:
 
 ```
---success-subtle / --success-strong      (bg tint / text + icon)
+--success-subtle / --success-strong
 --warning-subtle / --warning-strong
 --info-subtle    / --info-strong
 --destructive-subtle / --destructive-strong
 ```
 
-Every status surface uses `bg-*-subtle text-*-strong`. One pattern, both themes.
-
-### Brand
-
-`--primary: 221 83% 53%` is the blue. `#2563EB` is the same colour written by
-hand in 34 files — those become `primary`. Third-party brand colours
-(WhatsApp green, payment logos) are the **only** permitted literals, and they
-belong in a single `brand-colors.ts`, never inline.
+`bg-*-subtle text-*-strong`. One pattern, three surfaces.
 
 ### Contrast floor
 
-Body text ≥ 4.5:1. Large text and UI glyphs ≥ 3:1. Verify light and dark
-**separately** — a pair that passes on white often fails on the dark surface.
+Body ≥ 4.5:1, large text and UI glyphs ≥ 3:1. Verify **each of the three
+surfaces separately.** A pair that passes on paper routinely fails on canvas.
 
-Status must never be carried by colour alone: pair with an icon or a word.
-
----
-
-## 3. Spacing
-
-4px base. Permitted steps: **4 8 12 16 20 24 32 40 48 64 80**. No arbitrary
-padding values.
-
-| Context | Gap |
-|---|---|
-| Inside a control (icon → label) | 8 |
-| Between fields in a form | 16 |
-| Between cards in a grid | 16 (dense) / 24 (default) |
-| Card padding | 20 (dense) / 24 (default) |
-| Between sections on a page | 32 dashboard |
-
-Marketing breathes; the dashboard is denser. That difference is intentional and
-should be consistent within each context.
-
-**Marketing vertical rhythm belongs to one component.** `components/marketing/
-section.tsx` owns it — `py-12 sm:py-14 lg:py-16` — and 31 of 40 marketing
-sections already route through it. Do not hand-roll section padding; use
-`<Section>` and the rhythm follows.
-
-The nine surfaces that use a raw `<section>` are deliberate structural
-exceptions, not drift: heroes (`hero`, `page-hero`, `hero-section`), the trust
-strip, the two CTA bands, and content lists in docs/changelog. Each has a
-genuine reason to differ — a hero that breathed like a body section would look
-broken. Leave them.
-
-Container max-width stays `1440px` with `1rem` gutters, widening to `1.5rem`
-from `md` up.
+Ember at `#E8623C` does **not** pass 4.5:1 as small text on light backgrounds.
+On the app light surface use `#B4441F`. Bright ember is a fill with dark text on
+top, never small text on a pale background.
 
 ---
 
-## 4. Radius
+## 3. Typography
 
-Seven radii become four. Each step is visually distinct; the discarded ones
-(`md` 8px, `xl` 12px) were indistinguishable from `lg` and existed only as
-inconsistency.
+### Families
 
-| Token | Value | Applies to |
+| Token | Value | Where |
 |---|---|---|
-| `rounded-sm` | 6px | Inputs, badges, small controls |
-| `rounded-lg` | 10px (`--radius`) | **Default.** Buttons, cards, dialogs, panels |
-| `rounded-2xl` | 16px | Large marketing surfaces, hero cards |
-| `rounded-full` | pill | Avatars, status pills, icon buttons |
+| `--font-sans` | **Inter Variable** | All body and UI text, both surfaces |
+| `--font-display` | **Instrument Serif** 400 | Marketing headings only |
+| `--font-display` | **Inter** 700 at `-0.04em` | App headings (same token, per surface) |
+| `--font-mono` | **IBM Plex Mono** 400/500 | Figures, IDs, eyebrows, timestamps, code |
 
-`lg` is the default rather than `md` because that is the shadcn/ui convention
-already in use here — `rounded-lg` maps to `var(--radius)`, and every shadcn
-component added later will assume it. Fighting that would mean re-patching
-every primitive we pull in.
+All self-hosted via `@fontsource`. Never `next/font/google` — the build must not
+depend on reaching Google.
 
-Collapse `md` → `lg`, `xl` → `lg`, `3xl` → `2xl`. Nested corners: the inner
-radius is the outer minus the padding, never larger than the parent's.
+```
+@fontsource-variable/inter      (installed)
+@fontsource/instrument-serif    ^5.3.0   400 + 400 italic
+@fontsource/ibm-plex-mono       ^5.3.0   400 + 500 only
+```
 
----
+Instrument Serif ships one weight. That is correct for a display face and
+enforces the rule below.
 
-## 5. Elevation
+**Instrument Serif is display-only.** It falls apart below 24px. It never sets
+body text, never sets UI labels, and never appears in the app.
 
-Three levels, each tied to meaning rather than taste. A card that isn't
-interactive gets a border, not a shadow.
+**Mono is not decoration.** Stackivo aligns money in columns constantly. Every
+figure in a table, every total, every ID uses `font-mono` with `tabular-nums`.
+Inter's tabular figures remain the fallback for numbers inside running prose.
 
-| Level | Use |
+### Scale
+
+Eleven steps. Nothing outside this list; no arbitrary `text-[Npx]`.
+
+| Token | Size / line-height | Use |
+|---|---|---|
+| `text-micro` | 12 / 16, uppercase | Eyebrows, table headers, badges |
+| `text-xs` | 12 / 18 | Dense metadata, timestamps |
+| `text-sm` | 14 / 20 | **Default UI text** |
+| `text-base` | 16 / 24 | **Default body**, form inputs |
+| `text-lg` | 18 / 28 | Card titles, section leads |
+| `text-xl` | 20 / 28 | Sub-headings |
+| `text-2xl` | 24 / 32 | Page titles (app) |
+| `text-3xl` | 30 / 36 | Section headings |
+| `text-4xl` | 36 / 1.08 | Marketing section headings |
+| `text-5xl` | 48 / 1.04 | Hero at tablet |
+| `text-6xl` | 60 / 1.02 | Hero at desktop |
+
+**Hard floor: 12px.** **Form inputs are 16px on mobile** or iOS zooms on focus.
+
+### Tracking
+
+The setting that most often makes a headline look amateur. Not optional.
+
+| Context | Tracking |
 |---|---|
-| `border` only | Static cards, table containers, list rows |
-| `shadow-sm` | Raised/interactive cards, dropdown triggers |
-| `shadow-md` | Popovers, dropdowns, sheets |
-| `shadow-lg` + scrim | Dialogs and modals only |
+| Instrument Serif display (marketing) | `-0.015em` |
+| Inter display (app, 700) | `-0.04em` |
+| `text-2xl`–`text-3xl` headings | `-0.02em` |
+| Body | `0` |
+| `text-micro` uppercase labels | `+0.13em` |
+| Mono uppercase eyebrows | `+0.16em` |
 
-Modal scrim: 40–60% black. Anything lighter leaves the background competing.
+### Weight
+
+400 body · 500 labels and mono · 600 app headings and buttons · 700 app display.
+Marketing display is 400 — the serif carries authority through form, not weight.
+
+Reach for weight before size when building hierarchy.
 
 ---
 
-## 6. Motion
+## 4. Spacing
+
+One 4px scale: **4 8 12 16 20 24 32 40 48 64 80**. No arbitrary padding.
+
+App sections use 32. Marketing never hand-rolls vertical padding — wrap in
+`<Section>` (`components/marketing/section.tsx`), which owns the rhythm.
+
+Marketing rhythm increases in v2. Ledger needs air:
+
+```
+py-16 sm:py-20 lg:py-28
+```
+
+Body measure is `max-w-[65ch]` — a character measure, not a pixel width, so it
+tracks the font size.
+
+---
+
+## 5. Radius
+
+Four values, each with a meaning. Never `md`, `xl`, or `3xl`.
+
+| Token | Value | Use |
+|---|---|---|
+| `rounded-sm` | 6px | Inputs, badges |
+| `rounded-lg` | 10px | **Default.** Buttons, cards, dialogs (`--radius`) |
+| `rounded-2xl` | 16px | Large marketing surfaces |
+| `rounded-full` | — | Pills, avatars |
+
+**Ledger exception.** Marketing document surfaces — the invoice, the contract,
+anything representing paper — use `rounded-none`. Paper does not have rounded
+corners, and the sharpness is the point.
+
+---
+
+## 6. Elevation
+
+**Blur is retired as a depth mechanism on both surfaces.** It is the most
+recognisable AI-site tell, and it was doing most of the depth work in v1.
+
+| Surface | Depth comes from |
+|---|---|
+| Marketing | A flat offset block in `muted` behind a `card`. Hairline rules. Nothing else. |
+| App | Hairline borders, 1px grid gaps (`gap-px bg-border`), z-index. Zero drop shadow. |
+
+Permitted: `shadow-sm` on a genuinely floating overlay — dialog, popover,
+dropdown. That is the only shadow in the system.
+
+Deleted from v1: `GradientMesh`, `GlowSpotlight`, and every decorative
+`blur-[Npx]` wash. Grep for `blur-` before shipping.
+
+---
+
+## 7. Motion
 
 | Property | Value |
 |---|---|
 | Micro-interaction | 150ms |
 | State transition | 200ms |
 | Enter / overlay | 250ms |
-| Exit | ~70% of enter (faster out than in) |
+| **Scroll reveal (marketing only)** | **400ms** |
+| Exit | ~70% of enter |
 | Easing | `ease-out` entering · `ease-in` exiting · never `linear` |
 
-Animate **transform and opacity only**. Animating width, height, top or left
-causes layout thrashing and CLS.
+v1 specified 250ms enters, but `marketing/motion.tsx` shipped 550–800ms. Rather
+than pretend, v2 names a scroll-reveal case and caps it at 400ms. Above that
+reads as sluggish, not elegant.
 
-Motion must express cause and effect — a panel slides *from* the control that
-opened it. Decorative movement is noise. One or two animated elements per view.
+Stagger **30–50ms** per item, capped at six. v1 shipped 80ms uncapped; fix it.
 
-List entrances stagger 30–50ms per item, capped at ~6 items.
+Animate **transform and opacity only**. Never width, height, top or left.
 
-`prefers-reduced-motion` must be honoured globally, not per component.
+Motion expresses cause and effect. One or two animated elements per view. No
+infinite decorative loops — the hero `Floating` component is deleted.
 
----
-
-## 7. Component rules
-
-**Buttons.** One primary action per screen; everything else is secondary or
-ghost. Heights: 36 (sm) / 40 (default) / 44 (touch contexts). Disabled = 50%
-opacity plus a real `disabled` attribute — never a visual-only lookalike.
-Async buttons show a spinner and go non-interactive.
-
-**Forms.** Visible label above every input — placeholders are not labels.
-Helper text sits below and persists. Errors appear beneath the field, in words
-that state cause *and* fix ("Enter a GSTIN like 27AAPFU0939F1ZV", not
-"Invalid"). Validate on blur, not per keystroke. Focus the first invalid field
-on submit.
-
-**Tables.** Right-align and tabular-figure every numeric column. Sticky header
-past ~10 rows. Row actions stay visible on touch — hover-reveal is desktop-only
-polish, never the only route.
-
-**Empty states.** Explain what goes here and give the action that creates the
-first one. Never an empty box.
-
-**Loading.** Skeletons that match final layout, not spinners, for anything over
-300ms. Reserve the space so nothing jumps.
-
-**Icons.** Lucide only, 1.5px stroke, sized 16 / 20 / 24. Never emoji. Icon-only
-buttons require `aria-label`.
+`prefers-reduced-motion` is honoured in **two** places and needs both: the CSS
+block in `globals.css` for CSS-driven animation, and `MotionProvider`
+(`components/providers/motion-provider.tsx`) for Motion, which writes inline
+transforms from JS that CSS overrides cannot reach.
 
 ---
 
-## 8. Migrating existing drift
+## 8. Composition
 
-Mechanical and verifiable — do this before restyling anything.
+New in v2, and the part that actually decides whether the site looks designed.
+Tokens stop a page being wrong; composition stops it being anonymous.
 
-1. **Sub-12px text (761).** `text-[9px]`, `text-[10px]`, `text-[11px]` →
-   `text-micro` where it's a label/badge/eyebrow, `text-xs` where it's
-   metadata. Any remaining `text-[Npx]` → nearest scale step.
-2. **Raw palette (1,201).** `emerald` → success · `amber` → warning ·
-   `red` → destructive · `blue`/`sky` → info · `slate`/`gray` → `foreground` /
-   `muted-foreground` / `border` by role. Status pills become
-   `bg-*-subtle text-*-strong`.
-3. **Hex (34 files).** `#2563EB` and variants → `primary`. Third-party brand
-   values move to `brand-colors.ts`.
-4. **Radius.** `lg` / `xl` / `2xl` / `3xl` → `md`, except deliberate pills.
+### Section rhythm
 
-Each step is independently shippable and independently reviewable. Do not
-batch them.
+**Seven or eight sections on the homepage. Not eleven.** Each gets real room.
+
+The failure mode v1 shipped: eleven consecutive sections of centred eyebrow pill
+→ centred heading → subtitle → card grid. Correct, and completely anonymous.
+
+- Default to **left-aligned** on marketing. Centre is the exception, twice at most.
+- At least two sections break the container — full-bleed band or edge-to-edge rule.
+- At least one section is a single sentence with nothing else in it.
+- Never two card grids in a row.
+- Asymmetric columns (`1.08fr .92fr`), not `1fr 1fr`.
+
+### The signature
+
+Ledger's signature is **the hairline rule and the offset paper block**. They
+appear on every marketing page. A visitor should be able to identify a Stackivo
+page from a 200px crop.
+
+Workbench's signature is **the 1px grid**: `gap-px bg-border` grids, hairline
+dividers, mono tabular figures right-aligned.
+
+### Product visuals
+
+Show real product output — a typeset invoice, a GST treatment table, a data
+readout. Artifacts Stackivo genuinely produces. Never floating fragments, never
+decorative check-mark cards.
+
+Numbers in any mockup are **specific and unrounded**. `₹1,24,847` is credible;
+`₹1,25,000` is a placeholder wearing a costume.
+
+### Copy
+
+Every claim is concrete or it is cut. "Powerful features built for scale" is
+deleted on sight. Name the state, the tax treatment, the actual number of days.
+
+No invented social proof. Until there are real named customers with real
+numbers, the proof slot is a founder note in first person.
 
 ---
 
-## 9. Keeping it
+## 9. Migrating the drift
 
-A standard without enforcement decays back to 1,201 exceptions.
+Ordered. Do not restyle ahead of step 2.
 
-- `scripts/verify-design-tokens.mjs` fails CI on new raw-palette classes,
-  hex literals in components, or `text-[Npx]` outside the scale.
-- Allowed exceptions live in one explicit list in that script, with a reason.
-- New components are reviewed against §7 before merge.
+1. **Retire the blue.** 27 files hardcoding `#2563EB` → `primary`.
+2. **Clear the 196.** Raw palette classes → semantic roles. Drive both counts to
+   zero. The two-surface architecture is inert until this is done.
+3. **Install the surface scope.** `[data-surface="marketing"]` in `globals.css`;
+   `data-surface` + `forcedTheme` on the marketing layout.
+4. **Fonts.** Add the two `@fontsource` packages, wire `--font-display` and
+   `--font-mono` per surface.
+5. **Strip the blur.** Delete `GradientMesh`, `GlowSpotlight`, `Floating`, and
+   every decorative `blur-` wash.
+6. **Rebuild marketing sections**, homepage first, one at a time.
+7. **Move the app to Workbench** — hairlines, four-step elevation, mono figures.
+8. **Re-audit** and record the numbers in §0.
 
 ---
 
 ## 10. Accessibility floor
 
-Non-negotiable, checked before any UI ships:
+Nothing ships without these, verified on **each surface separately**.
 
-- Contrast 4.5:1 body / 3:1 large, verified in **both** themes
-- Visible focus rings — never `outline: none` without a replacement
-- Tab order matches visual order
-- Interactive targets ≥ 44px in touch contexts
+- Contrast 4.5:1 body · 3:1 large text and UI glyphs
+- Visible focus rings, never removed; tab order matches visual order
+- Touch targets ≥ 44px with ≥ 8px between them
 - `aria-label` on every icon-only control
-- Status never conveyed by colour alone
-- Sequential headings, no skipped levels
-- `prefers-reduced-motion` respected
+- Status never conveyed by colour alone — pair with an icon or a word
+- Sequential heading hierarchy, no skipped levels
+- `prefers-reduced-motion` honoured in both CSS and Motion
+- No horizontal scroll at 320px
+- Images carry explicit dimensions or `aspect-ratio`; CLS under 0.1
+
+---
+
+## 11. Keeping it
+
+`npm run verify:design` fails the build on drift. Extend it as v2 lands:
+
+- No hex outside `brand-colors.ts`
+- No raw palette classes
+- No `text-[Npx]`
+- No radius outside the four
+- No `blur-` outside the permitted overlay shadow
+- No `framer-motion` import (it is `motion/react` now)
+- Contrast pairs checked per surface
+
+A design system that cannot show a falling drift count is not being enforced.

@@ -55,7 +55,14 @@ export default async function MarketingLayout({
   };
 
   return (
-    <div className="flex min-h-screen flex-col bg-background">
+    /*
+     * data-surface="marketing" scopes the Ledger palette to this route group
+     * (globals.css). Because the custom properties are redeclared on this
+     * element, they beat the `.dark` values inherited from <html> for the
+     * whole subtree -- so marketing is light regardless of the app theme,
+     * with no forcedTheme and no second ThemeProvider. MASTER.md §1.
+     */
+    <div data-surface="marketing" className="flex min-h-screen flex-col bg-background">
       <script
         type="application/ld+json"
         suppressHydrationWarning

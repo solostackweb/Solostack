@@ -1,125 +1,57 @@
 import Link from "next/link";
-import { ArrowRight, Play } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { MarketingAuthState } from "@/features/marketing/types";
-import { Floating } from "../motion";
-import { HeroMockup } from "./hero-mockup";
+import { InvoiceDocument } from "./invoice-document";
 
 /**
- * Hero — landscape two-column (Keka-style): copy left, product right.
- * Server-rendered for fast LCP; the only client boundary is the gentle
- * float animation on the UI fragments.
+ * Hero — Ledger.
+ *
+ * v1 was a Keka-style two-column with a product mockup wrapped in a radial
+ * blur, a masked grid and two infinitely floating glass fragments. Every one
+ * of those is a default of the genre, and with no real screenshot to put on
+ * the right the fragments were inventing content. MASTER.md §8 replaces them
+ * with a real artifact: an invoice, typeset.
+ *
+ * No background wash, no grid, no blur — depth is the offset paper block
+ * behind the document (MASTER.md §6). Server component throughout; nothing
+ * here needs JS, so the LCP is the headline and it paints immediately.
  */
 export function Hero({ authState }: { authState: MarketingAuthState }) {
   return (
-    <section className="relative isolate overflow-hidden border-b border-border/60">
-      {/* Background: soft radial wash + faint grid, brand blue only. */}
-      <div aria-hidden className="pointer-events-none absolute inset-0 -z-10">
-        <div className="absolute right-[-10%] top-[-30%] h-[600px] w-[900px] rounded-full bg-primary/[0.07] blur-[120px]" />
-        <div
-          className="absolute inset-0 opacity-[0.35] [mask-image:radial-gradient(ellipse_60%_70%_at_70%_20%,black,transparent)]"
-          style={{
-            backgroundImage:
-              "linear-gradient(hsl(var(--border)/0.7) 1px, transparent 1px), linear-gradient(90deg, hsl(var(--border)/0.7) 1px, transparent 1px)",
-            backgroundSize: "56px 56px",
-          }}
-        />
-      </div>
-
-      <div className="mx-auto grid w-full max-w-[1600px] items-center gap-10 px-5 py-10 sm:px-8 lg:grid-cols-[1fr_1.15fr] lg:gap-14 lg:px-12 lg:py-16 2xl:px-16">
-        {/* Copy — left */}
+    <section className="relative border-b border-border">
+      <div className="mx-auto grid w-full max-w-[1400px] items-center gap-14 px-5 py-16 sm:px-8 lg:grid-cols-[1.08fr_.92fr] lg:gap-20 lg:px-10 lg:py-24 xl:px-14">
         <div className="max-w-xl">
-          <Link
-            href="/changelog"
-            className="group inline-flex items-center gap-2 rounded-full border border-primary/15 bg-primary/[0.04] py-1 pl-1.5 pr-3 text-xs font-medium text-muted-foreground transition-colors hover:border-primary/30 hover:text-foreground"
-            data-cta="hero_announce"
-          >
-            <span className="rounded-full bg-primary/10 px-2 py-0.5 text-micro font-semibold text-primary">
-              Stackivo
-            </span>
-            Client work, billing, contracts, and portals in one workspace
-            <ArrowRight className="h-3 w-3 text-muted-foreground/60 transition-transform group-hover:translate-x-0.5" />
-          </Link>
+          <p className="flex items-center gap-3 font-mono text-micro font-medium uppercase tracking-[0.16em] text-primary">
+            For Indian independents
+            <span aria-hidden className="h-px w-16 bg-border" />
+          </p>
 
-          <h1 className="mt-5 text-balance font-display text-4xl font-semibold leading-[1.06] tracking-[-0.022em] text-foreground sm:text-5xl lg:text-6xl">
-            Stackivo helps freelancers run client work from <span className="text-gradient">one place</span>.
+          <h1 className="mt-7 text-balance font-display text-4xl font-normal leading-[1.02] tracking-[-0.015em] text-foreground sm:text-5xl lg:text-6xl">
+            Every rupee you&rsquo;ve earned,{" "}
+            <em className="italic text-primary">accounted for.</em>
           </h1>
 
-          <p className="mt-5 max-w-lg text-pretty text-sm leading-[1.7] text-muted-foreground sm:text-base lg:text-lg">
-            Stackivo is a SaaS workspace for managing clients, invoices,
-            contracts, projects, time tracking, payments, client portals, and
-            business insights for freelancers and studios.
+          <p className="mt-6 max-w-[46ch] text-pretty text-base leading-[1.7] text-muted-foreground sm:text-lg">
+            Clients, invoices, contracts, projects and payments in one
+            workspace. GST computed correctly the first time &mdash; whether the
+            client is in Karnataka, Maharashtra, or Berlin.
           </p>
 
           <HeroCtas authState={authState} />
 
-          <p className="mt-4 text-xs text-muted-foreground/80">
-            Free for your first 5 clients - No card required - 2-minute setup
-          </p>
+          <ul className="mt-8 flex flex-wrap gap-x-7 gap-y-2 text-xs text-muted-foreground">
+            {["No card required", "GSTR-1 ready exports", "Two-minute setup"].map((t) => (
+              <li key={t} className="flex items-center gap-2">
+                <span aria-hidden className="h-1 w-1 rounded-full bg-primary" />
+                {t}
+              </li>
+            ))}
+          </ul>
         </div>
 
-        {/* Product visual — right */}
-        <div className="relative lg:pl-2">
-          <div
-            aria-hidden
-            className="pointer-events-none absolute -inset-6 -z-10 rounded-[2.5rem] bg-gradient-to-br from-primary/[0.14] via-primary/[0.05] to-transparent blur-2xl"
-          />
-
-          {/* Floating fragments — desktop only */}
-          <Floating
-            amplitude={6}
-            duration={6}
-            className="absolute -left-6 top-8 z-10 hidden xl:block"
-          >
-            <div className="flex items-center gap-3 rounded-2xl border border-border/80 bg-card/95 p-3 pr-4 shadow-xl shadow-primary/10 backdrop-blur">
-              <span className="flex h-8 w-8 items-center justify-center rounded-full bg-success/10 text-success">
-                <svg viewBox="0 0 16 16" className="h-4 w-4" fill="none" aria-hidden>
-                  <path d="M3 8.5 6.5 12 13 4.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              </span>
-              <div>
-                <p className="text-xs font-semibold text-foreground">Payment received</p>
-                <p className="text-micro text-muted-foreground">$1,200 · INV-0042 · via Wise</p>
-              </div>
-            </div>
-          </Floating>
-
-          <Floating
-            amplitude={6}
-            duration={8}
-            className="absolute -bottom-4 right-2 z-10 hidden xl:block"
-          >
-            <div className="flex items-center gap-3 rounded-2xl border border-border/80 bg-card/95 p-3 pr-4 shadow-xl shadow-primary/10 backdrop-blur">
-              <span className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary">
-                <svg viewBox="0 0 16 16" className="h-4 w-4" fill="none" aria-hidden>
-                  <path d="M11 2.5 13.5 5 6 12.5l-3 .5.5-3L11 2.5Z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
-                </svg>
-              </span>
-              <div>
-                <p className="text-xs font-semibold text-foreground">Contract signed</p>
-                <p className="text-micro text-muted-foreground">Meera Iyer · just now</p>
-              </div>
-            </div>
-          </Floating>
-
-          {/* Browser frame */}
-          <div className="overflow-hidden rounded-2xl border border-border/80 bg-card shadow-2xl shadow-primary/[0.12] ring-1 ring-foreground/[0.04]">
-            <div className="flex items-center gap-2 border-b border-border/70 bg-muted/40 px-4 py-2">
-              <span className="flex gap-1.5" aria-hidden>
-                <span className="h-2.5 w-2.5 rounded-full bg-foreground/10" />
-                <span className="h-2.5 w-2.5 rounded-full bg-foreground/10" />
-                <span className="h-2.5 w-2.5 rounded-full bg-foreground/10" />
-              </span>
-              <span className="mx-auto flex items-center gap-1.5 rounded-lg bg-background px-3 py-1 text-xs text-muted-foreground ring-1 ring-border/60">
-                <svg viewBox="0 0 12 12" className="h-2.5 w-2.5 text-success" fill="none" aria-hidden>
-                  <rect x="2" y="5" width="8" height="5.5" rx="1.2" stroke="currentColor" />
-                  <path d="M4 5V3.8a2 2 0 0 1 4 0V5" stroke="currentColor" />
-                </svg>
-                app.stackivo.com
-              </span>
-            </div>
-            <HeroMockup />
-          </div>
+        <div className="lg:pl-4">
+          <InvoiceDocument />
         </div>
       </div>
     </section>
@@ -127,47 +59,32 @@ export function Hero({ authState }: { authState: MarketingAuthState }) {
 }
 
 function HeroCtas({ authState }: { authState: MarketingAuthState }) {
-  if (authState.isAuthenticated) {
-    return (
-      <div className="mt-7 flex flex-col gap-3 sm:flex-row">
-        <Button asChild size="lg" className="btn-gradient h-12 min-w-[190px] rounded-full border-0 text-sm font-semibold">
-          <Link href="/dashboard" data-cta="hero_dashboard">
-            Go to dashboard <ArrowRight className="ml-1.5 h-4 w-4" />
-          </Link>
-        </Button>
-        {authState.showUpgradeNudge ? (
-          <Button
-            asChild
-            variant="outline"
-            size="lg"
-            className="h-12 min-w-[160px] rounded-full text-sm hover:border-primary/40 hover:bg-primary/5"
-          >
-            <Link href="/dashboard/settings/billing?upgrade=clients" data-cta="hero_upgrade">
-              Upgrade to Pro
-            </Link>
-          </Button>
-        ) : null}
-      </div>
-    );
-  }
+  const cta = authState.isAuthenticated
+    ? { href: "/dashboard", label: "Go to dashboard", tag: "hero_dashboard" }
+    : { href: "/signup", label: "Start free — 5 clients", tag: "hero_primary" };
+
+  const secondary =
+    authState.isAuthenticated && authState.showUpgradeNudge
+      ? { href: "/dashboard/settings/billing?upgrade=clients", label: "Upgrade to Pro", tag: "hero_upgrade" }
+      : { href: "/demo", label: "See a live invoice", tag: "hero_demo" };
 
   return (
-    <div className="mt-7 flex flex-col gap-3 sm:flex-row">
-      <Button asChild size="lg" className="btn-gradient h-12 min-w-[190px] rounded-full border-0 text-sm font-semibold">
-        <Link href="/signup" data-cta="hero_primary">
-          Start free <ArrowRight className="ml-1.5 h-4 w-4" />
+    <div className="mt-9 flex flex-col gap-4 sm:flex-row sm:items-center">
+      <Button asChild size="lg" className="h-12 rounded-sm px-6 text-sm font-medium">
+        <Link href={cta.href} data-cta={cta.tag}>
+          {cta.label}
+          <ArrowRight className="ml-2 h-4 w-4" />
         </Link>
       </Button>
-      <Button
-        asChild
-        variant="outline"
-        size="lg"
-        className="h-12 min-w-[160px] rounded-full text-sm hover:border-primary/40 hover:bg-primary/5"
+
+      <Link
+        href={secondary.href}
+        data-cta={secondary.tag}
+        className="group inline-flex w-fit items-center gap-1.5 border-b border-foreground pb-0.5 text-sm font-medium text-foreground transition-colors hover:border-primary hover:text-primary"
       >
-        <Link href="/demo" data-cta="hero_demo">
-          <Play className="mr-1.5 h-4 w-4 fill-current" /> See it in action
-        </Link>
-      </Button>
+        {secondary.label}
+        <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
+      </Link>
     </div>
   );
 }

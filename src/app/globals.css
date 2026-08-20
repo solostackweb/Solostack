@@ -6,142 +6,222 @@
  */
 @import "@fontsource-variable/inter";
 
+/*
+ * Instrument Serif — marketing display only (MASTER.md §3). One weight, which
+ * is correct for a display face and enforces the display-only rule.
+ * IBM Plex Mono — figures, IDs, eyebrows. Stackivo aligns money in columns
+ * constantly; 400 and 500 only, no more.
+ */
+@import "@fontsource/instrument-serif/400.css";
+@import "@fontsource/instrument-serif/400-italic.css";
+@import "@fontsource/ibm-plex-mono/400.css";
+@import "@fontsource/ibm-plex-mono/500.css";
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   :root {
-    /* Self-hosted; the system stack remains the fallback if the face fails. */
+    /* Self-hosted. The build must never depend on reaching Google. */
     --font-sans: "Inter Variable", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    --font-mono: "IBM Plex Mono", "SFMono-Regular", Consolas, Menlo, monospace;
+    --font-serif: "Instrument Serif", Iowan Old Style, Georgia, serif;
+    /* App surface: display is Inter, tightened. Marketing overrides to serif. */
     --font-display: var(--font-sans);
 
-    --background: 0 0% 100%;
-    --foreground: 222 47% 11%;
+    /*
+     * WORKBENCH — LIGHT
+     * Structural, not soft. Regions separate on hairlines, never on a step
+     * in fill lightness. See design-system/MASTER.md §2.
+     */
+    --background: 210 20% 99%;
+    --foreground: 210 24% 10%;
 
     --card: 0 0% 100%;
-    --card-foreground: 222 47% 11%;
+    --card-foreground: 210 24% 10%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 222 47% 11%;
+    --popover-foreground: 210 24% 10%;
 
-    /* Stripe-inspired indigo-violet primary */
-    --primary: 221 83% 53%;
+    /* Ember, contrast-corrected for a pale surface. 6.5:1 against white. */
+    --primary: 13 68% 42%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 221 30% 96%;
-    --secondary-foreground: 222 47% 11%;
+    --secondary: 210 18% 96%;
+    --secondary-foreground: 210 24% 10%;
 
-    --muted: 240 20% 96%;
-    --muted-foreground: 240 10% 46%;
+    --muted: 210 18% 96%;
+    --muted-foreground: 210 8% 42%;
 
-    --accent: 221 30% 95%;
-    --accent-foreground: 222 47% 11%;
+    --accent: 13 40% 95%;
+    --accent-foreground: 210 24% 10%;
 
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 0 0% 98%;
+    --destructive: 0 72% 45%;
+    --destructive-foreground: 0 0% 100%;
 
-    --success: 142 72% 36%;
+    --success: 152 62% 30%;
     --success-foreground: 0 0% 100%;
 
-    --warning: 38 92% 50%;
+    --warning: 32 88% 42%;
     --warning-foreground: 0 0% 100%;
 
-    --info: 199 89% 48%;
+    --info: 205 78% 40%;
     --info-foreground: 0 0% 100%;
 
-    --border: 240 18% 90%;
-    --input: 240 18% 90%;
-    --ring: 221 83% 53%;
+    --border: 210 16% 91%;
+    --input: 210 16% 91%;
+    --ring: 13 68% 42%;
 
-    --sidebar: 221 30% 98%;
-    --sidebar-foreground: 222 47% 11%;
-    --sidebar-border: 240 18% 90%;
-    --sidebar-accent: 221 30% 95%;
-    --sidebar-accent-foreground: 222 47% 11%;
+    --sidebar: 210 20% 97%;
+    --sidebar-foreground: 210 24% 10%;
+    --sidebar-border: 210 16% 91%;
+    --sidebar-accent: 210 18% 94%;
+    --sidebar-accent-foreground: 210 24% 10%;
 
-    /* Status pills: tinted surface + readable text, per theme. */
-    --success-subtle: 142 60% 95%;
-    --success-strong: 142 72% 27%;
-    --warning-subtle: 38 92% 95%;
-    --warning-strong: 32 81% 30%;
-    --info-subtle: 199 89% 95%;
-    --info-strong: 201 90% 30%;
-    --destructive-subtle: 0 86% 96%;
-    --destructive-strong: 0 74% 39%;
+    /* Status pills: tinted surface + readable text. Both halves, every surface. */
+    --success-subtle: 152 44% 94%;
+    --success-strong: 152 66% 22%;
+    --warning-subtle: 34 80% 94%;
+    --warning-strong: 28 78% 28%;
+    --info-subtle: 205 70% 94%;
+    --info-strong: 205 80% 27%;
+    --destructive-subtle: 0 72% 96%;
+    --destructive-strong: 0 66% 36%;
 
     --radius: 0.625rem;
   }
 
   .dark {
     /*
-     * Premium dark depth system — 5 elevation layers, all sharing hue 222
-     * but with saturation dropped to 12% (vs the old 47%) so the dark reads
-     * as near-neutral, like Linear / Vercel / Raycast, not generic navy.
+     * WORKBENCH — DARK (the app's home surface)
      *
-     * Elevation ladder (lightness):
-     *   sidebar  7%  ← deepest (anchors the page left edge)
-     *   bg       9%  ← page canvas
-     *   card    12%  ← surfaces floating on the canvas
-     *   popover 14%  ← menus / tooltips floating above cards
-     *   border  20%  ← just visible enough to separate regions
+     * Four elevation steps, not five, and each is a 2-4% lightness change
+     * only. Depth comes from hairlines and 1px grid gaps, never from a
+     * contrast jump between fills and never from blur.
+     *
+     *   sidebar  3%  <- deepest, anchors the left edge
+     *   bg       4%  <- canvas
+     *   card     6%  <- surfaces on the canvas
+     *   popover  9%  <- menus and tooltips above cards
+     *   border  13%  <- the hairline; just visible, never a wall
      */
-    --background: 222 12% 9%;
-    --foreground: 215 20% 95%;
+    --background: 210 11% 4%;
+    --foreground: 150 8% 95%;
 
-    --card: 222 12% 12%;
-    --card-foreground: 215 20% 95%;
+    --card: 200 10% 6%;
+    --card-foreground: 150 8% 95%;
 
-    --popover: 222 12% 14%;
-    --popover-foreground: 215 20% 95%;
+    --popover: 200 9% 9%;
+    --popover-foreground: 150 8% 95%;
 
-    /* Indigo-violet primary — brighter, more Stripe-like in dark */
-    --primary: 217 91% 64%;
-    --primary-foreground: 222 14% 6%;
+    /* Ember at full brightness. Legible on canvas, dark text on top. */
+    --primary: 13 79% 57%;
+    --primary-foreground: 20 30% 6%;
 
-    --secondary: 238 14% 18%;
-    --secondary-foreground: 215 20% 95%;
+    --secondary: 200 9% 13%;
+    --secondary-foreground: 150 8% 95%;
 
-    --muted: 238 14% 16%;
-    --muted-foreground: 238 8% 56%;
+    --muted: 200 9% 11%;
+    --muted-foreground: 200 5% 56%;
 
-    --accent: 238 14% 21%;
-    --accent-foreground: 215 20% 95%;
+    --accent: 200 9% 16%;
+    --accent-foreground: 150 8% 95%;
 
-    --destructive: 0 68% 54%;
-    --destructive-foreground: 215 20% 95%;
+    --destructive: 0 62% 52%;
+    --destructive-foreground: 150 8% 95%;
 
-    --success: 142 68% 46%;
-    --success-foreground: 0 0% 100%;
+    --success: 152 58% 46%;
+    --success-foreground: 210 11% 4%;
 
-    --warning: 38 88% 57%;
-    --warning-foreground: 238 14% 6%;
+    --warning: 36 84% 56%;
+    --warning-foreground: 210 11% 4%;
 
-    --info: 199 85% 58%;
-    --info-foreground: 0 0% 100%;
+    --info: 205 76% 56%;
+    --info-foreground: 210 11% 4%;
 
-    --border: 238 14% 20%;
-    --input: 238 14% 18%;
-    --ring: 217 91% 64%;
+    --border: 200 9% 13%;
+    --input: 200 9% 15%;
+    --ring: 13 79% 57%;
 
-    /* Sidebar: deep near-black with faint violet undertone — like Linear */
-    --sidebar: 238 14% 6%;
-    --sidebar-foreground: 215 20% 95%;
-    --sidebar-border: 238 14% 14%;
-    --sidebar-accent: 238 14% 12%;
-    --sidebar-accent-foreground: 215 20% 95%;
+    --sidebar: 200 10% 3%;
+    --sidebar-foreground: 150 8% 95%;
+    --sidebar-border: 200 9% 11%;
+    --sidebar-accent: 200 9% 10%;
+    --sidebar-accent-foreground: 150 8% 95%;
 
-    /* Dark uses desaturated tints, not inverted light values — a pair that
-       passes contrast on white usually fails on a dark surface. */
-    --success-subtle: 142 40% 16%;
-    --success-strong: 142 60% 70%;
-    --warning-subtle: 38 45% 17%;
-    --warning-strong: 38 85% 70%;
-    --info-subtle: 199 45% 17%;
-    --info-strong: 199 80% 72%;
-    --destructive-subtle: 0 40% 18%;
-    --destructive-strong: 0 80% 74%;
+    /* Desaturated tints. A pair that passes on white fails on canvas. */
+    --success-subtle: 152 38% 13%;
+    --success-strong: 152 56% 66%;
+    --warning-subtle: 34 42% 14%;
+    --warning-strong: 36 82% 66%;
+    --info-subtle: 205 42% 15%;
+    --info-strong: 205 76% 70%;
+    --destructive-subtle: 0 38% 16%;
+    --destructive-strong: 0 76% 72%;
+  }
+
+  /*
+   * LEDGER — the marketing surface.
+   *
+   * Scoped to the (marketing) route group via data-surface. Light only:
+   * warm paper has no honest dark twin, so the marketing layout forces the
+   * light theme and the toggle lives in the app. See MASTER.md §1.
+   *
+   * Same token names as above. Components never learn which surface they
+   * are on -- that is the whole point.
+   */
+  [data-surface="marketing"] {
+    color-scheme: light;
+
+    --font-display: var(--font-serif);
+
+    --background: 40 38% 94%;
+    --foreground: 60 14% 7%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 60 14% 7%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 60 14% 7%;
+
+    /* Deep oxblood. 8.4:1 on paper -- it can carry body text, not just fills. */
+    --primary: 13 61% 30%;
+    --primary-foreground: 40 38% 94%;
+
+    --secondary: 40 33% 89%;
+    --secondary-foreground: 60 14% 7%;
+
+    --muted: 40 33% 89%;
+    --muted-foreground: 43 8% 33%;
+
+    --accent: 19 37% 90%;
+    --accent-foreground: 60 14% 7%;
+
+    --destructive: 0 68% 38%;
+    --destructive-foreground: 40 38% 94%;
+
+    --success: 152 60% 24%;
+    --success-foreground: 40 38% 94%;
+
+    --warning: 30 78% 34%;
+    --warning-foreground: 40 38% 94%;
+
+    --info: 205 72% 32%;
+    --info-foreground: 40 38% 94%;
+
+    --border: 41 21% 80%;
+    --input: 41 21% 80%;
+    --ring: 13 61% 30%;
+
+    --success-subtle: 152 30% 90%;
+    --success-strong: 152 62% 20%;
+    --warning-subtle: 36 55% 90%;
+    --warning-strong: 28 70% 26%;
+    --info-subtle: 205 45% 91%;
+    --info-strong: 205 72% 25%;
+    --destructive-subtle: 12 55% 92%;
+    --destructive-strong: 0 62% 34%;
   }
 }
 
@@ -161,9 +241,9 @@
     --card-foreground: 222 47% 11%;
     --popover: 0 0% 100%;
     --popover-foreground: 222 47% 11%;
-    --primary: 221 83% 53%;
+    --primary: 13 68% 42%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 221 30% 96%;
+    --secondary: 210 18% 96%;
     --secondary-foreground: 222 47% 11%;
     --muted: 240 20% 96%;
     --muted-foreground: 240 10% 46%;
@@ -179,7 +259,7 @@
     --info-foreground: 0 0% 100%;
     --border: 240 18% 90%;
     --input: 240 18% 90%;
-    --ring: 221 83% 53%;
+    --ring: 13 68% 42%;
   }
 }
 
@@ -413,10 +493,16 @@
     padding-bottom: 0.5rem;
   }
 
-  /* Respect prefers-reduced-motion globally. Disables Framer Motion's
-     while-hover translations, the hero "Floating" loop, the badge ping,
-     and any decorative `animate-*` utilities. CSS smooth-scroll also
-     reverts to instant. WCAG 2.3.3 compliance. */
+  /* Respect prefers-reduced-motion globally for everything CSS drives:
+     the badge ping, decorative `animate-*` utilities, hover transitions,
+     and smooth scrolling.
+
+     This block does NOT reach Motion (motion/react). Motion writes inline
+     `transform` from JS every frame, so a CSS duration override never
+     applies to it — the hero "Floating" loop kept running here until
+     `MotionProvider` (components/providers/motion-provider.tsx) was added
+     to pass `reducedMotion` down via `MotionConfig`. Both halves are
+     required for WCAG 2.3.3; neither is sufficient alone. */
   @media (prefers-reduced-motion: reduce) {
     *,
     *::before,

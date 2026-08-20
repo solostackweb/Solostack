@@ -1,13 +1,11 @@
 import type { Metadata } from "next";
 import { Hero } from "@/components/marketing/home/hero";
-import { TrustStrip } from "@/components/marketing/home/trust-strip";
+import { TaxSection } from "@/components/marketing/home/tax-section";
+import { FounderNote } from "@/components/marketing/founder-note";
 import { ProblemSection } from "@/components/marketing/home/problem-section";
 import { ShowcaseSection } from "@/components/marketing/home/showcase-section";
 import { CapabilitiesSection } from "@/components/marketing/home/capabilities-section";
-import { InternationalSection } from "@/components/marketing/home/international-section";
 import { AiSection } from "@/components/marketing/home/ai-section";
-import { WorkflowSection } from "@/components/marketing/home/workflow-section";
-import { Testimonials } from "@/components/marketing/home/testimonials";
 import { PricingTeaser } from "@/components/marketing/home/pricing-teaser";
 import { FinalCta } from "@/components/marketing/home/final-cta";
 import { FaqSection } from "@/components/marketing/faq-section";
@@ -29,12 +27,24 @@ export const metadata: Metadata = {
 };
 
 /**
- * Homepage — a single story arc:
+ * Homepage — eight sections, down from twelve (MASTER.md §8).
  *
- *   Hero (what it is) → Trust (who it's for) → Problem (the scattered stack)
- *   → Showcase (the product, interactive) → Capabilities (the details)
- *   → AI (the multiplier) → Workflow (hello-to-paid) → Testimonials (proof)
- *   → Pricing (the ask) → FAQ (objections) → Final CTA (the close).
+ *   Hero (the artifact) → GST (the thing nobody else does) → Problem (the
+ *   scattered stack) → Showcase (the product) → Capabilities (the details)
+ *   → AI (the multiplier) → Founder note (who is behind it) → Pricing (the
+ *   ask), then FAQ and the close.
+ *
+ * Cut in v2, and why:
+ *   TrustStrip          — logo wall with no logos to put in it
+ *   InternationalSection — an export invoice is a GST treatment, so it folds
+ *                          into TaxSection rather than repeating the argument
+ *   WorkflowSection     — restated what Showcase already demonstrates
+ *   Testimonials        — no real customers yet, and invented proof is worse
+ *                          than none. FounderNote takes the slot until there
+ *                          are named names and real numbers.
+ *
+ * The rule that drove the cut: never two card grids in a row, and every
+ * section earns its scroll.
  */
 export default async function LandingPage() {
   const authState = await getMarketingAuthState();
@@ -78,14 +88,12 @@ export default async function LandingPage() {
         }}
       />
       <Hero authState={authState} />
-      <TrustStrip />
+      <TaxSection />
       <ProblemSection />
       <ShowcaseSection />
       <CapabilitiesSection />
-      <InternationalSection />
       <AiSection />
-      <WorkflowSection />
-      <Testimonials />
+      <FounderNote />
       <PricingTeaser />
       <FaqSection />
       <FinalCta authState={authState} />

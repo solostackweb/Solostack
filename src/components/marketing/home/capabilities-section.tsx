@@ -2,7 +2,6 @@ import {
   BarChart3,
   BellRing,
   BookOpen,
-  IndianRupee,
   ShieldCheck,
 } from "lucide-react";
 import { Section, SectionHeading } from "../section";
@@ -10,13 +9,14 @@ import { Reveal, StaggerItem, StaggerReveal } from "../motion";
 import { cn } from "@/lib/utils";
 
 /**
- * Core capabilities bento. Two feature cards get a small inline visual; the
- * rest stay quiet. The invisible #gst anchor preserves old /#gst deep links.
+ * Core capabilities. The quiet details — analytics, onboarding documents,
+ * reminders, isolation. GST used to be the featured card here; in v2 it has
+ * its own section (`tax-section.tsx`) and owns the #gst anchor, so this file
+ * no longer carries a duplicate.
  */
 export function CapabilitiesSection() {
   return (
     <Section id="capabilities" size="ultra" className="relative border-y bg-muted/30">
-      <span id="gst" aria-hidden className="absolute -top-20" />
       <Reveal>
         <SectionHeading
           eyebrow="Capabilities"
@@ -26,37 +26,6 @@ export function CapabilitiesSection() {
       </Reveal>
 
       <StaggerReveal className="mt-10 grid gap-5 sm:grid-cols-2 lg:mt-12 lg:grid-cols-3">
-        {/* GST — featured card */}
-        <StaggerItem className="sm:col-span-2 lg:col-span-2">
-          <BentoCard
-            icon={IndianRupee}
-            title="GST without the guesswork"
-            body="Not registered? Send clean simple invoices. Registered? Toggle GST mode and Stackivo applies the right CGST / SGST / IGST split from each client's state — automatically."
-            className="h-full"
-          >
-            <div className="mt-5 grid gap-2.5 sm:grid-cols-2" aria-hidden>
-              <div className="rounded-lg border border-border/70 bg-background p-3.5">
-                <div className="flex items-center justify-between">
-                  <span className="text-micro font-semibold text-foreground">Same state · Karnataka</span>
-                  <span className="rounded-full bg-primary/10 px-2 py-0.5 text-micro font-semibold text-primary">
-                    CGST + SGST
-                  </span>
-                </div>
-                <p className="mt-2 font-mono text-micro text-muted-foreground">9% + 9% = ₹18,900</p>
-              </div>
-              <div className="rounded-lg border border-border/70 bg-background p-3.5">
-                <div className="flex items-center justify-between">
-                  <span className="text-micro font-semibold text-foreground">Other state · Maharashtra</span>
-                  <span className="rounded-full bg-primary/10 px-2 py-0.5 text-micro font-semibold text-primary">
-                    IGST
-                  </span>
-                </div>
-                <p className="mt-2 font-mono text-micro text-muted-foreground">18% = ₹18,900</p>
-              </div>
-            </div>
-          </BentoCard>
-        </StaggerItem>
-
         <StaggerItem>
           <BentoCard
             icon={BarChart3}
