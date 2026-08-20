@@ -238,7 +238,43 @@ templates render successfully. Clean desktop and mobile reloads produced no
 runtime console errors. Populated proposal cards and their actions are deferred
 for visual verification with real data; their implementation was not changed.
 
+### Contracts — completed
+
+The empty Contracts workspace now explains the signature journey instead of
+leading with four zero-value metrics, inactive controls, and three competing
+creation actions. The Contract desk gives one primary route into agreement
+creation, keeps Ivo available as an intentional drafting aid, and shows the real
+draft → sent → signed lifecycle. Populated contract lists, filtering, sending,
+resending, deletion, statuses, and signed-value calculations remain unchanged.
+
+Evidence:
+
+- `screenshots/contracts-baseline.png` — pre-change desktop state.
+- `screenshots/contracts-mobile-baseline.png` — pre-change mobile state.
+- `screenshots/contracts-calm-command.png` — desktop result.
+- `screenshots/contracts-mobile-calm-command.png` — mobile result.
+
+Quick wins completed:
+
+1. Hid zero-value metrics and controls when there are no contracts to operate on.
+2. Removed duplicate creation and AI actions from the empty page header.
+3. Replaced the generic empty state with a contract-specific signature desk.
+4. Explained the draft → sent → signed journey with one meaningful Flowline.
+5. Kept contract creation primary and Ivo drafting visibly secondary.
+
+Contracts design score: **C → B**.
+
+Contracts AI slop score: **D → B**.
+
+The primary action was verified in the authenticated browser. It opens
+`/dashboard/contracts/new`, where the existing signature prerequisite correctly
+offers signature setup and profile settings before contract authoring. Desktop
+and mobile reloads produced no application runtime errors. Development logs
+contain only report-only analytics CSP notices and the known Next.js smooth-scroll
+warning. Populated contract rows and actions are deferred for visual verification
+with real data; their implementation was not changed.
+
 ### Next
 
-Apply the same first-use clarity to Contracts, preserving the populated signing,
-resending, deletion, and status behavior.
+Continue the document journey with Questionnaires and Welcome documents, then
+verify the handoff from accepted proposal through signed agreement to onboarding.

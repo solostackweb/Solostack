@@ -4,6 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
+  CheckCircle2,
   Plus,
   Search,
   FileSignature,
@@ -54,6 +55,99 @@ interface ContractsListViewProps {
   contracts: ContractRecord[];
   clients: Array<{ id: string; name: string; email: string | null }>;
   projects: Array<{ id: string; name: string; clientId: string | null }>;
+}
+
+const contractFlow = [
+  { label: "Draft", icon: FileSignature },
+  { label: "Sent", icon: Send },
+  { label: "Signed", icon: CheckCircle2 },
+];
+
+function EmptyContractDesk() {
+  return (
+    <section className="overflow-hidden rounded-2xl border border-border/70 bg-card">
+      <div className="grid lg:grid-cols-[minmax(0,0.88fr)_minmax(0,1.12fr)]">
+        <div className="border-b border-border/60 bg-primary/[0.025] p-6 sm:p-8 lg:border-b-0 lg:border-r lg:p-10">
+          <p className="text-micro font-semibold uppercase tracking-[0.16em] text-primary">
+            Contract desk
+          </p>
+          <h2 className="mt-3 max-w-md font-display text-2xl font-semibold tracking-tight sm:text-3xl">
+            Turn the agreement into a signature.
+          </h2>
+          <p className="mt-3 max-w-md text-sm leading-6 text-muted-foreground">
+            Set the terms, attach the client, and send one document they can
+            review and sign online.
+          </p>
+          <div className="mt-6 flex flex-wrap gap-2">
+            <Button asChild className="min-h-11">
+              <Link href="/dashboard/contracts/new">
+                <Plus /> New contract
+              </Link>
+            </Button>
+            <Button
+              variant="ghost"
+              className="min-h-11"
+              onClick={() => openIvo("Help me draft my first contract.")}
+            >
+              Draft with Ivo
+            </Button>
+          </div>
+        </div>
+
+        <div className="p-6 sm:p-8 lg:p-10">
+          <div className="mx-auto max-w-lg rounded-lg border border-border/70 bg-background p-5 sm:p-6">
+            <div className="border-b border-border/60 pb-5">
+              <p className="text-micro font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                Signature journey
+              </p>
+              <p className="mt-2 text-base font-semibold">
+                One agreement, one accountable trail
+              </p>
+            </div>
+
+            <div className="relative mt-6 grid grid-cols-3">
+              <div
+                aria-hidden
+                className="absolute left-[16.66%] right-[16.66%] top-4 h-px bg-primary/25"
+              />
+              {contractFlow.map(({ label, icon: Icon }, index) => (
+                <div
+                  key={label}
+                  className="relative z-10 flex flex-col items-center text-center"
+                >
+                  <span
+                    className={
+                      index === 0
+                        ? "flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground"
+                        : "flex h-8 w-8 items-center justify-center rounded-lg border border-primary/20 bg-background text-primary"
+                    }
+                  >
+                    <Icon className="h-3.5 w-3.5" />
+                  </span>
+                  <span className="mt-2 text-xs font-semibold">{label}</span>
+                </div>
+              ))}
+            </div>
+
+            <div className="mt-6 divide-y divide-border/60 border-t border-border/60">
+              {[
+                "Terms and commercial value",
+                "Client review and signature",
+                "Signed document and status",
+              ].map((label, index) => (
+                <div key={label} className="flex items-center gap-3 py-3 text-sm">
+                  <span className="font-mono text-micro text-primary">
+                    {String(index + 1).padStart(2, "0")}
+                  </span>
+                  <span className="text-muted-foreground">{label}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
 }
 
 /**
@@ -165,38 +259,51 @@ export function ContractsListView({
         title="Contracts"
         description="Draft, send, and collect signatures on your agreements."
         actions={
-          <div className="flex items-center gap-2">
-            <IvoEntryPoint
-              prompt="Show contracts awaiting signature and tell me what to follow up on."
-              label="Ask Ivo"
-              variant="outline"
-            />
-            <IvoEntryPoint
-              prompt="Draft a contract for a client"
-              label="Draft with AI"
-              variant="secondary"
-            />
-            <Button asChild size="sm">
-              <Link href="/dashboard/contracts/new">
-                <Plus /> New contract
-              </Link>
-            </Button>
-          </div>
+          contracts.length > 0 ? (
+            <div className="flex items-center gap-2">
+              <IvoEntryPoint
+                prompt="Show contracts awaiting signature and tell me what to follow up on."
+                label="Ask Ivo"
+                variant="secondary"
+              />
+              <IvoEntryPoint
+                prompt="Draft a contract for a client"
+                label="Draft with Ivo"
+                variant="ghost"
+              />
+              <Button asChild size="sm">
+                <Link href="/dashboard/contracts/new">
+                  <Plus /> New contract
+                </Link>
+              </Button>
+            </div>
+          ) : null
         }
       />
 
-      <div className={cn("grid items-start gap-6", "grid-cols-1")}>
-        <div className="min-w-0 space-y-6">
-      <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
-        <Stat label="Total contracts" value={stats.total.toString()} featured />
-        <Stat label="Signed" value={stats.signed.toString()} tone="success" />
-        <Stat
-          label="Awaiting signature"
-          value={stats.awaiting.toString()}
-          tone="warning"
-        />
-        <Stat label="Signed value" value={formatINR(stats.value)} />
-      </div>
+      {contracts.length === 0 ? (
+        <EmptyContractDesk />
+      ) : (
+        <div className={cn("grid items-start gap-6", "grid-cols-1")}>
+          <div className="min-w-0 space-y-6">
+            <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+              <Stat
+                label="Total contracts"
+                value={stats.total.toString()}
+                featured
+              />
+              <Stat
+                label="Signed"
+                value={stats.signed.toString()}
+                tone="success"
+              />
+              <Stat
+                label="Awaiting signature"
+                value={stats.awaiting.toString()}
+                tone="warning"
+              />
+              <Stat label="Signed value" value={formatINR(stats.value)} />
+            </div>
 
       <div className="grid gap-2 sm:flex sm:min-w-0 sm:items-center">
         <div className="relative w-full sm:w-96 sm:shrink-0">
@@ -233,32 +340,8 @@ export function ContractsListView({
       {filtered.length === 0 ? (
         <EmptyState
           icon={FileSignature}
-          title={
-            contracts.length === 0
-              ? "No contracts yet"
-              : "No contracts match your filters"
-          }
-          description={
-            contracts.length === 0
-              ? "Start from a template or a blank document and send it for signature."
-              : "Try a different search term or status filter."
-          }
-          action={
-            contracts.length === 0
-              ? {
-                  label: "Create contract",
-                  href: "/dashboard/contracts/new",
-                }
-              : undefined
-          }
-          secondaryAction={
-            contracts.length === 0
-              ? {
-                  label: "Ask Ivo",
-                  onClick: () => openIvo("Help me draft my first contract."),
-                }
-              : undefined
-          }
+          title="No contracts match your filters"
+          description="Try a different search term or status filter."
         />
       ) : (
         <>
@@ -301,9 +384,9 @@ export function ContractsListView({
           </Card>
         </>
       )}
+          </div>
         </div>
-
-      </div>
+      )}
     </div>
   );
 }
