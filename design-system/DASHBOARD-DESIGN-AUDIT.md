@@ -640,8 +640,45 @@ No customer data was changed. Four verified TSX fixes plus one reverted TSX fix
 produce a design-review risk score of 40%, so further UI work stops at this
 checkpoint.
 
+### Populated follow-up — completed
+
+The remaining populated operational states are now covered. Dashboard keeps its
+live revenue chart mounted at every breakpoint while using a shorter mobile
+command center, so recent invoices and activity arrive in the first scroll
+without recreating the earlier Recharts zero-size warning. Portal detail uses a
+compact 2×2 mobile overview and no longer repeats the same client, file, and
+status facts as a second row of chips. Time Reports passed visual review without
+a source change: its filters, metrics, chart, project breakdown, and client
+breakdown remain readable at both target widths.
+
+Evidence:
+
+- `screenshots/dashboard-populated-after-desktop.png` and `screenshots/dashboard-populated-after-mobile.png` — render-safe Dashboard hierarchy.
+- `screenshots/portal-detail-populated-baseline-desktop.png` and `screenshots/portal-detail-populated-baseline-mobile.png` — repeated, vertically stacked portal summary.
+- `screenshots/portal-detail-populated-after-desktop.png` and `screenshots/portal-detail-populated-after-mobile.png` — compact operational portal summary.
+- `screenshots/time-reports-populated-baseline-desktop.png` and `screenshots/time-reports-populated-baseline-mobile.png` — verified populated Time Reports state.
+
+Quick wins completed:
+
+1. Reduced the mobile Dashboard chart height without hiding or unmounting its responsive container.
+2. Removed the redundant mobile Dashboard Ivo entry point while retaining the global assistant action.
+3. Preserved desktop Dashboard density and all populated financial context.
+4. Reflowed Portal detail metrics into two mobile columns and removed duplicate non-actionable chips.
+5. Verified populated Time Reports as a deliberate pass instead of introducing a cosmetic change.
+
+Dashboard populated-state design score: **C → B**.
+
+Portal detail populated-state design score: **C → B**.
+
+Time Reports populated-state design score: **B → B (verified)**.
+
+No additional fixtures were required and no customer data was changed. Both
+implementation changes pass TypeScript, targeted ESLint, the design-token gate,
+whitespace validation, desktop/mobile browser review, and runtime console
+inspection. This fresh review window touches two TSX files for a 10% risk score.
+
 ### Next
 
-Solve the Dashboard mobile hierarchy without mounting hidden Recharts
-containers. Then review populated Portal detail screens and Time reports; both
-are distinct operational states beyond their corrected index views.
+Continue with populated secondary states only when rendered evidence exposes a
+specific hierarchy, readability, or interaction defect. The Dashboard, Portal
+detail, and Time Reports follow-up queue is complete.
