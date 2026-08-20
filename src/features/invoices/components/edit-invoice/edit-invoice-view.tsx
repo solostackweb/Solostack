@@ -207,7 +207,7 @@ export function EditInvoiceView({
         void handleIvoDraft(field);
       }}
       disabled={ivoDrafting !== null}
-      className="inline-flex items-center gap-1 rounded-md border border-primary/20 bg-primary/5 px-2 py-0.5 text-[11px] font-semibold text-primary transition-colors hover:bg-primary/10 disabled:opacity-50"
+      className="inline-flex items-center gap-1 rounded-lg border border-primary/20 bg-primary/5 px-2 py-0.5 text-micro font-semibold text-primary transition-colors hover:bg-primary/10 disabled:opacity-50"
     >
       <Sparkles className="h-3 w-3" />
       {ivoDrafting === field ? "Drafting…" : "Draft with Ivo"}
@@ -393,7 +393,7 @@ export function EditInvoiceView({
                             <SelectItem key={c.id} value={c.id}>
                               <span className="inline-flex items-center gap-2">
                                 <Avatar className="h-5 w-5">
-                                  <AvatarFallback className="text-[9px]">
+                                  <AvatarFallback className="text-xs">
                                     {getClientInitials(name)}
                                   </AvatarFallback>
                                 </Avatar>
@@ -620,7 +620,7 @@ export function EditInvoiceView({
             type="button"
             onClick={onSave}
             disabled={isSubmitting}
-            className="h-11 w-full text-[15px]"
+            className="h-11 w-full text-sm"
           >
             <Save /> Save changes
           </Button>
@@ -650,7 +650,7 @@ function SectionCard({
     <Card>
       <CardContent className="space-y-4 p-4 sm:p-6">
         <div className="flex items-center justify-between gap-3">
-          <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+          <p className="text-micro font-semibold uppercase tracking-wider text-muted-foreground">
             {label}
           </p>
           <span className="flex items-center gap-2">

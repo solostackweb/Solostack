@@ -54,11 +54,11 @@ export function SubscriptionActions({ subscription, payments }: Props) {
 
   return (
     <section className="space-y-3">
-      <h2 className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+      <h2 className="flex items-center gap-2 text-micro font-semibold uppercase tracking-wider text-muted-foreground">
         Actions
       </h2>
 
-      <div className="space-y-3 rounded-xl border bg-card shadow-sm shadow-black/[0.03] p-3 text-xs">
+      <div className="space-y-3 rounded-lg border bg-card shadow-sm shadow-black/[0.03] p-3 text-xs">
         {/* Cancel */}
         <CancelForm
           subscriptionId={subscription.id}
@@ -108,14 +108,14 @@ function CancelForm({
         <XCircle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
         <div className="flex-1">
           <div className="font-medium">Cancel subscription</div>
-          <div className="text-[11px] text-muted-foreground">
+          <div className="text-micro text-muted-foreground">
             {immediately
               ? "Status flips to canceled now."
               : "Continues until period end, then cancels."}
           </div>
         </div>
       </div>
-      <label className="flex items-center gap-1.5 text-[11px]">
+      <label className="flex items-center gap-1.5 text-xs">
         <input
           type="checkbox"
           checked={immediately}
@@ -187,14 +187,14 @@ function RefundForm({
         <CreditCard className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
         <div className="flex-1">
           <div className="font-medium">Record manual refund</div>
-          <div className="text-[11px] text-muted-foreground">
+          <div className="text-micro text-muted-foreground">
             This does <em>not</em> call Razorpay - issue the refund in their
             dashboard first, then log it here so MRR math stays correct.
           </div>
         </div>
       </div>
       {refundable.length === 0 ? (
-        <div className="rounded border border-dashed bg-muted/20 px-2 py-2 text-[11px] text-muted-foreground">
+        <div className="rounded border border-dashed bg-muted/20 px-2 py-2 text-xs text-muted-foreground">
           No captured payments available to refund.
         </div>
       ) : (

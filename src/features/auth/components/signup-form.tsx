@@ -48,7 +48,7 @@ export function SignupForm({
         <AuthFormError message={oauthErrorMessage} />
       ) : null}
       <GoogleOAuthButton from="signup" next={next} />
-      <p className="text-center text-[11px] leading-relaxed text-muted-foreground">
+      <p className="text-center text-micro leading-relaxed text-muted-foreground">
         By continuing with Google you agree to our{" "}
         <a href="/terms" target="_blank" rel="noopener noreferrer" className="font-medium text-foreground underline underline-offset-2">Terms</a>{" "}
         and{" "}
@@ -121,7 +121,7 @@ export function SignupForm({
 
         {/* Informed-consent disclosure shown at the point of acceptance, so
             consent is specific + informed (DPDP Act), not just a link. */}
-        <div className="rounded-md border border-border bg-muted/30 p-2.5 text-[12px] leading-relaxed text-muted-foreground">
+        <div className="rounded-lg border border-border bg-muted/30 p-2.5 text-xs leading-relaxed text-muted-foreground">
           <p className="font-medium text-foreground">What we collect &amp; why</p>
           <p className="mt-1">
             To run your account we store your name and email (sign-in), and the
@@ -138,7 +138,7 @@ export function SignupForm({
             action as acceptTerms="on", and is validated + recorded server-side. */}
         <label
           htmlFor="acceptTerms"
-          className="flex cursor-pointer items-start gap-2.5 text-[13px] leading-relaxed text-muted-foreground"
+          className="flex cursor-pointer items-start gap-2.5 text-xs leading-relaxed text-muted-foreground"
         >
           <input
             id="acceptTerms"
@@ -240,15 +240,15 @@ function VerifyEmailPanel({ email }: { email: string }) {
       {/* Steps */}
       <ol className="w-full space-y-2 rounded-lg border bg-muted/30 px-4 py-3 text-left text-sm text-muted-foreground">
         <li className="flex items-start gap-2">
-          <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-primary/15 text-[10px] font-bold text-primary">1</span>
+          <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-primary/15 text-micro font-bold text-primary">1</span>
           Open the email from <strong className="text-foreground mx-1">Stackivo</strong>
         </li>
         <li className="flex items-start gap-2">
-          <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-primary/15 text-[10px] font-bold text-primary">2</span>
+          <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-primary/15 text-micro font-bold text-primary">2</span>
           Click <strong className="text-foreground mx-1">Confirm your account</strong>
         </li>
         <li className="flex items-start gap-2">
-          <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-primary/15 text-[10px] font-bold text-primary">3</span>
+          <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-primary/15 text-micro font-bold text-primary">3</span>
           You&apos;ll land directly in your workspace
         </li>
       </ol>

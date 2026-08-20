@@ -104,7 +104,7 @@ async function BottomGridSection() {
 
 function KpiSkeleton() {
   return (
-    <div className="overflow-hidden rounded-xl border bg-card">
+    <div className="overflow-hidden rounded-lg border bg-card">
       <div className="grid lg:grid-cols-[minmax(0,0.92fr)_minmax(0,1.38fr)]">
         <div className="space-y-5 border-b p-5 sm:p-6 lg:border-b-0 lg:border-r">
           <div className="flex items-start justify-between gap-3">
@@ -144,7 +144,7 @@ function KpiSkeleton() {
 function FeedSkeleton() {
   return (
     <div className="grid items-start gap-4 md:grid-cols-[1fr_280px] lg:grid-cols-3">
-      <div className="rounded-xl border bg-card p-5 lg:col-span-2">
+      <div className="rounded-lg border bg-card p-5 lg:col-span-2">
         <Skeleton className="mb-4 h-4 w-32" />
         <div className="space-y-3">
           {Array.from({ length: 5 }).map((_, i) => (
@@ -159,7 +159,7 @@ function FeedSkeleton() {
           ))}
         </div>
       </div>
-      <div className="rounded-xl border bg-card p-5">
+      <div className="rounded-lg border bg-card p-5">
         <Skeleton className="mb-4 h-4 w-24" />
         <div className="space-y-4">
           {Array.from({ length: 4 }).map((_, i) => (
@@ -179,7 +179,7 @@ function FeedSkeleton() {
 
 function AutomationSkeleton() {
   return (
-    <div className="rounded-xl border bg-card p-5">
+    <div className="rounded-lg border bg-card p-5">
       <Skeleton className="mb-2 h-4 w-44" />
       <Skeleton className="mb-5 h-3 w-72 max-w-full" />
       <div className="grid gap-3 lg:grid-cols-2">
@@ -194,7 +194,7 @@ function BottomGridSkeleton() {
   return (
     <div className="grid items-start gap-4 sm:grid-cols-2 lg:grid-cols-3">
       {Array.from({ length: 3 }).map((_, i) => (
-        <div key={i} className="rounded-xl border bg-card p-5">
+        <div key={i} className="rounded-lg border bg-card p-5">
           <Skeleton className="mb-4 h-4 w-28" />
           <div className="space-y-3">
             {Array.from({ length: 3 }).map((_, j) => (

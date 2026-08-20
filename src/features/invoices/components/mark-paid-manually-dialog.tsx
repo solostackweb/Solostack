@@ -78,7 +78,7 @@ export function MarkPaidManuallyDialog({
         <form action={action} className="space-y-4 pb-2">
           <input type="hidden" name="invoiceId" value={invoiceId} />
 
-          <div className="rounded-md border bg-muted/30 px-3 py-2 text-sm">
+          <div className="rounded-lg border bg-muted/30 px-3 py-2 text-sm">
             <span className="text-muted-foreground">Balance: </span>
             <span className="font-semibold">{amountLabel}</span>
           </div>
@@ -90,7 +90,7 @@ export function MarkPaidManuallyDialog({
                 id="mp-method"
                 name="method"
                 defaultValue="upi"
-                className="h-10 w-full rounded-md border bg-background px-3 text-sm"
+                className="h-10 w-full rounded-lg border bg-background px-3 text-sm"
               >
                 <option value="upi">UPI</option>
                 <option value="bank">Bank transfer</option>
@@ -149,7 +149,7 @@ export function MarkPaidManuallyDialog({
               placeholder="UTR / txn id from your bank app"
               autoComplete="off"
             />
-            <p className="text-[11px] text-muted-foreground">
+            <p className="text-xs text-muted-foreground">
               Helps your client&apos;s accountant match the payment. Shown on the
               receipt.
             </p>
@@ -181,13 +181,13 @@ export function MarkPaidManuallyDialog({
           </div>
 
           {state && state.ok && !state.alreadyPaid ? (
-            <p className="rounded-md bg-emerald-500/10 p-2.5 text-xs text-emerald-700 dark:text-emerald-400">
+            <p className="rounded-lg bg-success-subtle p-2.5 text-xs text-success-strong">
               Payment recorded. Receipt {state.receiptNumber} generated.
               {state.status === "partially_paid" ? " Invoice is partially paid." : ""}
             </p>
           ) : null}
           {state && !state.ok ? (
-            <p className="rounded-md bg-destructive/10 p-2.5 text-xs text-destructive">
+            <p className="rounded-lg bg-destructive/10 p-2.5 text-xs text-destructive">
               {state.error}
             </p>
           ) : null}

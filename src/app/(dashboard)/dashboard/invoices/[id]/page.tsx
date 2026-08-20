@@ -24,9 +24,9 @@ import {
 
 /** Tone → chip styling for the ambient client-behaviour insights. */
 const INSIGHT_TONE_STYLES: Record<ClientInsightTone, string> = {
-  positive: "border-emerald-500/25 bg-emerald-500/5 text-emerald-700",
+  positive: "border-success-subtle bg-success-subtle text-success-strong",
   info: "border-primary/20 bg-primary/5 text-foreground/80",
-  warning: "border-amber-500/30 bg-amber-500/10 text-amber-800",
+  warning: "border-warning-subtle bg-warning-subtle text-warning-strong",
   danger: "border-destructive/30 bg-destructive/10 text-destructive",
 };
 
@@ -233,7 +233,7 @@ export default async function InvoiceDetailPage({
         <CardContent className="space-y-6 p-4 sm:p-6">
           <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 sm:gap-6">
             <div className="min-w-0">
-              <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+              <p className="text-micro font-semibold uppercase tracking-wider text-muted-foreground">
                 Bill to
               </p>
               <p className="mt-2 truncate text-sm font-medium">
@@ -249,7 +249,7 @@ export default async function InvoiceDetailPage({
               )}
             </div>
             <div className="min-w-0 sm:text-right">
-              <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+              <p className="text-micro font-semibold uppercase tracking-wider text-muted-foreground">
                 Total
               </p>
               <p className="mt-2 text-2xl font-semibold tabular-nums sm:text-3xl">
@@ -266,7 +266,7 @@ export default async function InvoiceDetailPage({
                 </p>
               )}
               {paidAmount > 0 && invoice.status !== "paid" && (
-                <p className="mt-2 text-xs text-amber-600 dark:text-amber-400">
+                <p className="mt-2 text-xs text-warning-strong">
                   {formatMoney(paidAmount, cur)} received · {formatMoney(balanceDue, cur)} due
                 </p>
               )}
@@ -321,7 +321,7 @@ export default async function InvoiceDetailPage({
             <div className="w-full overflow-x-auto overscroll-x-contain scrollbar-thin">
               <table className="w-full min-w-[560px] text-sm">
                 <thead className="bg-muted/40">
-                  <tr className="text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                  <tr className="text-left text-micro font-semibold uppercase tracking-wider text-muted-foreground">
                     <th className="px-4 py-2">Description</th>
                     <th className="px-4 py-2 text-right">Qty</th>
                     <th className="px-4 py-2 text-right">Rate</th>
@@ -366,7 +366,7 @@ export default async function InvoiceDetailPage({
             <div className="space-y-1 text-xs text-muted-foreground">
               {invoice.notes && (
                 <>
-                  <p className="text-[11px] font-semibold uppercase tracking-wider">
+                  <p className="text-micro font-semibold uppercase tracking-wider">
                     Notes
                   </p>
                   <p className="whitespace-pre-line">{invoice.notes}</p>
@@ -376,7 +376,7 @@ export default async function InvoiceDetailPage({
             <div className="space-y-1 text-xs text-muted-foreground">
               {invoice.terms && (
                 <>
-                  <p className="text-[11px] font-semibold uppercase tracking-wider">
+                  <p className="text-micro font-semibold uppercase tracking-wider">
                     Terms
                   </p>
                   <p className="whitespace-pre-line">{invoice.terms}</p>
@@ -416,7 +416,7 @@ export default async function InvoiceDetailPage({
       {activities.length > 0 && (
         <Card>
           <CardContent className="p-4 sm:p-6">
-            <p className="mb-4 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+            <p className="mb-4 text-micro font-semibold uppercase tracking-wider text-muted-foreground">
               Activity
             </p>
             <ol className="relative space-y-0 border-l border-border pl-5">
@@ -469,7 +469,7 @@ function PaymentLedgerCard({
       <CardContent className="p-4 sm:p-6">
         <div className="mb-4 flex items-center justify-between gap-3">
           <div>
-            <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+            <p className="text-micro font-semibold uppercase tracking-wider text-muted-foreground">
               Payments
             </p>
             <p className="mt-1 text-sm text-muted-foreground">
@@ -492,7 +492,7 @@ function PaymentLedgerCard({
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
                     <p className="font-medium capitalize">{payment.method}</p>
-                    <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] uppercase tracking-wide text-muted-foreground">
+                    <span className="rounded-full bg-muted px-2 py-0.5 text-micro uppercase tracking-wide text-muted-foreground">
                       {payment.source}
                     </span>
                   </div>
@@ -571,7 +571,7 @@ function ActivityItem({ event }: { event: ActivityRecord }) {
         {event.message && (
           <p className="mt-0.5 text-xs text-muted-foreground">{event.message}</p>
         )}
-        <p className="mt-1 text-[11px] text-muted-foreground/70">
+        <p className="mt-1 text-micro text-muted-foreground/70">
           {new Date(event.createdAt).toLocaleDateString("en-IN", {
             day: "2-digit",
             month: "short",

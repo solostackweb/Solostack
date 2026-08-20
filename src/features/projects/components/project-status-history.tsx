@@ -24,7 +24,7 @@ export function ProjectStatusHistory({
     return (
       <p
         className={cn(
-          "rounded-md border border-dashed p-4 text-center text-xs text-muted-foreground",
+          "rounded-lg border border-dashed p-4 text-center text-xs text-muted-foreground",
           className,
         )}
       >
@@ -71,7 +71,7 @@ export function ProjectStatusHistory({
                 ) : (
                   <span className="font-semibold">{toCfg.label}</span>
                 )}
-                <span className="ml-auto text-[10px] text-muted-foreground tabular-nums">
+                <span className="ml-auto text-micro text-muted-foreground tabular-nums">
                   {when.toLocaleDateString("en-IN", {
                     day: "2-digit",
                     month: "short",

@@ -71,7 +71,7 @@ export function PortalQrCard({ portalId }: { portalId: string }) {
             <a
               href={dataUrl}
               download={`portal-${portalId}-qr.png`}
-              className="inline-flex items-center gap-1 text-[11px] font-medium text-muted-foreground hover:text-foreground"
+              className="inline-flex items-center gap-1 text-micro font-medium text-muted-foreground hover:text-foreground"
             >
               <Download className="h-3 w-3" /> Download
             </a>

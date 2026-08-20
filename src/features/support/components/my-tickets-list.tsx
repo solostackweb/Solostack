@@ -15,7 +15,7 @@ function formatStamp(iso: string): string {
 export function MyTicketsList({ tickets }: { tickets: SupportTicket[] }) {
   if (tickets.length === 0) {
     return (
-      <div className="flex items-center gap-2 rounded-md border bg-card p-3 text-xs text-muted-foreground">
+      <div className="flex items-center gap-2 rounded-lg border bg-card p-3 text-xs text-muted-foreground">
         <Inbox className="h-4 w-4" />
         You haven&rsquo;t opened any tickets yet.
       </div>
@@ -31,7 +31,7 @@ export function MyTicketsList({ tickets }: { tickets: SupportTicket[] }) {
           >
             <div className="min-w-0 flex-1">
               <p className="truncate font-medium">{t.subject}</p>
-              <p className="text-[11px] text-muted-foreground">
+              <p className="text-micro text-muted-foreground">
                 Updated {formatStamp(t.last_message_at)}
               </p>
             </div>

@@ -53,7 +53,7 @@ export function OnboardingProgress({
               <li className="flex items-center gap-2">
                 <span
                   className={cn(
-                    "flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[10px] font-bold transition-all duration-300",
+                    "flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-micro font-bold transition-all duration-300",
                     isComplete &&
                       "bg-primary text-primary-foreground shadow-sm shadow-primary/30",
                     isCurrent &&

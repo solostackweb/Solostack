@@ -196,7 +196,7 @@ export function TimeDashboardView({
           type="button"
           onClick={() => setTab("tracker")}
           className={cn(
-            "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 font-medium transition",
+            "inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 font-medium transition",
             tab === "tracker"
               ? "bg-background shadow-sm"
               : "text-muted-foreground hover:text-foreground",
@@ -208,7 +208,7 @@ export function TimeDashboardView({
           type="button"
           onClick={() => setTab("reports")}
           className={cn(
-            "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 font-medium transition",
+            "inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 font-medium transition",
             tab === "reports"
               ? "bg-background shadow-sm"
               : "text-muted-foreground hover:text-foreground",
@@ -278,7 +278,7 @@ export function TimeDashboardView({
           <TimeEntriesTable entries={entries} lookup={lookup} onEdit={setEditingEntry} />
           {totalPages > 1 && (
             <div className="flex items-center justify-between gap-2 pt-1">
-              <span className="text-[11px] text-muted-foreground">
+              <span className="text-xs text-muted-foreground">
                 Page {page} of {totalPages} · {total} entries
               </span>
               <div className="flex items-center gap-1">
@@ -298,10 +298,10 @@ export function TimeDashboardView({
           <Card>
             <CardContent className="space-y-4 p-5">
               <div className="flex items-center justify-between">
-                <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                <p className="text-micro font-semibold uppercase tracking-wider text-muted-foreground">
                   This week by project
                 </p>
-                <span className="text-[11px] text-muted-foreground">7d</span>
+                <span className="text-micro text-muted-foreground">7d</span>
               </div>
               {perProject.length === 0 ? (
                 <p className="py-4 text-center text-xs text-muted-foreground">
@@ -323,7 +323,7 @@ export function TimeDashboardView({
                           style={{ width: `${row.pct}%` }}
                         />
                       </div>
-                      <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+                      <div className="flex items-center justify-between text-xs text-muted-foreground">
                         <span>{secondsToHours(row.seconds)}h</span>
                         <span className="tabular-nums">
                           {formatINR(row.billable)}
@@ -389,10 +389,10 @@ function ReportsToolbar({
   exportHref: (format: "csv" | "pdf") => string;
 }) {
   return (
-    <div className="grid gap-3 rounded-xl border bg-card p-3 sm:flex sm:items-end">
+    <div className="grid gap-3 rounded-lg border bg-card p-3 sm:flex sm:items-end">
       <div className="grid grid-cols-2 gap-2 sm:flex sm:items-end">
         <label className="space-y-1">
-          <span className="text-[11px] font-medium text-muted-foreground">From</span>
+          <span className="text-micro font-medium text-muted-foreground">From</span>
           <Input
             type="date"
             value={filters.from}
@@ -401,7 +401,7 @@ function ReportsToolbar({
           />
         </label>
         <label className="space-y-1">
-          <span className="text-[11px] font-medium text-muted-foreground">To</span>
+          <span className="text-micro font-medium text-muted-foreground">To</span>
           <Input
             type="date"
             value={filters.to}
@@ -449,7 +449,7 @@ function ReportsToolbar({
 function UnbilledBanner({ seconds, amount }: { seconds: number; amount: number }) {
   if (seconds === 0 || amount === 0) return null;
   return (
-    <div className="flex flex-col gap-3 rounded-xl border border-primary/20 bg-primary/[0.04] px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between">
+    <div className="flex flex-col gap-3 rounded-lg border border-primary/20 bg-primary/[0.04] px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between">
       <p className="text-sm">
         <span className="font-semibold">
           {formatINR(amount)} of billable time

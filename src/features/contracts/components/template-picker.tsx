@@ -77,7 +77,7 @@ export function TemplatePicker({
                 <div className="flex items-start justify-between">
                   <div
                     className={cn(
-                      "flex h-9 w-9 items-center justify-center rounded-md",
+                      "flex h-9 w-9 items-center justify-center rounded-lg",
                       selected
                         ? "bg-primary text-primary-foreground"
                         : "bg-muted text-muted-foreground",
@@ -86,7 +86,7 @@ export function TemplatePicker({
                     <Icon className="h-4 w-4" />
                   </div>
                   {t.popular && (
-                    <Badge variant="secondary" className="text-[10px]">
+                    <Badge variant="secondary" className="text-xs">
                       Popular
                     </Badge>
                   )}
@@ -95,14 +95,14 @@ export function TemplatePicker({
                   <p className="flex items-center gap-2 text-sm font-semibold">
                     {t.name}
                   </p>
-                  <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+                  <p className="text-micro font-medium uppercase tracking-wider text-muted-foreground">
                     {TEMPLATE_KIND_LABEL[t.kind]}
                   </p>
                   <p className="line-clamp-2 pt-1 text-xs text-muted-foreground">
                     {t.description}
                   </p>
                 </div>
-                <div className="mt-auto flex items-center justify-between border-t pt-3 text-[11px] text-muted-foreground">
+                <div className="mt-auto flex items-center justify-between border-t pt-3 text-xs text-muted-foreground">
                   <span>{t.highlights.length} sections</span>
                   {t.readingTime > 0 && <span>~{t.readingTime} min read</span>}
                 </div>

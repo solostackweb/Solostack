@@ -100,8 +100,8 @@ export default async function AdminSupportPage({ searchParams }: Props) {
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <MetricCard icon={<AlertCircle className="h-4 w-4 text-blue-500" />} label="Needs reply" value={metrics.needsReply} tone={metrics.needsReply > 5 ? "alert" : "ok"} />
         <MetricCard icon={<Clock className="h-4 w-4 text-violet-500" />} label="Waiting on customer" value={metrics.waitingOnCustomer} tone="ok" />
-        <MetricCard icon={<CheckCircle2 className="h-4 w-4 text-emerald-500" />} label="Resolved (7d)" value={metrics.resolved7d} tone="ok" />
-        <MetricCard icon={<AlertTriangle className="h-4 w-4 text-red-500" />} label="SLA breached" value={metrics.slaBreached} tone={metrics.slaBreached > 0 ? "alert" : "ok"} />
+        <MetricCard icon={<CheckCircle2 className="h-4 w-4 text-success-strong" />} label="Resolved (7d)" value={metrics.resolved7d} tone="ok" />
+        <MetricCard icon={<AlertTriangle className="h-4 w-4 text-destructive-strong" />} label="SLA breached" value={metrics.slaBreached} tone={metrics.slaBreached > 0 ? "alert" : "ok"} />
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -128,7 +128,7 @@ export default async function AdminSupportPage({ searchParams }: Props) {
               name="q"
               defaultValue={search}
               placeholder="Search subject / email"
-              className="h-8 w-48 rounded-md border bg-background px-2 text-xs"
+              className="h-8 w-48 rounded-lg border bg-background px-2 text-xs"
             />
           </form>
         ) : null}
@@ -153,7 +153,7 @@ export default async function AdminSupportPage({ searchParams }: Props) {
                       <div className="flex flex-wrap items-center gap-2">
                         <TicketStatusBadge status={t.status} audience="admin" />
                         <span className={cn(
-                          "rounded px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wider",
+                          "rounded px-1.5 py-0.5 text-micro font-medium uppercase tracking-wider",
                           t.plan_at_creation === "business"
                             ? "bg-violet-500/10 text-violet-700 dark:text-violet-300"
                             : t.plan_at_creation === "pro"
@@ -164,20 +164,20 @@ export default async function AdminSupportPage({ searchParams }: Props) {
                         </span>
                         {(t.priority === "high" || t.priority === "urgent") && (
                           <span className={cn(
-                            "rounded px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wider",
-                            t.priority === "urgent" ? "bg-red-500/10 text-red-700 dark:text-red-300" : "bg-orange-500/10 text-orange-700 dark:text-orange-300",
+                            "rounded px-1.5 py-0.5 text-micro font-medium uppercase tracking-wider",
+                            t.priority === "urgent" ? "bg-destructive-subtle text-destructive-strong" : "bg-orange-500/10 text-orange-700 dark:text-orange-300",
                           )}>
                             {t.priority}
                           </span>
                         )}
                         {breached && (
-                          <span className="rounded bg-red-500/10 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wider text-red-700 dark:text-red-300">
+                          <span className="rounded bg-destructive-subtle px-1.5 py-0.5 text-micro font-medium uppercase tracking-wider text-destructive-strong">
                             SLA
                           </span>
                         )}
-                        <span className="truncate text-[13px] font-medium">{t.subject}</span>
+                        <span className="truncate text-xs font-medium">{t.subject}</span>
                       </div>
-                      <div className="mt-1 flex flex-wrap items-center gap-3 text-[11px] text-muted-foreground">
+                      <div className="mt-1 flex flex-wrap items-center gap-3 text-micro text-muted-foreground">
                         <span className="inline-flex items-center gap-1">
                           <User className="h-3 w-3" /> {t.email}
                         </span>
@@ -198,20 +198,20 @@ export default async function AdminSupportPage({ searchParams }: Props) {
         <ul className="divide-y divide-border/50 overflow-hidden rounded-lg border border-border/60 bg-card">
           {failures.map((f) => (
             <li key={f.id} className="flex items-start gap-3 p-3.5">
-              <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-red-500/10">
-                <Mail className="h-3.5 w-3.5 text-red-600" />
+              <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-destructive-subtle">
+                <Mail className="h-3.5 w-3.5 text-destructive-strong" />
               </div>
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="rounded bg-red-500/10 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wider text-red-700 dark:text-red-300">
+                  <span className="rounded bg-destructive-subtle px-1.5 py-0.5 text-micro font-medium uppercase tracking-wider text-destructive-strong">
                     {f.status}
                   </span>
-                  <span className="truncate text-[13px] font-medium">{f.subject ?? f.kind}</span>
+                  <span className="truncate text-xs font-medium">{f.subject ?? f.kind}</span>
                 </div>
-                <div className="mt-1 flex flex-wrap items-center gap-3 text-[11px] text-muted-foreground">
+                <div className="mt-1 flex flex-wrap items-center gap-3 text-micro text-muted-foreground">
                   <span>{f.to_email ?? "-"}</span>
                   <span>{formatRelative(f.created_at)}</span>
-                  {f.error ? <span className="truncate text-red-600/80">{f.error}</span> : null}
+                  {f.error ? <span className="truncate text-destructive-strong">{f.error}</span> : null}
                 </div>
               </div>
             </li>
@@ -236,10 +236,10 @@ function MetricCard({
   return (
     <div className={cn(
       "rounded-lg border bg-card p-3",
-      tone === "alert" && "border-red-500/30",
-      tone === "warn" && "border-amber-500/30",
+      tone === "alert" && "border-destructive-subtle",
+      tone === "warn" && "border-warning-subtle",
     )}>
-      <div className="flex items-center gap-2 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+      <div className="flex items-center gap-2 text-micro font-medium uppercase tracking-wider text-muted-foreground">
         {icon}
         {label}
       </div>

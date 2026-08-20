@@ -43,7 +43,7 @@ const CATEGORIES: TicketCategory[] = [
 ];
 
 const selectCls =
-  "h-8 w-full rounded-md border bg-background px-2 text-xs capitalize focus:outline-none";
+  "h-8 w-full rounded-lg border bg-background px-2 text-xs capitalize focus:outline-none";
 
 export function AdminTicketControls({ ticket }: { ticket: SupportTicket }) {
   const router = useRouter();
@@ -143,9 +143,14 @@ export function AdminTicketControls({ ticket }: { ticket: SupportTicket }) {
             value={newTag}
             onChange={(e) => setNewTag(e.target.value)}
             placeholder="Add tag"
-            className="h-7 flex-1 rounded-md border bg-background px-2 text-xs"
+            className="h-7 flex-1 rounded-lg border bg-background px-2 text-xs"
           />
-          <button type="submit" disabled={busy} className="rounded-md border p-1 hover:bg-muted">
+          <button
+            type="submit"
+            disabled={busy}
+            aria-label="Add tag"
+            className="rounded-lg border p-1 hover:bg-muted"
+          >
             <Plus className="h-3 w-3" />
           </button>
         </form>

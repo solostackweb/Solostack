@@ -59,7 +59,7 @@ export function FirstClientStepForm() {
         </div>
       </div>
 
-      <div className="flex items-start justify-between rounded-md border p-4">
+      <div className="flex items-start justify-between rounded-lg border p-4">
         <div className="space-y-1">
           <Label htmlFor="gstRegistered" className="text-sm font-medium">
             Is this client GST registered?

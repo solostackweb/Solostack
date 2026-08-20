@@ -136,7 +136,7 @@ export function InstallPrompt() {
         body={
           <span className="inline-flex flex-wrap items-center gap-1">
             Open your browser menu and choose
-            <span className="inline-flex items-center gap-1 rounded-md border bg-muted/60 px-1.5 py-0.5 text-[11px] font-medium">
+            <span className="inline-flex items-center gap-1 rounded-lg border bg-muted/60 px-1.5 py-0.5 text-micro font-medium">
               <Download className="h-3 w-3" />
               Install app
             </span>
@@ -157,7 +157,7 @@ export function InstallPrompt() {
             Tap
             <Share className="mx-0.5 inline h-3.5 w-3.5" aria-label="Share" />
             then
-            <span className="inline-flex items-center gap-1 rounded-md border bg-muted/60 px-1.5 py-0.5 text-[11px] font-medium">
+            <span className="inline-flex items-center gap-1 rounded-lg border bg-muted/60 px-1.5 py-0.5 text-micro font-medium">
               <Plus className="h-3 w-3" />
               Add to Home Screen
             </span>
@@ -189,14 +189,14 @@ function Banner({ title, body, action, onDismiss }: BannerProps) {
       aria-label={title}
     >
       <div className="pointer-events-auto flex w-full max-w-md items-center gap-3 rounded-2xl border bg-background/90 p-3 shadow-xl backdrop-blur-xl ring-1 ring-black/5 dark:ring-white/5">
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-indigo-600 text-primary-foreground shadow-md shadow-primary/25">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-indigo-600 text-primary-foreground shadow-md shadow-primary/25">
           <StackivoMark variant="white" className="h-[22px] w-[22px]" />
         </div>
         <div className="min-w-0 flex-1">
-          <p className="truncate text-[13px] font-semibold leading-tight">
+          <p className="truncate text-xs font-semibold leading-tight">
             {title}
           </p>
-          <div className="mt-0.5 text-[12px] leading-snug text-muted-foreground">
+          <div className="mt-0.5 text-xs leading-snug text-muted-foreground">
             {body}
           </div>
         </div>

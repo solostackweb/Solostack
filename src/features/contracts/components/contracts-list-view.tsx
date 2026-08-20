@@ -332,7 +332,7 @@ function ContractRow({
           href={`/dashboard/contracts/${contract.id}`}
           className="flex min-w-0 flex-1 items-center gap-3"
         >
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
             <FileSignature className="h-4 w-4" />
           </div>
           <div className="min-w-0 flex-1">
@@ -413,7 +413,7 @@ function Stat({
   return (
     <Card className={cn(featured && "col-span-2 lg:col-span-1")}>
       <CardContent className="min-h-28 space-y-1 p-4 sm:p-5">
-        <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+        <p className="text-micro font-semibold uppercase tracking-wider text-muted-foreground">
           {label}
         </p>
         <p

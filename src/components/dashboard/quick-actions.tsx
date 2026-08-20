@@ -60,8 +60,8 @@ export async function QuickActions() {
   return (
     <Card className="flex h-full flex-col border-border/60 shadow-sm shadow-primary/[0.03]">
       <CardHeader className="pb-3">
-        <CardTitle className="text-[15px] font-semibold tracking-tight">Quick actions</CardTitle>
-        <CardDescription className="text-[12px]">One-click shortcuts</CardDescription>
+        <CardTitle className="text-sm font-semibold tracking-tight">Quick actions</CardTitle>
+        <CardDescription className="text-xs">One-click shortcuts</CardDescription>
       </CardHeader>
       <CardContent className="flex-1 px-2 pb-2">
         <ul className="space-y-0.5">
@@ -72,11 +72,11 @@ export async function QuickActions() {
               <li key={a.label}>
                 <Link
                   href={a.href}
-                  className="group flex items-center gap-3 rounded-xl px-3 py-2.5 transition-all duration-150 hover:bg-accent/60"
+                  className="group flex items-center gap-3 rounded-lg px-3 py-2.5 transition-all duration-150 hover:bg-accent/60"
                 >
                   <span
                     className={cn(
-                      "flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ring-1 transition-all duration-150",
+                      "flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ring-1 transition-all duration-150",
                       isPrimary
                         ? "bg-gradient-to-br from-primary/15 to-violet-500/10 text-primary ring-primary/20 group-hover:shadow-md group-hover:shadow-primary/15 group-hover:ring-primary/35"
                         : "bg-muted/60 text-muted-foreground ring-border/50 group-hover:bg-primary/8 group-hover:text-primary group-hover:ring-primary/20",
@@ -85,10 +85,10 @@ export async function QuickActions() {
                     <Icon className="h-4 w-4" />
                   </span>
                   <div className="min-w-0 flex-1">
-                    <p className={cn("text-[13px] font-semibold", isPrimary ? "text-foreground" : "")}>
+                    <p className={cn("text-xs font-semibold", isPrimary ? "text-foreground" : "")}>
                       {a.label}
                     </p>
-                    <p className="truncate text-[11px] text-muted-foreground">{a.description}</p>
+                    <p className="truncate text-micro text-muted-foreground">{a.description}</p>
                   </div>
                   <ArrowUpRight className="h-3.5 w-3.5 text-muted-foreground/40 transition-all duration-150 group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-primary" />
                 </Link>

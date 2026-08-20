@@ -98,12 +98,12 @@ export default async function AdminNotificationsPage() {
         <section className="overflow-hidden rounded-lg border bg-card shadow-sm">
           <div className="border-b bg-muted/30 px-4 py-3">
             <h2 className="text-sm font-semibold">Recent Broadcasts</h2>
-            <p className="text-[11px] text-muted-foreground">
+            <p className="text-micro text-muted-foreground">
               Multi-recipient sends grouped by title and minute.
             </p>
           </div>
           {broadcasts.length === 0 ? (
-            <div className="m-4 rounded-md border border-dashed bg-muted/20 px-3 py-10 text-center text-xs text-muted-foreground">
+            <div className="m-4 rounded-lg border border-dashed bg-muted/20 px-3 py-10 text-center text-xs text-muted-foreground">
               No broadcasts in the recent history.
             </div>
           ) : (
@@ -116,7 +116,7 @@ export default async function AdminNotificationsPage() {
                       {formatRelative(b.first_at)}
                     </span>
                   </div>
-                  <div className="mt-1 flex flex-wrap items-center gap-3 text-[11px] text-muted-foreground">
+                  <div className="mt-1 flex flex-wrap items-center gap-3 text-micro text-muted-foreground">
                     <span className="rounded bg-muted px-1.5 py-0.5 uppercase tracking-wider">
                       {b.type}
                     </span>
@@ -150,16 +150,16 @@ function SummaryCard({
     <div className="rounded-lg border bg-card p-4 shadow-sm">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <div className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+          <div className="text-micro font-medium uppercase tracking-wider text-muted-foreground">
             {label}
           </div>
           <div className="mt-1 text-xl font-semibold tabular-nums">{value}</div>
         </div>
-        <span className="flex h-9 w-9 items-center justify-center rounded-md bg-primary/10 text-primary ring-1 ring-primary/15">
+        <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary ring-1 ring-primary/15">
           <Icon className="h-4 w-4" />
         </span>
       </div>
-      <div className="mt-2 text-[11px] text-muted-foreground">{hint}</div>
+      <div className="mt-2 text-xs text-muted-foreground">{hint}</div>
     </div>
   );
 }

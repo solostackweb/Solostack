@@ -63,7 +63,7 @@ function UsageTile({
 
   return (
     <div className="rounded-lg border bg-card p-4">
-      <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+      <p className="text-micro font-semibold uppercase tracking-wider text-muted-foreground">
         {label}
       </p>
       <p className="mt-2 text-xl font-semibold tabular-nums tracking-tight">

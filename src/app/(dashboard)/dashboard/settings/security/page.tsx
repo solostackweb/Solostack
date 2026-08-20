@@ -203,13 +203,13 @@ function CurrentSessionRow() {
 
   return (
     <div className="flex items-center gap-3 py-1">
-      <div className="flex h-9 w-9 items-center justify-center rounded-md bg-muted">
+      <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-muted">
         <Icon className="h-4 w-4 text-muted-foreground" />
       </div>
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
           <p className="truncate text-sm font-medium">{ua.device}</p>
-          <Badge variant="secondary" className="h-5 px-1.5 text-[10px]">
+          <Badge variant="secondary" className="h-5 px-1.5 text-micro">
             This device
           </Badge>
         </div>

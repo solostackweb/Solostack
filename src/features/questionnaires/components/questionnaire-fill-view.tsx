@@ -87,7 +87,7 @@ export function QuestionnaireFillView({
 
       <main className="relative mx-auto max-w-2xl px-4 py-8 sm:px-6 sm:py-12">
         <header className="mb-6">
-          <div className="inline-flex items-center gap-2 rounded-full border bg-white px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500 shadow-sm">
+          <div className="inline-flex items-center gap-2 rounded-full border bg-white px-3 py-1 text-micro font-semibold uppercase tracking-[0.16em] text-slate-500 shadow-sm">
             <ClipboardList className="h-3.5 w-3.5 text-primary" />
             Questionnaire
           </div>
@@ -158,7 +158,7 @@ export function QuestionnaireFillView({
                   type="button"
                   onClick={submit}
                   disabled={submitting}
-                  className="w-full rounded-xl bg-primary px-4 py-3.5 text-sm font-semibold text-primary-foreground shadow-sm transition hover:opacity-95 disabled:opacity-60"
+                  className="w-full rounded-lg bg-primary px-4 py-3.5 text-sm font-semibold text-primary-foreground shadow-sm transition hover:opacity-95 disabled:opacity-60"
                 >
                   {submitting ? "Submitting…" : "Submit answers"}
                 </button>

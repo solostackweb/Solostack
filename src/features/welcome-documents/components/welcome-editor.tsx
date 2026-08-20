@@ -35,6 +35,7 @@ import {
   updateWelcomeDocumentAction,
 } from "../actions";
 import { welcomeDocumentDetail } from "../routes";
+import { BRAND_PRIMARY } from "@/config/brand-colors";
 
 interface ClientOption {
   id: string;
@@ -82,7 +83,7 @@ export function WelcomeEditor(props: Props) {
     props.initial.clientId ?? UNASSIGNED,
   );
   const [brandColor, setBrandColor] = React.useState<string>(
-    props.initial.brandColor ?? "#2563EB",
+    props.initial.brandColor ?? BRAND_PRIMARY,
   );
   const [showPreview, setShowPreview] = React.useState(true);
   const [pending, startTransition] = React.useTransition();
@@ -207,9 +208,9 @@ export function WelcomeEditor(props: Props) {
             />
           </div>
           {/* Client assignment — prominent, with model explanation */}
-          <div className="rounded-md border bg-muted/30 p-4">
+          <div className="rounded-lg border bg-muted/30 p-4">
             <div className="flex items-start gap-3">
-              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
                 <UserCheck className="h-4 w-4" />
               </div>
               <div className="flex-1 min-w-0">
@@ -363,7 +364,7 @@ export function WelcomeEditor(props: Props) {
                   maxLength={20_000}
                 />
                 {showPreview && (
-                  <div className="rounded-md border bg-muted/30 p-4">
+                  <div className="rounded-lg border bg-muted/30 p-4">
                     {section.body.trim() ? (
                       <WelcomeMarkdown source={section.body} />
                     ) : (
@@ -389,7 +390,7 @@ export function WelcomeEditor(props: Props) {
       </Button>
 
       {/* Sticky save bar */}
-      <div className="sticky bottom-0 -mx-4 flex items-center justify-end gap-2 border-t bg-background/95 px-4 py-3 backdrop-blur sm:mx-0 sm:rounded-md sm:border sm:px-4">
+      <div className="sticky bottom-0 -mx-4 flex items-center justify-end gap-2 border-t bg-background/95 px-4 py-3 backdrop-blur sm:mx-0 sm:rounded-lg sm:border sm:px-4">
         <Button
           type="button"
           variant="ghost"

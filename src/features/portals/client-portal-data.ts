@@ -10,6 +10,7 @@ import {
   getPortalSnapshot,
 } from "@/features/portals/server";
 import type { ViewProps } from "./components/portal-view";
+import { BRAND_PRIMARY } from "@/config/brand-colors";
 
 export async function getClientPortalProps(portalId: string): Promise<ViewProps> {
   let snapshot;
@@ -45,7 +46,7 @@ export async function getClientPortalProps(portalId: string): Promise<ViewProps>
   return {
     portalId,
     portalName: access.portal.name,
-    brandColor: access.portal.brand_color ?? "#2563EB",
+    brandColor: access.portal.brand_color ?? BRAND_PRIMARY,
     portalStatus: access.portal.status,
     currentUserId: access.userId,
     role: access.role,

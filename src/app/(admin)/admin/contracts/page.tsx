@@ -53,7 +53,7 @@ export default async function AdminContractsPage({ searchParams }: Props) {
       <form
         method="get"
         action="/admin/contracts"
-        className="flex flex-wrap items-center gap-2 rounded-xl border bg-card/95 p-2 shadow-sm shadow-black/[0.025] dark:bg-card"
+        className="flex flex-wrap items-center gap-2 rounded-lg border bg-card/95 p-2 shadow-sm shadow-black/[0.025] dark:bg-card"
       >
         <input
           type="text"
@@ -117,7 +117,7 @@ export default async function AdminContractsPage({ searchParams }: Props) {
                   <AdminTd>
                     <div className="leading-tight">
                       <div className="font-medium">{c.full_name}</div>
-                      <div className="truncate text-[11px] text-muted-foreground">
+                      <div className="truncate text-micro text-muted-foreground">
                         {c.email}
                       </div>
                     </div>
@@ -128,21 +128,21 @@ export default async function AdminContractsPage({ searchParams }: Props) {
                   <AdminTd>
                     <span
                       className={cn(
-                        "inline-block rounded px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wider",
+                        "inline-block rounded px-1.5 py-0.5 text-micro font-medium uppercase tracking-wider",
                         c.status === "signed"
-                          ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
+                          ? "bg-success-subtle text-success-strong"
                           : c.status === "declined" || c.status === "expired"
-                            ? "bg-red-500/10 text-red-700 dark:text-red-400"
+                            ? "bg-destructive-subtle text-destructive-strong"
                             : "bg-muted text-muted-foreground",
                       )}
                     >
                       {c.status}
                     </span>
                   </AdminTd>
-                  <AdminTd className="hidden font-mono text-[11px] tabular-nums text-muted-foreground sm:table-cell">
+                  <AdminTd className="hidden font-mono text-xs tabular-nums text-muted-foreground sm:table-cell">
                     {c.signed_at ? formatIstStamp(c.signed_at) : "-"}
                   </AdminTd>
-                  <AdminTd className="font-mono text-[11px] tabular-nums text-muted-foreground">
+                  <AdminTd className="font-mono text-xs tabular-nums text-muted-foreground">
                     {formatRelative(c.updated_at)}
                   </AdminTd>
                 </AdminTr>

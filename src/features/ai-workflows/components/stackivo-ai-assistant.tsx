@@ -2347,7 +2347,7 @@ export function StackivoAiAssistant({ user }: StackivoAiAssistantProps) {
             content: (
               <div className="space-y-3">
                 <p className="font-medium">Proposal draft created</p>
-                <div className="rounded-md border bg-background p-3 text-sm">
+                <div className="rounded-lg border bg-background p-3 text-sm">
                   <p className="font-medium">{p.title}</p>
                   <p className="mt-1 text-xs text-muted-foreground">
                     {p.clientName} · {p.currency} {p.total.toLocaleString("en-IN")}
@@ -2417,7 +2417,7 @@ export function StackivoAiAssistant({ user }: StackivoAiAssistantProps) {
             content: (
               <div className="space-y-3">
                 <p className="font-medium">Call scheduled</p>
-                <div className="rounded-md border bg-background p-3 text-sm">
+                <div className="rounded-lg border bg-background p-3 text-sm">
                   <p className="font-medium">{m.topic}</p>
                   <p className="mt-1 text-xs text-muted-foreground">
                     {m.clientName} · {m.durationMinutes} min
@@ -2477,7 +2477,7 @@ export function StackivoAiAssistant({ user }: StackivoAiAssistantProps) {
               content: (
                 <div className="space-y-3">
                   <p className="font-medium">Proposal draft created</p>
-                  <div className="rounded-md border bg-background p-3 text-sm">
+                  <div className="rounded-lg border bg-background p-3 text-sm">
                     <p className="font-medium">{p.title}</p>
                     <p className="mt-1 text-xs text-muted-foreground">
                       {p.clientName} · {p.currency} {p.total.toLocaleString("en-IN")}
@@ -3753,7 +3753,7 @@ export function StackivoAiAssistant({ user }: StackivoAiAssistantProps) {
               </span>
               <button
                 type="button"
-                className="flex min-w-0 items-center gap-1 rounded-md px-1 py-0.5 text-left hover:bg-muted"
+                className="flex min-w-0 items-center gap-1 rounded-lg px-1 py-0.5 text-left hover:bg-muted"
                 onClick={() => {
                   setActivityOpen(false);
                   setConversationMenuOpen((current) => !current);
@@ -3768,7 +3768,7 @@ export function StackivoAiAssistant({ user }: StackivoAiAssistantProps) {
                         ? ASSISTANT_NAME
                         : QUICK_ACTIONS.find((action) => action.mode === mode)?.title ?? "New conversation")}
                   </span>
-                  <span className="text-[10px] font-medium text-emerald-600 dark:text-emerald-400">
+                  <span className="text-micro font-medium text-success-strong">
                     Connected to your workspace
                   </span>
                 </span>
@@ -3779,13 +3779,13 @@ export function StackivoAiAssistant({ user }: StackivoAiAssistantProps) {
               </button>
             </div>
             {conversationMenuOpen ? (
-              <div className="absolute left-3 right-3 top-[calc(100%+6px)] z-50 overflow-hidden rounded-xl border bg-popover shadow-xl">
+              <div className="absolute left-3 right-3 top-[calc(100%+6px)] z-50 overflow-hidden rounded-lg border bg-popover shadow-xl">
                 <div className="flex items-center justify-between border-b px-3 py-2">
                   <span className="text-xs font-semibold">Recent conversations</span>
                   <button
                     type="button"
                     disabled={pending}
-                    className="text-[11px] font-medium text-primary hover:underline"
+                    className="text-micro font-medium text-primary hover:underline"
                     onClick={handleNewConversation}
                   >
                     New conversation
@@ -3811,7 +3811,7 @@ export function StackivoAiAssistant({ user }: StackivoAiAssistantProps) {
                         )} />
                         <span className="min-w-0 flex-1">
                           <span className="block truncate text-sm font-medium">{conversation.title}</span>
-                          <span className="block text-[11px] text-muted-foreground">
+                          <span className="block text-micro text-muted-foreground">
                             {active ? "Current · " : ""}{formatConversationTime(conversation.lastMessageAt)}
                           </span>
                         </span>
@@ -3826,14 +3826,14 @@ export function StackivoAiAssistant({ user }: StackivoAiAssistantProps) {
               </div>
             ) : null}
             {activityOpen ? (
-              <div className="absolute left-3 right-3 top-[calc(100%+6px)] z-50 overflow-hidden rounded-xl border bg-popover shadow-xl">
+              <div className="absolute left-3 right-3 top-[calc(100%+6px)] z-50 overflow-hidden rounded-lg border bg-popover shadow-xl">
                 <div className="flex items-center justify-between border-b px-3 py-2">
                   <span className="text-xs font-semibold">Ivo activity</span>
-                  <span className="text-[10px] text-muted-foreground">Verified from the ledger</span>
+                  <span className="text-micro text-muted-foreground">Verified from the ledger</span>
                 </div>
                 <div className="max-h-80 overflow-y-auto p-2">
                   {activityUnavailable ? (
-                    <p className="px-3 py-5 text-center text-xs text-amber-700 dark:text-amber-300">
+                    <p className="px-3 py-5 text-center text-xs text-warning-strong">
                       Activity couldn&apos;t be read right now. This does not mean nothing happened.
                     </p>
                   ) : activityItems.length > 0 ? (
@@ -3842,9 +3842,9 @@ export function StackivoAiAssistant({ user }: StackivoAiAssistantProps) {
                         const statusLabel = activityStatusLabel(item);
                         const statusClass =
                           item.status === "succeeded" || item.status === "empty"
-                            ? "bg-emerald-500"
+                            ? "bg-success"
                             : item.status === "in_progress"
-                              ? "bg-amber-500"
+                              ? "bg-warning"
                               : item.status === "cancelled"
                                 ? "bg-muted-foreground"
                                 : "bg-destructive";
@@ -3870,11 +3870,11 @@ export function StackivoAiAssistant({ user }: StackivoAiAssistantProps) {
                             <span className="min-w-0 flex-1">
                               <span className="flex items-center justify-between gap-2">
                                 <span className="truncate text-xs font-medium">{item.title}</span>
-                                <span className="shrink-0 text-[10px] text-muted-foreground">
+                                <span className="shrink-0 text-micro text-muted-foreground">
                                   {formatConversationTime(item.occurredAt)}
                                 </span>
                               </span>
-                              <span className="mt-0.5 block truncate text-[10px] text-muted-foreground">
+                              <span className="mt-0.5 block truncate text-xs text-muted-foreground">
                                 {statusLabel}{item.detail ? ` · ${item.detail}` : ""}
                               </span>
                             </span>
@@ -3894,9 +3894,9 @@ export function StackivoAiAssistant({ user }: StackivoAiAssistantProps) {
               {aiUsage && aiUsage.limit >= 0 ? (
                 <span
                   className={cn(
-                    "mr-1 hidden items-center rounded-full border px-2 py-1 text-[11px] font-semibold tabular-nums sm:inline-flex",
+                    "mr-1 hidden items-center rounded-full border px-2 py-1 text-micro font-semibold tabular-nums sm:inline-flex",
                     aiUsage.used >= aiUsage.limit
-                      ? "border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300"
+                      ? "border-warning-subtle bg-warning-subtle text-warning-strong"
                       : "border-primary/20 bg-primary/5 text-primary",
                   )}
                   title={`${Math.min(aiUsage.used, aiUsage.limit)}/${aiUsage.limit} AI messages this month · ${aiUsage.plan} plan`}
@@ -3984,7 +3984,7 @@ export function StackivoAiAssistant({ user }: StackivoAiAssistantProps) {
                       <StackivoMark className="h-8 w-8" />
                     </span>
                   </span>
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-primary/70">
+                  <p className="text-micro font-semibold uppercase tracking-[0.22em] text-primary/70">
                     {ASSISTANT_NAME} · Stackivo AI
                   </p>
                   <h2 className="mt-1.5 text-xl font-semibold tracking-tight">
@@ -4007,7 +4007,7 @@ export function StackivoAiAssistant({ user }: StackivoAiAssistantProps) {
                       onClick={() => selectMode(action.mode)}
                       style={{ animationDelay: `${i * 45}ms` }}
                       className={cn(
-                        "group flex items-center gap-2.5 rounded-xl border bg-background/95 p-3 text-left transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/40 hover:bg-primary/5 hover:shadow-sm motion-safe:animate-page-enter",
+                        "group flex items-center gap-2.5 rounded-lg border bg-background/95 p-3 text-left transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/40 hover:bg-primary/5 hover:shadow-sm motion-safe:animate-page-enter",
                         mode === action.mode && "border-primary/50 bg-primary/5 ring-1 ring-primary/20",
                       )}
                       title={action.description}
@@ -4027,7 +4027,7 @@ export function StackivoAiAssistant({ user }: StackivoAiAssistantProps) {
                     key={action.mode}
                     type="button"
                     onClick={() => selectMode(action.mode)}
-                    className="group mt-2 flex w-full items-center gap-2.5 rounded-xl border border-dashed bg-background/95 p-3 text-left transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/40 hover:bg-primary/5 hover:shadow-sm"
+                    className="group mt-2 flex w-full items-center gap-2.5 rounded-lg border border-dashed bg-background/95 p-3 text-left transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/40 hover:bg-primary/5 hover:shadow-sm"
                   >
                     <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary transition-transform duration-200 group-hover:scale-110">
                       <action.icon className="h-4 w-4" />
@@ -4046,10 +4046,10 @@ export function StackivoAiAssistant({ user }: StackivoAiAssistantProps) {
                 {preparedActions.length > 0 ? (
                   <div className="mt-5">
                     <div className="mb-2 flex items-center justify-between gap-2">
-                      <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                      <p className="text-micro font-semibold uppercase tracking-[0.18em] text-muted-foreground">
                         Prepared for you
                       </p>
-                      <span className="text-[10px] text-muted-foreground">
+                      <span className="text-micro text-muted-foreground">
                         Nothing sends without approval
                       </span>
                     </div>
@@ -4061,9 +4061,9 @@ export function StackivoAiAssistant({ user }: StackivoAiAssistantProps) {
                           <div
                             key={action.id}
                             className={cn(
-                              "overflow-hidden rounded-xl border bg-background/95",
+                              "overflow-hidden rounded-lg border bg-background/95",
                               action.tone === "danger" && "border-destructive/30",
-                              action.tone === "warning" && "border-amber-500/30",
+                              action.tone === "warning" && "border-warning-subtle",
                             )}
                           >
                             <button
@@ -4075,7 +4075,7 @@ export function StackivoAiAssistant({ user }: StackivoAiAssistantProps) {
                               <span className={cn(
                                 "mt-1.5 h-2 w-2 shrink-0 rounded-full",
                                 action.tone === "danger" ? "bg-destructive" :
-                                  action.tone === "warning" ? "bg-amber-500" : "bg-primary",
+                                  action.tone === "warning" ? "bg-warning" : "bg-primary",
                               )} />
                               <span className="min-w-0 flex-1">
                                 <span className="block truncate text-sm font-medium">{action.title}</span>
@@ -4090,7 +4090,7 @@ export function StackivoAiAssistant({ user }: StackivoAiAssistantProps) {
                             </button>
                             {expanded ? (
                               <div className="border-t bg-muted/20 px-3 pb-3 pt-2.5">
-                                <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                                <p className="text-micro font-semibold uppercase tracking-wide text-muted-foreground">
                                   To {action.recipientName || "recipient"}
                                   {action.recipientEmail ? ` · ${action.recipientEmail}` : " · no email on file"}
                                 </p>
@@ -4153,7 +4153,7 @@ export function StackivoAiAssistant({ user }: StackivoAiAssistantProps) {
 
                 {suggestions.length > 0 ? (
                   <div className="mt-5">
-                    <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                    <p className="mb-2 text-micro font-semibold uppercase tracking-[0.18em] text-muted-foreground">
                       For you today
                     </p>
                     <div className="space-y-1.5">
@@ -4163,14 +4163,14 @@ export function StackivoAiAssistant({ user }: StackivoAiAssistantProps) {
                           type="button"
                           onClick={() => handleSubmit(s.prompt)}
                           className={cn(
-                            "flex w-full items-center gap-2.5 rounded-xl border bg-background/95 p-2.5 text-left text-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/40 hover:bg-primary/5 hover:shadow-sm",
-                            s.tone === "alert" && "border-amber-500/30 bg-amber-500/[0.04]",
+                            "flex w-full items-center gap-2.5 rounded-lg border bg-background/95 p-2.5 text-left text-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/40 hover:bg-primary/5 hover:shadow-sm",
+                            s.tone === "alert" && "border-warning-subtle bg-warning/[0.04]",
                           )}
                         >
                           <span
                             className={cn(
                               "h-1.5 w-1.5 shrink-0 rounded-full",
-                              s.tone === "alert" ? "bg-amber-500" : "bg-primary",
+                              s.tone === "alert" ? "bg-warning" : "bg-primary",
                             )}
                           />
                           <span className="min-w-0 leading-snug">{s.title}</span>
@@ -4209,10 +4209,10 @@ export function StackivoAiAssistant({ user }: StackivoAiAssistantProps) {
                     className={cn(
                       "whitespace-pre-line px-4 py-3 text-sm leading-relaxed",
                       message.role === "user"
-                        ? "max-w-[88%] rounded-2xl rounded-br-md bg-primary text-primary-foreground shadow-sm shadow-primary/20"
+                        ? "max-w-[88%] rounded-2xl rounded-br-lg bg-primary text-primary-foreground shadow-sm shadow-primary/20"
                         : isStructuredAssistantMessage
-                          ? "mr-auto w-full max-w-[94%] rounded-2xl rounded-bl-md border border-border/70 bg-background shadow-sm"
-                          : "mr-auto max-w-[88%] rounded-2xl rounded-bl-md border border-border/70 bg-background shadow-sm",
+                          ? "mr-auto w-full max-w-[94%] rounded-2xl rounded-bl-lg border border-border/70 bg-background shadow-sm"
+                          : "mr-auto max-w-[88%] rounded-2xl rounded-bl-lg border border-border/70 bg-background shadow-sm",
                     )}
                   >
                     {message.persistedBlock
@@ -4250,7 +4250,7 @@ export function StackivoAiAssistant({ user }: StackivoAiAssistantProps) {
             {/* Typing indicator — live progress, then the reply streaming in */}
             {pending && (
               <div className="flex justify-start" role="status" aria-live="polite" aria-label="Ivo is responding">
-                <div className="max-w-[85%] rounded-2xl rounded-bl-md border border-border/70 bg-background px-4 py-3 shadow-sm">
+                <div className="max-w-[85%] rounded-2xl rounded-bl-lg border border-border/70 bg-background px-4 py-3 shadow-sm">
                   {liveReply ? (
                     <p className="whitespace-pre-wrap text-sm leading-relaxed">
                       {formatAssistantMessageContent(liveReply.replace(/\n?\s*\[chips\][\s\S]*$/i, ""))}
@@ -4286,7 +4286,7 @@ export function StackivoAiAssistant({ user }: StackivoAiAssistantProps) {
                 {selectedResources.map((resource) => (
                   <span
                     key={`${resource.type}:${resource.id}`}
-                    className="inline-flex max-w-full items-center gap-1 rounded-full border border-primary/20 bg-primary/5 py-1 pl-2.5 pr-1.5 text-[11px] font-medium text-foreground"
+                    className="inline-flex max-w-full items-center gap-1 rounded-full border border-primary/20 bg-primary/5 py-1 pl-2.5 pr-1.5 text-micro font-medium text-foreground"
                   >
                     <span className="text-primary">@</span>
                     <span className="truncate">{resource.label}</span>
@@ -4306,7 +4306,7 @@ export function StackivoAiAssistant({ user }: StackivoAiAssistantProps) {
             ) : null}
             <div className="relative">
               {mentionQuery !== null ? (
-                <div className="absolute bottom-full left-0 right-0 z-20 mb-2 max-h-64 overflow-y-auto rounded-xl border bg-popover p-1.5 shadow-xl">
+                <div className="absolute bottom-full left-0 right-0 z-20 mb-2 max-h-64 overflow-y-auto rounded-lg border bg-popover p-1.5 shadow-xl">
                   {mentionOptions.length > 0 ? mentionOptions.map((resource) => (
                     <button
                       key={`${resource.type}:${resource.id}`}
@@ -4315,12 +4315,12 @@ export function StackivoAiAssistant({ user }: StackivoAiAssistantProps) {
                       onClick={() => selectMention(resource)}
                       className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left hover:bg-muted"
                     >
-                      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-primary/10 text-xs font-semibold uppercase text-primary">
+                      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-xs font-semibold uppercase text-primary">
                         {resource.type === "welcome_document" ? "WD" : resource.type.slice(0, 1)}
                       </span>
                       <span className="min-w-0 flex-1">
                         <span className="block truncate text-sm font-medium">{resource.label}</span>
-                        <span className="block truncate text-[11px] capitalize text-muted-foreground">
+                        <span className="block truncate text-micro capitalize text-muted-foreground">
                           {resource.type.replace("_", " ")} · {resource.subtitle}
                         </span>
                       </span>
@@ -4365,11 +4365,11 @@ export function StackivoAiAssistant({ user }: StackivoAiAssistantProps) {
               </div>
             </div>
             <div className="mt-2 space-y-1 px-1">
-              <p className="flex flex-wrap items-center gap-1.5 text-[11px] text-muted-foreground">
+              <p className="flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
                 <Lightbulb className="h-3 w-3 shrink-0 text-primary/60" />
                 Type @ to attach a client, project, invoice, or welcome document.
               </p>
-              <p className="text-center text-[10px] text-muted-foreground/70">
+              <p className="text-center text-xs text-muted-foreground/70">
                 AI can make mistakes — please review everything before approving or sending.
               </p>
             </div>

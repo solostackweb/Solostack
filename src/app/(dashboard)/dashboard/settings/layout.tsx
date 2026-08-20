@@ -12,7 +12,7 @@ export default function SettingsLayout({
   return (
     <div className="space-y-8">
       <div className="space-y-1.5 border-b pb-6">
-        <h1 className="text-2xl font-bold tracking-tight sm:text-[28px] sm:leading-tight">
+        <h1 className="text-2xl font-bold tracking-tight sm:text-2xl sm:leading-tight">
           Settings
         </h1>
         <p className="text-sm leading-relaxed text-muted-foreground">

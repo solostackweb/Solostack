@@ -73,7 +73,7 @@ export function PortalAccessForm() {
               className="h-11 pl-10"
             />
           </div>
-          <p className="text-[12px] leading-relaxed text-muted-foreground">
+          <p className="text-xs leading-relaxed text-muted-foreground">
             Use the email address your freelancer used to invite you.
           </p>
         </div>

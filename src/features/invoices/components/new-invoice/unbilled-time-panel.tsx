@@ -99,7 +99,7 @@ export function UnbilledTimePanel({
   const totalPendingAmount = pending.reduce((s, g) => s + g.amount, 0);
 
   return (
-    <div className="rounded-xl border border-primary/20 bg-primary/[0.03] p-4 sm:p-5">
+    <div className="rounded-lg border border-primary/20 bg-primary/[0.03] p-4 sm:p-5">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="flex items-center gap-2 text-sm font-semibold">
           <Clock className="h-4 w-4 text-primary" />
@@ -164,7 +164,7 @@ export function UnbilledTimePanel({
         })}
       </ul>
 
-      <p className="mt-3 text-[11px] leading-relaxed text-muted-foreground">
+      <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
         Entries added here are marked as invoiced when you create this invoice,
         so the same hours can never be billed twice. Deleting the invoice
         releases them again.

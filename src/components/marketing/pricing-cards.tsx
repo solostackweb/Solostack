@@ -157,7 +157,7 @@ function BillingToggle({
           onClick={() => onChange(b)}
           aria-pressed={billing === b}
           className={cn(
-            "rounded-full px-4 py-1.5 text-[13px] font-medium transition-all duration-200",
+            "rounded-full px-4 py-1.5 text-xs font-medium transition-all duration-200",
             billing === b
               ? "btn-gradient shadow-sm text-white"
               : "text-muted-foreground hover:text-foreground",
@@ -198,12 +198,12 @@ function PricingCard({
         />
       ) : null}
       {tier.popular ? (
-        <span className="absolute -top-3.5 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full px-3 py-1 text-[11px] font-semibold text-white shadow-lg shadow-primary/25" style={{ backgroundImage: "linear-gradient(135deg, hsl(243 75% 52%), hsl(262 83% 58%))" }}>
+        <span className="absolute -top-3.5 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full px-3 py-1 text-micro font-semibold text-white shadow-lg shadow-primary/25" style={{ backgroundImage: "linear-gradient(135deg, hsl(243 75% 52%), hsl(262 83% 58%))" }}>
           Most popular
         </span>
       ) : null}
       {tier.comingSoon ? (
-        <span className="absolute -top-3 left-6 rounded-full border border-border bg-card px-2.5 py-0.5 text-[11px] font-medium text-muted-foreground">
+        <span className="absolute -top-3 left-6 rounded-full border border-border bg-card px-2.5 py-0.5 text-micro font-medium text-muted-foreground">
           Coming soon
         </span>
       ) : null}
@@ -229,7 +229,7 @@ function PricingCard({
       </div>
       {/* Savings hint — "2 months free" framing converts better than % */}
       {!isFree && billing === "yearly" ? (
-        <p className="mt-1 text-[11px] font-medium text-emerald-600 dark:text-emerald-400">
+        <p className="mt-1 text-micro font-medium text-success-strong">
           2 months free · save ₹{(tier.monthly * 12 - tier.yearly).toLocaleString("en-IN")}/yr
         </p>
       ) : null}
@@ -258,7 +258,7 @@ function PlanCta({
   if (authState.isAuthenticated) {
     if (tier.id === "free") {
       return (
-        <Button asChild className="mt-6 w-full rounded-xl border-primary/20 hover:border-primary/40 hover:bg-primary/5" variant="outline">
+        <Button asChild className="mt-6 w-full rounded-lg border-primary/20 hover:border-primary/40 hover:bg-primary/5" variant="outline">
           <Link href="/dashboard">Proceed to Dashboard</Link>
         </Button>
       );
@@ -266,7 +266,7 @@ function PlanCta({
 
     if (tier.id === "pro") {
       return (
-        <Button asChild className="btn-gradient mt-6 w-full rounded-xl border-0" variant="default">
+        <Button asChild className="btn-gradient mt-6 w-full rounded-lg border-0" variant="default">
           <Link href="/dashboard/settings/billing?plan=pro">
             {authState.plan === "pro" ? "Manage Pro" : "Upgrade in dashboard"}
           </Link>
@@ -275,7 +275,7 @@ function PlanCta({
     }
 
     return (
-      <Button asChild className="mt-6 w-full rounded-xl border-dashed" variant="outline">
+      <Button asChild className="mt-6 w-full rounded-lg border-dashed" variant="outline">
         <Link href="/dashboard/settings/billing?plan=business">
           View in dashboard
         </Link>
@@ -287,7 +287,7 @@ function PlanCta({
   if (tier.comingSoon) {
     return (
       <Button
-        className="mt-6 w-full cursor-not-allowed rounded-xl border-dashed opacity-60"
+        className="mt-6 w-full cursor-not-allowed rounded-lg border-dashed opacity-60"
         variant="outline"
         disabled
       >
@@ -299,10 +299,10 @@ function PlanCta({
   if (tier.popular) {
     return (
       <>
-        <Button asChild className="btn-gradient mt-6 w-full rounded-xl border-0">
+        <Button asChild className="btn-gradient mt-6 w-full rounded-lg border-0">
           <Link href={tier.ctaHref}>{tier.ctaLabel}</Link>
         </Button>
-        <p className="mt-2 text-center text-[11px] text-muted-foreground">
+        <p className="mt-2 text-center text-xs text-muted-foreground">
           No credit card required
         </p>
       </>
@@ -313,12 +313,12 @@ function PlanCta({
     <>
       <Button
         asChild
-        className="mt-6 w-full rounded-xl border-primary/20 hover:border-primary/40 hover:bg-primary/5"
+        className="mt-6 w-full rounded-lg border-primary/20 hover:border-primary/40 hover:bg-primary/5"
         variant="outline"
       >
         <Link href={tier.ctaHref}>{tier.ctaLabel}</Link>
       </Button>
-      <p className="mt-2 text-center text-[11px] text-muted-foreground">
+      <p className="mt-2 text-center text-xs text-muted-foreground">
         No credit card required
       </p>
     </>

@@ -79,11 +79,11 @@ export default async function AdminSecurityPage({ searchParams }: Props) {
         subtitle={
           <span>
             Last 7d -{" "}
-            <span className="text-red-600 dark:text-red-400">
+            <span className="text-destructive-strong">
               {result.counts.alert} alert
             </span>{" "}
             -{" "}
-            <span className="text-amber-600 dark:text-amber-400">
+            <span className="text-warning-strong">
               {result.counts.warn} warn
             </span>{" "}
             -{" "}
@@ -172,7 +172,7 @@ export default async function AdminSecurityPage({ searchParams }: Props) {
       </form>
 
       {/* Results */}
-      <p className="text-[11px] text-muted-foreground">
+      <p className="text-xs text-muted-foreground">
         {result.total.toLocaleString("en-IN")} matches - page {page} /{" "}
         {totalPages}
       </p>
@@ -189,16 +189,16 @@ export default async function AdminSecurityPage({ searchParams }: Props) {
             return (
               <li
                 key={row.id}
-                className="rounded-xl border bg-card shadow-sm shadow-black/[0.03] p-3 text-xs"
+                className="rounded-lg border bg-card shadow-sm shadow-black/[0.03] p-3 text-xs"
               >
                 <div className="flex flex-wrap items-center gap-2">
                   <span
                     className={cn(
                       "inline-block h-1.5 w-1.5 rounded-full",
                       row.severity === "alert"
-                        ? "bg-red-500"
+                        ? "bg-destructive"
                         : row.severity === "warn"
-                          ? "bg-amber-500"
+                          ? "bg-warning"
                           : "bg-muted-foreground/50",
                     )}
                   />
@@ -232,7 +232,7 @@ export default async function AdminSecurityPage({ searchParams }: Props) {
                     </span>
                   </span>
                 </div>
-                <div className="mt-0.5 flex items-center gap-3 text-[11px] text-muted-foreground">
+                <div className="mt-0.5 flex items-center gap-3 text-xs text-muted-foreground">
                   <span className="font-mono">
                     {formatIstStamp(row.created_at)} IST
                   </span>
@@ -242,7 +242,7 @@ export default async function AdminSecurityPage({ searchParams }: Props) {
                 </div>
                 {hasMeta ? (
                   <details className="mt-2">
-                    <summary className="cursor-pointer text-[11px] text-muted-foreground hover:text-foreground">
+                    <summary className="cursor-pointer text-xs text-muted-foreground hover:text-foreground">
                       metadata
                     </summary>
                     <div className="mt-1">

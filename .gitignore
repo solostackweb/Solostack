@@ -41,3 +41,4 @@ next-env.d.ts
 
 # scratch
 /_to_delete
+/_sync

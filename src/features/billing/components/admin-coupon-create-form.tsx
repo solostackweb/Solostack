@@ -43,7 +43,7 @@ export function AdminCouponCreateForm() {
         <span className="text-xs font-medium text-muted-foreground">Benefit</span>
         <select
           name="grantType"
-          className="h-9 w-full rounded-md border bg-background px-3 text-sm"
+          className="h-9 w-full rounded-lg border bg-background px-3 text-sm"
           defaultValue="discount"
         >
           <option value="discount">Discounted checkout</option>
@@ -54,7 +54,7 @@ export function AdminCouponCreateForm() {
         <span className="text-xs font-medium text-muted-foreground">Type</span>
         <select
           name="discountType"
-          className="h-9 w-full rounded-md border bg-background px-3 text-sm"
+          className="h-9 w-full rounded-lg border bg-background px-3 text-sm"
           defaultValue="percent"
         >
           <option value="percent">Percent</option>
@@ -71,7 +71,7 @@ export function AdminCouponCreateForm() {
       </label>
       <label className="space-y-1.5 lg:col-span-1">
         <span className="text-xs font-medium text-muted-foreground">Plan</span>
-        <select name="appliesToPlan" className="h-9 w-full rounded-md border bg-background px-2 text-sm">
+        <select name="appliesToPlan" className="h-9 w-full rounded-lg border bg-background px-2 text-sm">
           <option value="all">All</option>
           <option value="pro">Pro</option>
           <option value="business">Business</option>
@@ -79,7 +79,7 @@ export function AdminCouponCreateForm() {
       </label>
       <label className="space-y-1.5 lg:col-span-2">
         <span className="text-xs font-medium text-muted-foreground">Cycle</span>
-        <select name="appliesToCycle" className="h-9 w-full rounded-md border bg-background px-2 text-sm">
+        <select name="appliesToCycle" className="h-9 w-full rounded-lg border bg-background px-2 text-sm">
           <option value="all">All</option>
           <option value="monthly">Monthly</option>
           <option value="yearly">Yearly</option>

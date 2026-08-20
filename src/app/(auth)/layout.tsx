@@ -59,16 +59,16 @@ export default async function AuthLayout({
         <div className="mx-auto grid w-full max-w-[1100px] items-start gap-12 lg:grid-cols-[1.05fr_420px] lg:gap-20">
           {/* Left: value panel — desktop only */}
           <div className="hidden lg:block">
-            <p className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-3.5 py-1.5 text-[11px] font-semibold uppercase tracking-widest text-primary">
+            <p className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-3.5 py-1.5 text-micro font-semibold uppercase tracking-widest text-primary">
               Built for Indian freelancers &amp; studios
             </p>
-            <h2 className="mt-5 max-w-md font-display text-[34px] font-semibold leading-[1.12] tracking-[-0.02em] text-foreground">
+            <h2 className="mt-5 max-w-md font-display text-3xl font-semibold leading-[1.12] tracking-[-0.02em] text-foreground">
               Everything between you and getting paid, handled.
             </h2>
 
             <ul className="mt-7 space-y-3.5">
               {VALUE_POINTS.map((point) => (
-                <li key={point} className="flex items-start gap-3 text-[15px] text-foreground/90">
+                <li key={point} className="flex items-start gap-3 text-sm text-foreground/90">
                   <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-success/10 text-success">
                     <Check className="h-3 w-3" strokeWidth={3} />
                   </span>
@@ -97,7 +97,7 @@ export default async function AuthLayout({
             {/* Stat chips */}
             <div className="mt-7 flex flex-wrap items-center gap-x-6 gap-y-2">
               {STATS.map((s) => (
-                <span key={s.label} className="inline-flex items-center gap-1.5 text-[13px] font-medium text-muted-foreground">
+                <span key={s.label} className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
                   <s.icon className="h-3.5 w-3.5 text-primary/70" />
                   {s.label}
                 </span>
@@ -107,7 +107,7 @@ export default async function AuthLayout({
 
           {/* Right: form card */}
           <div className="mx-auto w-full max-w-[420px] lg:mx-0">
-            <div className="rounded-3xl border border-border/80 bg-card p-6 shadow-xl shadow-primary/[0.06] sm:p-7">
+            <div className="rounded-2xl border border-border/80 bg-card p-6 shadow-xl shadow-primary/[0.06] sm:p-7">
               {children}
             </div>
             <p className="mt-4 text-center text-xs text-muted-foreground/80 lg:hidden">

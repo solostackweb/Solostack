@@ -1,6 +1,7 @@
 import { ImageResponse } from "next/og";
 import { type NextRequest } from "next/server";
 import { createElement as h } from "react";
+import { BRAND_PRIMARY, BRAND_ACCENT } from "@/config/brand-colors";
 
 export const runtime = "edge";
 
@@ -38,7 +39,7 @@ export async function GET(
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        background: "linear-gradient(135deg, #2563EB 0%, #4F46E5 100%)",
+        background: `linear-gradient(135deg, ${BRAND_PRIMARY} 0%, ${BRAND_ACCENT} 100%)`,
         borderRadius: Math.round(size * 0.22),
       },
     },

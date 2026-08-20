@@ -124,7 +124,7 @@ export function NotificationsMenu() {
           <div className="flex items-center gap-2">
             <span className="text-sm font-bold tracking-tight">Notifications</span>
             {hasUnread ? (
-              <span className="inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-primary px-1.5 text-[10px] font-bold text-primary-foreground">
+              <span className="inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-primary px-1.5 text-micro font-bold text-primary-foreground">
                 {unreadCount}
               </span>
             ) : null}
@@ -138,7 +138,7 @@ export function NotificationsMenu() {
               Mark all read
             </button>
           ) : (
-            <span className="flex items-center gap-1 text-[11px] font-medium text-muted-foreground">
+            <span className="flex items-center gap-1 text-micro font-medium text-muted-foreground">
               <CheckCircle2 className="h-3 w-3" /> All caught up
             </span>
           )}
@@ -165,7 +165,7 @@ export function NotificationsMenu() {
         <div className="p-1">
           <Link
             href="/dashboard/notifications"
-            className="flex w-full items-center justify-center rounded-md px-3 py-2 text-xs font-semibold text-primary transition-colors hover:bg-accent"
+            className="flex w-full items-center justify-center rounded-lg px-3 py-2 text-xs font-semibold text-primary transition-colors hover:bg-accent"
           >
             View all notifications →
           </Link>
@@ -206,7 +206,7 @@ function NotificationDropdownRow({
             {notification.message}
           </p>
         )}
-        <p className="mt-0.5 text-[11px] font-medium text-muted-foreground/80">
+        <p className="mt-0.5 text-micro font-medium text-muted-foreground/80">
           {formatRelativeTime(notification.createdAt)}
         </p>
       </div>

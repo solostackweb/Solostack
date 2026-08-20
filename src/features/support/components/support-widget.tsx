@@ -190,7 +190,7 @@ export function SupportWidget({ plan }: Props) {
         >
           <LifeBuoy className="h-5 w-5" />
           {unread ? (
-            <span className="absolute -right-0.5 -top-0.5 h-3 w-3 rounded-full border-2 border-background bg-red-500" />
+            <span className="absolute -right-0.5 -top-0.5 h-3 w-3 rounded-full border-2 border-background bg-destructive" />
           ) : null}
         </button>
       ) : null}
@@ -218,9 +218,9 @@ export function SupportWidget({ plan }: Props) {
             <div className="flex items-center justify-between border-b bg-muted/30 px-4 py-3">
               <div>
                 <p className="text-sm font-semibold">Stackivo Support</p>
-                <p className="text-[11px] text-muted-foreground">
+                <p className="text-micro text-muted-foreground">
                   {policy.liveChat ? (
-                    <span className="text-emerald-600 dark:text-emerald-400">● Online</span>
+                    <span className="text-success-strong">● Online</span>
                   ) : (
                     "Leave a message"
                   )}
@@ -232,7 +232,7 @@ export function SupportWidget({ plan }: Props) {
                 type="button"
                 aria-label="Close"
                 onClick={() => setOpen(false)}
-                className="rounded-md p-1.5 text-muted-foreground hover:bg-muted"
+                className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted"
               >
                 <X className="h-4 w-4" />
               </button>
@@ -267,7 +267,7 @@ export function SupportWidget({ plan }: Props) {
                         <div className="whitespace-pre-wrap break-words">{m.body}</div>
                         <div
                           className={cn(
-                            "mt-0.5 text-[10px]",
+                            "mt-0.5 text-xs",
                             mine ? "text-background/60" : "text-muted-foreground",
                           )}
                         >
@@ -311,7 +311,7 @@ export function SupportWidget({ plan }: Props) {
                 <Link
                   href="/help"
                   onClick={() => setOpen(false)}
-                  className="inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground"
+                  className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
                 >
                   Help center & all tickets <ExternalLink className="h-3 w-3" />
                 </Link>

@@ -265,7 +265,7 @@ export function CheckoutFlow({
                 </div>
               </div>
 
-              <div className="mt-5 rounded-xl border bg-muted/25 p-3">
+              <div className="mt-5 rounded-lg border bg-muted/25 p-3">
                 <label className="text-xs font-medium text-muted-foreground">
                   Coupon code
                 </label>
@@ -286,7 +286,7 @@ export function CheckoutFlow({
                   </Button>
                 </div>
                 {appliedCoupon ? (
-                  <p className="mt-2 flex items-center gap-1 text-xs text-emerald-600 dark:text-emerald-400">
+                  <p className="mt-2 flex items-center gap-1 text-xs text-success-strong">
                     <TicketPercent className="h-3.5 w-3.5" />
                     {appliedCoupon} is applied
                     {quote.freeAccessDays
@@ -296,7 +296,7 @@ export function CheckoutFlow({
                 ) : null}
               </div>
 
-              <div className="mt-5 space-y-3 rounded-xl border border-primary/15 bg-primary/[0.03] p-3 text-xs leading-5 text-muted-foreground">
+              <div className="mt-5 space-y-3 rounded-lg border border-primary/15 bg-primary/[0.03] p-3 text-xs leading-5 text-muted-foreground">
                 <p className="flex gap-2">
                   <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
                   Payments are secured by Razorpay. Stackivo never sees or stores card, UPI, or bank details.
@@ -323,7 +323,7 @@ export function CheckoutFlow({
                 )}
               </Button>
 
-              <p className="mt-3 text-center text-[11px] leading-5 text-muted-foreground">
+              <p className="mt-3 text-center text-xs leading-5 text-muted-foreground">
                 By continuing, you agree to Stackivo&apos;s{" "}
                 <PolicyLink href="/terms">Terms</PolicyLink>,{" "}
                 <PolicyLink href="/refund-policy">Refund policy</PolicyLink>, and{" "}
@@ -347,8 +347,8 @@ function InfoBlock({
   detail: string;
 }) {
   return (
-    <div className="rounded-xl border bg-card/50 p-4">
-      <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+    <div className="rounded-lg border bg-card/50 p-4">
+      <p className="text-micro font-semibold uppercase tracking-wider text-muted-foreground">
         {title}
       </p>
       <p className="mt-2 font-semibold">{value}</p>
@@ -377,7 +377,7 @@ function SummaryRow({
         className={cn(
           "font-medium tabular-nums",
           strong && "text-xl font-semibold",
-          good && "text-emerald-600 dark:text-emerald-400",
+          good && "text-success-strong",
         )}
       >
         {value}

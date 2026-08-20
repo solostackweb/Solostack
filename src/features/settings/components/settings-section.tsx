@@ -66,7 +66,7 @@ export function SettingsSection({
           >
             {title}
             {badge && (
-              <Badge variant="secondary" className="ml-2 align-middle text-[10px]">
+              <Badge variant="secondary" className="ml-2 align-middle text-xs">
                 {badge}
               </Badge>
             )}
@@ -132,15 +132,15 @@ export function SettingsField({
     <div className={cn("space-y-1.5", className)}>
       <label
         htmlFor={htmlFor}
-        className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground"
+        className="text-micro font-semibold uppercase tracking-wider text-muted-foreground"
       >
         {label}
       </label>
       {children}
       {error ? (
-        <p className="text-[11px] text-destructive">{error}</p>
+        <p className="text-micro text-destructive">{error}</p>
       ) : hint ? (
-        <p className="text-[11px] text-muted-foreground">{hint}</p>
+        <p className="text-xs text-muted-foreground">{hint}</p>
       ) : null}
     </div>
   );

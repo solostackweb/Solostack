@@ -68,7 +68,7 @@ export function Section({
 
 export function SectionEyebrow({ children }: { children: React.ReactNode }) {
   return (
-    <p className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-3.5 py-1.5 text-[11px] font-semibold uppercase tracking-widest text-primary">
+    <p className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-3.5 py-1.5 text-micro font-semibold uppercase tracking-widest text-primary">
       <span className="h-1 w-1 rounded-full bg-primary/80" />
       {children}
     </p>
@@ -103,14 +103,14 @@ export function SectionHeading({
         className={cn(
           "text-balance font-display font-semibold tracking-tight",
           size === "large"
-            ? "text-[32px] sm:text-[44px] lg:text-5xl lg:tracking-[-0.02em]"
-            : "text-[26px] sm:text-[34px] lg:text-[40px] lg:tracking-[-0.018em]",
+            ? "text-3xl sm:text-4xl lg:text-5xl lg:tracking-[-0.02em]"
+            : "text-2xl sm:text-3xl lg:text-4xl lg:tracking-[-0.018em]",
         )}
       >
         {title}
       </h2>
       {subtitle ? (
-        <p className="text-pretty text-base leading-[1.75] text-muted-foreground sm:text-[17px]">
+        <p className="text-pretty text-base leading-[1.75] text-muted-foreground sm:text-lg">
           {subtitle}
         </p>
       ) : null}

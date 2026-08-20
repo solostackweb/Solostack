@@ -115,14 +115,14 @@ export default async function AdminUsersPage({ searchParams }: Props) {
         {result.rows.map((u) => (
           <li
             key={u.id}
-            className="rounded-xl border bg-card shadow-sm shadow-black/[0.03] p-3 text-sm"
+            className="rounded-lg border bg-card shadow-sm shadow-black/[0.03] p-3 text-sm"
           >
             <Link
               href={`/admin/users/${u.id}`}
               className="flex items-baseline justify-between gap-2"
             >
               <span className="font-medium">{u.full_name}</span>
-              <span className="text-[11px] text-muted-foreground">
+              <span className="text-micro text-muted-foreground">
                 {formatRelative(u.signed_up_at)}
               </span>
             </Link>
@@ -132,19 +132,19 @@ export default async function AdminUsersPage({ searchParams }: Props) {
             <div className="mt-2">
               <AccountTypeBadge accountType={u.account_type} />
             </div>
-            <div className="mt-2 grid grid-cols-3 gap-2 text-[11px] text-muted-foreground tabular-nums">
+            <div className="mt-2 grid grid-cols-3 gap-2 text-micro text-muted-foreground tabular-nums">
               <div>
-                <div className="text-[10px] uppercase tracking-wider">plan</div>
+                <div className="text-micro uppercase tracking-wider">plan</div>
                 <div className="text-foreground">{u.plan ?? "free"}</div>
               </div>
               <div>
-                <div className="text-[10px] uppercase tracking-wider">paid</div>
+                <div className="text-micro uppercase tracking-wider">paid</div>
                 <div className="text-foreground">
                   {formatPaiseInr(u.total_revenue_paise)}
                 </div>
               </div>
               <div>
-                <div className="text-[10px] uppercase tracking-wider">inv</div>
+                <div className="text-micro uppercase tracking-wider">inv</div>
                 <div className="text-foreground">{u.invoice_count}</div>
               </div>
             </div>
@@ -192,7 +192,7 @@ export default async function AdminUsersPage({ searchParams }: Props) {
                       className="block leading-tight"
                     >
                       <div className="font-medium">{u.full_name}</div>
-                      <div className="truncate text-[11px] text-muted-foreground">
+                      <div className="truncate text-micro text-muted-foreground">
                         {u.email}
                       </div>
                     </Link>
@@ -215,12 +215,12 @@ export default async function AdminUsersPage({ searchParams }: Props) {
                   <AdminTd className="tabular-nums text-muted-foreground">
                     {formatRelative(u.last_sign_in_at)}
                   </AdminTd>
-                  <AdminTd className="font-mono text-[11px] tabular-nums text-muted-foreground">
+                  <AdminTd className="font-mono text-xs tabular-nums text-muted-foreground">
                     {formatIstStamp(u.signed_up_at)}
                   </AdminTd>
                   <AdminTd className="tabular-nums text-muted-foreground">
                     {u.suppression_count > 0 ? (
-                      <span className="text-amber-600 dark:text-amber-400">
+                      <span className="text-warning-strong">
                         {u.suppression_count}
                       </span>
                     ) : (
@@ -264,7 +264,7 @@ function Filters({
     <form
       method="get"
       action="/admin/users"
-      className="flex flex-wrap items-center gap-2 rounded-xl border bg-card/95 p-2 shadow-sm shadow-black/[0.025] dark:bg-card"
+      className="flex flex-wrap items-center gap-2 rounded-lg border bg-card/95 p-2 shadow-sm shadow-black/[0.025] dark:bg-card"
     >
       <input
         type="text"
@@ -330,14 +330,14 @@ function StatusBadge({
     return <span className="text-xs text-muted-foreground">-</span>;
   const tone =
     status === "active" || status === "trialing"
-      ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
+      ? "bg-success-subtle text-success-strong"
       : status === "past_due"
-        ? "bg-red-500/10 text-red-700 dark:text-red-400"
+        ? "bg-destructive-subtle text-destructive-strong"
         : "bg-muted text-muted-foreground";
   return (
     <span
       className={cn(
-        "inline-block rounded px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wider",
+        "inline-block rounded px-1.5 py-0.5 text-micro font-medium uppercase tracking-wider",
         tone,
       )}
     >
@@ -355,10 +355,10 @@ function AccountTypeBadge({
   return (
     <span
       className={cn(
-        "inline-block rounded px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wider",
+        "inline-block rounded px-1.5 py-0.5 text-micro font-medium uppercase tracking-wider",
         isClient
-          ? "bg-sky-500/10 text-sky-700 dark:text-sky-400"
-          : "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400",
+          ? "bg-info-subtle text-info-strong"
+          : "bg-success-subtle text-success-strong",
       )}
     >
       {isClient ? "Portal client" : "Freelancer"}

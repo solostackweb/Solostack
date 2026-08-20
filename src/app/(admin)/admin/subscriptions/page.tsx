@@ -92,7 +92,7 @@ export default async function AdminSubscriptionsPage({ searchParams }: Props) {
         />
       </KpiGrid>
 
-      <div className="flex flex-wrap gap-1.5 rounded-xl border bg-card/95 p-1.5 shadow-sm shadow-black/[0.025] dark:bg-card">
+      <div className="flex flex-wrap gap-1.5 rounded-lg border bg-card/95 p-1.5 shadow-sm shadow-black/[0.025] dark:bg-card">
         {TABS.map((t) => {
           const label = TAB_LABELS[t];
           const count =
@@ -117,7 +117,7 @@ export default async function AdminSubscriptionsPage({ searchParams }: Props) {
               {label}
               <span
                 className={cn(
-                  "rounded-md bg-muted px-1.5 text-[10px] tabular-nums",
+                  "rounded-lg bg-muted px-1.5 text-xs tabular-nums",
                   active
                     ? "bg-background/20 text-background"
                     : "text-muted-foreground",
@@ -135,7 +135,7 @@ export default async function AdminSubscriptionsPage({ searchParams }: Props) {
         {result.rows.map((row) => (
           <li
             key={row.id}
-            className="rounded-xl border bg-card p-3 text-sm shadow-sm shadow-black/[0.03]"
+            className="rounded-lg border bg-card p-3 text-sm shadow-sm shadow-black/[0.03]"
           >
             <Link
               href={`/admin/subscriptions/${row.id}`}
@@ -143,14 +143,14 @@ export default async function AdminSubscriptionsPage({ searchParams }: Props) {
             >
               <div className="flex items-baseline justify-between">
                 <span className="font-medium">{row.full_name}</span>
-                <span className="text-[11px] text-muted-foreground">
+                <span className="text-micro text-muted-foreground">
                   {formatRelative(row.updated_at)}
                 </span>
               </div>
               <div className="truncate text-xs text-muted-foreground">
                 {row.email}
               </div>
-              <div className="mt-1.5 flex items-center gap-2 text-[11px]">
+              <div className="mt-1.5 flex items-center gap-2 text-xs">
                 <PlanTag plan={row.plan} />
                 <StatusBadge status={row.status} />
                 {row.razorpay_subscription_id ? (
@@ -197,7 +197,7 @@ export default async function AdminSubscriptionsPage({ searchParams }: Props) {
                       className="block leading-tight"
                     >
                       <div className="font-medium">{row.full_name}</div>
-                      <div className="truncate text-[11px] text-muted-foreground">
+                      <div className="truncate text-micro text-muted-foreground">
                         {row.email}
                       </div>
                     </Link>
@@ -211,13 +211,13 @@ export default async function AdminSubscriptionsPage({ searchParams }: Props) {
                   <AdminTd className="text-xs text-muted-foreground">
                     {row.billing_cycle}
                   </AdminTd>
-                  <AdminTd className="font-mono text-[11px] tabular-nums text-muted-foreground">
+                  <AdminTd className="font-mono text-xs tabular-nums text-muted-foreground">
                     {formatIstStamp(row.current_period_end)}
                   </AdminTd>
                   <AdminTd className="text-xs text-muted-foreground">
                     {row.razorpay_subscription_id ? "razorpay" : "manual"}
                   </AdminTd>
-                  <AdminTd className="font-mono text-[11px] tabular-nums text-muted-foreground">
+                  <AdminTd className="font-mono text-xs tabular-nums text-muted-foreground">
                     {formatRelative(row.updated_at)}
                   </AdminTd>
                 </AdminTr>
@@ -245,7 +245,7 @@ export default async function AdminSubscriptionsPage({ searchParams }: Props) {
         </nav>
       ) : null}
 
-      <p className="text-[11px] text-muted-foreground">
+      <p className="text-xs text-muted-foreground">
         Showing most recent updates first. Manual ops (comp / refund /
         cancel) live in the detail page.
       </p>
@@ -268,12 +268,12 @@ function PlanTag({ plan }: { plan: string }) {
     plan === "business"
       ? "bg-violet-500/10 text-violet-700 dark:text-violet-400"
       : plan === "pro"
-        ? "bg-sky-500/10 text-sky-700 dark:text-sky-400"
+        ? "bg-info-subtle text-info-strong"
         : "bg-muted text-muted-foreground";
   return (
     <span
       className={cn(
-        "inline-block rounded px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wider",
+        "inline-block rounded px-1.5 py-0.5 text-micro font-medium uppercase tracking-wider",
         tone,
       )}
     >
@@ -285,14 +285,14 @@ function PlanTag({ plan }: { plan: string }) {
 function StatusBadge({ status }: { status: string }) {
   const tone =
     status === "active" || status === "trialing"
-      ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
+      ? "bg-success-subtle text-success-strong"
       : status === "past_due"
-        ? "bg-red-500/10 text-red-700 dark:text-red-400"
+        ? "bg-destructive-subtle text-destructive-strong"
         : "bg-muted text-muted-foreground";
   return (
     <span
       className={cn(
-        "inline-block rounded px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wider",
+        "inline-block rounded px-1.5 py-0.5 text-micro font-medium uppercase tracking-wider",
         tone,
       )}
     >

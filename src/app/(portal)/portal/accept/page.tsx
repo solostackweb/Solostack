@@ -96,11 +96,11 @@ function InviteAccessBox({
       <div className="h-1.5 w-full bg-primary" />
       <CardContent className="space-y-5 p-5 sm:p-6">
         <div className="flex items-start gap-3.5">
-          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
             <Workflow className="h-5 w-5" />
           </div>
           <div className="min-w-0">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+            <p className="text-micro font-semibold uppercase tracking-[0.16em] text-muted-foreground">
               Stackivo Portal
             </p>
             <h1 className="mt-1 text-xl font-semibold tracking-tight">
@@ -145,7 +145,7 @@ function ErrorBox({ title, message }: { title: string; message: string }) {
             {message}
           </p>
         </div>
-        <div className="flex items-start gap-2.5 rounded-md bg-muted/40 p-3 text-left">
+        <div className="flex items-start gap-2.5 rounded-lg bg-muted/40 p-3 text-left">
           <MailQuestion className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
           <p className="text-xs leading-relaxed text-muted-foreground">
             Tip: re-open the original email from your freelancer and tap

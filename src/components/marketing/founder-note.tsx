@@ -30,15 +30,15 @@ export function FounderNote() {
           />
 
           <div className="relative">
-            <span className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-3 py-1 text-[11px] font-semibold uppercase tracking-wider text-primary">
+            <span className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-3 py-1 text-micro font-semibold uppercase tracking-wider text-primary">
               Built solo · Built in the open
             </span>
 
-            <h3 className="mt-4 text-2xl font-semibold tracking-tight sm:text-[28px]">
+            <h3 className="mt-4 text-2xl font-semibold tracking-tight sm:text-2xl">
               No tier-one queue. The team that built it answers your messages.
             </h3>
 
-            <div className="mt-4 space-y-3 text-[15px] leading-7 text-muted-foreground">
+            <div className="mt-4 space-y-3 text-sm leading-7 text-muted-foreground">
               <p>
                 Most freelance SaaS pretends India doesn&rsquo;t exist or
                 bolts on GST as an afterthought. Stackivo is built solo from

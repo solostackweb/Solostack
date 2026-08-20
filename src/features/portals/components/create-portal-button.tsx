@@ -127,7 +127,7 @@ export function CreatePortalButton({
           <div className="space-y-2">
             <Label htmlFor="portal-client">Client</Label>
             {clientOptions.length === 0 ? (
-              <div className="rounded-md border border-dashed p-3 text-xs text-muted-foreground">
+              <div className="rounded-lg border border-dashed p-3 text-xs text-muted-foreground">
                 No clients yet. Add one to create this portal.
               </div>
             ) : (
@@ -193,7 +193,7 @@ export function CreatePortalButton({
                 type="color"
                 value={brandColor}
                 onChange={(e) => setBrandColor(e.target.value)}
-                className="h-9 w-12 cursor-pointer rounded-md border bg-background"
+                className="h-9 w-12 cursor-pointer rounded-lg border bg-background"
               />
               <Input
                 value={brandColor}
@@ -205,7 +205,7 @@ export function CreatePortalButton({
             </div>
           </div>
           {error && (
-            <p className="rounded-md bg-destructive/10 p-2.5 text-xs text-destructive">
+            <p className="rounded-lg bg-destructive/10 p-2.5 text-xs text-destructive">
               {error}
             </p>
           )}

@@ -81,7 +81,7 @@ export default function IvoSettingsPage() {
               >
                 <div className="min-w-0">
                   <p className="text-sm leading-relaxed">{memory.content}</p>
-                  <p className="mt-0.5 text-[11px] text-muted-foreground">
+                  <p className="mt-0.5 text-xs text-muted-foreground">
                     Saved {formatDate(memory.createdAt)}
                   </p>
                 </div>
@@ -100,7 +100,7 @@ export default function IvoSettingsPage() {
             ))}
           </ul>
         )}
-        <p className="mt-3 text-[11px] leading-relaxed text-muted-foreground">
+        <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
           Memory is capped at 40 entries and only ever visible to you. Chat
           history is separate: Ivo reads just the recent messages of the
           current conversation, and archived chats are pruned automatically

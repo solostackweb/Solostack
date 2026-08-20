@@ -50,14 +50,14 @@ export function PlanCard({ subscription }: Props) {
       <CardContent className="space-y-5 p-6">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="min-w-0">
-            <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+            <p className="text-micro font-semibold uppercase tracking-wider text-muted-foreground">
               Current plan
             </p>
             <div className="mt-1 flex items-center gap-2.5">
               <h2 className="text-2xl font-semibold tracking-tight">{plan.name}</h2>
               <Badge
                 className={cn(
-                  "h-5 px-1.5 text-[10px]",
+                  "h-5 px-1.5 text-micro",
                   meta.tone === "success" && "bg-success/10 text-success",
                   meta.tone === "warning" && "bg-warning/10 text-warning",
                   meta.tone === "danger" && "bg-destructive/10 text-destructive",
@@ -67,7 +67,7 @@ export function PlanCard({ subscription }: Props) {
                 {meta.label}
               </Badge>
               {lifecycle.isCanceledAtPeriodEnd && (
-                <Badge variant="secondary" className="h-5 px-1.5 text-[10px]">
+                <Badge variant="secondary" className="h-5 px-1.5 text-xs">
                   Cancels at period end
                 </Badge>
               )}
@@ -192,7 +192,7 @@ function Stat({
 }) {
   return (
     <div>
-      <dt className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+      <dt className="text-micro font-semibold uppercase tracking-wider text-muted-foreground">
         {label}
       </dt>
       <dd className="mt-1 flex items-center gap-1.5 text-sm font-medium tabular-nums">
@@ -218,7 +218,7 @@ function Banner({
   return (
     <div
       className={cn(
-        "flex items-start gap-3 rounded-md border p-3 text-sm",
+        "flex items-start gap-3 rounded-lg border p-3 text-sm",
         tone === "danger" && "border-destructive/30 bg-destructive/5 text-destructive",
         tone === "warning" && "border-warning/30 bg-warning/5 text-warning",
         tone === "muted" && "border-border bg-muted/40 text-foreground",

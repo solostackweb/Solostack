@@ -43,12 +43,12 @@ export function GstSection() {
             {POINTS.map((p) => (
               <StaggerItem key={p.title}>
                 <div className="flex gap-4 transition-transform duration-200 ease-out hover:translate-x-1">
-                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-500">
+                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-success-subtle text-success-strong">
                     <CheckCircle2 className="h-3.5 w-3.5" />
                   </span>
                   <div>
                     <p className="text-base font-medium">{p.title}</p>
-                    <p className="mt-1 text-sm leading-relaxed text-muted-foreground lg:text-[15px]">
+                    <p className="mt-1 text-sm leading-relaxed text-muted-foreground lg:text-sm">
                       {p.description}
                     </p>
                   </div>

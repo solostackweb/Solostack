@@ -559,7 +559,7 @@ function ClientTopBar({ portalName }: { portalName: string }) {
       <div className="mx-auto flex w-full max-w-[1400px] items-center justify-between gap-3">
         <div className="min-w-0">
           <p className="truncate text-sm font-semibold">{portalName}</p>
-          <p className="text-[11px] text-muted-foreground">Client companion app</p>
+          <p className="text-micro text-muted-foreground">Client companion app</p>
         </div>
         <div className="flex items-center gap-1">
           <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full" aria-label="Notifications">
@@ -592,7 +592,7 @@ function ClientStatusCard({
   return (
     <div className={`rounded-2xl border bg-card p-4 shadow-sm ${className ?? ""}`}>
       <div className="mb-3 flex items-center gap-2 text-xs font-medium text-muted-foreground">
-        <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-muted">
+        <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-muted">
           <Icon className="h-4 w-4" />
         </span>
         {label}
@@ -625,7 +625,7 @@ function ClientQuickActions({
     <section className="rounded-2xl border bg-card p-4 shadow-sm">
       <div className="mb-3 flex items-center justify-between gap-3">
         <h2 className="text-sm font-semibold">Quick actions</h2>
-        <span className="text-[11px] text-muted-foreground">What matters now</span>
+        <span className="text-micro text-muted-foreground">What matters now</span>
       </div>
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
         <QuickAction
@@ -685,7 +685,7 @@ function QuickAction({
   onClick?: () => void;
 }) {
   const className =
-    "flex min-h-14 items-center justify-center gap-2 rounded-xl border bg-background px-3 py-3 text-xs font-semibold shadow-sm transition hover:border-primary/40 hover:bg-muted/40 disabled:pointer-events-none disabled:opacity-45";
+    "flex min-h-14 items-center justify-center gap-2 rounded-lg border bg-background px-3 py-3 text-xs font-semibold shadow-sm transition hover:border-primary/40 hover:bg-muted/40 disabled:pointer-events-none disabled:opacity-45";
   if (onClick) {
     return (
       <button type="button" className={className} onClick={onClick} disabled={disabled}>
@@ -733,12 +733,12 @@ function ClientActivityTimeline({ activity }: { activity: ViewProps["activity"] 
               <div className="min-w-0 flex-1">
                 <div className="flex items-start justify-between gap-3">
                   <p className="text-xs font-semibold">{formatActivityTitle(item)}</p>
-                  <time className="shrink-0 text-[10px] text-muted-foreground" dateTime={item.created_at}>
+                  <time className="shrink-0 text-micro text-muted-foreground" dateTime={item.created_at}>
                     {getRelativeTime(item.created_at)}
                   </time>
                 </div>
                 {formatActivityDescription(item) && (
-                  <p className="mt-0.5 truncate text-[11px] text-muted-foreground">
+                  <p className="mt-0.5 truncate text-xs text-muted-foreground">
                     {formatActivityDescription(item)}
                   </p>
                 )}
@@ -885,10 +885,10 @@ function ClientFilesPanel({
             return (
               <div key={category} className="space-y-2">
                 <div className="flex items-center gap-2">
-                  <span className={`rounded-full px-2 py-1 text-[10px] font-semibold ${CATEGORY_STYLE[category] ?? "bg-muted text-muted-foreground"}`}>
+                  <span className={`rounded-full px-2 py-1 text-micro font-semibold ${CATEGORY_STYLE[category] ?? "bg-muted text-muted-foreground"}`}>
                     {CATEGORY_LABEL[category] || "Other"}
                   </span>
-                  <span className="text-[11px] text-muted-foreground">{grouped.length} file{grouped.length > 1 ? "s" : ""}</span>
+                  <span className="text-micro text-muted-foreground">{grouped.length} file{grouped.length > 1 ? "s" : ""}</span>
                 </div>
                 <div className={view === "grid" ? "grid gap-2 sm:grid-cols-2" : "space-y-2"}>
                   {grouped.map((file) => (
@@ -926,16 +926,16 @@ function PortalDocumentCard({
   return (
     <button
       type="button"
-      className="flex items-center gap-3 rounded-xl border bg-background p-3 text-left transition hover:border-primary/40 disabled:pointer-events-none disabled:opacity-45"
+      className="flex items-center gap-3 rounded-lg border bg-background p-3 text-left transition hover:border-primary/40 disabled:pointer-events-none disabled:opacity-45"
       onClick={onOpen}
       disabled={disabled}
     >
-      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-muted text-muted-foreground">
+      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
         <Icon className="h-4 w-4" />
       </span>
       <span className="min-w-0 flex-1">
         <span className="block truncate text-sm font-semibold">{title}</span>
-        <span className="block truncate text-[11px] capitalize text-muted-foreground">{meta}</span>
+        <span className="block truncate text-micro capitalize text-muted-foreground">{meta}</span>
       </span>
       <Eye className="h-4 w-4 shrink-0 text-muted-foreground" />
     </button>
@@ -967,8 +967,8 @@ function ClientFileCard({
   }
 
   return (
-    <article className="flex items-center gap-3 rounded-xl border bg-background p-3">
-      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-muted text-muted-foreground">
+    <article className="flex items-center gap-3 rounded-lg border bg-background p-3">
+      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
         <FileTypeIcon mimeType={file.mime_type ?? ""} className="h-5 w-5" />
       </span>
       <button
@@ -977,7 +977,7 @@ function ClientFileCard({
         onClick={() => onOpenDocument({ title: file.name, url, mimeType: file.mime_type, kind: "file" })}
       >
         <p className="truncate text-sm font-semibold">{file.name}</p>
-        <p className="mt-0.5 text-[11px] text-muted-foreground">
+        <p className="mt-0.5 text-micro text-muted-foreground">
           {formatBytes(file.size_bytes)} • {uploadedBy} • {formatDate(file.created_at)}
         </p>
       </button>
@@ -1053,8 +1053,8 @@ function MoreRow({
   meta: string;
 }) {
   return (
-    <div className="flex items-center gap-3 rounded-xl border bg-background p-3">
-      <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-muted text-muted-foreground">
+    <div className="flex items-center gap-3 rounded-lg border bg-background p-3">
+      <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted text-muted-foreground">
         <Icon className="h-4 w-4" />
       </span>
       <span className="min-w-0">
@@ -1084,7 +1084,7 @@ function ClientBottomNav() {
           <a
             key={href}
             href={href}
-            className={`flex min-w-0 flex-1 flex-col items-center gap-0.5 rounded-full px-1.5 py-2 text-[10px] font-semibold transition ${
+            className={`flex min-w-0 flex-1 flex-col items-center gap-0.5 rounded-full px-1.5 py-2 text-micro font-semibold transition ${
               index === 0
                 ? "bg-primary text-primary-foreground shadow-sm"
                 : "text-muted-foreground hover:bg-muted hover:text-foreground"
@@ -1132,7 +1132,7 @@ function DocumentViewer({
         </Button>
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-semibold">{document.title}</p>
-          <p className="text-[11px] capitalize text-muted-foreground">{document.kind}</p>
+          <p className="text-micro capitalize text-muted-foreground">{document.kind}</p>
         </div>
         <Button type="button" variant="ghost" size="icon" className="h-10 w-10 rounded-full" onClick={shareDocument} aria-label="Share">
           <Share2 className="h-4 w-4" />
@@ -1207,7 +1207,7 @@ function MobileNavBar() {
           <a
             key={href}
             href={href}
-            className="flex min-w-0 flex-1 flex-col items-center gap-0.5 px-1 py-2 text-[10px] font-medium text-muted-foreground transition-colors hover:text-foreground active:text-foreground"
+            className="flex min-w-0 flex-1 flex-col items-center gap-0.5 px-1 py-2 text-micro font-medium text-muted-foreground transition-colors hover:text-foreground active:text-foreground"
           >
             <Icon className="h-[18px] w-[18px]" />
             <span>{label}</span>
@@ -1271,7 +1271,7 @@ function WelcomeDocumentsSection({
                   <div className="flex items-center justify-between gap-3">
                     <div className="min-w-0">
                       <p className="truncate text-sm font-medium">{d.title}</p>
-                      <p className="mt-0.5 text-[11px] capitalize text-muted-foreground">
+                      <p className="mt-0.5 text-micro capitalize text-muted-foreground">
                         {d.status.replace(/_/g, " ")}
                       </p>
                     </div>
@@ -1345,7 +1345,7 @@ function ProposalsSection({
           <BookOpen className="h-4 w-4 text-muted-foreground" />
           Proposals
           {openCount > 0 && (
-            <span className="rounded-full bg-primary/15 px-1.5 py-0.5 text-[10px] font-semibold text-primary">
+            <span className="rounded-full bg-primary/15 px-1.5 py-0.5 text-micro font-semibold text-primary">
               {openCount} open
             </span>
           )}
@@ -1378,7 +1378,7 @@ function ProposalsSection({
                 <div className="flex items-center justify-between gap-3">
                   <div className="min-w-0">
                     <p className="truncate text-sm font-medium">{p.title}</p>
-                    <p className="mt-0.5 text-[11px] text-muted-foreground">
+                    <p className="mt-0.5 text-micro text-muted-foreground">
                       <span className="font-medium tabular-nums text-foreground">
                         {formatPortalCurrency(p.currency, p.total_amount)}
                       </span>
@@ -1448,7 +1448,7 @@ function ContractsSection({
           <FileText className="h-4 w-4 text-muted-foreground" />
           Contracts
           {pendingCount > 0 && (
-            <span className="rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700 dark:text-amber-400">
+            <span className="rounded-full bg-warning-subtle px-1.5 py-0.5 text-micro font-semibold text-warning-strong">
               {pendingCount} to sign
             </span>
           )}
@@ -1483,7 +1483,7 @@ function ContractsSection({
                   <div className="flex items-center justify-between gap-3">
                     <div className="min-w-0">
                       <p className="truncate text-sm font-medium">{c.title}</p>
-                      <p className="mt-0.5 text-[11px] capitalize text-muted-foreground">
+                      <p className="mt-0.5 text-micro capitalize text-muted-foreground">
                         {c.status.replace(/_/g, " ")}
                       </p>
                     </div>
@@ -1557,7 +1557,7 @@ function InvoicesSection({
           <Receipt className="h-4 w-4 text-muted-foreground" />
           Invoices
           {unpaidCount > 0 && (
-            <span className="rounded-full bg-blue-500/15 px-1.5 py-0.5 text-[10px] font-semibold text-blue-700 dark:text-blue-400">
+            <span className="rounded-full bg-blue-500/15 px-1.5 py-0.5 text-micro font-semibold text-blue-700 dark:text-blue-400">
               {unpaidCount} unpaid
             </span>
           )}
@@ -1593,7 +1593,7 @@ function InvoicesSection({
                   <div className="flex items-center justify-between gap-3">
                     <div className="min-w-0">
                       <p className="truncate text-sm font-medium">{i.invoice_number}</p>
-                      <p className="mt-0.5 text-[11px] text-muted-foreground">
+                      <p className="mt-0.5 text-micro text-muted-foreground">
                         <span className="font-medium tabular-nums text-foreground">
                           {formatPortalCurrency(i.currency, i.total_amount)}
                         </span>
@@ -1601,7 +1601,7 @@ function InvoicesSection({
                         <span
                           className={
                             paid
-                              ? "font-medium capitalize text-emerald-600 dark:text-emerald-400"
+                              ? "font-medium capitalize text-success-strong"
                               : cancelled
                                 ? "capitalize text-muted-foreground line-through"
                                 : "capitalize"
@@ -1686,8 +1686,8 @@ const CATEGORY_STYLE: Record<string, string> = {
   contract:     "bg-blue-500/10 text-blue-700 dark:text-blue-400",
   deliverable:  "bg-violet-500/10 text-violet-700 dark:text-violet-400",
   asset:        "bg-indigo-500/10 text-indigo-700 dark:text-indigo-400",
-  invoice:      "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400",
-  meeting_note: "bg-amber-500/10 text-amber-700 dark:text-amber-400",
+  invoice:      "bg-success-subtle text-success-strong",
+  meeting_note: "bg-warning-subtle text-warning-strong",
   misc:         "",
 };
 
@@ -1721,7 +1721,7 @@ function FilesSection({
     : 0;
   const tone = storageTone(liveUsage.totalBytes, cap);
   const barColor =
-    tone === "full" ? "bg-destructive" : tone === "warn" ? "bg-amber-500" : "bg-primary";
+    tone === "full" ? "bg-destructive" : tone === "warn" ? "bg-warning" : "bg-primary";
   const displayFiles = sortByLargest
     ? [...localFiles].sort((a, b) => (b.size_bytes ?? 0) - (a.size_bytes ?? 0))
     : localFiles;
@@ -1745,7 +1745,7 @@ function FilesSection({
         <CardTitle className="flex items-center gap-2 text-sm font-semibold">
           <Files className="h-4 w-4 text-muted-foreground" />
           Files
-          <span className="text-[11px] font-normal text-muted-foreground">
+          <span className="text-micro font-normal text-muted-foreground">
             {formatBytes(liveUsage.totalBytes)}
             {Number.isFinite(cap) ? ` / ${formatBytes(cap)}` : ""}
           </span>
@@ -1776,7 +1776,7 @@ function FilesSection({
               />
             </div>
             <div className="flex items-center justify-between gap-2">
-              <span className={`text-[11px] ${tone === "full" ? "text-destructive" : tone === "warn" ? "text-amber-600 dark:text-amber-400" : "text-muted-foreground"}`}>
+              <span className={`text-xs ${tone === "full" ? "text-destructive" : tone === "warn" ? "text-warning-strong" : "text-muted-foreground"}`}>
                 {formatBytes(liveUsage.totalBytes)} of {formatBytes(cap)} used
                 {tone !== "ok" && " — free up space"}
               </span>
@@ -1784,7 +1784,7 @@ function FilesSection({
                 <button
                   type="button"
                   onClick={() => setSortByLargest((v) => !v)}
-                  className="text-[11px] text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+                  className="text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
                 >
                   {sortByLargest ? "Sort by newest" : "Largest first"}
                 </button>
@@ -1795,7 +1795,7 @@ function FilesSection({
 
         {/* R2 not configured warning */}
         {!r2Enabled && (
-          <p className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-3 text-[11px] text-amber-700 dark:text-amber-300">
+          <p className="rounded-lg border border-warning-subtle bg-warning-subtle p-3 text-xs text-warning-strong">
             File storage isn&apos;t configured. Set{" "}
             <code className="font-mono">R2_ACCOUNT_ID</code>,{" "}
             <code className="font-mono">R2_ACCESS_KEY_ID</code>,{" "}
@@ -1834,9 +1834,9 @@ function FilesSection({
                     <span className="truncate text-sm font-medium leading-tight">
                       {f.name}
                     </span>
-                    <span className="text-[11px] text-muted-foreground">
+                    <span className="text-micro text-muted-foreground">
                       {catLabel && (
-                        <span className={`mr-1.5 rounded px-1 py-0.5 text-[10px] font-medium ${catStyle}`}>
+                        <span className={`mr-1.5 rounded px-1 py-0.5 text-micro font-medium ${catStyle}`}>
                           {catLabel}
                         </span>
                       )}
@@ -1912,11 +1912,11 @@ function MessagesSection({
           Chat
         </CardTitle>
         <span
-          className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-semibold ${
+          className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-micro font-semibold ${
             peerTyping
               ? "bg-primary/10 text-primary"
               : peerOnline
-                ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                ? "bg-success-subtle text-success-strong"
                 : "bg-muted text-muted-foreground"
           }`}
         >
@@ -1928,9 +1928,9 @@ function MessagesSection({
             <>
               <span className="relative flex h-1.5 w-1.5">
                 {peerOnline && (
-                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-500 opacity-75" />
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-success opacity-75" />
                 )}
-                <span className={`relative inline-flex h-1.5 w-1.5 rounded-full ${peerOnline ? "bg-emerald-500" : "bg-muted-foreground/40"}`} />
+                <span className={`relative inline-flex h-1.5 w-1.5 rounded-full ${peerOnline ? "bg-success" : "bg-muted-foreground/40"}`} />
               </span>
               {peerOnline ? "Online" : "Offline"}
             </>
@@ -1959,7 +1959,7 @@ function MessagesSection({
                   } ${m.pending ? "opacity-70" : ""}`}
                 >
                   <p
-                    className={`text-[11px] font-semibold ${
+                    className={`text-micro font-semibold ${
                       mine ? "text-primary-foreground/75" : "text-muted-foreground"
                     }`}
                   >
@@ -1999,12 +1999,12 @@ function MessagesSection({
               aria-label="Message"
             />
             {error && (
-              <p className="rounded-md bg-destructive/10 p-2 text-xs text-destructive">
+              <p className="rounded-lg bg-destructive/10 p-2 text-xs text-destructive">
                 {error}
               </p>
             )}
             <div className="flex items-center justify-between gap-2">
-              <p className="text-[11px] text-muted-foreground">
+              <p className="text-xs text-muted-foreground">
                 {myLast && !myLast.pending ? (seen ? "Seen" : "Sent") : "For files, use the Files section above."}
               </p>
               <Button
@@ -2099,7 +2099,7 @@ function OnboardingSettingsSection({
           />
         </div>
         {error && (
-          <p className="rounded-md bg-destructive/10 p-2 text-xs text-destructive">{error}</p>
+          <p className="rounded-lg bg-destructive/10 p-2 text-xs text-destructive">{error}</p>
         )}
         <Button
           size="sm"
@@ -2180,7 +2180,7 @@ function PortalSettingsSection({
           portal and all attachments.
         </p>
         {error && (
-          <p className="rounded-md bg-destructive/10 p-2 text-xs text-destructive">
+          <p className="rounded-lg bg-destructive/10 p-2 text-xs text-destructive">
             {error}
           </p>
         )}
@@ -2229,7 +2229,7 @@ function PortalSettingsSection({
                 placeholder={portalName}
               />
               {dialogError && (
-                <p className="rounded-md bg-destructive/10 p-2 text-xs text-destructive">
+                <p className="rounded-lg bg-destructive/10 p-2 text-xs text-destructive">
                   {dialogError}
                 </p>
               )}
@@ -2340,8 +2340,8 @@ function MembersSection({
       </CardHeader>
       <CardContent className="space-y-3">
         {isOwner && missingClientEmail && (
-          <div className="space-y-2 rounded-lg border border-amber-500/30 bg-amber-500/5 p-3">
-            <p className="text-[11px] text-amber-700 dark:text-amber-300">
+          <div className="space-y-2 rounded-lg border border-warning-subtle bg-warning-subtle p-3">
+            <p className="text-xs text-warning-strong">
               Add an email to the client profile before inviting.
             </p>
             {clientId && (
@@ -2354,7 +2354,7 @@ function MembersSection({
           </div>
         )}
         {isOwner && (hasClient || hasPending) && (
-          <p className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-3 text-[11px] text-amber-700 dark:text-amber-300">
+          <p className="rounded-lg border border-warning-subtle bg-warning-subtle p-3 text-xs text-warning-strong">
             One client per portal. Revoke current access before inviting another.
           </p>
         )}
@@ -2383,7 +2383,7 @@ function MembersSection({
               />
             </div>
             {error && (
-              <p className="rounded-md bg-destructive/10 p-2 text-xs text-destructive">{error}</p>
+              <p className="rounded-lg bg-destructive/10 p-2 text-xs text-destructive">{error}</p>
             )}
             <Button type="submit" size="sm" className="h-7 w-full text-xs" disabled={pending}>
               {pending ? <Loader2 className="animate-spin" /> : "Send invite"}
@@ -2406,11 +2406,11 @@ function MembersSection({
                   <div className="min-w-0">
                     <p className="truncate text-sm font-medium">{displayName}</p>
                     {memberEmail && (
-                      <p className="text-[11px] text-muted-foreground">{memberEmail}</p>
+                      <p className="text-micro text-muted-foreground">{memberEmail}</p>
                     )}
                   </div>
                   <div className="flex shrink-0 items-center gap-2">
-                    <Badge variant={isOwnerMember ? "default" : "secondary"} className="text-[10px]">
+                    <Badge variant={isOwnerMember ? "default" : "secondary"} className="text-xs">
                       {isOwnerMember ? "Owner" : "Client"}
                     </Badge>
                     {isOwner && !isOwnerMember && (
@@ -2427,17 +2427,17 @@ function MembersSection({
 
         {isOwner && pendingInvitations.length > 0 && (
           <div className="space-y-1.5">
-            <p className="text-[11px] font-medium text-muted-foreground">Pending</p>
+            <p className="text-micro font-medium text-muted-foreground">Pending</p>
             <ul className="divide-y rounded-lg border">
               {pendingInvitations.map((inv) => (
                 <li key={inv.id} className="flex items-center justify-between gap-3 px-3 py-2.5">
                   <div className="min-w-0">
                     <p className="truncate text-sm font-medium">{inv.email}</p>
-                    <p className="text-[11px] text-muted-foreground">
+                    <p className="text-micro text-muted-foreground">
                       Expires {formatDate(inv.expires_at)}
                     </p>
                   </div>
-                  <Badge variant="outline" className="text-[10px]">Pending</Badge>
+                  <Badge variant="outline" className="text-xs">Pending</Badge>
                 </li>
               ))}
             </ul>
@@ -2454,10 +2454,10 @@ function MembersSection({
 
 function getActivityDotColor(type: string): string {
   if (type.startsWith("meeting."))      return "bg-violet-500";
-  if (type.startsWith("update."))       return "bg-sky-500";
-  if (type.startsWith("file."))         return "bg-amber-500";
+  if (type.startsWith("update."))       return "bg-info";
+  if (type.startsWith("file."))         return "bg-warning";
   if (type.startsWith("contract."))     return "bg-blue-500";
-  if (type.startsWith("invoice."))      return "bg-emerald-500";
+  if (type.startsWith("invoice."))      return "bg-success";
   if (type.startsWith("portal.member")) return "bg-pink-500";
   return "bg-muted-foreground/40";
 }
@@ -2482,7 +2482,7 @@ function PortalTimeSection({ items }: { items: ViewProps["timeByProject"] }) {
         <CardTitle className="flex items-center gap-2 text-sm font-semibold">
           <Clock3 className="h-4 w-4 text-muted-foreground" />
           Time tracked
-          <span className="ml-auto text-[11px] font-normal text-muted-foreground">
+          <span className="ml-auto text-micro font-normal text-muted-foreground">
             {portalHours(grandTotal)}
             {items.length > 1 ? ` · ${items.length} projects` : ""}
           </span>
@@ -2496,7 +2496,7 @@ function PortalTimeSection({ items }: { items: ViewProps["timeByProject"] }) {
           >
             <div className="min-w-0">
               <p className="truncate text-sm font-medium">{p.projectName}</p>
-              <p className="mt-0.5 text-[11px] text-muted-foreground">
+              <p className="mt-0.5 text-micro text-muted-foreground">
                 {portalHours(p.totalSeconds)}
                 {p.billableSeconds > 0 ? ` · ${portalHours(p.billableSeconds)} billable` : ""}
               </p>
@@ -2539,13 +2539,13 @@ function ActivitySection({ activity }: { activity: ViewProps["activity"] }) {
             <p className="text-xs font-medium leading-tight">{title}</p>
             <time
               dateTime={item.created_at}
-              className="shrink-0 text-[10px] tabular-nums text-muted-foreground"
+              className="shrink-0 text-micro tabular-nums text-muted-foreground"
             >
               {getRelativeTime(item.created_at)}
             </time>
           </div>
           {description && (
-            <p className="mt-0.5 truncate text-[11px] text-muted-foreground">
+            <p className="mt-0.5 truncate text-xs text-muted-foreground">
               {description}
             </p>
           )}
@@ -2577,7 +2577,7 @@ function ActivitySection({ activity }: { activity: ViewProps["activity"] }) {
             </ol>
             {older.length > 0 && (
               <div className="mt-3 border-t pt-3">
-                <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                <p className="mb-2 text-micro font-semibold uppercase tracking-wider text-muted-foreground">
                   Older activity
                 </p>
                 <div className="max-h-56 overflow-y-auto pr-1 scrollbar-thin">
@@ -2664,7 +2664,7 @@ function AttachExistingDialog({
                 </SelectContent>
               </Select>
               {error && (
-                <p className="rounded-md bg-destructive/10 p-2 text-xs text-destructive">
+                <p className="rounded-lg bg-destructive/10 p-2 text-xs text-destructive">
                   {error}
                 </p>
               )}

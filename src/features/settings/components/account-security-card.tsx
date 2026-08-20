@@ -138,7 +138,7 @@ export function AccountSecurityCard() {
                 Delete account
               </Button>
             ) : (
-              <form action={delAction} className="space-y-3 max-w-md rounded-md border border-destructive/40 p-3">
+              <form action={delAction} className="space-y-3 max-w-md rounded-lg border border-destructive/40 p-3">
                 <div className="space-y-1.5">
                   <label htmlFor="password" className="text-sm font-medium">
                     Confirm your password

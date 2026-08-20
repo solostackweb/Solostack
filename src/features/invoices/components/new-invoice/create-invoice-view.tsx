@@ -273,7 +273,7 @@ export function CreateInvoiceView({
         void handleIvoDraft(field);
       }}
       disabled={ivoDrafting !== null}
-      className="inline-flex items-center gap-1 rounded-md border border-primary/20 bg-primary/5 px-2 py-0.5 text-[11px] font-semibold text-primary transition-colors hover:bg-primary/10 disabled:opacity-50"
+      className="inline-flex items-center gap-1 rounded-lg border border-primary/20 bg-primary/5 px-2 py-0.5 text-micro font-semibold text-primary transition-colors hover:bg-primary/10 disabled:opacity-50"
     >
       <Sparkles className="h-3 w-3" />
       {ivoDrafting === field ? "Drafting…" : "Draft with Ivo"}
@@ -490,7 +490,7 @@ export function CreateInvoiceView({
                             <SelectItem key={c.id} value={c.id} textValue={name}>
                               <span className="inline-flex items-center gap-2">
                                 <Avatar className="h-5 w-5">
-                                  <AvatarFallback className="text-[9px]">
+                                  <AvatarFallback className="text-xs">
                                     {getClientInitials(name)}
                                   </AvatarFallback>
                                 </Avatar>
@@ -594,7 +594,7 @@ export function CreateInvoiceView({
                 <div className="grid gap-5 sm:grid-cols-2">
                   {gstEnabled ? (
                   <Field label="GST mode">
-                    <div className="rounded-md border bg-muted/30 px-3 py-2 text-sm">
+                    <div className="rounded-lg border bg-muted/30 px-3 py-2 text-sm">
                       <p className="font-medium">
                         {effectiveTaxMode === "intra"
                           ? "Intra-state: CGST + SGST"
@@ -610,7 +610,7 @@ export function CreateInvoiceView({
                     </div>
                   </Field>
                   ) : (
-                    <div className="rounded-md border bg-muted/40 p-4 text-sm sm:col-span-2">
+                    <div className="rounded-lg border bg-muted/40 p-4 text-sm sm:col-span-2">
                       <p className="font-medium">
                         {selectedClient?.isForeign ? "Export invoice" : "Standard invoice"}
                       </p>
@@ -760,7 +760,7 @@ export function CreateInvoiceView({
               variant="outline"
               onClick={onDraft}
               disabled={isSubmitting}
-              className="h-11 flex-1 text-[15px]"
+              className="h-11 flex-1 text-sm"
             >
               Save draft
             </Button>
@@ -768,7 +768,7 @@ export function CreateInvoiceView({
               type="button"
               onClick={onSend}
               disabled={isSubmitting}
-              className="h-11 flex-[2] text-[15px]"
+              className="h-11 flex-[2] text-sm"
             >
               <Send /> Create &amp; send
             </Button>
@@ -800,7 +800,7 @@ function SectionCard({
     <Card>
       <CardContent className="space-y-4 p-4 sm:p-6">
         <div className="flex items-center justify-between gap-3">
-          <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+          <p className="text-micro font-semibold uppercase tracking-wider text-muted-foreground">
             {label}
           </p>
           <span className="flex items-center gap-2">
@@ -831,14 +831,14 @@ function Field({
 }) {
   return (
     <div className="space-y-1.5">
-      <label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+      <label className="text-micro font-semibold uppercase tracking-wider text-muted-foreground">
         {label}
       </label>
       {children}
       {error ? (
-        <p className="text-[11px] text-destructive">{error}</p>
+        <p className="text-micro text-destructive">{error}</p>
       ) : hint ? (
-        <p className="text-[11px] text-muted-foreground">{hint}</p>
+        <p className="text-xs text-muted-foreground">{hint}</p>
       ) : null}
     </div>
   );

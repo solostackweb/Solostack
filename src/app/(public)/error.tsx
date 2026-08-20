@@ -43,12 +43,12 @@ export default function PublicError({
       </div>
       <button
         onClick={reset}
-        className="rounded-md border border-border bg-background px-4 py-2 text-sm font-medium hover:bg-muted"
+        className="rounded-lg border border-border bg-background px-4 py-2 text-sm font-medium hover:bg-muted"
       >
         Try again
       </button>
       {error.digest ? (
-        <p className="text-[11px] text-muted-foreground/60">
+        <p className="text-micro text-muted-foreground/60">
           Reference: {error.digest}
         </p>
       ) : null}

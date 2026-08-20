@@ -181,7 +181,7 @@ function CouponEditForm({
         <span className="text-xs font-medium text-muted-foreground">Benefit</span>
         <select
           name="grantType"
-          className="h-9 w-full rounded-md border bg-background px-3 text-sm"
+          className="h-9 w-full rounded-lg border bg-background px-3 text-sm"
           defaultValue={coupon.grant_type}
         >
           <option value="discount">Discounted checkout</option>
@@ -192,7 +192,7 @@ function CouponEditForm({
         <span className="text-xs font-medium text-muted-foreground">Type</span>
         <select
           name="discountType"
-          className="h-9 w-full rounded-md border bg-background px-3 text-sm"
+          className="h-9 w-full rounded-lg border bg-background px-3 text-sm"
           defaultValue={coupon.discount_type}
         >
           <option value="percent">Percent</option>
@@ -229,7 +229,7 @@ function CouponEditForm({
         <span className="text-xs font-medium text-muted-foreground">Plan</span>
         <select
           name="appliesToPlan"
-          className="h-9 w-full rounded-md border bg-background px-3 text-sm"
+          className="h-9 w-full rounded-lg border bg-background px-3 text-sm"
           defaultValue={coupon.applies_to_plan}
         >
           <option value="all">All</option>
@@ -241,7 +241,7 @@ function CouponEditForm({
         <span className="text-xs font-medium text-muted-foreground">Cycle</span>
         <select
           name="appliesToCycle"
-          className="h-9 w-full rounded-md border bg-background px-3 text-sm"
+          className="h-9 w-full rounded-lg border bg-background px-3 text-sm"
           defaultValue={coupon.applies_to_cycle}
         >
           <option value="all">All</option>

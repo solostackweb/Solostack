@@ -28,6 +28,7 @@ export function UserNav() {
         <Button
           variant="ghost"
           size="icon"
+          aria-label="Account menu"
           className="rounded-full ring-2 ring-transparent transition-all hover:ring-primary/20"
         >
           <Avatar className="h-8 w-8 ring-1 ring-border">
@@ -54,7 +55,7 @@ export function UserNav() {
               <p className="truncate text-xs leading-tight text-muted-foreground">
                 {profile?.email ?? ""}
               </p>
-              <p className="inline-flex items-center rounded-full border border-primary/20 bg-primary/5 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-primary">
+              <p className="inline-flex items-center rounded-full border border-primary/20 bg-primary/5 px-1.5 py-0.5 text-micro font-bold uppercase tracking-wider text-primary">
                 {subscription?.plan ?? "free"} plan
               </p>
             </div>
@@ -76,7 +77,7 @@ export function UserNav() {
           <form action={logoutAction} className="w-full">
             <button
               type="submit"
-              className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-left text-sm outline-none transition-colors hover:bg-accent hover:text-accent-foreground"
+              className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-left text-sm outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:bg-accent focus-visible:text-accent-foreground focus-visible:ring-2 focus-visible:ring-ring"
             >
               <LogOut className="h-4 w-4" /> Log out
             </button>

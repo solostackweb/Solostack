@@ -33,7 +33,7 @@ export function WelcomeMarkdown({ source, className }: Props) {
   return (
     <div
       className={cn(
-        "space-y-3 text-[15px] leading-7 text-foreground/80 [&_a]:font-medium [&_a]:text-primary [&_a:hover]:underline [&_strong]:font-semibold [&_strong]:text-foreground [&_code]:rounded [&_code]:bg-muted [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:font-mono [&_code]:text-[0.85em]",
+        "space-y-3 text-sm leading-7 text-foreground/80 [&_a]:font-medium [&_a]:text-primary [&_a:hover]:underline [&_strong]:font-semibold [&_strong]:text-foreground [&_code]:rounded [&_code]:bg-muted [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:font-mono [&_code]:text-[0.85em]",
         className,
       )}
     >

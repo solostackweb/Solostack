@@ -54,14 +54,14 @@ export function UserChurnBadges({ signals }: Props) {
         const Icon = b.icon;
         const cls =
           b.tone === "red"
-            ? "border-red-500/40 bg-red-500/5 text-red-700 dark:text-red-300"
+            ? "border-destructive-subtle bg-destructive-subtle text-destructive-strong"
             : b.tone === "amber"
-              ? "border-amber-500/40 bg-amber-500/5 text-amber-700 dark:text-amber-300"
+              ? "border-warning-subtle bg-warning-subtle text-warning-strong"
               : "border-blue-500/40 bg-blue-500/5 text-blue-700 dark:text-blue-300";
         return (
           <span
             key={b.label}
-            className={`inline-flex items-center gap-1.5 rounded-md border px-2 py-1 text-[11px] font-medium ${cls}`}
+            className={`inline-flex items-center gap-1.5 rounded-lg border px-2 py-1 text-micro font-medium ${cls}`}
           >
             <Icon className="h-3 w-3" />
             {b.label}

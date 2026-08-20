@@ -52,7 +52,7 @@ function DocSection({
       <h2 className="mb-6 text-2xl font-semibold tracking-tight text-foreground">
         {title}
       </h2>
-      <div className="space-y-5 text-[15px] leading-7 text-muted-foreground">
+      <div className="space-y-5 text-sm leading-7 text-muted-foreground">
         {children}
       </div>
     </section>
@@ -96,9 +96,9 @@ function Callout({
 }) {
   const styles = {
     info: "bg-blue-50 border-blue-200 text-blue-900 dark:bg-blue-950/40 dark:border-blue-800 dark:text-blue-200",
-    tip: "bg-emerald-50 border-emerald-200 text-emerald-900 dark:bg-emerald-950/40 dark:border-emerald-800 dark:text-emerald-200",
+    tip: "bg-success-subtle border-success-subtle text-success-strong",
     warning:
-      "bg-amber-50 border-amber-200 text-amber-900 dark:bg-amber-950/40 dark:border-amber-800 dark:text-amber-200",
+      "bg-warning-subtle border-warning-subtle text-warning-strong",
   };
   const icons = { info: "ℹ️", tip: "✅", warning: "⚠️" };
   return (
@@ -113,7 +113,7 @@ function Callout({
 
 function Badge({ plan }: { plan: "Pro" | "Business" }) {
   return (
-    <span className="inline-flex items-center rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-primary">
+    <span className="inline-flex items-center rounded-full bg-primary/10 px-2 py-0.5 text-micro font-semibold uppercase tracking-wide text-primary">
       {plan}
     </span>
   );

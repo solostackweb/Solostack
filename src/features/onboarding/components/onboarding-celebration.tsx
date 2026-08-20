@@ -150,7 +150,7 @@ export function OnboardingCelebration() {
                 <Link
                   key={action.href}
                   href={action.href}
-                  className={`group flex flex-col gap-3 rounded-xl border p-4 transition-all hover:shadow-md ${
+                  className={`group flex flex-col gap-3 rounded-lg border p-4 transition-all hover:shadow-md ${
                     action.highlight
                       ? "border-primary/30 bg-primary/5 hover:border-primary/50"
                       : "bg-card hover:border-foreground/20"
@@ -200,11 +200,11 @@ export function FirstInvoiceCelebration({ show }: { show: boolean }) {
     <motion.div
       initial={{ opacity: 0, scale: 0.96 }}
       animate={{ opacity: 1, scale: 1 }}
-      className="flex items-start gap-3 rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-4"
+      className="flex items-start gap-3 rounded-lg border border-success-subtle bg-success-subtle p-4"
     >
-      <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-emerald-500" />
+      <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-success-strong" />
       <div className="flex-1">
-        <p className="text-sm font-semibold text-emerald-700 dark:text-emerald-400">
+        <p className="text-sm font-semibold text-success-strong">
           First invoice sent — great start!
         </p>
         <p className="mt-0.5 text-xs text-muted-foreground">

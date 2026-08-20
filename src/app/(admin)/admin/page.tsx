@@ -224,7 +224,7 @@ export default async function AdminNowPage() {
                 <ToneDot tone={commandTone} />
                 Today
               </div>
-              <h2 className="mt-2 text-2xl font-semibold tracking-tight sm:text-[28px]">
+              <h2 className="mt-2 text-2xl font-semibold tracking-tight sm:text-2xl">
                 {commandTone === "alert"
                   ? "Needs attention"
                   : commandTone === "warn"
@@ -237,14 +237,14 @@ export default async function AdminNowPage() {
                   : "No urgent support, billing, email, or security items are flagged."}
               </p>
             </div>
-            <div className="rounded-xl border bg-background/70 px-4 py-3 text-right">
-              <div className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+            <div className="rounded-lg border bg-background/70 px-4 py-3 text-right">
+              <div className="text-micro font-medium uppercase tracking-wider text-muted-foreground">
                 Captured 24h
               </div>
               <div className="mt-1 text-2xl font-semibold tabular-nums sm:text-3xl">
                 {formatPaiseInr(revenue.capturedTodayPaise)}
               </div>
-              <div className="text-[11px] text-muted-foreground tabular-nums">
+              <div className="text-micro text-muted-foreground tabular-nums">
                 {formatPaiseInr(revenue.capturedWeekPaise)} this week
               </div>
             </div>
@@ -412,13 +412,13 @@ export default async function AdminNowPage() {
                   >
                     <div className="min-w-0">
                       <div className="truncate font-medium">{alert.kind}</div>
-                      <div className="mt-0.5 text-[11px] text-muted-foreground">
+                      <div className="mt-0.5 text-micro text-muted-foreground">
                         {alert.request_id ? `req ${shortenId(alert.request_id)} - ` : null}
                         {alert.user_id ? `user ${shortenId(alert.user_id)} - ` : null}
                         {formatRelative(alert.created_at)}
                       </div>
                     </div>
-                    <AlertTriangle className="h-4 w-4 shrink-0 text-red-500" />
+                    <AlertTriangle className="h-4 w-4 shrink-0 text-destructive-strong" />
                   </li>
                 ))}
               </ul>
@@ -455,11 +455,11 @@ export default async function AdminNowPage() {
                       <span className="min-w-0 flex-1 truncate font-medium">
                         {row.kind}
                       </span>
-                      <span className="font-mono text-[10px] text-muted-foreground">
+                      <span className="font-mono text-micro text-muted-foreground">
                         {row.duration_ms}ms
                       </span>
                     </div>
-                    <div className="mt-1 text-[11px] text-muted-foreground">
+                    <div className="mt-1 text-xs text-muted-foreground">
                       {row.target_type}
                       {row.target_id ? ` - ${shortenId(row.target_id)}` : ""}
                       {" - "}
@@ -523,15 +523,15 @@ function MiniMetric({
 }) {
   return (
     <div className="rounded-lg border bg-background/65 px-3 py-2.5">
-      <div className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+      <div className="text-micro font-medium uppercase tracking-wider text-muted-foreground">
         {label}
       </div>
       <div
         className={cn(
           "mt-1 text-xl font-semibold tabular-nums",
-          tone === "alert" && "text-red-600 dark:text-red-400",
-          tone === "warn" && "text-amber-600 dark:text-amber-400",
-          tone === "ok" && "text-emerald-600 dark:text-emerald-400",
+          tone === "alert" && "text-destructive-strong",
+          tone === "warn" && "text-warning-strong",
+          tone === "ok" && "text-success-strong",
         )}
       >
         {value.toLocaleString("en-IN")}
@@ -547,17 +547,17 @@ function QueueCard({ item }: { item: QueueItem }) {
       href={item.href}
       className={cn(
         "group flex items-start gap-3 rounded-lg border bg-background/60 p-3.5 transition-colors hover:bg-accent/60",
-        item.tone === "alert" && "border-red-500/30",
-        item.tone === "warn" && "border-amber-500/30",
-        item.tone === "ok" && "border-emerald-500/20",
+        item.tone === "alert" && "border-destructive-subtle",
+        item.tone === "warn" && "border-warning-subtle",
+        item.tone === "ok" && "border-success-subtle",
       )}
     >
       <span
         className={cn(
           "flex h-9 w-9 shrink-0 items-center justify-center rounded-lg",
-          item.tone === "alert" && "bg-red-500/10 text-red-600",
-          item.tone === "warn" && "bg-amber-500/10 text-amber-600",
-          item.tone === "ok" && "bg-emerald-500/10 text-emerald-600",
+          item.tone === "alert" && "bg-destructive-subtle text-destructive-strong",
+          item.tone === "warn" && "bg-warning-subtle text-warning-strong",
+          item.tone === "ok" && "bg-success-subtle text-success-strong",
           item.tone === "neutral" && "bg-muted text-muted-foreground",
         )}
       >
@@ -587,7 +587,7 @@ function IntegrationRow({ item }: { item: IntegrationItem }) {
     >
       <span className="min-w-0">
         <span className="block font-medium">{item.label}</span>
-        <span className="block truncate text-[11px] text-muted-foreground">
+        <span className="block truncate text-micro text-muted-foreground">
           {item.description}
         </span>
       </span>

@@ -24,7 +24,7 @@ export function DashboardMockup() {
           {/* Sidebar — deep violet-black like the real app */}
           <aside className="hidden border-r border-sidebar-border bg-sidebar p-4 md:block">
             <div className="mb-4 flex items-center gap-2 px-2">
-              <span className="flex h-6 w-6 items-center justify-center rounded-md btn-gradient">
+              <span className="flex h-6 w-6 items-center justify-center rounded-lg btn-gradient">
                 <Zap className="h-3 w-3 text-white" />
               </span>
               <span className="text-xs font-semibold tracking-tight text-sidebar-foreground">
@@ -35,7 +35,7 @@ export function DashboardMockup() {
               {NAV.map((item, i) => (
                 <div
                   key={item.label}
-                  className={`relative flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-xs ${
+                  className={`relative flex items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-xs ${
                     i === 0
                       ? "bg-sidebar-accent font-medium text-primary"
                       : "text-sidebar-foreground/55 hover:text-sidebar-foreground"
@@ -59,7 +59,7 @@ export function DashboardMockup() {
                   Your week at a glance
                 </h3>
               </div>
-              <div className="hidden items-center gap-2 rounded-full border bg-background px-2.5 py-1 text-[11px] text-muted-foreground sm:flex">
+              <div className="hidden items-center gap-2 rounded-full border bg-background px-2.5 py-1 text-xs text-muted-foreground sm:flex">
                 <span className="h-1.5 w-1.5 rounded-full bg-success" />
                 Pulse live
               </div>
@@ -81,25 +81,25 @@ export function DashboardMockup() {
       </div>
 
       {/* Floating cards — Stripe-style, visible on xl+ */}
-      <div className="pointer-events-none absolute -bottom-8 -left-4 hidden w-64 rotate-[-3deg] rounded-xl border border-success/20 bg-card/98 p-3 shadow-xl shadow-success/10 backdrop-blur-sm ring-1 ring-success/15 xl:block xl:-bottom-10 xl:-left-10 xl:w-72">
+      <div className="pointer-events-none absolute -bottom-8 -left-4 hidden w-64 rotate-[-3deg] rounded-lg border border-success/20 bg-card/98 p-3 shadow-xl shadow-success/10 backdrop-blur-sm ring-1 ring-success/15 xl:block xl:-bottom-10 xl:-left-10 xl:w-72">
         <div className="flex items-center gap-2">
-          <span className="flex h-7 w-7 items-center justify-center rounded-md bg-success/10 text-success ring-1 ring-success/20">
+          <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-success/10 text-success ring-1 ring-success/20">
             <CheckCircle2 className="h-3.5 w-3.5" />
           </span>
           <div className="flex-1">
-            <p className="text-[11px] text-muted-foreground">Payment received</p>
+            <p className="text-micro text-muted-foreground">Payment received</p>
             <p className="text-xs font-semibold">₹84,000 · Pixel &amp; Co.</p>
           </div>
         </div>
       </div>
 
-      <div className="pointer-events-none absolute -right-4 -top-6 hidden w-60 rotate-[3deg] rounded-xl border border-primary/20 bg-card/98 p-3 shadow-xl shadow-primary/10 backdrop-blur-sm ring-1 ring-primary/15 xl:block xl:-right-10 xl:w-72">
+      <div className="pointer-events-none absolute -right-4 -top-6 hidden w-60 rotate-[3deg] rounded-lg border border-primary/20 bg-card/98 p-3 shadow-xl shadow-primary/10 backdrop-blur-sm ring-1 ring-primary/15 xl:block xl:-right-10 xl:w-72">
         <div className="flex items-center gap-2">
-          <span className="flex h-7 w-7 items-center justify-center rounded-md bg-primary/10 text-primary ring-1 ring-primary/20">
+          <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10 text-primary ring-1 ring-primary/20">
             <Bell className="h-3.5 w-3.5" />
           </span>
           <div className="flex-1">
-            <p className="text-[11px] text-muted-foreground">Contract signed</p>
+            <p className="text-micro text-muted-foreground">Contract signed</p>
             <p className="text-xs font-semibold">Lumen Studio · Q4 retainer</p>
           </div>
         </div>
@@ -124,7 +124,7 @@ function BrowserChrome() {
         <span className="h-2.5 w-2.5 rounded-full bg-warning/50" />
         <span className="h-2.5 w-2.5 rounded-full bg-success/50" />
       </div>
-      <div className="ml-2 flex h-5 max-w-[260px] flex-1 items-center rounded border bg-background px-2 text-[11px] text-muted-foreground">
+      <div className="ml-2 flex h-5 max-w-[260px] flex-1 items-center rounded border bg-background px-2 text-xs text-muted-foreground">
         app.stackivo.in/dashboard
       </div>
     </div>
@@ -150,11 +150,11 @@ function Stat({
   }[tone];
   return (
     <div className="rounded-lg border border-border/60 bg-background/80 p-3 ring-1 ring-border/30 transition-colors">
-      <p className="text-[11px] text-muted-foreground">{label}</p>
+      <p className="text-micro text-muted-foreground">{label}</p>
       <p className="mt-1 text-base font-semibold tracking-tight sm:text-lg">
         {value}
       </p>
-      <p className={`mt-0.5 inline-flex items-center gap-0.5 text-[11px] font-medium ${toneClass}`}>
+      <p className={`mt-0.5 inline-flex items-center gap-0.5 text-micro font-medium ${toneClass}`}>
         <ArrowUpRight className="h-3 w-3" />
         {delta}
       </p>
@@ -177,7 +177,7 @@ function RevenueChart() {
     <div className="rounded-lg border bg-background p-4">
       <div className="mb-3 flex items-center justify-between">
         <p className="text-sm font-medium">Revenue</p>
-        <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
+        <div className="flex items-center gap-3 text-micro text-muted-foreground">
           <span className="inline-flex items-center gap-1">
             <span className="h-2 w-2 rounded-sm bg-primary" /> Paid
           </span>
@@ -199,7 +199,7 @@ function RevenueChart() {
                 }}
               />
             </div>
-            <span className="text-[10px] text-muted-foreground">{months[i]}</span>
+            <span className="text-xs text-muted-foreground">{months[i]}</span>
           </div>
         ))}
       </div>
@@ -227,12 +227,12 @@ function RecentInvoices() {
           <li key={r.num} className="flex items-center justify-between py-2">
             <div>
               <p className="text-xs font-medium">{r.num}</p>
-              <p className="text-[11px] text-muted-foreground">{r.client}</p>
+              <p className="text-micro text-muted-foreground">{r.client}</p>
             </div>
             <div className="flex items-center gap-3">
               <span className="text-xs font-medium">{r.amount}</span>
               <span
-                className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${
+                className={`rounded-full px-2 py-0.5 text-micro font-medium ${
                   tone[r.tone]
                 }`}
               >

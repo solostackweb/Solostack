@@ -58,17 +58,17 @@ export function SlackAlertSection({
           href="https://api.slack.com/messaging/webhooks"
           target="_blank"
           rel="noopener noreferrer"
-          className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground"
+          className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
         >
           Slack docs <ExternalLink className="h-3 w-3" />
         </a>
       </div>
 
       {/* Status row */}
-      <div className="flex items-center gap-2 rounded-md border bg-muted/30 px-3 py-2 text-xs">
+      <div className="flex items-center gap-2 rounded-lg border bg-muted/30 px-3 py-2 text-xs">
         {configured ? (
           <>
-            <CheckCircle className="h-3.5 w-3.5 shrink-0 text-emerald-500" />
+            <CheckCircle className="h-3.5 w-3.5 shrink-0 text-success-strong" />
             <span className="text-foreground font-medium">Configured</span>
             {webhookPreview && (
               <span className="ml-1 font-mono text-muted-foreground">
@@ -78,10 +78,10 @@ export function SlackAlertSection({
           </>
         ) : (
           <>
-            <XCircle className="h-3.5 w-3.5 shrink-0 text-red-500" />
-            <span className="text-red-600 dark:text-red-400 font-medium">Not configured</span>
+            <XCircle className="h-3.5 w-3.5 shrink-0 text-destructive-strong" />
+            <span className="text-destructive-strong font-medium">Not configured</span>
             <span className="text-muted-foreground ml-1">
-              - add <code className="text-[11px]">OPS_SLACK_WEBHOOK_URL</code> to Vercel environment variables
+              - add <code className="text-micro">OPS_SLACK_WEBHOOK_URL</code> to Vercel environment variables
             </span>
           </>
         )}
@@ -103,12 +103,12 @@ export function SlackAlertSection({
           onClick={handleTest}
           disabled={state === "loading" || !configured}
           className={cn(
-            "inline-flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-xs font-medium transition-colors",
+            "inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors",
             configured
               ? "hover:bg-accent cursor-pointer"
               : "cursor-not-allowed opacity-40",
-            state === "success" && "border-emerald-500 text-emerald-600 dark:text-emerald-400",
-            state === "error" && "border-red-500 text-red-600 dark:text-red-400",
+            state === "success" && "border-success-subtle text-success-strong",
+            state === "error" && "border-destructive-subtle text-destructive-strong",
           )}
         >
           {state === "loading" ? (
@@ -128,10 +128,10 @@ export function SlackAlertSection({
         </button>
 
         {state === "error" && errorMsg && (
-          <span className="text-xs text-red-600 dark:text-red-400">{errorMsg}</span>
+          <span className="text-xs text-destructive-strong">{errorMsg}</span>
         )}
         {state === "success" && (
-          <span className="text-xs text-emerald-600 dark:text-emerald-400">
+          <span className="text-xs text-success-strong">
             Check your Slack channel.
           </span>
         )}

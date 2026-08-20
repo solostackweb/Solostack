@@ -11,6 +11,7 @@ import type {
   InvoiceFormValues,
   InvoiceTotals,
 } from "../../schema";
+import { DEFAULT_DOCUMENT_BRAND } from "@/config/brand-colors";
 
 interface InvoicePreviewProps {
   values: InvoiceFormValues;
@@ -57,7 +58,7 @@ export function InvoicePreview({
   const businessName =
     profile?.businessName ?? profile?.legalName ?? profile?.fullName ?? "Your studio";
   const tagline = profile?.brandTagline ?? "Freelance operations";
-  const accent = profile?.brandColor ?? "#0F172A";
+  const accent = profile?.brandColor ?? DEFAULT_DOCUMENT_BRAND;
   const signatureReady = hasFreelancerSignature(profile);
 
   // Show only the first 2 address lines so the preview stays clean.
@@ -92,59 +93,59 @@ export function InvoicePreview({
             )}
             <div>
               <p className="text-sm font-semibold">{businessName}</p>
-              <p className="text-[11px] text-muted-foreground">{tagline}</p>
+              <p className="text-micro text-muted-foreground">{tagline}</p>
             </div>
           </div>
           <div className="text-right">
             <p className="text-lg font-semibold tracking-tight">
               {values.invoiceNumber || "INV-—"}
             </p>
-            <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
+            <p className="text-micro uppercase tracking-wider text-muted-foreground">
               Tax Invoice
             </p>
           </div>
         </div>
 
         {/* From / Bill to / Dates — 3 columns */}
-        <div className="mb-8 grid grid-cols-3 gap-4 text-[11px]">
+        <div className="mb-8 grid grid-cols-3 gap-4 text-micro">
           <div>
-            <p className="mb-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+            <p className="mb-1 text-micro font-bold uppercase tracking-wider text-muted-foreground">
               From
             </p>
             <p className="text-sm font-semibold text-card-foreground">{businessName}</p>
             {fromLines.length > 0 ? (
-              <p className="mt-0.5 text-[11px] leading-relaxed text-muted-foreground">
+              <p className="mt-0.5 text-micro leading-relaxed text-muted-foreground">
                 {fromLines.join(", ")}
               </p>
             ) : null}
             {profile?.gstRegistered && profile?.gstin ? (
-              <p className="text-[11px] text-muted-foreground">GSTIN {profile.gstin}</p>
+              <p className="text-xs text-muted-foreground">GSTIN {profile.gstin}</p>
             ) : (
-              <p className="text-[11px] text-muted-foreground/80">GST not registered</p>
+              <p className="text-micro text-muted-foreground/80">GST not registered</p>
             )}
           </div>
           <div>
-            <p className="mb-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+            <p className="mb-1 text-micro font-bold uppercase tracking-wider text-muted-foreground">
               Bill To
             </p>
             <p className="text-sm font-semibold text-card-foreground">
               {clientName || "—"}
             </p>
             {clientCompany && (
-              <p className="text-[11px] text-muted-foreground">{clientCompany}</p>
+              <p className="text-micro text-muted-foreground">{clientCompany}</p>
             )}
             {clientEmail && (
-              <p className="text-[11px] text-muted-foreground">{clientEmail}</p>
+              <p className="text-micro text-muted-foreground">{clientEmail}</p>
             )}
           </div>
           <div className="text-right">
-            <p className="mb-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+            <p className="mb-1 text-micro font-bold uppercase tracking-wider text-muted-foreground">
               Dates
             </p>
-            <p className="text-[11px] text-muted-foreground">
+            <p className="text-micro text-muted-foreground">
               Issued <span className="font-medium text-card-foreground">{issueDate}</span>
             </p>
-            <p className="text-[11px] text-muted-foreground">
+            <p className="text-micro text-muted-foreground">
               Due <span className="font-medium text-card-foreground">{dueDate}</span>
             </p>
           </div>
@@ -154,7 +155,7 @@ export function InvoicePreview({
         <div className="mb-8">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-border text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+              <tr className="border-b border-border text-micro font-bold uppercase tracking-wider text-muted-foreground">
                 <th className="pb-2 text-left">Description</th>
                 <th className="pb-2 w-10 text-right">Qty</th>
                 <th className="pb-2 w-28 text-right pr-4">Rate</th>
@@ -211,7 +212,7 @@ export function InvoicePreview({
 
         {/* Signature — single authorised block, full width */}
         <div className="border-t border-border pt-6">
-          <p className="mb-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+          <p className="mb-2 text-micro font-bold uppercase tracking-wider text-muted-foreground">
             Authorised Signature
           </p>
           <div className="flex min-h-16 w-60 items-end border-b border-border pb-2">
@@ -232,7 +233,7 @@ export function InvoicePreview({
                 {profile.signatureTextValue}
               </span>
             ) : signatureReady && profile?.signatureImageUrl ? (
-              <span className="inline-flex max-w-full rounded-md border border-border/70 bg-white px-3 py-2 shadow-sm">
+              <span className="inline-flex max-w-full rounded-lg border border-border/70 bg-white px-3 py-2 shadow-sm">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={profile.signatureImageUrl}
@@ -244,18 +245,18 @@ export function InvoicePreview({
               <span className="text-sm italic text-muted-foreground">Awaiting signature setup</span>
             )}
           </div>
-          <p className="mt-2 text-[11px] font-medium text-card-foreground">{businessName}</p>
+          <p className="mt-2 text-micro font-medium text-card-foreground">{businessName}</p>
           {signatureReady && (
-            <p className="text-[10px] text-muted-foreground">For and on behalf of {businessName}</p>
+            <p className="text-micro text-muted-foreground">For and on behalf of {businessName}</p>
           )}
         </div>
 
         {/* Notes + terms */}
         {(values.notes || values.terms) && (
-          <div className="mt-6 grid grid-cols-2 gap-6 border-t border-border pt-6 text-[11px]">
+          <div className="mt-6 grid grid-cols-2 gap-6 border-t border-border pt-6 text-micro">
             {values.notes && (
               <div>
-                <p className="mb-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                <p className="mb-1 text-micro font-bold uppercase tracking-wider text-muted-foreground">
                   Notes
                 </p>
                 <p className="whitespace-pre-line leading-relaxed text-muted-foreground">
@@ -265,7 +266,7 @@ export function InvoicePreview({
             )}
             {values.terms && (
               <div>
-                <p className="mb-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                <p className="mb-1 text-micro font-bold uppercase tracking-wider text-muted-foreground">
                   Terms
                 </p>
                 <p className="whitespace-pre-line leading-relaxed text-muted-foreground">

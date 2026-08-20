@@ -56,9 +56,9 @@ export function LeadFormsView({
       </header>
 
       <section className="grid gap-4 lg:grid-cols-[0.9fr_1.1fr]">
-        <form action={action} className="rounded-xl border bg-card p-5 shadow-sm">
+        <form action={action} className="rounded-lg border bg-card p-5 shadow-sm">
           <div className="flex items-center gap-2">
-            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 text-primary">
+            <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
               <Plus className="h-4 w-4" />
             </span>
             <div>
@@ -109,14 +109,14 @@ export function LeadFormsView({
             </p>
           ) : null}
           {state?.ok ? (
-            <p className="mt-3 rounded-lg border border-emerald-500/25 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-700 dark:text-emerald-300">
+            <p className="mt-3 rounded-lg border border-success-subtle bg-success-subtle px-3 py-2 text-sm text-success-strong">
               {state.message}
             </p>
           ) : null}
           <SubmitButton label="Create form" className="mt-4 w-full" />
         </form>
 
-        <section className="rounded-xl border bg-card p-5 shadow-sm">
+        <section className="rounded-lg border bg-card p-5 shadow-sm">
           <h2 className="text-sm font-semibold">Active forms</h2>
           <p className="mt-1 text-xs text-muted-foreground">
             Toggle forms off when you are not accepting new inquiries.
@@ -128,21 +128,21 @@ export function LeadFormsView({
               forms.map((form) => {
                 const url = `${publicBaseUrl}/lead/${form.slug}`;
                 return (
-                  <article key={form.id} className="rounded-xl border bg-background p-4">
+                  <article key={form.id} className="rounded-lg border bg-background p-4">
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                       <div className="min-w-0">
                         <div className="flex flex-wrap items-center gap-2">
                           <h3 className="truncate text-sm font-semibold">{form.name}</h3>
-                          <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${
+                          <span className={`rounded-full px-2 py-0.5 text-micro font-semibold ${
                             form.active
-                              ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
+                              ? "bg-success-subtle text-success-strong"
                               : "bg-muted text-muted-foreground"
                           }`}>
                             {form.active ? "Active" : "Paused"}
                           </span>
                         </div>
                         <p className="mt-1 text-xs text-muted-foreground">{form.title}</p>
-                        <p className="mt-2 truncate rounded-lg bg-muted px-2.5 py-1.5 font-mono text-[11px] text-muted-foreground">
+                        <p className="mt-2 truncate rounded-lg bg-muted px-2.5 py-1.5 font-mono text-xs text-muted-foreground">
                           {url}
                         </p>
                       </div>
@@ -185,7 +185,7 @@ export function LeadFormsView({
         </section>
       </section>
 
-      <section className="rounded-xl border bg-card p-5 shadow-sm">
+      <section className="rounded-lg border bg-card p-5 shadow-sm">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h2 className="text-sm font-semibold">Recent submissions</h2>
@@ -202,7 +202,7 @@ export function LeadFormsView({
             <EmptyState icon={Inbox} title="No submissions yet" text="New inquiries will appear here as soon as prospects submit your form." />
           ) : (
             submissions.map((submission) => (
-              <article key={submission.id} className="rounded-xl border bg-background p-4">
+              <article key={submission.id} className="rounded-lg border bg-background p-4">
                 <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                   <div className="min-w-0">
                     <p className="text-sm font-semibold">
@@ -216,7 +216,7 @@ export function LeadFormsView({
                     <p className="mt-2 line-clamp-2 text-sm text-muted-foreground">
                       {submission.project_summary}
                     </p>
-                    <p className="mt-2 text-[11px] text-muted-foreground">
+                    <p className="mt-2 text-xs text-muted-foreground">
                       {submission.form?.name ?? "Lead form"} · {new Date(submission.created_at).toLocaleDateString()}
                     </p>
                   </div>
@@ -268,7 +268,7 @@ function EmptyState({
   text: string;
 }) {
   return (
-    <div className="rounded-xl border border-dashed p-6 text-center">
+    <div className="rounded-lg border border-dashed p-6 text-center">
       <Icon className="mx-auto h-8 w-8 text-muted-foreground/35" />
       <p className="mt-2 text-sm font-semibold">{title}</p>
       <p className="mx-auto mt-1 max-w-sm text-xs leading-relaxed text-muted-foreground">

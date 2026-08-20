@@ -132,12 +132,12 @@ export default async function PortalLayout({
             href="/portal"
             className="flex min-w-0 items-center gap-2 text-sm font-semibold tracking-tight"
           >
-            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
               <Workflow className="h-4 w-4" />
             </span>
             <span className="min-w-0">
               <span className="block truncate leading-tight">{topBarTitle}</span>
-              <span className="block text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+              <span className="block text-micro font-semibold uppercase tracking-[0.16em] text-muted-foreground">
                 Portal
               </span>
             </span>

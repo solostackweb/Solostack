@@ -56,23 +56,23 @@ const STATUS_CONFIG: Record<
 > = {
   pending:   {
     label: "Awaiting confirmation",
-    dot:   "bg-amber-500",
-    badge: "bg-amber-500/10 text-amber-700 dark:text-amber-400",
+    dot:   "bg-warning",
+    badge: "bg-warning-subtle text-warning-strong",
   },
   accepted:  {
     label: "Confirmed",
-    dot:   "bg-emerald-500",
-    badge: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400",
+    dot:   "bg-success",
+    badge: "bg-success-subtle text-success-strong",
   },
   declined:  {
     label: "Declined",
-    dot:   "bg-red-500",
-    badge: "bg-red-500/10 text-red-700 dark:text-red-400",
+    dot:   "bg-destructive",
+    badge: "bg-destructive-subtle text-destructive-strong",
   },
   completed: {
     label: "Completed",
-    dot:   "bg-sky-500",
-    badge: "bg-sky-500/10 text-sky-700 dark:text-sky-400",
+    dot:   "bg-info",
+    badge: "bg-info-subtle text-info-strong",
   },
   cancelled: {
     label: "Cancelled",
@@ -84,7 +84,7 @@ const STATUS_CONFIG: Record<
 function StatusPill({ status }: { status: PortalMeetingStatus }) {
   const cfg = STATUS_CONFIG[status];
   return (
-    <span className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-semibold ${cfg.badge}`}>
+    <span className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-micro font-semibold ${cfg.badge}`}>
       <span className={`h-1.5 w-1.5 rounded-full ${cfg.dot}`} aria-hidden />
       {cfg.label}
     </span>
@@ -204,10 +204,10 @@ function MeetingCard({
     >
       {/* Coloured top stripe for confirmed meetings */}
       {isConfirmed && (
-        <div className="h-0.5 w-full bg-emerald-500" />
+        <div className="h-0.5 w-full bg-success" />
       )}
       {meeting.status === "pending" && (
-        <div className="h-0.5 w-full bg-amber-500" />
+        <div className="h-0.5 w-full bg-warning" />
       )}
 
       <div className="p-4 space-y-3">
@@ -217,7 +217,7 @@ function MeetingCard({
             <p className="text-sm font-semibold leading-snug">{meeting.topic}</p>
             <div className="flex flex-wrap items-center gap-2">
               <StatusPill status={meeting.status as PortalMeetingStatus} />
-              <span className="text-[11px] text-muted-foreground">
+              <span className="text-micro text-muted-foreground">
                 by{" "}
                 <span className="font-medium text-foreground">{requesterName}</span>
                 {" · "}
@@ -231,7 +231,7 @@ function MeetingCard({
             <Button
               asChild
               size="sm"
-              className="h-8 shrink-0 bg-emerald-600 text-white hover:bg-emerald-700"
+              className="h-8 shrink-0 bg-success text-white hover:bg-success"
             >
               <a href={meeting.meet_link} target="_blank" rel="noreferrer">
                 <Video className="h-3.5 w-3.5" />
@@ -244,7 +244,7 @@ function MeetingCard({
 
         {/* Meeting details: time + Meet link + notes */}
         {(meeting.proposed_time || meeting.meet_link || meeting.notes) && (
-          <div className="space-y-1.5 rounded-md bg-muted/40 px-3 py-2.5">
+          <div className="space-y-1.5 rounded-lg bg-muted/40 px-3 py-2.5">
             {meeting.proposed_time && (
               <div className="flex items-center gap-2 text-xs">
                 <CalendarDays className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
@@ -265,7 +265,7 @@ function MeetingCard({
               </div>
             )}
             {meeting.notes && (
-              <p className="text-[11px] leading-relaxed text-muted-foreground">
+              <p className="text-xs leading-relaxed text-muted-foreground">
                 {meeting.notes}
               </p>
             )}
@@ -274,7 +274,7 @@ function MeetingCard({
 
         {/* Error */}
         {error && (
-          <p className="rounded-md bg-destructive/10 px-2 py-1.5 text-xs text-destructive">
+          <p className="rounded-lg bg-destructive/10 px-2 py-1.5 text-xs text-destructive">
             {error}
           </p>
         )}
@@ -368,7 +368,7 @@ function MeetingCard({
                 type="button"
                 aria-label="Share meeting via WhatsApp"
                 title="Share via WhatsApp"
-                className="inline-flex items-center gap-1 text-[11px] text-muted-foreground transition-colors hover:text-[#25D366]"
+                className="inline-flex items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-[#25D366]"
                 onClick={() => {
                   const portalUrl = `${typeof window !== "undefined" ? window.location.origin : ""}${portalClientHome(portalId)}#portal-meetings`;
                   sharePortalMeetingOnWhatsApp({
@@ -406,7 +406,7 @@ function MeetingCard({
                   onChange={(e) => setConfirmedAt(e.target.value)}
                 />
                 {meeting.proposed_time && !confirmedAt && (
-                  <p className="text-[11px] text-muted-foreground">
+                  <p className="text-xs text-muted-foreground">
                     Client proposed: {meeting.proposed_time}
                   </p>
                 )}
@@ -417,7 +417,7 @@ function MeetingCard({
                   id="accept-duration"
                   value={durationMinutes}
                   onChange={(e) => setDurationMinutes(Number(e.target.value))}
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  className="flex h-10 w-full rounded-lg border border-input bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   <option value={15}>15 min</option>
                   <option value={30}>30 min</option>
@@ -430,13 +430,13 @@ function MeetingCard({
             </div>
             <div className="flex items-start gap-2 rounded-lg border border-dashed bg-muted/30 p-2.5">
               <IntegrationLogo id="google_meet" className="mt-0.5 h-3.5 w-3.5" />
-              <p className="text-[11px] leading-relaxed text-muted-foreground">
+              <p className="text-xs leading-relaxed text-muted-foreground">
                 Confirming adds this call to your Google Calendar and creates
                 the Google Meet link — no need to make one yourself.
               </p>
             </div>
             {error && (
-              <p className="rounded-md bg-destructive/10 p-2 text-xs text-destructive">
+              <p className="rounded-lg bg-destructive/10 p-2 text-xs text-destructive">
                 {error}
               </p>
             )}
@@ -494,7 +494,7 @@ function AddToCalendarMenu({
       <DropdownMenuTrigger asChild>
         <button
           type="button"
-          className="inline-flex items-center gap-1 text-[11px] text-muted-foreground transition-colors hover:text-foreground"
+          className="inline-flex items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-foreground"
         >
           <CalendarPlus className="h-3 w-3" />
           Add to calendar
@@ -703,7 +703,7 @@ function RequestMeetingDialog({
               />
             </div>
             {error && (
-              <p className="rounded-md bg-destructive/10 p-2 text-xs text-destructive">
+              <p className="rounded-lg bg-destructive/10 p-2 text-xs text-destructive">
                 {error}
               </p>
             )}
@@ -776,7 +776,7 @@ export function MeetingsSection({
           <Video className="h-4 w-4 text-muted-foreground" />
           Meetings
           {active.length > 0 && (
-            <span className="rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold text-primary">
+            <span className="rounded-full bg-primary/10 px-1.5 py-0.5 text-micro font-semibold text-primary">
               {active.length}
             </span>
           )}
@@ -794,16 +794,16 @@ export function MeetingsSection({
       <CardContent className="space-y-3">
         {/* Quick-glance strip for the next confirmed meeting */}
         {nextMeeting?.status === "accepted" && nextMeeting.proposed_time && (
-          <div className="flex items-center gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/5 px-3 py-2">
-            <CalendarDays className="h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
+          <div className="flex items-center gap-2 rounded-lg border border-success-subtle bg-success-subtle px-3 py-2">
+            <CalendarDays className="h-4 w-4 shrink-0 text-success-strong" />
             <div className="min-w-0">
-              <p className="text-xs font-semibold text-emerald-700 dark:text-emerald-400">
+              <p className="text-xs font-semibold text-success-strong">
                 Next: {nextMeeting.proposed_time}
               </p>
-              <p className="text-[11px] text-muted-foreground">{nextMeeting.topic}</p>
+              <p className="text-micro text-muted-foreground">{nextMeeting.topic}</p>
             </div>
             {nextMeeting.meet_link && (
-              <Button asChild size="sm" className="ml-auto h-7 shrink-0 bg-emerald-600 text-white hover:bg-emerald-700">
+              <Button asChild size="sm" className="ml-auto h-7 shrink-0 bg-success text-white hover:bg-success">
                 <a href={nextMeeting.meet_link} target="_blank" rel="noreferrer">
                   <Video className="h-3 w-3" />
                   Join
@@ -845,7 +845,7 @@ export function MeetingsSection({
           <div>
             <button
               type="button"
-              className="flex w-full items-center gap-1.5 py-1 text-[11px] font-medium text-muted-foreground transition-colors hover:text-foreground"
+              className="flex w-full items-center gap-1.5 py-1 text-micro font-medium text-muted-foreground transition-colors hover:text-foreground"
               onClick={() => setShowHistory((v) => !v)}
             >
               {showHistory ? (

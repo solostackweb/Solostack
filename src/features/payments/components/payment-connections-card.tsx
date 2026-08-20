@@ -107,7 +107,7 @@ export function PaymentConnectionsCard({
           onSetDefault={onSetDefault}
         />
 
-        <div className="rounded-xl border bg-card">
+        <div className="rounded-lg border bg-card">
           <div className="border-b px-5 py-4">
             <p className="text-sm font-semibold">Add an international method</p>
             <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
@@ -216,7 +216,7 @@ function ConnectedMethods({
 }) {
   if (connections.length === 0) {
     return (
-      <div className="rounded-xl border border-dashed bg-muted/20 px-5 py-6 text-center">
+      <div className="rounded-lg border border-dashed bg-muted/20 px-5 py-6 text-center">
         <Globe2 className="mx-auto h-6 w-6 text-muted-foreground" />
         <p className="mt-2 text-sm font-medium">No international method added yet</p>
         <p className="mt-1 text-xs text-muted-foreground">
@@ -231,7 +231,7 @@ function ConnectedMethods({
       {connections.map((connection) => {
         const provider = getProvider(connection.provider);
         return (
-          <div key={connection.id} className="rounded-xl border bg-card p-4">
+          <div key={connection.id} className="rounded-lg border bg-card p-4">
             <div className="flex items-start justify-between gap-3">
               <div className="flex min-w-0 gap-3">
                 <IntegrationLogoTile id={connection.provider} />
@@ -239,7 +239,7 @@ function ConnectedMethods({
                   <p className="flex flex-wrap items-center gap-2 text-sm font-semibold">
                     {connection.label || provider?.name || connection.provider}
                     {connection.isDefault ? (
-                      <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary">
+                      <span className="rounded-full bg-primary/10 px-2 py-0.5 text-micro font-semibold text-primary">
                         Default
                       </span>
                     ) : null}
@@ -318,7 +318,7 @@ function ProviderCard({
       type="button"
       onClick={onClick}
       className={[
-        "flex items-start gap-3 rounded-xl border p-4 text-left transition-colors",
+        "flex items-start gap-3 rounded-lg border p-4 text-left transition-colors",
         selected
           ? "border-primary/50 bg-primary/[0.04] ring-1 ring-primary/20"
           : "bg-background hover:border-primary/30 hover:bg-primary/[0.02]",

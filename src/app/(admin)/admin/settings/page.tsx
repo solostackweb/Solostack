@@ -80,7 +80,7 @@ export default async function AdminSettingsPage() {
 
       {/* ── Integrations ─────────────────────────────────────────────────── */}
       <div>
-        <h2 className="mb-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+        <h2 className="mb-3 text-micro font-semibold uppercase tracking-wider text-muted-foreground">
           Integrations
         </h2>
         <SlackAlertSection
@@ -91,7 +91,7 @@ export default async function AdminSettingsPage() {
 
       {/* ── Platform settings ────────────────────────────────────────────── */}
       <div>
-        <h2 className="mb-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+        <h2 className="mb-3 text-micro font-semibold uppercase tracking-wider text-muted-foreground">
           Platform Settings
         </h2>
         <ul className="space-y-2">

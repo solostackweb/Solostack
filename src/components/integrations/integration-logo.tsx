@@ -71,7 +71,7 @@ export function IntegrationLogoTile({
   return (
     <span
       className={[
-        "flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border bg-background shadow-sm",
+        "flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border bg-background shadow-sm",
         className,
       ].join(" ")}
     >

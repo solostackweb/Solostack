@@ -293,7 +293,7 @@ export function TemplateEditor({
           <span
             className={cn(
               "text-xs font-medium",
-              dirty ? "text-amber-600 dark:text-amber-400" : "text-muted-foreground",
+              dirty ? "text-warning-strong" : "text-muted-foreground",
             )}
           >
             {dirty ? "Unsaved changes" : "All changes saved"}
@@ -498,7 +498,7 @@ export function TemplateEditor({
             "xl:sticky xl:top-24 xl:block xl:self-start",
           )}
         >
-          <div className="rounded-xl border bg-card p-4 shadow-sm">
+          <div className="rounded-lg border bg-card p-4 shadow-sm">
             <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
               Merge fields
             </p>
@@ -513,7 +513,7 @@ export function TemplateEditor({
                   type="button"
                   onClick={() => insertVariable(v.key)}
                   title={`${v.label} — e.g. ${v.sample}`}
-                  className="rounded-md border bg-background px-2 py-1 font-mono text-[11px] text-foreground/80 transition-colors hover:border-primary/40 hover:text-primary"
+                  className="rounded-lg border bg-background px-2 py-1 font-mono text-xs text-foreground/80 transition-colors hover:border-primary/40 hover:text-primary"
                 >
                   {`{{${v.key}}}`}
                 </button>
@@ -521,12 +521,12 @@ export function TemplateEditor({
             </div>
           </div>
 
-          <div className="overflow-hidden rounded-xl border bg-card shadow-sm">
+          <div className="overflow-hidden rounded-lg border bg-card shadow-sm">
             <div className="flex items-center justify-between border-b bg-muted/30 px-4 py-2.5">
               <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
                 Preview
               </p>
-              <span className="text-[10px] text-muted-foreground">
+              <span className="text-micro text-muted-foreground">
                 sample values shown
               </span>
             </div>
@@ -603,7 +603,7 @@ function DocBlock({ heading, body }: { heading: string; body: string }) {
   if (!body?.trim()) return null;
   return (
     <div>
-      <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+      <p className="text-micro font-semibold uppercase tracking-wider text-muted-foreground">
         <Tokenized text={heading} />
       </p>
       <p className="mt-1 whitespace-pre-line leading-relaxed text-foreground/90">

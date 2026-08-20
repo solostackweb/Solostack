@@ -7,18 +7,18 @@ const STATUS_STYLES: Record<ContractStatusRow, string> = {
   draft: "bg-muted text-muted-foreground ring-muted-foreground/20",
   sent: "bg-primary/10 text-primary ring-primary/20",
   viewed: "bg-violet-500/10 text-violet-700 ring-violet-500/20 dark:text-violet-400",
-  signed: "bg-emerald-500/10 text-emerald-700 ring-emerald-500/20 dark:text-emerald-400",
+  signed: "bg-success-subtle text-success-strong ring-success-subtle",
   declined: "bg-destructive/10 text-destructive ring-destructive/20",
-  expired: "bg-amber-500/10 text-amber-700 ring-amber-500/20 dark:text-amber-400",
+  expired: "bg-warning-subtle text-warning-strong ring-warning-subtle",
 };
 
 const STATUS_DOT: Record<ContractStatusRow, string> = {
   draft: "bg-muted-foreground/60",
   sent: "bg-primary",
   viewed: "bg-violet-500",
-  signed: "bg-emerald-500",
+  signed: "bg-success",
   declined: "bg-destructive",
-  expired: "bg-amber-500",
+  expired: "bg-warning",
 };
 
 export function ContractStatusBadge({
@@ -32,7 +32,7 @@ export function ContractStatusBadge({
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider ring-1 ring-inset",
+        "inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-micro font-semibold uppercase tracking-wider ring-1 ring-inset",
         STATUS_STYLES[status],
         className,
       )}

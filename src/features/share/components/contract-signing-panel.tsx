@@ -117,7 +117,7 @@ export function ContractSigningPanel({
       </Card>
 
       {!signed ? (
-        <p className="mx-5 -mt-4 mb-8 text-[11px] leading-relaxed text-muted-foreground sm:mx-8 sm:mb-10">
+        <p className="mx-5 -mt-4 mb-8 text-xs leading-relaxed text-muted-foreground sm:mx-8 sm:mb-10">
           Do not use electronic signature for documents excluded under the First
           Schedule of the IT Act, 2000 (e.g. wills, powers of attorney,
           negotiable instruments, or property conveyances).

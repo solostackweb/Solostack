@@ -6,7 +6,7 @@ export default function Loading() {
       {/* Header row */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex min-w-0 items-center gap-2">
-          <Skeleton className="h-8 w-8 shrink-0 rounded-md" />
+          <Skeleton className="h-8 w-8 shrink-0 rounded-lg" />
           <div className="flex items-center gap-1.5">
             <Skeleton className="h-4 w-20 hidden sm:block" />
             <Skeleton className="h-4 w-2 hidden sm:block" />
@@ -17,7 +17,7 @@ export default function Loading() {
           <Skeleton className="h-8 w-32" />
           <Skeleton className="h-8 w-24" />
           <Skeleton className="h-8 w-28" />
-          <Skeleton className="h-8 w-8 rounded-md" />
+          <Skeleton className="h-8 w-8 rounded-lg" />
         </div>
       </div>
 

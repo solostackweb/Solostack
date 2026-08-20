@@ -160,7 +160,7 @@ export function PortalFileUploadButton({
         </div>
       )}
       {error && (
-        <span className="max-w-[180px] truncate text-[11px] text-destructive">{error}</span>
+        <span className="max-w-[180px] truncate text-xs text-destructive">{error}</span>
       )}
     </div>
   );

@@ -11,8 +11,8 @@ const STATUS_STYLES: Record<InvoiceStatusRow, string> = {
   draft: "bg-muted text-muted-foreground ring-border",
   sent: "bg-primary/10 text-primary ring-primary/20",
   viewed: "bg-primary/10 text-primary ring-primary/20",
-  partially_paid: "bg-amber-500/10 text-amber-700 ring-amber-500/20 dark:text-amber-400",
-  paid: "bg-emerald-500/10 text-emerald-700 ring-emerald-500/20 dark:text-emerald-400",
+  partially_paid: "bg-warning-subtle text-warning-strong ring-warning-subtle",
+  paid: "bg-success-subtle text-success-strong ring-success-subtle",
   overdue: "bg-destructive/10 text-destructive ring-destructive/20",
   cancelled: "bg-muted text-muted-foreground ring-border line-through",
 };
@@ -21,8 +21,8 @@ const STATUS_DOT: Record<InvoiceStatusRow, string> = {
   draft: "bg-muted-foreground/60",
   sent: "bg-primary",
   viewed: "bg-primary",
-  partially_paid: "bg-amber-500",
-  paid: "bg-emerald-500",
+  partially_paid: "bg-warning",
+  paid: "bg-success",
   overdue: "bg-destructive",
   cancelled: "bg-muted-foreground/40",
 };
@@ -51,7 +51,7 @@ export function StatusBadge({
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider ring-1 ring-inset",
+        "inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-micro font-semibold uppercase tracking-wider ring-1 ring-inset",
         tone,
         className,
       )}

@@ -30,7 +30,7 @@ export function FaqAccordion({ items, sectionId }: FaqAccordionProps) {
   const toggle = (i: number) => setOpen((prev) => (prev === i ? null : i));
 
   return (
-    <div className="divide-y rounded-xl border bg-card">
+    <div className="divide-y rounded-lg border bg-card">
       {items.map((item, i) => {
         const isOpen = open === i;
         const id = `faq-${sectionId}-${i}`;

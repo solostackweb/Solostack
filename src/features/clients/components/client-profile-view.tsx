@@ -68,9 +68,9 @@ interface ClientProfileViewProps {
 }
 
 const INSIGHT_TONES: Record<ClientInsight["tone"], string> = {
-  positive: "border-emerald-500/25 bg-emerald-500/5 text-emerald-700",
+  positive: "border-success-subtle bg-success-subtle text-success-strong",
   info: "border-primary/20 bg-primary/5 text-foreground/80",
-  warning: "border-amber-500/30 bg-amber-500/10 text-amber-800",
+  warning: "border-warning-subtle bg-warning-subtle text-warning-strong",
   danger: "border-destructive/30 bg-destructive/10 text-destructive",
 };
 
@@ -133,10 +133,10 @@ export function ClientProfileView({
       </Button>
 
       {client.needsReview ? (
-        <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-4">
+        <div className="rounded-lg border border-warning-subtle bg-warning-subtle p-4">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-start gap-3">
-              <ShieldAlert className="mt-0.5 h-5 w-5 shrink-0 text-amber-600 dark:text-amber-400" />
+              <ShieldAlert className="mt-0.5 h-5 w-5 shrink-0 text-warning-strong" />
               <div>
                 <p className="text-sm font-semibold">Verify this client&apos;s details</p>
                 <p className="text-xs text-muted-foreground">
@@ -172,15 +172,15 @@ export function ClientProfileView({
                   {display}
                 </h1>
                 {client.isForeign ? (
-                  <span className="rounded-full bg-sky-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-sky-700 dark:text-sky-300">
+                  <span className="rounded-full bg-info-subtle px-2 py-0.5 text-micro font-semibold uppercase tracking-wider text-info-strong">
                     International
                   </span>
                 ) : client.gstRegistered ? (
-                  <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-primary">
+                  <span className="rounded-full bg-primary/10 px-2 py-0.5 text-micro font-semibold uppercase tracking-wider text-primary">
                     GST registered
                   </span>
                 ) : (
-                  <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                  <span className="rounded-full bg-muted px-2 py-0.5 text-micro font-semibold uppercase tracking-wider text-muted-foreground">
                     Unregistered
                   </span>
                 )}
@@ -223,7 +223,12 @@ export function ClientProfileView({
             </Button>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="icon" className="h-9 w-9">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  aria-label="More client actions"
+                  className="h-9 w-9"
+                >
                   <MoreHorizontal className="h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
@@ -320,9 +325,9 @@ export function ClientProfileView({
                     <Link
                       key={`${d.kind}-${d.id}`}
                       href={d.href}
-                      className="flex items-center gap-3 rounded-md px-1 py-3 text-sm transition-colors hover:bg-muted/50"
+                      className="flex items-center gap-3 rounded-lg px-1 py-3 text-sm transition-colors hover:bg-muted/50"
                     >
-                      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
+                      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
                         <DocIcon kind={d.kind} />
                       </span>
                       <div className="min-w-0 flex-1">
@@ -365,7 +370,7 @@ export function ClientProfileView({
                     <Link
                       key={inv.id}
                       href={`/dashboard/invoices/${inv.id}`}
-                      className="flex items-center gap-3 rounded-md px-1 py-3 text-sm transition-colors hover:bg-muted/50"
+                      className="flex items-center gap-3 rounded-lg px-1 py-3 text-sm transition-colors hover:bg-muted/50"
                     >
                       <div className="min-w-0 flex-1">
                         <p className="truncate font-medium">{inv.invoiceNumber}</p>
@@ -485,7 +490,7 @@ function StatTile({
 }) {
   return (
     <div className="rounded-lg border bg-card p-4">
-      <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+      <p className="text-micro font-medium uppercase tracking-wider text-muted-foreground">
         {label}
       </p>
       <p
@@ -502,16 +507,16 @@ function StatTile({
 
 function InvoiceStatusBadge({ status }: { status: InvoiceRecord["status"] }) {
   const map: Partial<Record<InvoiceRecord["status"], { label: string; className: string }>> = {
-    paid:          { label: "Paid",          className: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" },
+    paid:          { label: "Paid",          className: "bg-success-subtle text-success-strong" },
     sent:          { label: "Sent",          className: "bg-blue-500/10 text-blue-600 dark:text-blue-400" },
     viewed:        { label: "Viewed",        className: "bg-blue-500/10 text-blue-600 dark:text-blue-400" },
-    overdue:       { label: "Overdue",       className: "bg-red-500/10 text-red-600 dark:text-red-400" },
+    overdue:       { label: "Overdue",       className: "bg-destructive-subtle text-destructive-strong" },
     draft:         { label: "Draft",         className: "bg-muted text-muted-foreground" },
-    partially_paid:{ label: "Partial",       className: "bg-amber-500/10 text-amber-600 dark:text-amber-400" },
+    partially_paid:{ label: "Partial",       className: "bg-warning-subtle text-warning-strong" },
   };
   const { label, className } = map[status] ?? { label: status, className: "bg-muted text-muted-foreground" };
   return (
-    <Badge variant="outline" className={`h-5 px-1.5 text-[10px] font-semibold border-0 ${className}`}>
+    <Badge variant="outline" className={`h-5 px-1.5 text-micro font-semibold border-0 ${className}`}>
       {label}
     </Badge>
   );

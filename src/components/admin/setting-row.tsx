@@ -35,15 +35,15 @@ export function SettingRow({
   const [parseError, setParseError] = React.useState<string | null>(null);
 
   return (
-    <li className="rounded-xl border bg-card shadow-sm shadow-black/[0.03] p-3 text-xs">
+    <li className="rounded-lg border bg-card shadow-sm shadow-black/[0.03] p-3 text-xs">
       <div className="flex items-center justify-between gap-3">
         <div className="space-y-0.5">
           <div className="font-mono text-sm font-medium">{settingKey}</div>
           {hint ? (
-            <div className="text-[11px] text-muted-foreground">{hint}</div>
+            <div className="text-micro text-muted-foreground">{hint}</div>
           ) : null}
           {updatedAt ? (
-            <div className="text-[10px] text-muted-foreground tabular-nums">
+            <div className="text-xs text-muted-foreground tabular-nums">
               updated {formatRelative(updatedAt)}
             </div>
           ) : null}
@@ -57,7 +57,7 @@ export function SettingRow({
         </button>
       </div>
       {!open ? (
-        <pre className="mt-2 whitespace-pre-wrap break-all rounded bg-muted/40 px-2 py-1.5 font-mono text-[11px]">
+        <pre className="mt-2 whitespace-pre-wrap break-all rounded bg-muted/40 px-2 py-1.5 font-mono text-xs">
           {JSON.stringify(value ?? null, null, 2)}
         </pre>
       ) : (
@@ -90,10 +90,10 @@ export function SettingRow({
             onChange={(e) => setDraft(e.target.value)}
             spellCheck={false}
             rows={4}
-            className="w-full rounded border bg-background px-2 py-1.5 font-mono text-[12px]"
+            className="w-full rounded border bg-background px-2 py-1.5 font-mono text-xs"
           />
           {parseError ? (
-            <div className="text-[11px] text-red-600 dark:text-red-400">
+            <div className="text-xs text-destructive-strong">
               {parseError}
             </div>
           ) : null}

@@ -83,7 +83,7 @@ function CycleToggle({
   onChange: (v: BillingCycle) => void;
 }) {
   return (
-    <div className="inline-flex rounded-md border bg-muted/40 p-0.5 text-xs">
+    <div className="inline-flex rounded-lg border bg-muted/40 p-0.5 text-xs">
       {(["monthly", "yearly"] as const).map((cycle) => (
         <button
           key={cycle}
@@ -98,7 +98,7 @@ function CycleToggle({
         >
           {cycle === "monthly" ? "Monthly" : "Yearly"}
           {cycle === "yearly" && (
-            <span className="ml-1 text-[10px] text-success">−2 mo</span>
+            <span className="ml-1 text-xs text-success">−2 mo</span>
           )}
         </button>
       ))}
@@ -131,7 +131,7 @@ function PlanTile({
       )}
     >
       {popular && (
-        <Badge className="absolute right-3 top-3 h-5 gap-1 px-1.5 text-[10px]">
+        <Badge className="absolute right-3 top-3 h-5 gap-1 px-1.5 text-micro">
           <Sparkles className="h-3 w-3" /> Popular
         </Badge>
       )}
@@ -147,7 +147,7 @@ function PlanTile({
                 maximumFractionDigits: 0,
               }).format(price / 100)}
       </p>
-      <p className="text-[11px] text-muted-foreground">
+      <p className="text-xs text-muted-foreground">
         {price && price > 0
           ? `per ${cycle === "yearly" ? "year" : "month"}`
           : "forever"}

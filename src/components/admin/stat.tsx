@@ -30,9 +30,9 @@ const TONE_CLASSES: Record<StatTone, string> = {
 
 const LABEL_TONE: Record<StatTone, string> = {
   neutral: "text-muted-foreground",
-  ok: "text-emerald-600 dark:text-emerald-400",
-  warn: "text-amber-600 dark:text-amber-400",
-  alert: "text-red-600 dark:text-red-400",
+  ok: "text-success-strong",
+  warn: "text-warning-strong",
+  alert: "text-destructive-strong",
 };
 
 export function Stat({
@@ -45,14 +45,14 @@ export function Stat({
   return (
     <div
       className={cn(
-        "rounded-xl border bg-card shadow-sm shadow-black/[0.03] px-4 py-3 border-l-4",
+        "rounded-lg border bg-card shadow-sm shadow-black/[0.03] px-4 py-3 border-l-4",
         TONE_CLASSES[tone],
         className,
       )}
     >
       <div
         className={cn(
-          "text-[11px] font-medium uppercase tracking-wider",
+          "text-micro font-medium uppercase tracking-wider",
           LABEL_TONE[tone],
         )}
       >
@@ -60,7 +60,7 @@ export function Stat({
       </div>
       <div className="mt-1 text-xl font-semibold tabular-nums">{value}</div>
       {hint ? (
-        <div className="mt-0.5 text-[11px] text-muted-foreground tabular-nums">
+        <div className="mt-0.5 text-micro text-muted-foreground tabular-nums">
           {hint}
         </div>
       ) : null}

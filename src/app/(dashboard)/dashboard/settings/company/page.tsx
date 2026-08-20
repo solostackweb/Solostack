@@ -166,7 +166,7 @@ export default function CompanySettingsPage() {
         isDirty={taxForm.formState.isDirty}
         isSubmitting={taxForm.formState.isSubmitting}
       >
-        <div className="flex items-start justify-between rounded-md border p-4">
+        <div className="flex items-start justify-between rounded-lg border p-4">
           <div className="space-y-1">
             <p className="text-sm font-medium">GST registered?</p>
             <p className="text-xs text-muted-foreground">

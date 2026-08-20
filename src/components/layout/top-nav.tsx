@@ -35,7 +35,7 @@ export function TopNav({ aiUser }: TopNavProps) {
         aria-label="Stackivo home"
       >
         <StackivoMark className="h-7 w-7" />
-        <span className="text-[15px] font-semibold tracking-tight">Stackivo</span>
+        <span className="text-sm font-semibold tracking-tight">Stackivo</span>
       </Link>
 
       {/* Desktop breadcrumbs */}

@@ -72,7 +72,7 @@ export function SwipeRow({
               }}
               style={{ width: ACTION_W }}
               className={cn(
-                "flex flex-col items-center justify-center gap-1 text-[11px] font-medium text-white",
+                "flex flex-col items-center justify-center gap-1 text-micro font-medium text-white",
                 a.className ??
                   (a.destructive ? "bg-destructive" : "bg-primary"),
               )}

@@ -90,7 +90,7 @@ export function GstCalculator() {
                 step={500}
                 min={0}
                 onChange={(e) => setAmount(Number(e.target.value) || 0)}
-                className="h-9 w-full rounded-md border bg-background px-3 text-sm tabular-nums focus:outline-none focus:ring-2 focus:ring-primary/40"
+                className="h-9 w-full rounded-lg border bg-background px-3 text-sm tabular-nums focus:outline-none focus:ring-2 focus:ring-primary/40"
               />
             </div>
           </label>
@@ -103,7 +103,7 @@ export function GstCalculator() {
                   key={s}
                   type="button"
                   onClick={() => setRate(s)}
-                  className={`h-9 rounded-md border text-sm font-medium transition ${
+                  className={`h-9 rounded-lg border text-sm font-medium transition ${
                     rate === s
                       ? "border-primary bg-primary text-primary-foreground"
                       : "bg-background hover:bg-muted"
@@ -113,7 +113,7 @@ export function GstCalculator() {
                 </button>
               ))}
             </div>
-            <p className="mt-2 text-[11px] text-muted-foreground">
+            <p className="mt-2 text-xs text-muted-foreground">
               Most freelance services fall under 18%. Verify your HSN/SAC code.
             </p>
           </div>
@@ -222,7 +222,7 @@ function ToggleGroup<T extends string>({
             key={o.id}
             type="button"
             onClick={() => onChange(o.id)}
-            className={`h-9 rounded-md border px-3 text-sm font-medium transition ${
+            className={`h-9 rounded-lg border px-3 text-sm font-medium transition ${
               value === o.id
                 ? "border-primary bg-primary text-primary-foreground"
                 : "bg-background hover:bg-muted"

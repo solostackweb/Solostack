@@ -29,13 +29,13 @@ export function IvoContextActions({
   return (
     <section
       className={cn(
-        "rounded-xl border bg-card/80 p-3 shadow-sm shadow-primary/[0.02] sm:p-4",
+        "rounded-lg border bg-card/80 p-3 shadow-sm shadow-primary/[0.02] sm:p-4",
         className,
       )}
     >
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0">
-          <p className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-widest text-primary">
+          <p className="inline-flex items-center gap-1.5 text-micro font-bold uppercase tracking-widest text-primary">
             <Sparkles className="h-3.5 w-3.5" />
             Ivo context
           </p>

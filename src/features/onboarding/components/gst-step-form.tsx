@@ -26,7 +26,7 @@ export function GstStepForm({ profile }: { profile: BusinessProfile }) {
     <form action={formAction} className="space-y-6">
       <AuthFormError message={state && !state.ok ? state.error : null} />
 
-      <div className="flex items-start justify-between rounded-md border p-4">
+      <div className="flex items-start justify-between rounded-lg border p-4">
         <div className="space-y-1">
           <Label htmlFor="gstRegistered" className="text-sm font-medium">
             Are you GST registered?
@@ -86,7 +86,7 @@ export function GstStepForm({ profile }: { profile: BusinessProfile }) {
           </div>
         </div>
       ) : (
-        <div className="rounded-md border bg-muted/40 p-4 text-sm text-muted-foreground">
+        <div className="rounded-lg border bg-muted/40 p-4 text-sm text-muted-foreground">
           We&apos;ll generate <strong className="text-foreground">standard
           (non-GST) invoices</strong> with the recommended footer:
           <em className="mt-1 block text-foreground">

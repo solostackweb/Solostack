@@ -209,7 +209,7 @@ export default function BrandingSettingsPage() {
                         aria-label={`Choose ${c.name}`}
                         aria-pressed={active}
                         className={cn(
-                          "flex h-9 w-9 items-center justify-center rounded-md border transition-transform",
+                          "flex h-9 w-9 items-center justify-center rounded-lg border transition-transform",
                           active
                             ? "scale-105 ring-2 ring-offset-2 ring-ring"
                             : "hover:scale-105",

@@ -123,7 +123,7 @@ export function DocumentCommentsThread({
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="inline-flex items-center gap-1.5 text-[11px] font-medium text-muted-foreground transition-colors hover:text-foreground"
+        className="inline-flex items-center gap-1.5 text-micro font-medium text-muted-foreground transition-colors hover:text-foreground"
       >
         <MessageSquare className="h-3.5 w-3.5" />
         {count > 0
@@ -134,7 +134,7 @@ export function DocumentCommentsThread({
       {open && (
         <div className="mt-2 space-y-2.5">
           {!loaded ? (
-            <p className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+            <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
               <Loader2 className="h-3 w-3 animate-spin" /> Loading…
             </p>
           ) : (
@@ -148,14 +148,14 @@ export function DocumentCommentsThread({
                       key={c.id}
                       className={`rounded-lg border p-2.5 text-sm ${resolved ? "opacity-60" : ""} ${mine ? "border-primary/30 bg-primary/5" : "bg-background"}`}
                     >
-                      <div className="mb-1 flex items-center gap-2 text-[11px] text-muted-foreground">
+                      <div className="mb-1 flex items-center gap-2 text-micro text-muted-foreground">
                         <span className="font-semibold text-foreground">
                           {mine ? "You" : c.author?.full_name ?? c.author?.email ?? "Member"}
                         </span>
                         <span aria-hidden>·</span>
                         <time dateTime={c.created_at}>{relativeTime(c.created_at)}</time>
                         {resolved && (
-                          <span className="ml-1 inline-flex items-center gap-0.5 rounded-full bg-emerald-500/10 px-1.5 text-[10px] font-medium text-emerald-600 dark:text-emerald-400">
+                          <span className="ml-1 inline-flex items-center gap-0.5 rounded-full bg-success-subtle px-1.5 text-micro font-medium text-success-strong">
                             <Check className="h-2.5 w-2.5" /> Resolved
                           </span>
                         )}
@@ -165,7 +165,7 @@ export function DocumentCommentsThread({
                         <button
                           type="button"
                           onClick={() => onResolve(c.id, !resolved)}
-                          className="text-[11px] text-muted-foreground hover:text-foreground"
+                          className="text-xs text-muted-foreground hover:text-foreground"
                         >
                           {resolved ? "Reopen" : "Resolve"}
                         </button>
@@ -173,7 +173,7 @@ export function DocumentCommentsThread({
                           <button
                             type="button"
                             onClick={() => onDelete(c.id)}
-                            className="inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-destructive"
+                            className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-destructive"
                           >
                             <Trash2 className="h-3 w-3" /> Delete
                           </button>
@@ -195,10 +195,10 @@ export function DocumentCommentsThread({
                 onChange={(e) => setBody(e.target.value)}
                 rows={2}
                 maxLength={4000}
-                className="min-h-12 resize-none rounded-xl bg-background text-sm"
+                className="min-h-12 resize-none rounded-lg bg-background text-sm"
               />
             </div>
-            {error && <p className="text-[11px] text-destructive">{error}</p>}
+            {error && <p className="text-xs text-destructive">{error}</p>}
             <div className="flex justify-end">
               <Button type="submit" size="sm" className="h-8 rounded-full px-3" disabled={pending || !body.trim()}>
                 {pending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Comment"}

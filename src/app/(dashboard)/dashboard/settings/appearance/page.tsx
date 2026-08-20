@@ -216,7 +216,7 @@ export default function AppearanceSettingsPage() {
                 <SelectItem value="en">English</SelectItem>
               </SelectContent>
             </Select>
-            <p className="mt-1 text-[11px] text-muted-foreground">
+            <p className="mt-1 text-xs text-muted-foreground">
               More languages coming soon.
             </p>
           </SettingsField>
@@ -255,15 +255,15 @@ export default function AppearanceSettingsPage() {
 function ThemePreview({ variant }: { variant: "light" | "dark" | "system" }) {
   const styles =
     variant === "light"
-      ? { bg: "bg-white", fg: "bg-slate-200", accent: "bg-slate-900" }
+      ? { bg: "bg-white", fg: "bg-muted", accent: "bg-foreground" }
       : variant === "dark"
-        ? { bg: "bg-slate-900", fg: "bg-slate-700", accent: "bg-white" }
-        : { bg: "bg-gradient-to-br from-white to-slate-900", fg: "bg-slate-300", accent: "bg-primary" };
+        ? { bg: "bg-foreground", fg: "bg-foreground", accent: "bg-white" }
+        : { bg: "bg-gradient-to-br from-white to-slate-900", fg: "bg-foreground", accent: "bg-primary" };
 
   return (
     <div
       className={cn(
-        "flex h-16 w-full items-end gap-1.5 rounded-md border p-2",
+        "flex h-16 w-full items-end gap-1.5 rounded-lg border p-2",
         styles.bg,
       )}
     >

@@ -16,9 +16,9 @@ export default function Loading() {
 
       <div className="overflow-x-auto">
         <div className="flex gap-1">
-          <Skeleton className="h-9 w-20 shrink-0 rounded-md" />
-          <Skeleton className="h-9 w-20 shrink-0 rounded-md" />
-          <Skeleton className="h-9 w-32 shrink-0 rounded-md" />
+          <Skeleton className="h-9 w-20 shrink-0 rounded-lg" />
+          <Skeleton className="h-9 w-20 shrink-0 rounded-lg" />
+          <Skeleton className="h-9 w-32 shrink-0 rounded-lg" />
         </div>
       </div>
 
@@ -29,7 +29,7 @@ export default function Loading() {
             <div className="rounded-lg border bg-card">
               {Array.from({ length: 3 }).map((_, i) => (
                 <div key={i} className="flex items-start gap-4 border-t px-5 py-4 first:border-t-0">
-                  <Skeleton className="h-9 w-9 shrink-0 rounded-md" />
+                  <Skeleton className="h-9 w-9 shrink-0 rounded-lg" />
                   <div className="min-w-0 flex-1 space-y-1.5">
                     <Skeleton className="h-4 w-48" />
                     <Skeleton className="h-3 w-64" />

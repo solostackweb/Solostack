@@ -31,11 +31,11 @@ export function HeroSection({ authState }: { authState: MarketingAuthState }) {
             Built for freelancers &amp; small studios
           </span>
 
-          <h1 className="mt-5 text-balance font-display text-[36px] font-semibold leading-[1.05] tracking-tight text-foreground sm:text-5xl lg:text-[54px]">
+          <h1 className="mt-5 text-balance font-display text-4xl font-semibold leading-[1.05] tracking-tight text-foreground sm:text-5xl lg:text-6xl">
             Everything you need to run your freelance business
           </h1>
 
-          <p className="mt-5 max-w-lg text-pretty text-[15px] leading-relaxed text-muted-foreground sm:text-base">
+          <p className="mt-5 max-w-lg text-pretty text-sm leading-relaxed text-muted-foreground sm:text-base">
             Clients, invoices, contracts, projects, time tracking, and payments —
             one clean workspace. Simple invoices or full GST, your call. Free for
             your first 5 clients, always.
@@ -54,7 +54,7 @@ export function HeroSection({ authState }: { authState: MarketingAuthState }) {
           <div className="mt-5 flex items-center gap-2 text-sm text-muted-foreground">
             <span className="flex" aria-hidden>
               {Array.from({ length: 5 }).map((_, i) => (
-                <Star key={i} className="h-4 w-4 fill-amber-400 text-amber-400" />
+                <Star key={i} className="h-4 w-4 fill-amber-400 text-warning-strong" />
               ))}
             </span>
             <span className="font-medium text-foreground">Loved by freelancers across India</span>

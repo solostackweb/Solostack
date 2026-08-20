@@ -61,12 +61,12 @@ export function BroadcastForm() {
     >
       <div className="border-b bg-muted/30 px-4 py-3">
         <div className="flex items-center gap-2">
-          <span className="flex h-8 w-8 items-center justify-center rounded-md bg-primary/10 text-primary ring-1 ring-primary/15">
+          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary ring-1 ring-primary/15">
             <Megaphone className="h-4 w-4" />
           </span>
           <div>
             <h2 className="text-sm font-semibold">New Broadcast</h2>
-            <p className="text-[11px] text-muted-foreground">
+            <p className="text-micro text-muted-foreground">
               Send an audited in-app notice to a selected customer segment.
             </p>
           </div>
@@ -76,7 +76,7 @@ export function BroadcastForm() {
       <div className="space-y-4 p-4">
         <div className="grid gap-3 sm:grid-cols-2">
           <label className="flex flex-col gap-1">
-            <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
+            <span className="text-micro uppercase tracking-wider text-muted-foreground">
               Type
             </span>
             <select
@@ -89,7 +89,7 @@ export function BroadcastForm() {
                     | "maintenance",
                 )
               }
-              className="h-9 rounded-md border bg-background px-2.5"
+              className="h-9 rounded-lg border bg-background px-2.5"
             >
               {TYPES.map((t) => (
                 <option key={t.value} value={t.value}>
@@ -100,7 +100,7 @@ export function BroadcastForm() {
           </label>
 
           <label className="flex flex-col gap-1">
-            <span className="flex items-center gap-1 text-[10px] uppercase tracking-wider text-muted-foreground">
+            <span className="flex items-center gap-1 text-micro uppercase tracking-wider text-muted-foreground">
               <Users className="h-3 w-3" />
               Audience
             </span>
@@ -109,7 +109,7 @@ export function BroadcastForm() {
               onChange={(e) =>
                 setTarget(e.target.value as "all" | "free" | "pro" | "business")
               }
-              className="h-9 rounded-md border bg-background px-2.5"
+              className="h-9 rounded-lg border bg-background px-2.5"
             >
               {TARGETS.map((t) => (
                 <option key={t.value} value={t.value}>
@@ -121,7 +121,7 @@ export function BroadcastForm() {
         </div>
 
         <label className="flex flex-col gap-1">
-          <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
+          <span className="text-micro uppercase tracking-wider text-muted-foreground">
             Title <span className="text-muted-foreground/60">(3-140 chars)</span>
           </span>
           <input
@@ -130,12 +130,12 @@ export function BroadcastForm() {
             onChange={(e) => setTitle(e.target.value)}
             maxLength={140}
             placeholder="Short, clear title shown in the notification center"
-            className="h-10 rounded-md border bg-background px-3"
+            className="h-10 rounded-lg border bg-background px-3"
           />
         </label>
 
         <label className="flex flex-col gap-1">
-          <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
+          <span className="text-micro uppercase tracking-wider text-muted-foreground">
             Message{" "}
             <span className="text-muted-foreground/60">
               (optional - 2000 max)
@@ -147,12 +147,12 @@ export function BroadcastForm() {
             maxLength={2000}
             rows={5}
             placeholder="Add context, links, or the action users should take."
-            className="min-h-32 rounded-md border bg-background px-3 py-2 leading-relaxed"
+            className="min-h-32 rounded-lg border bg-background px-3 py-2 leading-relaxed"
           />
         </label>
 
-        <div className="rounded-md border border-amber-500/25 bg-amber-500/[0.04] px-3 py-2">
-          <span className="flex items-start gap-2 text-[11px] text-amber-800 dark:text-amber-300">
+        <div className="rounded-lg border border-warning-subtle bg-warning/[0.04] px-3 py-2">
+          <span className="flex items-start gap-2 text-xs text-warning-strong">
             <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
             One notification row is created per matched user. This is audited
             and cannot be undone.

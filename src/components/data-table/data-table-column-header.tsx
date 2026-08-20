@@ -23,7 +23,7 @@ export function DataTableColumnHeader<TData, TValue>({
     return (
       <span
         className={cn(
-          "text-[11px] font-semibold uppercase tracking-wider text-muted-foreground",
+          "text-micro font-semibold uppercase tracking-wider text-muted-foreground",
           align === "right" && "block text-right",
           className,
         )}
@@ -41,7 +41,7 @@ export function DataTableColumnHeader<TData, TValue>({
       size="sm"
       onClick={() => column.toggleSorting(sorted === "asc")}
       className={cn(
-        "-ml-2 h-7 px-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground hover:text-foreground",
+        "-ml-2 h-7 px-2 text-micro font-semibold uppercase tracking-wider text-muted-foreground hover:text-foreground",
         align === "right" && "ml-auto",
         className,
       )}

@@ -248,7 +248,7 @@ export function LeadFormBuilder({
                         <span className="block truncate text-sm font-medium">
                           {initialByName.get(f.name)?.label ?? f.label}
                         </span>
-                        <span className="text-[11px] uppercase tracking-wider text-muted-foreground">
+                        <span className="text-micro uppercase tracking-wider text-muted-foreground">
                           {f.type}
                           {isCore ? " · always on" : ""}
                         </span>
@@ -373,7 +373,7 @@ export function LeadFormBuilder({
 
         {/* Preview + share */}
         <aside className="min-w-0 xl:sticky xl:top-24 xl:self-start">
-          <div className="overflow-hidden rounded-xl border bg-card shadow-sm">
+          <div className="overflow-hidden rounded-lg border bg-card shadow-sm">
             <div
               className="border-b p-4"
               style={{
@@ -391,7 +391,7 @@ export function LeadFormBuilder({
             <div className="space-y-2.5 p-4">
               {orderedFields.map((f) => (
                 <div key={f.name}>
-                  <p className="text-[11px] font-semibold text-muted-foreground">
+                  <p className="text-micro font-semibold text-muted-foreground">
                     {f.label}
                     {f.required ? (
                       <span className="ml-1 text-destructive">*</span>
@@ -399,7 +399,7 @@ export function LeadFormBuilder({
                   </p>
                   <div
                     className={cn(
-                      "mt-1 rounded-md border bg-background",
+                      "mt-1 rounded-lg border bg-background",
                       f.type === "textarea" ? "h-14" : "h-9",
                     )}
                   />
@@ -414,11 +414,11 @@ export function LeadFormBuilder({
             </div>
           </div>
 
-          <div className="mt-4 rounded-xl border bg-card p-4 shadow-sm">
+          <div className="mt-4 rounded-lg border bg-card p-4 shadow-sm">
             <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               Public link
             </p>
-            <p className="mt-2 truncate rounded-md bg-muted px-2.5 py-1.5 font-mono text-[11px] text-muted-foreground">
+            <p className="mt-2 truncate rounded-lg bg-muted px-2.5 py-1.5 font-mono text-micro text-muted-foreground">
               {publicUrl}
             </p>
             <Button

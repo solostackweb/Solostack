@@ -176,7 +176,7 @@ export function buildInvoiceColumns({
         return (
           <div className="flex items-center gap-3">
             <Avatar className="h-7 w-7">
-              <AvatarFallback className="text-[10px] font-medium">
+              <AvatarFallback className="text-micro font-medium">
                 {getClientInitials(name)}
               </AvatarFallback>
             </Avatar>
@@ -218,7 +218,7 @@ export function buildInvoiceColumns({
               {formatMoney(Number(inv.totalAmount) || 0, inv.currency)}
             </div>
             {inv.taxTotal > 0 && (
-              <div className="text-[11px] tabular-nums text-muted-foreground">
+              <div className="text-micro tabular-nums text-muted-foreground">
                 incl. {formatMoney(Number(inv.taxTotal) || 0, inv.currency)} GST
               </div>
             )}

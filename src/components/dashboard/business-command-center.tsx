@@ -91,17 +91,17 @@ export function BusinessCommandCenter({
             label: "Follow up open invoices",
             Icon: ReceiptText,
             className:
-              "border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-300",
+              "border-warning-subtle bg-warning-subtle text-warning-strong",
           }
         : {
             label: "Cash position healthy",
             Icon: CheckCircle2,
             className:
-              "border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
+              "border-success-subtle bg-success-subtle text-success-strong",
           };
 
   return (
-    <section className="overflow-hidden rounded-xl border border-border/70 bg-card shadow-sm shadow-primary/[0.03]">
+    <section className="overflow-hidden rounded-lg border border-border/70 bg-card shadow-sm shadow-primary/[0.03]">
       <div className="grid gap-0 lg:grid-cols-[minmax(0,0.92fr)_minmax(0,1.38fr)]">
         <div className="border-b border-border/60 p-5 sm:p-6 lg:border-b-0 lg:border-r">
           <div className="flex flex-wrap items-start justify-between gap-3">
@@ -321,7 +321,7 @@ function Metric({ icon: Icon, label, value, note, tone }: MetricProps) {
     <div className="rounded-lg border border-border/60 bg-background/70 p-3">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+          <p className="text-micro font-semibold uppercase tracking-wider text-muted-foreground">
             {label}
           </p>
           <p className="mt-1 font-mono text-lg font-semibold tabular-nums tracking-tight">
@@ -333,7 +333,7 @@ function Metric({ icon: Icon, label, value, note, tone }: MetricProps) {
             "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ring-1",
             tone === "default" && "bg-primary/10 text-primary ring-primary/15",
             tone === "warning" &&
-              "bg-amber-500/10 text-amber-700 ring-amber-500/20 dark:text-amber-300",
+              "bg-warning-subtle text-warning-strong ring-warning-subtle",
             tone === "danger" && "bg-destructive/10 text-destructive ring-destructive/20",
             tone === "muted" && "bg-muted text-muted-foreground ring-border",
           )}

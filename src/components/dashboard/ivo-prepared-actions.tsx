@@ -29,7 +29,7 @@ import type { IvoPreparedAction } from "@/features/ai-workflows/prepared-actions
 
 const TONE_STYLES = {
   info: "border-primary/20 bg-primary/5",
-  warning: "border-amber-500/25 bg-amber-500/10",
+  warning: "border-warning-subtle bg-warning-subtle",
   danger: "border-destructive/25 bg-destructive/10",
 } as const;
 
@@ -140,7 +140,7 @@ export function IvoPreparedActions() {
                 <div
                   key={action.id}
                   className={cn(
-                    "rounded-xl border p-3.5 transition-colors",
+                    "rounded-lg border p-3.5 transition-colors",
                     TONE_STYLES[action.tone],
                   )}
                 >

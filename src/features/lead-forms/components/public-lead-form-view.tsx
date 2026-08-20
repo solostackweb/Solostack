@@ -50,7 +50,7 @@ export function PublicLeadFormView({ form }: { form: LeadFormRecord }) {
 
       <div className="relative mx-auto grid min-h-[calc(100vh-3rem)] max-w-6xl gap-8 lg:grid-cols-[0.88fr_1.12fr] lg:items-center">
         <section className="py-6 lg:py-10">
-          <div className="inline-flex items-center gap-2 rounded-full border bg-background px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground shadow-sm">
+          <div className="inline-flex items-center gap-2 rounded-full border bg-background px-3 py-1 text-micro font-semibold uppercase tracking-[0.14em] text-muted-foreground shadow-sm">
             <Sparkles className="h-3.5 w-3.5" style={{ color: form.brand_color }} />
             Project inquiry
           </div>
@@ -76,7 +76,7 @@ export function PublicLeadFormView({ form }: { form: LeadFormRecord }) {
             ].map(([step, text]) => (
               <div
                 key={step}
-                className="rounded-xl border border-black/5 bg-card p-3.5 shadow-sm"
+                className="rounded-lg border border-black/5 bg-card p-3.5 shadow-sm"
               >
                 <span
                   className="flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold text-white"
@@ -95,8 +95,8 @@ export function PublicLeadFormView({ form }: { form: LeadFormRecord }) {
           <div className="p-5 sm:p-7">
           {state?.ok ? (
             <div className="flex min-h-[34rem] flex-col items-center justify-center text-center">
-              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-emerald-500/10">
-                <CheckCircle2 className="h-8 w-8 text-emerald-500" />
+              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-success-subtle">
+                <CheckCircle2 className="h-8 w-8 text-success-strong" />
               </div>
               <h2 className="mt-5 text-2xl font-bold tracking-tight">Inquiry sent</h2>
               <p className="mt-2 max-w-sm text-sm leading-relaxed text-muted-foreground">
@@ -149,7 +149,7 @@ export function PublicLeadFormView({ form }: { form: LeadFormRecord }) {
               ) : null}
 
               <SubmitButton brandColor={form.brand_color} />
-              <p className="flex items-center justify-center gap-1.5 text-center text-[11px] text-muted-foreground">
+              <p className="flex items-center justify-center gap-1.5 text-center text-xs text-muted-foreground">
                 <Lock className="h-3 w-3" />
                 Your details stay private · Powered by Stackivo
               </p>
@@ -193,7 +193,7 @@ function FieldControl({
           name="country"
           value={country}
           onChange={(event) => setCountry(event.target.value)}
-          className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className="h-10 w-full rounded-lg border border-input bg-background px-3 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           required={field.required}
         >
           {LEAD_FORM_COUNTRIES.map((item) => (
@@ -202,7 +202,7 @@ function FieldControl({
             </option>
           ))}
         </select>
-        <span className="text-[11px] text-muted-foreground">
+        <span className="text-micro text-muted-foreground">
           Currency: <span className="font-medium">{currency}</span>
         </span>
       </Field>
@@ -213,7 +213,7 @@ function FieldControl({
   if (field.name === "phone") {
     return (
       <Field label={field.label} required={field.required}>
-        <div className="flex h-10 rounded-md border border-input bg-background shadow-sm transition-all focus-within:ring-2 focus-within:ring-ring">
+        <div className="flex h-10 rounded-lg border border-input bg-background shadow-sm transition-all focus-within:ring-2 focus-within:ring-ring">
           {phoneCode ? (
             <span className="inline-flex min-w-14 items-center justify-center border-r px-3 text-sm font-medium text-muted-foreground">
               {phoneCode}
@@ -293,7 +293,7 @@ function SubmitButton({ brandColor }: { brandColor: string }) {
   const { pending } = useFormStatus();
   return (
     <Button
-      className="h-11 w-full rounded-xl text-base text-white hover:opacity-95"
+      className="h-11 w-full rounded-lg text-base text-white hover:opacity-95"
       disabled={pending}
       style={{ background: brandColor }}
     >

@@ -82,20 +82,20 @@ export function InternationalComplianceNote({
   };
 
   return (
-    <div className="flex items-start gap-3 rounded-xl border border-amber-500/30 bg-amber-500/[0.06] p-4">
-      <Info className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
+    <div className="flex items-start gap-3 rounded-lg border border-warning-subtle bg-warning/[0.06] p-4">
+      <Info className="mt-0.5 h-4 w-4 shrink-0 text-warning-strong" />
       <div className="min-w-0 flex-1">
-        <p className="text-sm font-medium text-amber-900 dark:text-amber-200">
+        <p className="text-sm font-medium text-warning-strong">
           {content.title}
         </p>
-        <ul className="mt-1.5 list-disc space-y-1 pl-4 text-[13px] leading-relaxed text-amber-900/80 dark:text-amber-200/80">
+        <ul className="mt-1.5 list-disc space-y-1 pl-4 text-xs leading-relaxed text-warning-strong">
           {content.bullets.map((b, i) => (
             <li key={i}>{b}</li>
           ))}
         </ul>
         <Link
           href="/help"
-          className="mt-2 inline-block text-[13px] font-medium text-amber-700 underline underline-offset-2 dark:text-amber-300"
+          className="mt-2 inline-block text-xs font-medium text-warning-strong underline underline-offset-2"
         >
           Learn more in Help &rarr;
         </Link>
@@ -103,7 +103,7 @@ export function InternationalComplianceNote({
       <button
         type="button"
         onClick={dismiss}
-        className="rounded p-1 text-amber-700/70 transition-colors hover:bg-amber-500/10 hover:text-amber-900 dark:text-amber-300/70 dark:hover:text-amber-100"
+        className="rounded p-1 text-warning-strong transition-colors hover:bg-warning-subtle hover:text-warning-strong dark:hover:text-warning-strong"
         aria-label="Dismiss"
       >
         <X className="h-4 w-4" />

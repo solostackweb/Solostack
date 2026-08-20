@@ -141,7 +141,7 @@ function SummaryCard({
     )}>
       <CardContent className="flex min-h-32 items-start justify-between gap-3 p-4 sm:p-5">
         <div className="min-w-0 space-y-1">
-          <p className="break-words text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
+          <p className="break-words text-micro font-semibold uppercase tracking-widest text-muted-foreground">
             {label}
           </p>
           <p className="text-2xl font-bold tabular-nums tracking-tight">
@@ -153,7 +153,7 @@ function SummaryCard({
           className={cn(
             "flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ring-1",
             tone === "success" &&
-              "bg-gradient-to-br from-emerald-500/10 to-teal-500/10 text-emerald-600 ring-emerald-500/15 dark:text-emerald-400",
+              "bg-gradient-to-br from-emerald-500/10 to-teal-500/10 text-success-strong ring-success-subtle",
             tone === "default" &&
               "bg-gradient-to-br from-primary/10 to-blue-500/10 text-primary ring-primary/15",
           )}

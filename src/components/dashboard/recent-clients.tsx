@@ -50,7 +50,7 @@ export function RecentClients({ items }: { items: ClientFeedItem[] }) {
                   className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-all hover:bg-accent"
                 >
                   <Avatar className="h-9 w-9 ring-1 ring-border">
-                    <AvatarFallback className="bg-gradient-to-br from-primary/10 to-indigo-500/10 text-[11px] font-bold text-primary">
+                    <AvatarFallback className="bg-gradient-to-br from-primary/10 to-indigo-500/10 text-micro font-bold text-primary">
                       {c.initials}
                     </AvatarFallback>
                   </Avatar>
@@ -62,7 +62,7 @@ export function RecentClients({ items }: { items: ClientFeedItem[] }) {
                   </div>
                   {c.lifetimeValue > 0 && (
                     <div className="text-right">
-                      <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+                      <p className="text-micro font-semibold uppercase tracking-widest text-muted-foreground">
                         LTV
                       </p>
                       <p className="text-xs font-bold tabular-nums">

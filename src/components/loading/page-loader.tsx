@@ -34,7 +34,7 @@ export function PageLoader({ label, className }: PageLoaderProps) {
       <BrandLoader size="lg" animate />
       {label && (
         <p
-          className="animate-fade-in text-[13px] font-medium text-muted-foreground"
+          className="animate-fade-in text-xs font-medium text-muted-foreground"
           style={{ animationDelay: "400ms", animationFillMode: "both" }}
         >
           {label}

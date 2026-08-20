@@ -118,10 +118,10 @@ export default async function AdminUserDetailPage({ params }: Props) {
           <span className="space-x-2">
             <span className="font-mono">{overview.email}</span>
             <span className="text-muted-foreground/60">-</span>
-            <span className="font-mono text-[11px]">{shortenId(overview.id)}</span>
+            <span className="font-mono text-xs">{shortenId(overview.id)}</span>
             <AccountTypeBadge accountType={overview.account_type} />
             {isBanned ? (
-              <span className="ml-2 rounded bg-red-500/10 px-1.5 py-0.5 text-[10px] uppercase tracking-wider text-red-600">
+              <span className="ml-2 rounded bg-destructive-subtle px-1.5 py-0.5 text-micro uppercase tracking-wider text-destructive-strong">
                 Suspended
               </span>
             ) : null}
@@ -162,7 +162,7 @@ export default async function AdminUserDetailPage({ params }: Props) {
             <Field label="Company">{overview.company_name || "-"}</Field>
             <Field label="Suppressions">
               {overview.suppression_count > 0 ? (
-                <span className="text-amber-600 dark:text-amber-400">
+                <span className="text-warning-strong">
                   {overview.suppression_count}
                 </span>
               ) : (
@@ -242,9 +242,9 @@ export default async function AdminUserDetailPage({ params }: Props) {
                         className={cn(
                           "inline-block h-1.5 w-1.5 rounded-full",
                           s.severity === "alert"
-                            ? "bg-red-500"
+                            ? "bg-destructive"
                             : s.severity === "warn"
-                              ? "bg-amber-500"
+                              ? "bg-warning"
                               : "bg-muted-foreground/50",
                         )}
                       />
@@ -304,9 +304,9 @@ export default async function AdminUserDetailPage({ params }: Props) {
                       className={cn(
                         "h-1.5 w-1.5 rounded-full",
                         p.status === "captured"
-                          ? "bg-emerald-500"
+                          ? "bg-success"
                           : p.status === "failed"
-                            ? "bg-red-500"
+                            ? "bg-destructive"
                             : "bg-muted-foreground/50",
                       )}
                     />
@@ -353,10 +353,10 @@ function AccountTypeBadge({
   return (
     <span
       className={cn(
-        "ml-2 rounded px-1.5 py-0.5 text-[10px] uppercase tracking-wider",
+        "ml-2 rounded px-1.5 py-0.5 text-micro uppercase tracking-wider",
         isClient
-          ? "bg-sky-500/10 text-sky-700 dark:text-sky-400"
-          : "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400",
+          ? "bg-info-subtle text-info-strong"
+          : "bg-success-subtle text-success-strong",
       )}
     >
       {isClient ? "Portal client" : "Freelancer"}
@@ -393,7 +393,7 @@ function Field({
 }) {
   return (
     <div className="min-w-0 space-y-0.5">
-      <dt className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+      <dt className="text-micro font-medium uppercase tracking-wider text-muted-foreground">
         {label}
       </dt>
       <dd className="truncate text-sm text-foreground tabular-nums">

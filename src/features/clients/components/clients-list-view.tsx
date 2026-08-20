@@ -182,7 +182,7 @@ function StatCard({
 }) {
   return (
     <div className={cn("rounded-lg border bg-card p-4", featured && "col-span-2 sm:col-span-1")}>
-      <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+      <p className="text-micro font-medium uppercase tracking-wider text-muted-foreground">
         {label}
       </p>
       <p className="mt-2 text-2xl font-semibold tabular-nums tracking-tight">

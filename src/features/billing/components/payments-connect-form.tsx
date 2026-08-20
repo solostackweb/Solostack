@@ -42,7 +42,7 @@ export function PaymentsConnectForm({
               />
             </p>
             {account?.keyId ? (
-              <p className="font-mono text-[11px] text-muted-foreground">
+              <p className="font-mono text-xs text-muted-foreground">
                 {account.keyId}
               </p>
             ) : null}
@@ -89,13 +89,13 @@ export function PaymentsConnectForm({
               required
               autoComplete="off"
             />
-            <p className="text-[11px] text-muted-foreground">
+            <p className="text-xs text-muted-foreground">
               Stored encrypted. Never shown to clients or the browser.
             </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-3 rounded-md border bg-muted/30 px-3 py-2">
+        <div className="flex items-center gap-3 rounded-lg border bg-muted/30 px-3 py-2">
           <Switch
             id="testMode"
             name="testMode"
@@ -111,12 +111,12 @@ export function PaymentsConnectForm({
         </div>
 
         {state && !state.ok ? (
-          <p className="rounded-md bg-destructive/10 p-3 text-xs text-destructive">
+          <p className="rounded-lg bg-destructive/10 p-3 text-xs text-destructive">
             {state.error}
           </p>
         ) : null}
         {state && state.ok ? (
-          <p className="rounded-md bg-emerald-500/10 p-3 text-xs text-emerald-700 dark:text-emerald-400">
+          <p className="rounded-lg bg-success-subtle p-3 text-xs text-success-strong">
             {state.message ?? "Saved."}
           </p>
         ) : null}
@@ -203,8 +203,8 @@ function StatusPill({
     connected: {
       label: testMode ? "Connected (test)" : "Connected (live)",
       cls: testMode
-        ? "bg-amber-500/15 text-amber-700 dark:text-amber-400"
-        : "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400",
+        ? "bg-warning-subtle text-warning-strong"
+        : "bg-success-subtle text-success-strong",
     },
     invalid: {
       label: "Invalid keys",
@@ -218,7 +218,7 @@ function StatusPill({
   const { label, cls } = map[status];
   return (
     <span
-      className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium ${cls}`}
+      className={`inline-flex items-center rounded-full px-2 py-0.5 text-micro font-medium ${cls}`}
     >
       {label}
     </span>

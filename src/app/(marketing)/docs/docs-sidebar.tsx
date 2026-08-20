@@ -70,7 +70,7 @@ export function DocsSidebar({ items }: { items: NavItem[] }) {
   return (
     <aside className="hidden w-52 shrink-0 lg:block">
       <div className="sticky top-24">
-        <p className="mb-3 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground/60">
+        <p className="mb-3 text-micro font-semibold uppercase tracking-widest text-muted-foreground/60">
           On this page
         </p>
         <nav className="space-y-0.5">
@@ -88,7 +88,7 @@ export function DocsSidebar({ items }: { items: NavItem[] }) {
                   setActiveId(item.id);
                 }}
                 className={cn(
-                  "flex items-center gap-2 rounded-md px-3 py-1.5 text-sm transition-colors",
+                  "flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm transition-colors",
                   isActive
                     ? "bg-primary/8 font-medium text-primary"
                     : "text-muted-foreground hover:bg-accent hover:text-foreground",

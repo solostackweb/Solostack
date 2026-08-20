@@ -22,7 +22,7 @@ export function ContractPublicView({ data }: Props) {
         <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
           <div className="min-w-0 space-y-4">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="inline-flex items-center gap-1.5 rounded-full border bg-background px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+              <span className="inline-flex items-center gap-1.5 rounded-full border bg-background px-2.5 py-1 text-micro font-semibold uppercase tracking-[0.16em] text-muted-foreground">
                 <FileText className="h-3.5 w-3.5" />
                 {label}
               </span>
@@ -44,10 +44,10 @@ export function ContractPublicView({ data }: Props) {
               <img
                 src={data.seller.logoDataUrl}
                 alt={`${data.seller.businessName} logo`}
-                className="h-11 w-11 rounded-md object-contain"
+                className="h-11 w-11 rounded-lg object-contain"
               />
             ) : (
-              <div className="flex h-11 w-11 items-center justify-center rounded-md bg-primary/10 text-sm font-semibold text-primary">
+              <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-primary/10 text-sm font-semibold text-primary">
                 {data.seller.businessName.slice(0, 2).toUpperCase()}
               </div>
             )}
@@ -95,7 +95,7 @@ export function ContractPublicView({ data }: Props) {
       </section>
 
       <section className="px-5 py-8 sm:px-8 sm:py-10">
-        <div className="mx-auto max-w-3xl space-y-8 text-[15px] leading-7">
+        <div className="mx-auto max-w-3xl space-y-8 text-sm leading-7">
           {parsedContent.sections.length > 0
             ? parsedContent.sections.map((section, i) => (
                 <section key={i} className="space-y-2.5">
@@ -158,7 +158,7 @@ function StatusPill({ signed, status }: { signed: boolean; status: string }) {
     <span
       className={cn(
         "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium capitalize",
-        signed ? "bg-success/10 text-success" : "bg-amber-500/10 text-amber-700",
+        signed ? "bg-success/10 text-success" : "bg-warning-subtle text-warning-strong",
       )}
     >
       {signed ? <CheckCircle2 className="h-3.5 w-3.5" /> : <Clock3 className="h-3.5 w-3.5" />}
@@ -169,8 +169,8 @@ function StatusPill({ signed, status }: { signed: boolean; status: string }) {
 
 function Meta({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-md border bg-background px-3 py-2.5">
-      <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+    <div className="rounded-lg border bg-background px-3 py-2.5">
+      <p className="text-micro font-semibold uppercase tracking-[0.16em] text-muted-foreground">
         {label}
       </p>
       <p className="mt-1 text-sm font-medium tabular-nums">{value}</p>
@@ -189,7 +189,7 @@ function Party({
 }) {
   return (
     <div className="rounded-lg border bg-background p-4">
-      <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+      <p className="text-micro font-semibold uppercase tracking-[0.16em] text-muted-foreground">
         {heading}
       </p>
       <p className="mt-2 text-sm font-semibold">{name}</p>
@@ -219,7 +219,7 @@ function SignatureBlock({
 
   return (
     <div className="rounded-lg border bg-background p-4 shadow-sm">
-      <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+      <p className="text-micro font-semibold uppercase tracking-[0.16em] text-muted-foreground">
         {label}
       </p>
       <div className="mt-4 flex h-20 items-end border-b border-dashed pb-2">

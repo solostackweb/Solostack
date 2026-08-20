@@ -141,7 +141,7 @@ export function ShowcaseSection() {
             >
               <span
                 className={cn(
-                  "flex h-9 w-9 shrink-0 items-center justify-center rounded-xl transition-colors",
+                  "flex h-9 w-9 shrink-0 items-center justify-center rounded-lg transition-colors",
                   i === active
                     ? "bg-primary text-primary-foreground"
                     : "bg-muted text-muted-foreground group-hover:text-foreground",
@@ -180,7 +180,7 @@ export function ShowcaseSection() {
               <h3 className="max-w-xl font-display text-xl font-semibold tracking-tight text-foreground sm:text-2xl">
                 {tab.headline}
               </h3>
-              <p className="mt-2.5 max-w-xl text-[15px] leading-relaxed text-muted-foreground">
+              <p className="mt-2.5 max-w-xl text-sm leading-relaxed text-muted-foreground">
                 {tab.description}
               </p>
               <ul className="mt-4 flex flex-wrap gap-x-6 gap-y-2">
@@ -237,7 +237,7 @@ function Frame({ children, title }: { children: React.ReactNode; title: string }
           <span className="h-2 w-2 rounded-full bg-foreground/10" />
           <span className="h-2 w-2 rounded-full bg-foreground/10" />
         </span>
-        <span className="ml-2 text-[11px] font-medium text-muted-foreground">{title}</span>
+        <span className="ml-2 text-micro font-medium text-muted-foreground">{title}</span>
       </div>
       <div className="p-4 sm:p-6">{children}</div>
     </div>
@@ -248,13 +248,13 @@ function InvoiceMockup() {
   return (
     <Frame title="Invoices · INV-0043">
       <div className="grid gap-4 sm:grid-cols-[1.4fr_1fr]">
-        <div className="rounded-xl border border-border/70 bg-card p-4 sm:p-5">
+        <div className="rounded-lg border border-border/70 bg-card p-4 sm:p-5">
           <div className="flex items-start justify-between">
             <div>
               <p className="font-display text-base font-semibold tracking-tight">Tax Invoice</p>
-              <p className="mt-0.5 text-[11px] text-muted-foreground">INV-0043 · 10 Jun 2026</p>
+              <p className="mt-0.5 text-micro text-muted-foreground">INV-0043 · 10 Jun 2026</p>
             </div>
-            <span className="rounded-full bg-primary/10 px-2.5 py-1 text-[10px] font-semibold text-primary">
+            <span className="rounded-full bg-primary/10 px-2.5 py-1 text-micro font-semibold text-primary">
               GST · Karnataka
             </span>
           </div>
@@ -271,24 +271,24 @@ function InvoiceMockup() {
           </div>
         </div>
         <div className="flex flex-col gap-3">
-          <div className="rounded-xl border border-border/70 bg-card p-4">
-            <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+          <div className="rounded-lg border border-border/70 bg-card p-4">
+            <p className="text-micro font-semibold uppercase tracking-wide text-muted-foreground">
               Share
             </p>
             <div className="mt-2.5 flex flex-wrap gap-2">
               {["Payment link", "Email", "WhatsApp", "PDF"].map((s) => (
                 <span
                   key={s}
-                  className="rounded-full border border-border bg-background px-3 py-1.5 text-[11px] font-medium text-foreground"
+                  className="rounded-full border border-border bg-background px-3 py-1.5 text-micro font-medium text-foreground"
                 >
                   {s}
                 </span>
               ))}
             </div>
           </div>
-          <div className="rounded-xl border border-success/20 bg-success/[0.06] p-4">
-            <p className="text-[11px] font-semibold text-success">Reminder scheduled</p>
-            <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">
+          <div className="rounded-lg border border-success/20 bg-success/[0.06] p-4">
+            <p className="text-micro font-semibold text-success">Reminder scheduled</p>
+            <p className="mt-1 text-micro leading-relaxed text-muted-foreground">
               A polite nudge goes out automatically if this is unpaid on 24 Jun.
             </p>
           </div>
@@ -308,7 +308,7 @@ function ContractMockup() {
   return (
     <Frame title="Contracts · Service agreement">
       <div className="grid gap-4 sm:grid-cols-[1.4fr_1fr]">
-        <div className="rounded-xl border border-border/70 bg-card p-4 sm:p-5">
+        <div className="rounded-lg border border-border/70 bg-card p-4 sm:p-5">
           <p className="font-display text-sm font-semibold tracking-tight">
             Service Agreement — Karta Studio
           </p>
@@ -320,15 +320,15 @@ function ContractMockup() {
           <div className="mt-5 flex items-end justify-between rounded-lg border border-dashed border-primary/30 bg-primary/[0.03] p-3">
             <div>
               <p className="font-serif text-base italic text-foreground">Meera Iyer</p>
-              <p className="text-[10px] text-muted-foreground">Signed 4 Jun 2026, 11:42</p>
+              <p className="text-micro text-muted-foreground">Signed 4 Jun 2026, 11:42</p>
             </div>
-            <span className="rounded-full bg-success/10 px-2.5 py-1 text-[10px] font-semibold text-success">
+            <span className="rounded-full bg-success/10 px-2.5 py-1 text-micro font-semibold text-success">
               ✓ E-signed
             </span>
           </div>
         </div>
-        <div className="rounded-xl border border-border/70 bg-card p-4">
-          <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+        <div className="rounded-lg border border-border/70 bg-card p-4">
+          <p className="text-micro font-semibold uppercase tracking-wide text-muted-foreground">
             Timeline
           </p>
           <div className="mt-3 space-y-3">
@@ -343,7 +343,7 @@ function ContractMockup() {
                   <Check className="h-3 w-3" strokeWidth={3} />
                 </span>
                 <span className="flex-1 text-xs font-medium text-foreground">{s.label}</span>
-                <span className="text-[10px] text-muted-foreground">{s.time}</span>
+                <span className="text-micro text-muted-foreground">{s.time}</span>
               </div>
             ))}
           </div>
@@ -356,7 +356,7 @@ function ContractMockup() {
 function PortalMockup() {
   return (
     <Frame title="portal.stackivo.com/karta-studio">
-      <div className="rounded-xl border border-border/70 bg-card">
+      <div className="rounded-lg border border-border/70 bg-card">
         <div className="flex items-center justify-between border-b border-border/60 p-4">
           <div className="flex items-center gap-2.5">
             <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-xs font-bold text-primary-foreground">
@@ -364,39 +364,39 @@ function PortalMockup() {
             </span>
             <div>
               <p className="text-xs font-semibold text-foreground">Karta Studio</p>
-              <p className="text-[10px] text-muted-foreground">Client workspace</p>
+              <p className="text-micro text-muted-foreground">Client workspace</p>
             </div>
           </div>
-          <span className="rounded-full bg-success/10 px-2.5 py-1 text-[10px] font-semibold text-success">
+          <span className="rounded-full bg-success/10 px-2.5 py-1 text-micro font-semibold text-success">
             2 projects active
           </span>
         </div>
         <div className="grid gap-3 p-4 sm:grid-cols-3">
           <div className="rounded-lg bg-muted/50 p-3">
-            <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+            <p className="text-micro font-semibold uppercase tracking-wide text-muted-foreground">
               Projects
             </p>
             <p className="mt-1.5 text-xs font-medium text-foreground">Website revamp</p>
             <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-border">
               <div className="h-full w-[72%] rounded-full bg-primary" />
             </div>
-            <p className="mt-1 text-[10px] text-muted-foreground">72% complete</p>
+            <p className="mt-1 text-micro text-muted-foreground">72% complete</p>
           </div>
           <div className="rounded-lg bg-muted/50 p-3">
-            <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+            <p className="text-micro font-semibold uppercase tracking-wide text-muted-foreground">
               Invoices
             </p>
             <p className="mt-1.5 text-xs font-medium text-foreground">INV-0042 · ₹48,000</p>
-            <span className="mt-2 inline-block rounded-full bg-success/10 px-2 py-0.5 text-[9px] font-semibold text-success">
+            <span className="mt-2 inline-block rounded-full bg-success/10 px-2 py-0.5 text-micro font-semibold text-success">
               Paid
             </span>
           </div>
           <div className="rounded-lg bg-muted/50 p-3">
-            <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+            <p className="text-micro font-semibold uppercase tracking-wide text-muted-foreground">
               Files
             </p>
             <p className="mt-1.5 text-xs font-medium text-foreground">brand-guide-v3.pdf</p>
-            <p className="text-[10px] text-muted-foreground">+ 11 shared files</p>
+            <p className="text-micro text-muted-foreground">+ 11 shared files</p>
           </div>
         </div>
       </div>
@@ -408,8 +408,8 @@ function ProjectsMockup() {
   return (
     <Frame title="Projects · Website revamp">
       <div className="grid gap-4 sm:grid-cols-[1.2fr_1fr]">
-        <div className="rounded-xl border border-border/70 bg-card p-4">
-          <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+        <div className="rounded-lg border border-border/70 bg-card p-4">
+          <p className="text-micro font-semibold uppercase tracking-wide text-muted-foreground">
             This week
           </p>
           <div className="mt-3 space-y-2.5">
@@ -420,25 +420,25 @@ function ProjectsMockup() {
               { day: "Thu", task: "Responsive pass", time: "4.0h" },
             ].map((r) => (
               <div key={r.day} className="flex items-center gap-3">
-                <span className="w-8 text-[10px] font-semibold text-muted-foreground">{r.day}</span>
+                <span className="w-8 text-micro font-semibold text-muted-foreground">{r.day}</span>
                 <span className="flex-1 truncate text-xs text-foreground">{r.task}</span>
-                <span className="font-mono text-[11px] text-muted-foreground">{r.time}</span>
+                <span className="font-mono text-micro text-muted-foreground">{r.time}</span>
               </div>
             ))}
           </div>
           <div className="mt-3 flex items-center justify-between border-t border-border/60 pt-3">
-            <span className="text-[11px] font-medium text-muted-foreground">Billable total</span>
+            <span className="text-micro font-medium text-muted-foreground">Billable total</span>
             <span className="font-mono text-xs font-semibold text-foreground">15.0h × ₹2,000</span>
           </div>
         </div>
         <div className="flex flex-col gap-3">
-          <div className="rounded-xl border border-primary/20 bg-primary/[0.04] p-4">
-            <p className="text-[11px] font-semibold text-primary">→ Pull into invoice</p>
-            <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">
+          <div className="rounded-lg border border-primary/20 bg-primary/[0.04] p-4">
+            <p className="text-micro font-semibold text-primary">→ Pull into invoice</p>
+            <p className="mt-1 text-micro leading-relaxed text-muted-foreground">
               15 billable hours become a ₹30,000 line item on INV-0044. One click.
             </p>
           </div>
-          <div className="rounded-xl border border-border/70 bg-card p-4">
+          <div className="rounded-lg border border-border/70 bg-card p-4">
             <div className="flex items-center gap-2">
               <span className="relative flex h-2 w-2">
                 <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-success opacity-60" />
@@ -446,7 +446,7 @@ function ProjectsMockup() {
               </span>
               <span className="font-mono text-sm font-medium text-foreground">02:41:08</span>
             </div>
-            <p className="mt-1 text-[11px] text-muted-foreground">Timer running · Responsive pass</p>
+            <p className="mt-1 text-micro text-muted-foreground">Timer running · Responsive pass</p>
           </div>
         </div>
       </div>
@@ -458,8 +458,8 @@ function PaymentsMockup() {
   return (
     <Frame title="Payments">
       <div className="grid gap-4 sm:grid-cols-[1fr_1.3fr]">
-        <div className="rounded-xl border border-border/70 bg-card p-4 text-center">
-          <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+        <div className="rounded-lg border border-border/70 bg-card p-4 text-center">
+          <p className="text-micro font-semibold uppercase tracking-wide text-muted-foreground">
             Pay INV-0043
           </p>
           <p className="mt-1 font-display text-xl font-semibold tracking-tight text-foreground">
@@ -470,10 +470,10 @@ function PaymentsMockup() {
               <span key={i} className={cn("rounded-[1px]", on ? "bg-foreground" : "bg-transparent")} />
             ))}
           </div>
-          <p className="mt-2 text-[10px] text-muted-foreground">UPI · Cards · Netbanking</p>
+          <p className="mt-2 text-micro text-muted-foreground">UPI · Cards · Netbanking</p>
         </div>
-        <div className="rounded-xl border border-border/70 bg-card p-4">
-          <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+        <div className="rounded-lg border border-border/70 bg-card p-4">
+          <p className="text-micro font-semibold uppercase tracking-wide text-muted-foreground">
             Recent payouts
           </p>
           <div className="mt-3 space-y-2.5">
@@ -481,7 +481,7 @@ function PaymentsMockup() {
             <MockRow left="Bloom D2C · Card" right="+₹78,000" success />
             <MockRow left="Meera Iyer · UPI" right="+₹35,400" success />
           </div>
-          <div className="mt-3 rounded-lg bg-success/[0.06] p-2.5 text-[11px] text-success">
+          <div className="mt-3 rounded-lg bg-success/[0.06] p-2.5 text-xs text-success">
             ✓ All payments auto-matched to invoices
           </div>
         </div>

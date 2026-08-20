@@ -187,7 +187,7 @@ export function WelcomeDetailView({ doc, clients }: Props) {
         <Card>
           <CardContent className="space-y-8 p-6 sm:p-8">
             {doc.intro && (
-              <div className="rounded-md border-l-2 border-primary/40 bg-muted/30 p-4 text-sm leading-relaxed text-foreground/90">
+              <div className="rounded-lg border-l-2 border-primary/40 bg-muted/30 p-4 text-sm leading-relaxed text-foreground/90">
                 <WelcomeMarkdown source={doc.intro} />
               </div>
             )}
@@ -259,11 +259,11 @@ function StatPill({
   return (
     <Card>
       <CardContent className="flex items-center gap-3 p-4">
-        <div className="flex h-9 w-9 items-center justify-center rounded-md bg-primary/10 text-primary">
+        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
           <Icon className="h-4 w-4" />
         </div>
         <div className="min-w-0 flex-1">
-          <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+          <p className="text-micro font-semibold uppercase tracking-wider text-muted-foreground">
             {label}
           </p>
           <p className="truncate text-sm font-medium">{value}</p>

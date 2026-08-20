@@ -40,7 +40,7 @@ export function StateSelect({
       value={selected}
       required={required}
       onChange={(event) => handleChange(event.target.value)}
-      className="flex h-11 w-full rounded-md border border-input bg-background px-3 text-sm shadow-sm transition-all focus:border-primary/40 focus:outline-none focus:ring-4 focus:ring-primary/15 disabled:cursor-not-allowed disabled:opacity-50"
+      className="flex h-11 w-full rounded-lg border border-input bg-background px-3 text-sm shadow-sm transition-all focus:border-primary/40 focus:outline-none focus:ring-4 focus:ring-primary/15 disabled:cursor-not-allowed disabled:opacity-50"
     >
       <option value="" disabled>
         {placeholder}

@@ -11,7 +11,7 @@ interface Props {
 export function PaymentHistory({ payments }: Props) {
   if (payments.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center gap-2 rounded-md border border-dashed py-10 text-center">
+      <div className="flex flex-col items-center justify-center gap-2 rounded-lg border border-dashed py-10 text-center">
         <Receipt className="h-6 w-6 text-muted-foreground" aria-hidden />
         <p className="text-sm font-medium">No payments yet</p>
         <p className="text-xs text-muted-foreground">
@@ -34,7 +34,7 @@ export function PaymentHistory({ payments }: Props) {
               {p.method ? `${p.method.toUpperCase()}` : "Payment"}
               {p.cardLast4 ? ` · ···· ${p.cardLast4}` : ""}
               {" · "}
-              <span className="font-mono text-[10px]">
+              <span className="font-mono text-xs">
                 {p.paymentId.slice(0, 14)}…
               </span>
             </p>
@@ -49,13 +49,13 @@ export function PaymentHistory({ payments }: Props) {
                 href={p.receiptUrl}
                 target="_blank"
                 rel="noreferrer noopener"
-                className="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
+                className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground"
                 aria-label="Open receipt"
               >
                 <Download className="h-4 w-4" />
               </a>
             ) : p.invoiceId ? (
-              <span className="text-[11px] text-muted-foreground">
+              <span className="text-xs text-muted-foreground">
                 Receipt pending
               </span>
             ) : null}
@@ -78,7 +78,7 @@ function StatusBadge({ status }: { status: string }) {
   return (
     <Badge
       variant="secondary"
-      className={cn("h-5 px-1.5 text-[10px] capitalize", tone)}
+      className={cn("h-5 px-1.5 text-xs capitalize", tone)}
     >
       {status === "captured" ? "Paid" : status}
     </Badge>

@@ -29,7 +29,7 @@ import { cn } from "@/lib/utils";
 
 // Mirror of the resting surface token used across kit.tsx.
 const SURFACE =
-  "rounded-xl border bg-card/95 shadow-sm shadow-black/[0.035] dark:bg-card dark:shadow-black/25";
+  "rounded-lg border bg-card/95 shadow-sm shadow-black/[0.035] dark:bg-card dark:shadow-black/25";
 
 // ---------------------------------------------------------------------------
 // Section wrapper - matches <AdminSection> rhythm.
@@ -176,7 +176,7 @@ export function PanelSkeleton({
 
 export function FiltersSkeleton({ selects = 3 }: { selects?: number }) {
   return (
-    <div className="flex flex-wrap items-center gap-2 rounded-xl border bg-card/95 p-2 shadow-sm shadow-black/[0.025] dark:bg-card">
+    <div className="flex flex-wrap items-center gap-2 rounded-lg border bg-card/95 p-2 shadow-sm shadow-black/[0.025] dark:bg-card">
       <Skeleton className="h-9 w-full rounded-lg sm:w-64" />
       {Array.from({ length: selects }).map((_, i) => (
         <Skeleton key={i} className="h-9 w-28 rounded-lg" />
@@ -202,7 +202,7 @@ export function TableSkeleton({
   className?: string;
 }) {
   return (
-    <div className={cn("overflow-hidden rounded-xl border bg-card/95 shadow-sm shadow-black/[0.035] dark:bg-card dark:shadow-black/25", className)}>
+    <div className={cn("overflow-hidden rounded-lg border bg-card/95 shadow-sm shadow-black/[0.035] dark:bg-card dark:shadow-black/25", className)}>
       {withToolbar ? (
         <div className="flex items-center justify-between gap-3 border-b border-border/50 px-3 py-2.5">
           <Skeleton className="h-4 w-28" />

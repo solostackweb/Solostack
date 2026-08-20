@@ -127,7 +127,7 @@ export function ClientPortalShell({
                   key={key}
                   href={url}
                   aria-current={active ? "page" : undefined}
-                  className={`relative flex items-center gap-1.5 whitespace-nowrap rounded-t-lg px-3.5 py-2.5 text-[13px] font-semibold transition-colors ${
+                  className={`relative flex items-center gap-1.5 whitespace-nowrap rounded-t-lg px-3.5 py-2.5 text-xs font-semibold transition-colors ${
                     active
                       ? "text-foreground"
                       : "text-muted-foreground hover:text-foreground"
@@ -164,7 +164,7 @@ export function ClientPortalShell({
       <div className="mx-auto min-w-0 max-w-[1400px] overflow-x-hidden">{children}</div>
 
       {/* ── Footer attribution ─────────────────────────────────────── */}
-      <p className="mx-auto mt-10 max-w-[1400px] text-center text-[11px] text-muted-foreground/70 sm:text-left">
+      <p className="mx-auto mt-10 max-w-[1400px] text-center text-xs text-muted-foreground/70 sm:text-left">
         Powered by Stackivo · A shared workspace between you and{" "}
         {freelancerName ?? "your freelancer"}
       </p>
@@ -186,7 +186,7 @@ export function ClientPortalShell({
                 <Link
                   key={key}
                   href={url}
-                  className={`flex min-w-0 flex-1 flex-col items-center gap-0.5 rounded-2xl px-1.5 py-2 text-[10px] font-semibold transition ${
+                  className={`flex min-w-0 flex-1 flex-col items-center gap-0.5 rounded-2xl px-1.5 py-2 text-micro font-semibold transition ${
                     active
                       ? "text-white shadow-sm"
                       : "text-muted-foreground hover:bg-muted hover:text-foreground"
@@ -315,7 +315,7 @@ export function ClientPortalHome({ data }: { data: ClientPortalProps }) {
             )}
             <div className="space-y-3 p-4">
               <div>
-                <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
+                <p className="text-micro font-semibold uppercase tracking-widest text-muted-foreground">
                   Welcome
                 </p>
                 <h2 className="mt-0.5 text-base font-semibold">
@@ -349,7 +349,7 @@ export function ClientPortalHome({ data }: { data: ClientPortalProps }) {
           <section className="rounded-2xl border bg-card p-4 shadow-sm">
             <div className="flex items-center justify-between gap-2">
               <h2 className="text-sm font-semibold">Getting started</h2>
-              <span className="text-[11px] text-muted-foreground">
+              <span className="text-micro text-muted-foreground">
                 {onboardingDone} of {onboardingItems.length} done
               </span>
             </div>
@@ -358,10 +358,10 @@ export function ClientPortalHome({ data }: { data: ClientPortalProps }) {
                 <li key={item.label}>
                   <Link
                     href={item.href}
-                    className="flex items-center gap-2.5 rounded-xl border p-2.5 text-sm transition hover:border-primary/40"
+                    className="flex items-center gap-2.5 rounded-lg border p-2.5 text-sm transition hover:border-primary/40"
                   >
                     {item.done ? (
-                      <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-500" />
+                      <CheckCircle2 className="h-4 w-4 shrink-0 text-success-strong" />
                     ) : (
                       <span className="h-4 w-4 shrink-0 rounded-full border-2 border-muted-foreground/40" />
                     )}
@@ -479,7 +479,7 @@ export function ClientPortalHome({ data }: { data: ClientPortalProps }) {
             <h2 className="text-sm font-semibold">Latest update</h2>
             <Link
               href={`/portal/${data.portalId}/updates`}
-              className="text-[11px] font-medium text-muted-foreground transition-colors hover:text-foreground"
+              className="text-micro font-medium text-muted-foreground transition-colors hover:text-foreground"
             >
               View all →
             </Link>
@@ -487,9 +487,9 @@ export function ClientPortalHome({ data }: { data: ClientPortalProps }) {
           {latestUpdate ? (
             <Link
               href={`/portal/${data.portalId}/updates`}
-              className="block rounded-xl border bg-background p-3 transition-colors hover:border-primary/40"
+              className="block rounded-lg border bg-background p-3 transition-colors hover:border-primary/40"
             >
-              <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+              <p className="text-micro font-semibold uppercase tracking-wide text-muted-foreground">
                 {updateTypeLabel(latestUpdate.update_type)} · {relativeTime(latestUpdate.created_at)}
               </p>
               <p className="mt-1 text-sm font-semibold leading-snug">{latestUpdate.title}</p>
@@ -500,7 +500,7 @@ export function ClientPortalHome({ data }: { data: ClientPortalProps }) {
               )}
             </Link>
           ) : (
-            <p className="rounded-xl border border-dashed bg-muted/30 p-4 text-center text-xs text-muted-foreground">
+            <p className="rounded-lg border border-dashed bg-muted/30 p-4 text-center text-xs text-muted-foreground">
               No updates yet. Progress notes from your freelancer will appear here.
             </p>
           )}
@@ -529,7 +529,7 @@ function TimeByProject({
     <section className="rounded-[1.35rem] border bg-card p-4 shadow-sm sm:p-5">
       <div className="mb-3 flex items-center justify-between gap-3">
         <h2 className="text-sm font-semibold">Time tracked</h2>
-        <span className="text-[11px] font-medium text-muted-foreground">
+        <span className="text-micro font-medium text-muted-foreground">
           {formatHours(grandTotal)} total
           {items.length > 1 ? ` · ${items.length} projects` : ""}
         </span>
@@ -538,11 +538,11 @@ function TimeByProject({
         {items.map((p) => {
           const pct = grandTotal > 0 ? Math.round((p.totalSeconds / grandTotal) * 100) : 0;
           return (
-            <li key={p.projectId ?? "none"} className="rounded-xl border bg-background p-3">
+            <li key={p.projectId ?? "none"} className="rounded-lg border bg-background p-3">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <p className="truncate text-sm font-semibold">{p.projectName}</p>
-                  <p className="mt-0.5 text-[11px] text-muted-foreground">
+                  <p className="mt-0.5 text-micro text-muted-foreground">
                     {formatHours(p.totalSeconds)}
                     {p.billableSeconds > 0
                       ? ` · ${formatHours(p.billableSeconds)} billable`
@@ -869,13 +869,13 @@ export function ClientPortalFiles({ data }: { data: ClientPortalProps }) {
                     storageTone(usedBytes, data.storageCap) === "full"
                       ? "bg-destructive"
                       : storageTone(usedBytes, data.storageCap) === "warn"
-                        ? "bg-amber-500"
+                        ? "bg-warning"
                         : "bg-primary"
                   }`}
                   style={{ width: `${Math.min(100, (usedBytes / data.storageCap) * 100)}%` }}
                 />
               </div>
-              <p className="text-[11px] text-muted-foreground">
+              <p className="text-xs text-muted-foreground">
                 {formatBytes(usedBytes)} of {formatBytes(data.storageCap)} used
               </p>
             </div>
@@ -983,17 +983,17 @@ function StatusCard({
   href?: string;
 }) {
   const accents = {
-    emerald: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400",
+    emerald: "bg-success-subtle text-success-strong",
     blue: "bg-blue-500/10 text-blue-700 dark:text-blue-400",
-    amber: "bg-amber-500/10 text-amber-700 dark:text-amber-400",
-    rose: "bg-rose-500/10 text-rose-700 dark:text-rose-400",
-    slate: "bg-slate-500/10 text-slate-700 dark:text-slate-300",
+    amber: "bg-warning-subtle text-warning-strong",
+    rose: "bg-destructive-subtle text-destructive-strong",
+    slate: "bg-foreground text-muted-foreground",
   };
 
   const inner = (
     <>
       <div className="mb-3 flex items-center gap-2 text-xs font-medium text-muted-foreground">
-        <span className={`flex h-8 w-8 items-center justify-center rounded-xl ${accents[accent]}`}>
+        <span className={`flex h-8 w-8 items-center justify-center rounded-lg ${accents[accent]}`}>
           <Icon className="h-4 w-4" />
         </span>
         {label}
@@ -1045,7 +1045,7 @@ function PortalActionCard({
         <Icon className="h-4 w-4" />
       </span>
       <span className="min-w-0 flex-1">
-        <span className="block text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+        <span className="block text-micro font-semibold uppercase tracking-[0.16em] text-muted-foreground">
           {label}
         </span>
         <span className="mt-0.5 block truncate text-sm font-semibold">
@@ -1085,7 +1085,7 @@ function RecentActivity({ activity }: { activity: ClientPortalProps["activity"] 
                     {item.type.replace(/[._]/g, " ")}
                   </p>
                   <time
-                    className="shrink-0 text-[10px] text-muted-foreground"
+                    className="shrink-0 text-micro text-muted-foreground"
                     dateTime={item.created_at}
                   >
                     {relativeTime(item.created_at)}
@@ -1121,12 +1121,12 @@ function DocumentExternalCard({
 }) {
   const content = (
     <>
-      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-muted text-muted-foreground">
+      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
         <Icon className="h-4 w-4" />
       </span>
       <span className="min-w-0 flex-1">
         <span className="block truncate text-sm font-semibold">{title}</span>
-        <span className="block truncate text-[11px] capitalize text-muted-foreground">
+        <span className="block truncate text-micro capitalize text-muted-foreground">
           {meta}
         </span>
       </span>
@@ -1135,13 +1135,13 @@ function DocumentExternalCard({
   );
 
   const card = !href ? (
-    <div className="flex min-w-0 items-center gap-3 rounded-xl border bg-background p-3 opacity-50">
+    <div className="flex min-w-0 items-center gap-3 rounded-lg border bg-background p-3 opacity-50">
       {content}
     </div>
   ) : (
     <Link
       href={href}
-      className="flex min-w-0 items-center gap-3 rounded-xl border bg-background p-3 transition hover:border-primary/40"
+      className="flex min-w-0 items-center gap-3 rounded-lg border bg-background p-3 transition hover:border-primary/40"
     >
       {content}
     </Link>
@@ -1149,7 +1149,7 @@ function DocumentExternalCard({
 
   if (!comments) return card;
   return (
-    <div className="min-w-0 rounded-xl border bg-card p-2">
+    <div className="min-w-0 rounded-lg border bg-card p-2">
       {card}
       <div className="px-1">
         <DocumentCommentsThread
@@ -1169,13 +1169,13 @@ function FileRow({ portalId, file }: { portalId: string; file: PortalFileRow }) 
   const downloadUrl = `/api/portals/${portalId}/files/${file.id}/download`;
 
   return (
-    <article className="flex items-center gap-3 rounded-xl border bg-background p-3">
-      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-muted text-muted-foreground">
+    <article className="flex items-center gap-3 rounded-lg border bg-background p-3">
+      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
         <Files className="h-4 w-4" />
       </span>
       <Link href={viewUrl} className="min-w-0 flex-1">
         <p className="truncate text-sm font-semibold">{file.name}</p>
-        <p className="mt-0.5 text-[11px] text-muted-foreground">
+        <p className="mt-0.5 text-micro text-muted-foreground">
           {formatBytes(file.size_bytes)} • {formatDate(file.created_at)}
         </p>
       </Link>
@@ -1245,17 +1245,17 @@ function MessagesPanel({
           </div>
         </div>
         <span
-          className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-semibold ${
+          className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-micro font-semibold ${
             peerOnline
-              ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+              ? "bg-success-subtle text-success-strong"
               : "bg-muted text-muted-foreground"
           }`}
         >
           <span className="relative flex h-1.5 w-1.5">
             {peerOnline && (
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-500 opacity-75" />
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-success opacity-75" />
             )}
-            <span className={`relative inline-flex h-1.5 w-1.5 rounded-full ${peerOnline ? "bg-emerald-500" : "bg-muted-foreground/40"}`} />
+            <span className={`relative inline-flex h-1.5 w-1.5 rounded-full ${peerOnline ? "bg-success" : "bg-muted-foreground/40"}`} />
           </span>
           {peerOnline ? "Online" : "Offline"}
         </span>
@@ -1275,7 +1275,7 @@ function MessagesPanel({
                 } ${message.pending ? "opacity-70" : ""}`}
               >
                 <p
-                  className={`text-[11px] font-semibold ${
+                  className={`text-micro font-semibold ${
                     mine ? "text-primary-foreground/75" : "text-muted-foreground"
                   }`}
                 >
@@ -1313,7 +1313,7 @@ function MessagesPanel({
         />
         {error && <p className="mt-2 text-xs text-destructive">{error}</p>}
         <div className="mt-2 flex items-center justify-between">
-          <span className="text-[11px] text-muted-foreground">
+          <span className="text-xs text-muted-foreground">
             {myLast && !myLast.pending ? (seen ? "Seen" : "Sent") : ""}
           </span>
           <Button size="sm" className="h-9 rounded-full px-4" disabled={pending || !body.trim()}>

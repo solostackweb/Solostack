@@ -200,7 +200,7 @@ export function QuestionnaireBuilder({
 
       <div className="space-y-3">
         {questions.length === 0 ? (
-          <div className="rounded-xl border border-dashed p-8 text-center text-sm text-muted-foreground">
+          <div className="rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground">
             No questions yet. Add your first question below.
           </div>
         ) : null}
@@ -266,7 +266,7 @@ function QuestionCard({
       <CardContent className="p-4">
         <div className="flex items-start gap-3">
           <div className="mt-1 flex flex-col items-center gap-1">
-            <span className="flex h-7 w-7 items-center justify-center rounded-md bg-muted text-[11px] font-semibold text-muted-foreground">
+            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-muted text-micro font-semibold text-muted-foreground">
               {index + 1}
             </span>
           </div>
@@ -286,7 +286,7 @@ function QuestionCard({
             />
 
             <div className="flex flex-wrap items-center gap-3">
-              <div className="flex items-center gap-1.5 rounded-md border bg-background px-2">
+              <div className="flex items-center gap-1.5 rounded-lg border bg-background px-2">
                 <Icon className="h-4 w-4 text-muted-foreground" />
                 <select
                   value={question.type}

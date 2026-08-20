@@ -192,7 +192,7 @@ export function SchedulingSettingsView({
                 <StatusDot tone="emerald" />
                 <div>
                   <p className="flex items-center gap-2 text-sm font-medium">
-                    <CalendarCheck className="h-4 w-4 text-emerald-600" />
+                    <CalendarCheck className="h-4 w-4 text-success-strong" />
                     Connected
                     {connection.email ? (
                       <span className="font-normal text-muted-foreground">
@@ -395,8 +395,8 @@ function StatusDot({ tone }: { tone: "emerald" | "amber" | "muted" }) {
       aria-hidden="true"
       className={cn(
         "mt-1.5 h-2 w-2 shrink-0 rounded-full",
-        tone === "emerald" && "bg-emerald-500",
-        tone === "amber" && "bg-amber-400",
+        tone === "emerald" && "bg-success",
+        tone === "amber" && "bg-warning",
         tone === "muted" && "bg-muted-foreground/40",
       )}
     />
@@ -419,7 +419,7 @@ function Labeled({
       </span>
       {children}
       {hint ? (
-        <span className="block text-[11px] text-muted-foreground">{hint}</span>
+        <span className="block text-micro text-muted-foreground">{hint}</span>
       ) : null}
     </label>
   );

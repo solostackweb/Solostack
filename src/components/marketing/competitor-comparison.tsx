@@ -78,24 +78,24 @@ const ROWS: Array<{
 
 export function CompetitorComparison() {
   return (
-    <div className="mx-auto max-w-5xl overflow-hidden rounded-xl border bg-card">
+    <div className="mx-auto max-w-5xl overflow-hidden rounded-lg border bg-card">
       <div className="overflow-x-auto">
         <table className="w-full text-left text-sm">
           <thead className="border-b bg-muted/40">
             <tr>
-              <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+              <th className="px-4 py-3 text-micro font-semibold uppercase tracking-wider text-muted-foreground">
                 Feature
               </th>
-              <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-foreground">
+              <th className="px-4 py-3 text-micro font-semibold uppercase tracking-wider text-foreground">
                 Stackivo
               </th>
-              <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+              <th className="px-4 py-3 text-micro font-semibold uppercase tracking-wider text-muted-foreground">
                 Refrens
               </th>
-              <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+              <th className="px-4 py-3 text-micro font-semibold uppercase tracking-wider text-muted-foreground">
                 Vyapar
               </th>
-              <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+              <th className="px-4 py-3 text-micro font-semibold uppercase tracking-wider text-muted-foreground">
                 Zoho Books
               </th>
             </tr>
@@ -116,7 +116,7 @@ export function CompetitorComparison() {
           </tbody>
         </table>
       </div>
-      <p className="border-t bg-muted/20 px-4 py-2.5 text-[11px] text-muted-foreground">
+      <p className="border-t bg-muted/20 px-4 py-2.5 text-xs text-muted-foreground">
         Comparison reflects publicly-listed features at time of writing. Each
         product evolves — verify on their respective sites.
       </p>
@@ -134,7 +134,7 @@ function Cell({
   if (value === true) {
     return (
       <td
-        className={`px-4 py-3 ${highlight ? "bg-emerald-500/5 font-medium text-emerald-700 dark:text-emerald-300" : "text-foreground"}`}
+        className={`px-4 py-3 ${highlight ? "bg-success-subtle font-medium text-success-strong" : "text-foreground"}`}
       >
         <Check className="h-4 w-4" />
       </td>
@@ -149,7 +149,7 @@ function Cell({
   }
   return (
     <td
-      className={`px-4 py-3 text-xs ${highlight ? "bg-emerald-500/5 font-medium text-emerald-700 dark:text-emerald-300" : "text-muted-foreground"}`}
+      className={`px-4 py-3 text-xs ${highlight ? "bg-success-subtle font-medium text-success-strong" : "text-muted-foreground"}`}
     >
       {value}
     </td>

@@ -159,7 +159,7 @@ export function MeetingConfirmView({
 
       <main className="relative mx-auto max-w-xl px-4 py-8 sm:px-6 sm:py-12">
         <header className="mb-6">
-          <div className="inline-flex items-center gap-2 rounded-full border bg-white px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500 shadow-sm">
+          <div className="inline-flex items-center gap-2 rounded-full border bg-white px-3 py-1 text-micro font-semibold uppercase tracking-[0.16em] text-slate-500 shadow-sm">
             <CalendarClock className="h-3.5 w-3.5 text-primary" />
             Book a call
           </div>
@@ -281,7 +281,7 @@ export function MeetingConfirmView({
                         type="button"
                         onClick={() => pick(slot)}
                         disabled={busy}
-                        className="rounded-xl border px-3 py-2.5 text-sm font-semibold tabular-nums text-slate-800 shadow-sm transition hover:border-primary hover:bg-primary/5 hover:text-primary disabled:opacity-50"
+                        className="rounded-lg border px-3 py-2.5 text-sm font-semibold tabular-nums text-slate-800 shadow-sm transition hover:border-primary hover:bg-primary/5 hover:text-primary disabled:opacity-50"
                       >
                         {pendingSlot === slot ? "Booking…" : fmtTime(slot)}
                       </button>

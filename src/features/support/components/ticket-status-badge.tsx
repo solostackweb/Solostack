@@ -4,9 +4,9 @@ import type { TicketStatus } from "../ticket-types";
 const STATUS_STYLES: Record<TicketStatus, string> = {
   new: "bg-blue-500/10 text-blue-600 dark:text-blue-400",
   open: "bg-blue-500/10 text-blue-600 dark:text-blue-400",
-  waiting_on_us: "bg-amber-500/10 text-amber-600 dark:text-amber-400",
+  waiting_on_us: "bg-warning-subtle text-warning-strong",
   waiting_on_customer: "bg-violet-500/10 text-violet-600 dark:text-violet-400",
-  resolved: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
+  resolved: "bg-success-subtle text-success-strong",
   closed: "bg-muted text-muted-foreground",
 };
 
@@ -43,7 +43,7 @@ export function TicketStatusBadge({
   return (
     <span
       className={cn(
-        "inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium",
+        "inline-flex items-center rounded-full px-2 py-0.5 text-micro font-medium",
         STATUS_STYLES[status],
         className,
       )}

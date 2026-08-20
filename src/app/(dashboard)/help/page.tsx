@@ -74,7 +74,7 @@ const FAQ_SECTIONS = [
   {
     id: "payments",
     icon: CreditCard,
-    iconClass: "text-emerald-500",
+    iconClass: "text-success-strong",
     label: "Payment collection",
     items: [
       {
@@ -110,7 +110,7 @@ const FAQ_SECTIONS = [
   {
     id: "workflow",
     icon: Briefcase,
-    iconClass: "text-amber-500",
+    iconClass: "text-warning-strong",
     label: "Freelancer workflow",
     items: [
       {
@@ -224,9 +224,9 @@ export default async function HelpPage() {
           </h2>
         </div>
         <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-          <div className="rounded-md border bg-card p-3 text-sm">
+          <div className="rounded-lg border bg-card p-3 text-sm">
             <div className="flex items-center gap-2 font-medium">
-              <MessageCircle className="h-4 w-4 text-emerald-600" />
+              <MessageCircle className="h-4 w-4 text-success-strong" />
               Chat now
             </div>
             <p className="mt-1 text-xs text-muted-foreground">
@@ -234,7 +234,7 @@ export default async function HelpPage() {
               reply here and email you too.
             </p>
           </div>
-          <div className="rounded-md border bg-card p-3 text-sm">
+          <div className="rounded-lg border bg-card p-3 text-sm">
             <div className="flex items-center gap-2 font-medium">
               <Mail className="h-4 w-4" />
               Email

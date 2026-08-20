@@ -32,7 +32,7 @@ export function ProfileCompletenessAlert({
       {/* Mobile compact pill. */}
       <Link
         href="/dashboard/settings/company"
-        className="flex items-center gap-2.5 rounded-md border border-warning/30 bg-warning/5 px-3 py-2.5 text-sm transition hover:bg-warning/10 sm:hidden"
+        className="flex items-center gap-2.5 rounded-lg border border-warning/30 bg-warning/5 px-3 py-2.5 text-sm transition hover:bg-warning/10 sm:hidden"
       >
         <AlertTriangle className="h-4 w-4 shrink-0 text-warning" aria-hidden />
         <span className="min-w-0 flex-1 truncate font-medium">
@@ -42,7 +42,7 @@ export function ProfileCompletenessAlert({
       </Link>
 
       {/* Desktop / tablet full alert. */}
-      <div className="hidden items-start gap-3 rounded-md border border-warning/30 bg-warning/5 p-4 text-sm sm:flex">
+      <div className="hidden items-start gap-3 rounded-lg border border-warning/30 bg-warning/5 p-4 text-sm sm:flex">
         <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-warning" />
         <div className="flex-1 space-y-1">
           <p className="font-medium text-foreground">

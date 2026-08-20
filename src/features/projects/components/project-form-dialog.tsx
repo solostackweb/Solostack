@@ -104,7 +104,7 @@ export function ProjectFormDialog({
     >
         <form action={handleSubmit} className="space-y-4">
           {state && !state.ok && (
-            <p className="rounded-md border border-destructive/40 bg-destructive/5 px-3 py-2 text-xs text-destructive">
+            <p className="rounded-lg border border-destructive/40 bg-destructive/5 px-3 py-2 text-xs text-destructive">
               {state.error}
             </p>
           )}
@@ -133,7 +133,7 @@ export function ProjectFormDialog({
             <select
               value={clientId}
               onChange={(event) => setClientId(event.target.value)}
-              className="block h-10 w-full rounded-md border border-input bg-background px-3 text-sm shadow-sm outline-none transition-all focus:border-primary/40 focus:ring-4 focus:ring-primary/15"
+              className="block h-10 w-full rounded-lg border border-input bg-background px-3 text-sm shadow-sm outline-none transition-all focus:border-primary/40 focus:ring-4 focus:ring-primary/15"
             >
               <option value={NO_CLIENT}>No client</option>
               {clients.map((c) => (
@@ -145,7 +145,7 @@ export function ProjectFormDialog({
           </Field>
 
           {isEdit && (
-            <p className="rounded-md bg-muted/40 px-3 py-2 text-[11px] text-muted-foreground">
+            <p className="rounded-lg bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
               Status is changed inline from the project header.
             </p>
           )}
@@ -226,12 +226,12 @@ function Field({
 }) {
   return (
     <div className="space-y-1.5">
-      <Label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+      <Label className="text-micro font-semibold uppercase tracking-wider text-muted-foreground">
         {label}
         {required && <span className="text-destructive"> *</span>}
       </Label>
       {children}
-      {error && <p className="text-[11px] text-destructive">{error}</p>}
+      {error && <p className="text-micro text-destructive">{error}</p>}
     </div>
   );
 }

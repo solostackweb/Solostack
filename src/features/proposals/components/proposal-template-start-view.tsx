@@ -126,13 +126,13 @@ function StartCard({
       <input type="hidden" name="currency" value="INR" />
       <button
         type="submit"
-        className="group flex h-full w-full flex-col rounded-xl border bg-card p-5 text-left transition hover:border-primary/40 hover:shadow-sm"
+        className="group flex h-full w-full flex-col rounded-lg border bg-card p-5 text-left transition hover:border-primary/40 hover:shadow-sm"
       >
         <div className="flex items-start justify-between gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-lg border bg-background text-primary">
             <Icon className="h-5 w-5" />
           </div>
-          <span className="rounded-full border bg-background px-2 py-0.5 text-[11px] font-semibold text-muted-foreground">
+          <span className="rounded-full border bg-background px-2 py-0.5 text-micro font-semibold text-muted-foreground">
             {badge}
           </span>
         </div>

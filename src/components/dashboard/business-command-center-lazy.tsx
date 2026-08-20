@@ -9,7 +9,7 @@ const BusinessCommandCenter = dynamic(
     ssr: false,
     loading: () => (
       <section
-        className="min-h-[560px] animate-pulse rounded-xl border border-border/70 bg-card"
+        className="min-h-[560px] animate-pulse rounded-lg border border-border/70 bg-card"
         aria-hidden
       />
     ),

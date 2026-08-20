@@ -1,14 +1,40 @@
 import * as React from "react";
+import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
-const Card = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
-  ({ className, ...props }, ref) => (
+/**
+ * Elevation carries meaning rather than taste (design-system/MASTER.md §5).
+ *
+ * A static card is a region of the page, not an object floating above it, so
+ * it gets a border. Shadow is reserved for surfaces that genuinely sit on top
+ * of something — and for cards you can click, where the lift on hover is the
+ * affordance. Previously every card carried `shadow-sm`, which meant elevation
+ * communicated nothing because everything had it.
+ */
+const cardVariants = cva(
+  "rounded-lg border bg-card text-card-foreground",
+  {
+    variants: {
+      elevation: {
+        flat: "",
+        raised: "shadow-sm",
+        interactive:
+          "shadow-sm transition-[box-shadow,transform] duration-150 ease-out hover:-translate-y-0.5 hover:shadow-md motion-reduce:transition-none motion-reduce:hover:translate-y-0",
+      },
+    },
+    defaultVariants: { elevation: "flat" },
+  },
+);
+
+export interface CardProps
+  extends React.HTMLAttributes<HTMLDivElement>,
+    VariantProps<typeof cardVariants> {}
+
+const Card = React.forwardRef<HTMLDivElement, CardProps>(
+  ({ className, elevation, ...props }, ref) => (
     <div
       ref={ref}
-      className={cn(
-        "rounded-xl border bg-card text-card-foreground shadow-sm",
-        className,
-      )}
+      className={cn(cardVariants({ elevation }), className)}
       {...props}
     />
   ),
@@ -59,4 +85,12 @@ const CardFooter = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDiv
 );
 CardFooter.displayName = "CardFooter";
 
-export { Card, CardHeader, CardFooter, CardTitle, CardDescription, CardContent };
+export {
+  Card,
+  CardHeader,
+  CardFooter,
+  CardTitle,
+  CardDescription,
+  CardContent,
+  cardVariants,
+};

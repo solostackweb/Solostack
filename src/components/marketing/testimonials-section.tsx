@@ -45,7 +45,7 @@ const TESTIMONIALS: Testimonial[] = [
     role: "Brand Strategist",
     location: "Chennai",
     initial: "D",
-    accentClass: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
+    accentClass: "bg-success-subtle text-success-strong",
   },
 ];
 

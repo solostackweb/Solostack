@@ -18,7 +18,7 @@ export function UserSupportThreads({ userId, threads }: Props) {
   void userId;
   return (
     <section className="space-y-2">
-      <h2 className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+      <h2 className="flex items-center gap-2 text-micro font-semibold uppercase tracking-wider text-muted-foreground">
         <MessageCircle className="h-3.5 w-3.5" />
         Recent support history
       </h2>
@@ -28,7 +28,7 @@ export function UserSupportThreads({ userId, threads }: Props) {
           No support tickets on file. New tickets will appear here.
         </div>
       ) : (
-        <ul className="overflow-hidden rounded-xl border bg-card shadow-sm shadow-black/[0.03] text-xs">
+        <ul className="overflow-hidden rounded-lg border bg-card shadow-sm shadow-black/[0.03] text-xs">
           {threads.map((t) => (
             <li key={t.id} className="border-b border-border/40 last:border-b-0">
               <Link
@@ -40,7 +40,7 @@ export function UserSupportThreads({ userId, threads }: Props) {
                     <TicketStatusBadge status={t.status} audience="admin" />
                     <span className="truncate font-medium">{t.subject}</span>
                   </div>
-                  <p className="mt-0.5 text-[11px] text-muted-foreground">
+                  <p className="mt-0.5 text-micro text-muted-foreground">
                     {t.category ? `${t.category} - ` : ""}
                     {formatRelative(t.last_message_at)}
                   </p>

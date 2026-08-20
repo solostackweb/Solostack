@@ -23,6 +23,21 @@ const config: Config = {
       screens: {
         xs: "420px",
       },
+      fontSize: {
+        // Hard floor is 12px — nothing smaller ships. `micro` replaces the
+        // 545 uses of text-[11px] and 216 of text-[10px] found in the audit.
+        micro: ["0.75rem", { lineHeight: "1rem", letterSpacing: "0.04em" }],
+        xs: ["0.75rem", { lineHeight: "1.125rem" }],
+        sm: ["0.875rem", { lineHeight: "1.25rem" }],
+        base: ["1rem", { lineHeight: "1.5rem" }],
+        lg: ["1.125rem", { lineHeight: "1.75rem" }],
+        xl: ["1.25rem", { lineHeight: "1.75rem" }],
+        "2xl": ["1.5rem", { lineHeight: "2rem" }],
+        "3xl": ["1.875rem", { lineHeight: "2.25rem" }],
+        "4xl": ["2.25rem", { lineHeight: "1.1", letterSpacing: "-0.02em" }],
+        "5xl": ["3rem", { lineHeight: "1.05", letterSpacing: "-0.02em" }],
+        "6xl": ["3.75rem", { lineHeight: "1.02", letterSpacing: "-0.025em" }],
+      },
       fontFamily: {
         sans: ["var(--font-sans)", "system-ui", "sans-serif"],
         mono: ["var(--font-mono)", "ui-monospace", "monospace"],
@@ -45,6 +60,8 @@ const config: Config = {
         destructive: {
           DEFAULT: "hsl(var(--destructive))",
           foreground: "hsl(var(--destructive-foreground))",
+          subtle: "hsl(var(--destructive-subtle))",
+          strong: "hsl(var(--destructive-strong))",
         },
         muted: {
           DEFAULT: "hsl(var(--muted))",
@@ -65,14 +82,20 @@ const config: Config = {
         success: {
           DEFAULT: "hsl(var(--success))",
           foreground: "hsl(var(--success-foreground))",
+          subtle: "hsl(var(--success-subtle))",
+          strong: "hsl(var(--success-strong))",
         },
         warning: {
           DEFAULT: "hsl(var(--warning))",
           foreground: "hsl(var(--warning-foreground))",
+          subtle: "hsl(var(--warning-subtle))",
+          strong: "hsl(var(--warning-strong))",
         },
         info: {
           DEFAULT: "hsl(var(--info))",
           foreground: "hsl(var(--info-foreground))",
+          subtle: "hsl(var(--info-subtle))",
+          strong: "hsl(var(--info-strong))",
         },
         sidebar: {
           DEFAULT: "hsl(var(--sidebar))",

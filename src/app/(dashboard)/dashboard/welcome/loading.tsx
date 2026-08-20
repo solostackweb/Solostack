@@ -28,7 +28,7 @@ export default function Loading() {
       <div className="rounded-lg border bg-card">
         {Array.from({ length: 5 }).map((_, i) => (
           <div key={i} className="flex items-center gap-4 border-t px-5 py-3.5 first:border-t-0">
-            <Skeleton className="h-9 w-9 shrink-0 rounded-md" />
+            <Skeleton className="h-9 w-9 shrink-0 rounded-lg" />
             <div className="min-w-0 flex-1 space-y-1.5">
               <div className="flex items-center gap-2">
                 <Skeleton className="h-4 w-40" />
@@ -36,7 +36,7 @@ export default function Loading() {
               </div>
               <Skeleton className="h-3 w-56" />
             </div>
-            <Skeleton className="h-8 w-8 shrink-0 rounded-md" />
+            <Skeleton className="h-8 w-8 shrink-0 rounded-lg" />
           </div>
         ))}
       </div>

@@ -199,12 +199,12 @@ function UpgradeInterstitial({
     : `Upgrade to ${formatPlanName(planNeeded)} to unlock this and everything else Pro includes.`;
 
   return (
-    <div className="overflow-hidden rounded-xl border border-primary/30 bg-gradient-to-br from-primary/[0.06] via-background to-violet-500/[0.04]">
+    <div className="overflow-hidden rounded-lg border border-primary/30 bg-gradient-to-br from-primary/[0.06] via-background to-violet-500/[0.04]">
       {/* Header */}
       <div className="border-b border-primary/15 px-6 py-5">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <p className="text-[11px] font-semibold uppercase tracking-widest text-primary">
+            <p className="text-micro font-semibold uppercase tracking-widest text-primary">
               Upgrade to Pro
             </p>
             <h2 className="mt-1 text-lg font-semibold tracking-tight">
@@ -217,7 +217,7 @@ function UpgradeInterstitial({
           <div className="shrink-0 text-right">
             <p className="text-2xl font-bold tabular-nums">₹499</p>
             <p className="text-xs text-muted-foreground">per month</p>
-            <p className="mt-0.5 text-[11px] text-emerald-600 dark:text-emerald-400 font-medium">
+            <p className="mt-0.5 text-micro text-success-strong font-medium">
               or ₹399/mo billed yearly
             </p>
           </div>

@@ -184,7 +184,7 @@ export function ManualEntryDialog({
                   hourlyRate: bill ? (proj?.hourlyRate || defaultHourlyRate) : prev.hourlyRate,
                 }));
               }}
-              className="flex h-12 w-full rounded-md border border-input bg-background px-3 text-sm shadow-sm transition-all focus:border-primary/40 focus:outline-none focus:ring-4 focus:ring-primary/15"
+              className="flex h-12 w-full rounded-lg border border-input bg-background px-3 text-sm shadow-sm transition-all focus:border-primary/40 focus:outline-none focus:ring-4 focus:ring-primary/15"
             >
               <option value={NO_PROJECT}>No project</option>
                 {projects.map((p) => (
@@ -276,7 +276,7 @@ function Field({
 }) {
   return (
     <div className="space-y-1.5">
-      <label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+      <label className="text-micro font-semibold uppercase tracking-wider text-muted-foreground">
         {label}
       </label>
       {children}
@@ -302,7 +302,7 @@ function BillableField({
 
   if (!projectBillingEnabled) {
     return (
-      <p className="rounded-md border bg-muted/30 px-3 py-2.5 text-xs text-muted-foreground">
+      <p className="rounded-lg border bg-muted/30 px-3 py-2.5 text-xs text-muted-foreground">
         Tracking-only project. Enable time billing on the project to bill this time.
       </p>
     );
@@ -310,11 +310,11 @@ function BillableField({
 
   if (!canUseBillable) {
     return (
-      <div className="flex items-center justify-between rounded-md border border-primary/15 bg-primary/[0.03] px-3 py-2.5">
+      <div className="flex items-center justify-between rounded-lg border border-primary/15 bg-primary/[0.03] px-3 py-2.5">
         <div className="min-w-0">
           <p className="flex items-center gap-1.5 text-sm font-medium">
             Billable
-            <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold text-primary">
+            <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-1.5 py-0.5 text-micro font-semibold text-primary">
               <Sparkles className="h-2.5 w-2.5" />
               Pro
             </span>
@@ -333,7 +333,7 @@ function BillableField({
 
   return (
     <>
-      <div className="flex items-center justify-between rounded-md border px-3 py-2.5">
+      <div className="flex items-center justify-between rounded-lg border px-3 py-2.5">
         <div>
           <p className="text-sm font-medium">Billable</p>
           <p className="text-xs text-muted-foreground">

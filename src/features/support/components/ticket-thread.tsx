@@ -102,7 +102,7 @@ export function TicketThread({ ticket, messages, mode }: Props) {
                 }`}
               >
                 <div
-                  className={`mb-0.5 text-[10px] font-medium uppercase tracking-wide ${
+                  className={`mb-0.5 text-micro font-medium uppercase tracking-wide ${
                     mine ? "text-background/70" : "text-muted-foreground"
                   }`}
                 >
@@ -117,7 +117,7 @@ export function TicketThread({ ticket, messages, mode }: Props) {
       </div>
 
       {closed ? (
-        <p className="rounded-md border bg-muted/30 p-3 text-center text-xs text-muted-foreground">
+        <p className="rounded-lg border bg-muted/30 p-3 text-center text-xs text-muted-foreground">
           This ticket is closed. Need more help? Start a new request from the Help page.
         </p>
       ) : (
@@ -128,18 +128,18 @@ export function TicketThread({ ticket, messages, mode }: Props) {
             rows={3}
             maxLength={8000}
             placeholder="Type your reply..."
-            className="block w-full resize-none rounded-md border bg-background p-2.5 text-sm"
+            className="block w-full resize-none rounded-lg border bg-background p-2.5 text-sm"
             onKeyDown={(e) => {
               if ((e.metaKey || e.ctrlKey) && e.key === "Enter") onSend();
             }}
           />
           <div className="flex items-center justify-between">
-            <span className="text-[11px] text-muted-foreground">⌘/Ctrl + Enter to send</span>
+            <span className="text-xs text-muted-foreground">⌘/Ctrl + Enter to send</span>
             <button
               type="button"
               onClick={onSend}
               disabled={pending || !body.trim()}
-              className="inline-flex h-8 items-center gap-1.5 rounded-md bg-foreground px-3 text-xs font-medium text-background hover:bg-foreground/90 disabled:opacity-50"
+              className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-foreground px-3 text-xs font-medium text-background hover:bg-foreground/90 disabled:opacity-50"
             >
               {pending ? <Loader2 className="h-3 w-3 animate-spin" /> : <Send className="h-3 w-3" />}
               Send

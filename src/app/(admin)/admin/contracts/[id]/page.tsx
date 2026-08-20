@@ -93,13 +93,13 @@ export default async function AdminContractDetailPage({ params }: Props) {
       </KpiGrid>
 
       <section className="space-y-2">
-        <h2 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+        <h2 className="text-micro font-semibold uppercase tracking-wider text-muted-foreground">
           Signatures
         </h2>
         {signatures.length === 0 ? (
           <Empty>No signature events recorded.</Empty>
         ) : (
-          <ul className="overflow-hidden rounded-xl border bg-card shadow-sm shadow-black/[0.03] text-xs">
+          <ul className="overflow-hidden rounded-lg border bg-card shadow-sm shadow-black/[0.03] text-xs">
             {signatures.map((s) => (
               <li
                 key={s.id}
@@ -125,13 +125,13 @@ export default async function AdminContractDetailPage({ params }: Props) {
       </section>
 
       <section className="space-y-2">
-        <h2 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+        <h2 className="text-micro font-semibold uppercase tracking-wider text-muted-foreground">
           Deliveries
         </h2>
         {deliveries.length === 0 ? (
           <Empty>No deliveries logged.</Empty>
         ) : (
-          <ul className="overflow-hidden rounded-xl border bg-card shadow-sm shadow-black/[0.03] text-xs">
+          <ul className="overflow-hidden rounded-lg border bg-card shadow-sm shadow-black/[0.03] text-xs">
             {deliveries.map((d) => (
               <li
                 key={d.id}

@@ -33,7 +33,7 @@ export function SidebarNav({ items, collapsed, onNavigate, isFreePlan = false }:
             data-tour={item.href}
             onClick={onNavigate}
             className={cn(
-              "group relative flex h-9 items-center gap-3 rounded-lg px-2.5 text-[13px] font-medium",
+              "group relative flex h-9 items-center gap-3 rounded-lg px-2.5 text-xs font-medium",
               "transition-colors duration-150 ease-out",
               "text-sidebar-foreground/58 hover:bg-sidebar-accent/80 hover:text-sidebar-foreground",
               isActive &&
@@ -69,7 +69,7 @@ export function SidebarNav({ items, collapsed, onNavigate, isFreePlan = false }:
             />
             {!collapsed && <span className="truncate">{item.title}</span>}
             {!collapsed && item.badge && !showProBadge ? (
-              <span className="ml-auto rounded-md bg-primary/15 px-1.5 py-0.5 text-[10px] font-semibold text-primary">
+              <span className="ml-auto rounded-lg bg-primary/15 px-1.5 py-0.5 text-micro font-semibold text-primary">
                 {item.badge}
               </span>
             ) : null}

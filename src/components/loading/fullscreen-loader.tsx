@@ -41,7 +41,7 @@ export function FullscreenLoader({
       <BrandLoader size="lg" animate />
       {label && (
         <p
-          className="animate-fade-in text-[13px] font-medium text-muted-foreground"
+          className="animate-fade-in text-xs font-medium text-muted-foreground"
           style={{ animationDelay: "300ms", animationFillMode: "both" }}
         >
           {label}

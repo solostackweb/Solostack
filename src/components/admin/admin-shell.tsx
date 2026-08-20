@@ -141,7 +141,7 @@ export function AdminShell({ children, adminEmail, viewingAs }: AdminShellProps)
   }, [pathname]);
 
   return (
-    <div className="flex min-h-screen flex-col bg-background text-[14px] text-foreground">
+    <div className="flex min-h-screen flex-col bg-background text-sm text-foreground">
       {viewingAs ? <ViewAsBanner viewingAs={viewingAs} /> : null}
 
       <TopBar
@@ -242,7 +242,7 @@ function TopBar({
           </span>
           <span className="min-w-0 leading-tight">
             <span className="block truncate text-sm">Stackivo Command</span>
-            <span className="hidden text-[10px] font-medium uppercase tracking-wider text-muted-foreground sm:block">
+            <span className="hidden text-micro font-medium uppercase tracking-wider text-muted-foreground sm:block">
               founder console
             </span>
           </span>
@@ -255,7 +255,7 @@ function TopBar({
         >
           <Search className="h-3.5 w-3.5" />
           <span>Search users / jump anywhere...</span>
-          <span className="ml-auto rounded-md border bg-background/80 px-1.5 py-0.5 text-[10px] font-medium tracking-wider text-muted-foreground">
+          <span className="ml-auto rounded-lg border bg-background/80 px-1.5 py-0.5 text-micro font-medium tracking-wider text-muted-foreground">
             Ctrl K
           </span>
         </button>
@@ -302,7 +302,7 @@ function Sidebar({
           <div key={group.heading} className="flex flex-col gap-1">
             <div
               className={cn(
-                "px-1 pb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60",
+                "px-1 pb-1 text-micro font-semibold uppercase tracking-wider text-muted-foreground/60",
                 collapsed && "sr-only",
               )}
             >
@@ -346,7 +346,7 @@ function Sidebar({
         <div className="mt-auto" />
         <div
           className={cn(
-            "rounded-lg border border-border/70 bg-background/55 px-3 py-2 text-[11px] leading-relaxed text-muted-foreground",
+            "rounded-lg border border-border/70 bg-background/55 px-3 py-2 text-xs leading-relaxed text-muted-foreground",
             collapsed && "hidden",
           )}
         >
@@ -355,7 +355,7 @@ function Sidebar({
       </nav>
       <div
         className={cn(
-          "border-t border-border/60 px-3 py-3 text-[11px] text-muted-foreground",
+          "border-t border-border/60 px-3 py-3 text-xs text-muted-foreground",
           collapsed && "hidden",
         )}
       >
@@ -373,7 +373,7 @@ function ViewAsBanner({
   viewingAs: { id: string; name: string; email: string };
 }) {
   return (
-    <div className="sticky top-0 z-50 border-b border-amber-500/30 bg-amber-500/10 text-amber-950 backdrop-blur dark:text-amber-100">
+    <div className="sticky top-0 z-50 border-b border-warning-subtle bg-warning-subtle text-warning-strong backdrop-blur">
       <div className="mx-auto flex w-full max-w-screen-xl items-center justify-between gap-3 px-4 py-2 text-xs sm:px-6 md:px-8">
         <span>
           Review mode for <strong>{viewingAs.name}</strong> ({viewingAs.email}).
@@ -386,7 +386,7 @@ function ViewAsBanner({
         >
           <button
             type="submit"
-            className="rounded-md border border-amber-600/40 bg-background/40 px-2 py-1 font-medium hover:bg-amber-500/20"
+            className="rounded-lg border border-warning-subtle bg-background/40 px-2 py-1 font-medium hover:bg-warning-subtle"
           >
             Exit
           </button>

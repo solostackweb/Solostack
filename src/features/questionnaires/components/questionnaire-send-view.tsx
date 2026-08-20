@@ -95,7 +95,7 @@ export function QuestionnaireSendView({
                 setClientId(e.target.value);
                 requestKeyRef.current = null;
               }}
-              className="h-11 w-full rounded-md border bg-background px-3 text-sm"
+              className="h-11 w-full rounded-lg border bg-background px-3 text-sm"
             >
               <option value="">Choose a client</option>
               {clients.map((client) => (
@@ -167,10 +167,10 @@ function SendCard({
           <p className="text-sm font-semibold">{clientName}</p>
           <span
             className={cn(
-              "rounded-full px-2 py-0.5 text-[11px] font-semibold",
+              "rounded-full px-2 py-0.5 text-micro font-semibold",
               completed
-                ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
-                : "bg-amber-500/10 text-amber-700 dark:text-amber-300",
+                ? "bg-success-subtle text-success-strong"
+                : "bg-warning-subtle text-warning-strong",
             )}
           >
             {completed ? "Completed" : "Awaiting response"}
@@ -200,7 +200,7 @@ function SendCard({
                     : String(raw);
                 return (
                   <div key={q.id}>
-                    <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                    <p className="text-micro font-semibold uppercase tracking-wider text-muted-foreground">
                       {q.label}
                     </p>
                     <p className="mt-0.5 whitespace-pre-line text-sm text-foreground/90">

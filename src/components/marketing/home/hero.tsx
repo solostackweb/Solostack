@@ -31,21 +31,21 @@ export function Hero({ authState }: { authState: MarketingAuthState }) {
         <div className="max-w-xl">
           <Link
             href="/changelog"
-            className="group inline-flex items-center gap-2 rounded-full border border-primary/15 bg-primary/[0.04] py-1 pl-1.5 pr-3 text-[13px] font-medium text-muted-foreground transition-colors hover:border-primary/30 hover:text-foreground"
+            className="group inline-flex items-center gap-2 rounded-full border border-primary/15 bg-primary/[0.04] py-1 pl-1.5 pr-3 text-xs font-medium text-muted-foreground transition-colors hover:border-primary/30 hover:text-foreground"
             data-cta="hero_announce"
           >
-            <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-semibold text-primary">
+            <span className="rounded-full bg-primary/10 px-2 py-0.5 text-micro font-semibold text-primary">
               Stackivo
             </span>
             Client work, billing, contracts, and portals in one workspace
             <ArrowRight className="h-3 w-3 text-muted-foreground/60 transition-transform group-hover:translate-x-0.5" />
           </Link>
 
-          <h1 className="mt-5 text-balance font-display text-[38px] font-semibold leading-[1.06] tracking-[-0.022em] text-foreground sm:text-5xl lg:text-[56px]">
+          <h1 className="mt-5 text-balance font-display text-4xl font-semibold leading-[1.06] tracking-[-0.022em] text-foreground sm:text-5xl lg:text-6xl">
             Stackivo helps freelancers run client work from <span className="text-gradient">one place</span>.
           </h1>
 
-          <p className="mt-5 max-w-lg text-pretty text-[15px] leading-[1.7] text-muted-foreground sm:text-base lg:text-[17px]">
+          <p className="mt-5 max-w-lg text-pretty text-sm leading-[1.7] text-muted-foreground sm:text-base lg:text-lg">
             Stackivo is a SaaS workspace for managing clients, invoices,
             contracts, projects, time tracking, payments, client portals, and
             business insights for freelancers and studios.
@@ -53,7 +53,7 @@ export function Hero({ authState }: { authState: MarketingAuthState }) {
 
           <HeroCtas authState={authState} />
 
-          <p className="mt-4 text-[13px] text-muted-foreground/80">
+          <p className="mt-4 text-xs text-muted-foreground/80">
             Free for your first 5 clients - No card required - 2-minute setup
           </p>
         </div>
@@ -78,8 +78,8 @@ export function Hero({ authState }: { authState: MarketingAuthState }) {
                 </svg>
               </span>
               <div>
-                <p className="text-[12px] font-semibold text-foreground">Payment received</p>
-                <p className="text-[11px] text-muted-foreground">$1,200 · INV-0042 · via Wise</p>
+                <p className="text-xs font-semibold text-foreground">Payment received</p>
+                <p className="text-micro text-muted-foreground">$1,200 · INV-0042 · via Wise</p>
               </div>
             </div>
           </Floating>
@@ -96,8 +96,8 @@ export function Hero({ authState }: { authState: MarketingAuthState }) {
                 </svg>
               </span>
               <div>
-                <p className="text-[12px] font-semibold text-foreground">Contract signed</p>
-                <p className="text-[11px] text-muted-foreground">Meera Iyer · just now</p>
+                <p className="text-xs font-semibold text-foreground">Contract signed</p>
+                <p className="text-micro text-muted-foreground">Meera Iyer · just now</p>
               </div>
             </div>
           </Floating>
@@ -110,7 +110,7 @@ export function Hero({ authState }: { authState: MarketingAuthState }) {
                 <span className="h-2.5 w-2.5 rounded-full bg-foreground/10" />
                 <span className="h-2.5 w-2.5 rounded-full bg-foreground/10" />
               </span>
-              <span className="mx-auto flex items-center gap-1.5 rounded-md bg-background px-3 py-1 text-[11px] text-muted-foreground ring-1 ring-border/60">
+              <span className="mx-auto flex items-center gap-1.5 rounded-lg bg-background px-3 py-1 text-xs text-muted-foreground ring-1 ring-border/60">
                 <svg viewBox="0 0 12 12" className="h-2.5 w-2.5 text-success" fill="none" aria-hidden>
                   <rect x="2" y="5" width="8" height="5.5" rx="1.2" stroke="currentColor" />
                   <path d="M4 5V3.8a2 2 0 0 1 4 0V5" stroke="currentColor" />
@@ -130,7 +130,7 @@ function HeroCtas({ authState }: { authState: MarketingAuthState }) {
   if (authState.isAuthenticated) {
     return (
       <div className="mt-7 flex flex-col gap-3 sm:flex-row">
-        <Button asChild size="lg" className="btn-gradient h-12 min-w-[190px] rounded-full border-0 text-[15px] font-semibold">
+        <Button asChild size="lg" className="btn-gradient h-12 min-w-[190px] rounded-full border-0 text-sm font-semibold">
           <Link href="/dashboard" data-cta="hero_dashboard">
             Go to dashboard <ArrowRight className="ml-1.5 h-4 w-4" />
           </Link>
@@ -140,7 +140,7 @@ function HeroCtas({ authState }: { authState: MarketingAuthState }) {
             asChild
             variant="outline"
             size="lg"
-            className="h-12 min-w-[160px] rounded-full text-[15px] hover:border-primary/40 hover:bg-primary/5"
+            className="h-12 min-w-[160px] rounded-full text-sm hover:border-primary/40 hover:bg-primary/5"
           >
             <Link href="/dashboard/settings/billing?upgrade=clients" data-cta="hero_upgrade">
               Upgrade to Pro
@@ -153,7 +153,7 @@ function HeroCtas({ authState }: { authState: MarketingAuthState }) {
 
   return (
     <div className="mt-7 flex flex-col gap-3 sm:flex-row">
-      <Button asChild size="lg" className="btn-gradient h-12 min-w-[190px] rounded-full border-0 text-[15px] font-semibold">
+      <Button asChild size="lg" className="btn-gradient h-12 min-w-[190px] rounded-full border-0 text-sm font-semibold">
         <Link href="/signup" data-cta="hero_primary">
           Start free <ArrowRight className="ml-1.5 h-4 w-4" />
         </Link>
@@ -162,7 +162,7 @@ function HeroCtas({ authState }: { authState: MarketingAuthState }) {
         asChild
         variant="outline"
         size="lg"
-        className="h-12 min-w-[160px] rounded-full text-[15px] hover:border-primary/40 hover:bg-primary/5"
+        className="h-12 min-w-[160px] rounded-full text-sm hover:border-primary/40 hover:bg-primary/5"
       >
         <Link href="/demo" data-cta="hero_demo">
           <Play className="mr-1.5 h-4 w-4 fill-current" /> See it in action

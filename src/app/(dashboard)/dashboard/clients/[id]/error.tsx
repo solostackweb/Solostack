@@ -47,7 +47,7 @@ export default function ClientDetailError({
         </Button>
       </div>
       {error.digest ? (
-        <p className="text-[11px] text-muted-foreground/60">
+        <p className="text-xs text-muted-foreground/60">
           Reference: {error.digest}
         </p>
       ) : null}

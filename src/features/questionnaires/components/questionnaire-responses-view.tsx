@@ -125,7 +125,7 @@ function ResponseCard({
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div>
             <p className="text-sm font-semibold">{client?.name ?? "Client"}</p>
-            <p className="text-[11px] text-muted-foreground">
+            <p className="text-micro text-muted-foreground">
               Sent {fmtDate(send.createdAt)}
               {completed && send.submittedAt
                 ? ` · Answered ${fmtDate(send.submittedAt)}`
@@ -134,10 +134,10 @@ function ResponseCard({
           </div>
           <span
             className={cn(
-              "rounded-full px-2 py-0.5 text-[11px] font-semibold",
+              "rounded-full px-2 py-0.5 text-micro font-semibold",
               completed
-                ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
-                : "bg-amber-500/10 text-amber-700 dark:text-amber-300",
+                ? "bg-success-subtle text-success-strong"
+                : "bg-warning-subtle text-warning-strong",
             )}
           >
             {completed ? "Completed" : "Awaiting response"}
@@ -201,7 +201,7 @@ function ResponseCard({
                     : String(raw);
                 return (
                   <div key={q.id}>
-                    <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                    <p className="text-micro font-semibold uppercase tracking-wider text-muted-foreground">
                       {q.label}
                     </p>
                     <p className="mt-0.5 whitespace-pre-line text-sm text-foreground/90">

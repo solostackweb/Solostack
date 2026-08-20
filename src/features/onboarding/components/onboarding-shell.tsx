@@ -24,11 +24,11 @@ export function OnboardingShell({
       <OnboardingProgress currentStep={currentStep} />
 
       <div className="space-y-1.5">
-        <h1 className="text-2xl font-bold tracking-tight sm:text-[28px]">
+        <h1 className="text-2xl font-bold tracking-tight sm:text-2xl">
           {title}
         </h1>
         {description ? (
-          <p className="max-w-lg text-[15px] leading-relaxed text-muted-foreground">
+          <p className="max-w-lg text-sm leading-relaxed text-muted-foreground">
             {description}
           </p>
         ) : null}

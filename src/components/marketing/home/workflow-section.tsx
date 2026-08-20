@@ -80,16 +80,16 @@ export function WorkflowSection() {
               </div>
 
               <div className="flex-1 pt-1 lg:pt-4">
-                <p className="text-[11px] font-bold uppercase tracking-widest text-primary/70">
+                <p className="text-micro font-bold uppercase tracking-widest text-primary/70">
                   Step {i + 1}
                 </p>
                 <h3 className="mt-1 font-display text-base font-semibold tracking-tight text-foreground">
                   {s.title}
                 </h3>
-                <p className="mt-1.5 text-[13px] leading-relaxed text-muted-foreground lg:mx-auto lg:max-w-[210px]">
+                <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground lg:mx-auto lg:max-w-[210px]">
                   {s.body}
                 </p>
-                <span className="mt-2.5 inline-block rounded-full bg-primary/[0.07] px-2.5 py-1 text-[10px] font-semibold text-primary">
+                <span className="mt-2.5 inline-block rounded-full bg-primary/[0.07] px-2.5 py-1 text-micro font-semibold text-primary">
                   {s.chip}
                 </span>
               </div>

@@ -55,8 +55,8 @@ export default async function AdminRazorpayPage() {
             </Link>
           }
         >
-          Set <code className="text-[11px]">RAZORPAY_KEY_ID</code> and{" "}
-          <code className="text-[11px]">RAZORPAY_KEY_SECRET</code> in your
+          Set <code className="text-xs">RAZORPAY_KEY_ID</code> and{" "}
+          <code className="text-xs">RAZORPAY_KEY_SECRET</code> in your
           environment variables to enable payment metrics.
         </EmptyState>
       </div>
@@ -82,7 +82,7 @@ export default async function AdminRazorpayPage() {
           <span className="flex items-center gap-2">
             <span>Razorpay - Last 30 days</span>
             {isTestMode && (
-              <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase text-amber-800 dark:bg-amber-900/30 dark:text-amber-400">
+              <span className="rounded bg-warning-subtle px-1.5 py-0.5 text-micro font-semibold uppercase text-warning-strong">
                 Test Mode
               </span>
             )}
@@ -202,7 +202,7 @@ export default async function AdminRazorpayPage() {
           <div className="overflow-x-auto rounded-lg border">
             <table className="w-full text-xs">
               <thead>
-                <tr className="border-b bg-muted/40 text-left text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                <tr className="border-b bg-muted/40 text-left text-micro font-semibold uppercase tracking-wide text-muted-foreground">
                   <th className="px-3 py-2">ID</th>
                   <th className="px-3 py-2">Amount</th>
                   <th className="px-3 py-2">Status</th>
@@ -292,17 +292,17 @@ function KpiCard({
 function PaymentStatusBadge({ status }: { status: RazorpayPayment["status"] }) {
   const cls =
     status === "captured"
-      ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400"
+      ? "bg-success-subtle text-success-strong"
       : status === "failed"
-        ? "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400"
+        ? "bg-destructive-subtle text-destructive-strong"
         : status === "refunded"
-          ? "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400"
+          ? "bg-warning-subtle text-warning-strong"
           : "bg-muted text-muted-foreground";
 
   return (
     <span
       className={cn(
-        "inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-semibold uppercase",
+        "inline-flex items-center rounded-full px-1.5 py-0.5 text-micro font-semibold uppercase",
         cls,
       )}
     >

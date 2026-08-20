@@ -28,7 +28,7 @@ export default async function OnboardingDonePage() {
         <div className="relative">
           <span
             aria-hidden
-            className="absolute inset-0 -m-2 rounded-full bg-emerald-500/15 blur-2xl"
+            className="absolute inset-0 -m-2 rounded-full bg-success-subtle blur-2xl"
           />
           <span className="relative flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-emerald-400 to-emerald-600 text-white shadow-lg shadow-emerald-500/30">
             <CheckCircle2 className="h-8 w-8" />

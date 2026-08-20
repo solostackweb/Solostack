@@ -35,23 +35,23 @@ export function CapabilitiesSection() {
             className="h-full"
           >
             <div className="mt-5 grid gap-2.5 sm:grid-cols-2" aria-hidden>
-              <div className="rounded-xl border border-border/70 bg-background p-3.5">
+              <div className="rounded-lg border border-border/70 bg-background p-3.5">
                 <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-semibold text-foreground">Same state · Karnataka</span>
-                  <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[9px] font-semibold text-primary">
+                  <span className="text-micro font-semibold text-foreground">Same state · Karnataka</span>
+                  <span className="rounded-full bg-primary/10 px-2 py-0.5 text-micro font-semibold text-primary">
                     CGST + SGST
                   </span>
                 </div>
-                <p className="mt-2 font-mono text-[11px] text-muted-foreground">9% + 9% = ₹18,900</p>
+                <p className="mt-2 font-mono text-micro text-muted-foreground">9% + 9% = ₹18,900</p>
               </div>
-              <div className="rounded-xl border border-border/70 bg-background p-3.5">
+              <div className="rounded-lg border border-border/70 bg-background p-3.5">
                 <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-semibold text-foreground">Other state · Maharashtra</span>
-                  <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[9px] font-semibold text-primary">
+                  <span className="text-micro font-semibold text-foreground">Other state · Maharashtra</span>
+                  <span className="rounded-full bg-primary/10 px-2 py-0.5 text-micro font-semibold text-primary">
                     IGST
                   </span>
                 </div>
-                <p className="mt-2 font-mono text-[11px] text-muted-foreground">18% = ₹18,900</p>
+                <p className="mt-2 font-mono text-micro text-muted-foreground">18% = ₹18,900</p>
               </div>
             </div>
           </BentoCard>
@@ -126,14 +126,14 @@ function BentoCard({
   return (
     <div
       className={cn(
-        "card-lift group rounded-3xl border border-border/80 bg-card p-6 transition-shadow sm:p-7",
+        "card-lift group rounded-2xl border border-border/80 bg-card p-6 transition-shadow sm:p-7",
         className,
       )}
     >
       <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/10 text-primary">
         <Icon className="h-5 w-5" />
       </span>
-      <h3 className="mt-4 font-display text-[17px] font-semibold tracking-tight text-foreground">
+      <h3 className="mt-4 font-display text-lg font-semibold tracking-tight text-foreground">
         {title}
       </h3>
       <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{body}</p>

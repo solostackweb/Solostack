@@ -81,7 +81,7 @@ export default async function AdminInvoiceDetailPage({ params }: Props) {
         {items.length === 0 ? (
           <Empty>No items.</Empty>
         ) : (
-          <ul className="overflow-hidden rounded-xl border bg-card shadow-sm shadow-black/[0.03] text-xs">
+          <ul className="overflow-hidden rounded-lg border bg-card shadow-sm shadow-black/[0.03] text-xs">
             {items.map((it) => (
               <li
                 key={it.id}
@@ -107,7 +107,7 @@ export default async function AdminInvoiceDetailPage({ params }: Props) {
         {deliveries.length === 0 ? (
           <Empty>No deliveries logged.</Empty>
         ) : (
-          <ul className="overflow-hidden rounded-xl border bg-card shadow-sm shadow-black/[0.03] text-xs">
+          <ul className="overflow-hidden rounded-lg border bg-card shadow-sm shadow-black/[0.03] text-xs">
             {deliveries.map((d) => (
               <li
                 key={d.id}
@@ -118,11 +118,11 @@ export default async function AdminInvoiceDetailPage({ params }: Props) {
                     className={cn(
                       "h-1.5 w-1.5 rounded-full",
                       d.status === "delivered"
-                        ? "bg-emerald-500"
+                        ? "bg-success"
                         : d.status === "failed" ||
                             d.status === "bounced" ||
                             d.status === "blocked"
-                          ? "bg-red-500"
+                          ? "bg-destructive"
                           : "bg-muted-foreground/50",
                     )}
                   />
@@ -154,10 +154,10 @@ function Section({
   children: React.ReactNode;
 }) {
   return (
-    <h2 className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+    <h2 className="flex items-center gap-2 text-micro font-semibold uppercase tracking-wider text-muted-foreground">
       {children}
       {typeof count === "number" ? (
-        <span className="rounded bg-muted px-1.5 text-[10px] tabular-nums">
+        <span className="rounded bg-muted px-1.5 text-micro tabular-nums">
           {count}
         </span>
       ) : null}

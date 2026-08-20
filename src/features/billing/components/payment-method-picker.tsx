@@ -35,7 +35,7 @@ export function PaymentMethodPicker({ summary, initialUpiVpa }: Props) {
         {summary.type === "stackivo_managed" || summary.type === "upi_smart" ? (
           <RetiredMethodNotice />
         ) : (
-          <div className="rounded-xl border bg-card">
+          <div className="rounded-lg border bg-card">
             <div className="flex items-start gap-3 border-b px-5 py-4">
               <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border bg-background">
                 <IntegrationLogo id="upi" className="h-5 w-5" />
@@ -72,13 +72,13 @@ function ActiveBanner({ summary }: { summary: PaymentMethodSummary }) {
     : summary.upiVpaMasked;
 
   return (
-    <div className="flex items-center justify-between rounded-xl border bg-card px-4 py-3">
+    <div className="flex items-center justify-between rounded-lg border bg-card px-4 py-3">
       <div className="flex min-w-0 items-center gap-3">
-        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emerald-100 dark:bg-emerald-900">
+        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-success-subtle">
           {retired ? (
-            <CircleAlert className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+            <CircleAlert className="h-4 w-4 text-warning-strong" />
           ) : (
-            <CheckCircle2 className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+            <CheckCircle2 className="h-4 w-4 text-success-strong" />
           )}
         </div>
         <div className="min-w-0">
@@ -91,10 +91,10 @@ function ActiveBanner({ summary }: { summary: PaymentMethodSummary }) {
         </div>
         <span
           className={[
-            "hidden rounded-full px-2 py-0.5 text-[11px] font-medium sm:inline-flex",
+            "hidden rounded-full px-2 py-0.5 text-micro font-medium sm:inline-flex",
             retired
-              ? "bg-amber-50 text-amber-700 dark:bg-amber-950 dark:text-amber-400"
-              : "bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400",
+              ? "bg-warning-subtle text-warning-strong"
+              : "bg-success-subtle text-success-strong",
           ].join(" ")}
         >
           {retired ? "Needs update" : "Active"}
@@ -128,7 +128,7 @@ function ActiveBanner({ summary }: { summary: PaymentMethodSummary }) {
 
 function RetiredMethodNotice() {
   return (
-    <div className="rounded-xl border border-amber-500/30 bg-amber-500/[0.04] p-4 text-sm leading-relaxed text-amber-800 dark:text-amber-400">
+    <div className="rounded-lg border border-warning-subtle bg-warning/[0.04] p-4 text-sm leading-relaxed text-warning-strong">
       <p className="font-semibold">This older Razorpay payment method is no longer used here.</p>
       <p className="mt-1 text-xs">
         Turn off the retired method above, then add your UPI ID for Indian clients.
@@ -203,9 +203,9 @@ function FormError({ error }: { error: string }) {
 
 function FormSuccess({ message }: { message?: string }) {
   return (
-    <div className="flex items-start gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2.5 dark:border-emerald-800 dark:bg-emerald-950">
-      <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-600 dark:text-emerald-400" />
-      <p className="text-xs text-emerald-700 dark:text-emerald-400">
+    <div className="flex items-start gap-2 rounded-lg border border-success-subtle bg-success-subtle px-3 py-2.5">
+      <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-success-strong" />
+      <p className="text-xs text-success-strong">
         {message ?? "Saved."}
       </p>
     </div>

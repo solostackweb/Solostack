@@ -74,7 +74,7 @@ export function PortalSkeleton() {
                       </div>
                       <Skeleton className="h-8 w-16 shrink-0" />
                     </div>
-                    <div className="rounded-md bg-muted/40 px-3 py-2.5 space-y-1.5">
+                    <div className="rounded-lg bg-muted/40 px-3 py-2.5 space-y-1.5">
                       <Skeleton className="h-3 w-40" />
                       <Skeleton className="h-3 w-56" />
                     </div>
@@ -94,8 +94,8 @@ export function PortalSkeleton() {
             </CardHeader>
             <CardContent className="space-y-2">
               {[1, 2, 3].map((i) => (
-                <div key={i} className="flex items-center gap-3 rounded-md border px-3 py-2.5">
-                  <Skeleton className="h-8 w-8 shrink-0 rounded-md" />
+                <div key={i} className="flex items-center gap-3 rounded-lg border px-3 py-2.5">
+                  <Skeleton className="h-8 w-8 shrink-0 rounded-lg" />
                   <div className="flex-1 space-y-1">
                     <Skeleton className="h-3.5 w-40" />
                     <Skeleton className="h-3 w-24" />

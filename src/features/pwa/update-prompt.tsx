@@ -46,13 +46,13 @@ export function UpdatePrompt() {
         bottom:
           "calc(var(--mobile-bottom-nav-h, 0px) + env(safe-area-inset-bottom, 0px) + 1rem)",
       }}
-      className="animate-toast-up fixed inset-x-3 z-[55] mx-auto flex max-w-md items-center gap-3 rounded-xl border bg-card/95 p-3 shadow-lg backdrop-blur-xl sm:inset-x-auto sm:right-6 sm:bottom-6"
+      className="animate-toast-up fixed inset-x-3 z-[55] mx-auto flex max-w-md items-center gap-3 rounded-lg border bg-card/95 p-3 shadow-lg backdrop-blur-xl sm:inset-x-auto sm:right-6 sm:bottom-6"
     >
       <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-primary/15 to-indigo-500/15 text-primary ring-1 ring-primary/20">
         <Sparkles className="h-4 w-4" aria-hidden />
       </span>
       <div className="min-w-0 flex-1">
-        <p className="text-[13px] font-semibold leading-tight">
+        <p className="text-xs font-semibold leading-tight">
           New version available
         </p>
         <p className="mt-0.5 text-[11.5px] leading-tight text-muted-foreground">

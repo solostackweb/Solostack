@@ -33,8 +33,8 @@ interface KindMeta {
  * don't crash the UI.
  */
 function kindMeta(kind: string): KindMeta {
-  if (kind.startsWith("invoice_paid")) return { icon: Check, tone: "bg-emerald-500/10 text-emerald-600 ring-emerald-500/20 dark:text-emerald-400" };
-  if (kind.startsWith("invoice_reminder")) return { icon: Bell, tone: "bg-amber-500/10 text-amber-600 ring-amber-500/20 dark:text-amber-400" };
+  if (kind.startsWith("invoice_paid")) return { icon: Check, tone: "bg-success-subtle text-success-strong ring-success-subtle" };
+  if (kind.startsWith("invoice_reminder")) return { icon: Bell, tone: "bg-warning-subtle text-warning-strong ring-warning-subtle" };
   if (kind.startsWith("invoice_overdue")) return { icon: AlertTriangle, tone: "bg-destructive/10 text-destructive ring-destructive/20" };
   if (kind.startsWith("invoice")) return { icon: FileText, tone: "bg-primary/10 text-primary ring-primary/20" };
   if (kind.startsWith("client")) return { icon: UserPlus, tone: "bg-primary/10 text-primary ring-primary/20" };
@@ -96,7 +96,7 @@ export function ActivityTimeline({ items }: { items: ActivityRecord[] }) {
                         {item.message}
                       </p>
                     )}
-                    <p className="mt-1 text-[11px] text-muted-foreground/80">
+                    <p className="mt-1 text-xs text-muted-foreground/80">
                       {formatRelativeTime(item.createdAt)}
                     </p>
                   </div>

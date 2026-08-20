@@ -1,5 +1,6 @@
 import * as React from "react";
 import { cn } from "@/lib/utils";
+import { BRAND_PRIMARY, BRAND_ACCENT } from "@/config/brand-colors";
 
 /**
  * Stackivo brand system.
@@ -122,7 +123,7 @@ export function StackivoLogo({
     >
       <StackivoMark variant={variant} />
       {!iconOnly && (
-        <StackivoWordmark text={wordmark} className="text-[15px]" />
+        <StackivoWordmark text={wordmark} className="text-sm" />
       )}
     </span>
   );
@@ -142,6 +143,6 @@ export function stackivoMarkSvgString(opts?: {
   const containerFill = opts?.fill ?? `url(#stk-${size})`;
   const gradient = opts?.fill
     ? ""
-    : `<defs><linearGradient id="stk-${size}" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#2563EB"/><stop offset="100%" stop-color="#4F46E5"/></linearGradient></defs>`;
+    : `<defs><linearGradient id="stk-${size}" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="${BRAND_PRIMARY}"/><stop offset="100%" stop-color="${BRAND_ACCENT}"/></linearGradient></defs>`;
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="${size}" height="${size}">${gradient}<rect x="0" y="0" width="512" height="512" rx="113" fill="${containerFill}"/><rect x="88" y="96" width="336" height="68" rx="34" fill="${barFill}"/><rect x="88" y="228" width="242" height="68" rx="34" fill="${barFill}" opacity="0.72"/><rect x="88" y="360" width="158" height="68" rx="34" fill="${barFill}" opacity="0.40"/></svg>`;
 }

@@ -82,7 +82,7 @@ export function ProjectsBulkBar({
     >
       <div className="pointer-events-auto flex items-center gap-2 rounded-full border bg-background/95 px-2 py-1.5 shadow-lg backdrop-blur supports-[backdrop-filter]:bg-background/80 sm:gap-3 sm:px-3">
         <div className="flex items-center gap-2 px-2">
-          <span className="inline-flex h-6 min-w-[1.5rem] items-center justify-center rounded-full bg-primary px-1.5 text-[11px] font-semibold tabular-nums text-primary-foreground">
+          <span className="inline-flex h-6 min-w-[1.5rem] items-center justify-center rounded-full bg-primary px-1.5 text-micro font-semibold tabular-nums text-primary-foreground">
             {selectedIds.length}
           </span>
           <span className="hidden text-xs font-medium text-muted-foreground sm:inline">
@@ -100,7 +100,7 @@ export function ProjectsBulkBar({
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="center" side="top" className="w-64">
-            <DropdownMenuLabel className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+            <DropdownMenuLabel className="text-micro font-semibold uppercase tracking-wider text-muted-foreground">
               Move all to&hellip;
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
@@ -122,10 +122,10 @@ export function ProjectsBulkBar({
                     )}
                   />
                   <span className="flex-1 min-w-0">
-                    <span className="block text-[13px] font-medium">
+                    <span className="block text-xs font-medium">
                       {cfg.label}
                     </span>
-                    <span className="block text-[11px] text-muted-foreground">
+                    <span className="block text-micro text-muted-foreground">
                       {cfg.description}
                     </span>
                   </span>

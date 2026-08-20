@@ -62,7 +62,7 @@ export function TemplatesView({
       </header>
 
       {/* Create — compact full-width band; pick a type to open the builder */}
-      <section className="rounded-xl border bg-card p-5 shadow-sm">
+      <section className="rounded-lg border bg-card p-5 shadow-sm">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div className="min-w-0">
             <h2 className="text-sm font-semibold">Create a template</h2>
@@ -86,7 +86,7 @@ export function TemplatesView({
       </section>
 
       {/* Library — full width, cards flow into a responsive grid as it grows */}
-      <section className="rounded-xl border bg-card p-5 shadow-sm">
+      <section className="rounded-lg border bg-card p-5 shadow-sm">
         <h2 className="text-sm font-semibold">Your template library</h2>
         <p className="mt-1 text-xs text-muted-foreground">
           Saved templates appear in the matching proposal, contract, and welcome
@@ -94,7 +94,7 @@ export function TemplatesView({
         </p>
         <div className="mt-4 space-y-6">
           {templates.length === 0 ? (
-            <div className="rounded-xl border border-dashed p-8 text-center text-sm text-muted-foreground">
+            <div className="rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground">
               No saved templates yet. Create one, or fork a starter below.
             </div>
           ) : (
@@ -138,13 +138,13 @@ export function TemplatesView({
 
 function BuiltinTemplateCard({ template }: { template: TemplateRecord }) {
   return (
-    <article className="flex h-full flex-col rounded-xl border bg-background p-4">
+    <article className="flex h-full flex-col rounded-lg border bg-background p-4">
       <div className="flex items-center gap-2">
         <TemplateTypeIcon type={template.templateType} />
         <h3 className="min-w-0 flex-1 truncate text-sm font-semibold">
           {template.title}
         </h3>
-        <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">
+        <span className="rounded-full bg-muted px-2 py-0.5 text-micro font-semibold text-muted-foreground">
           {templateTypeLabel(template.templateType)}
         </span>
       </div>
@@ -164,17 +164,17 @@ function BuiltinTemplateCard({ template }: { template: TemplateRecord }) {
 
 function TemplateLibraryCard({ template }: { template: TemplateRecord }) {
   return (
-    <article className="flex h-full flex-col rounded-xl border bg-background p-4">
+    <article className="flex h-full flex-col rounded-lg border bg-background p-4">
       <div className="flex items-center gap-2">
         <TemplateTypeIcon type={template.templateType} />
         <h3 className="min-w-0 flex-1 truncate text-sm font-semibold">
           {template.title}
         </h3>
-        <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">
+        <span className="rounded-full bg-muted px-2 py-0.5 text-micro font-semibold text-muted-foreground">
           {templateTypeLabel(template.templateType)}
         </span>
         {!template.active ? (
-          <span className="rounded-full bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold text-amber-700 dark:text-amber-300">
+          <span className="rounded-full bg-warning-subtle px-2 py-0.5 text-micro font-semibold text-warning-strong">
             Paused
           </span>
         ) : null}
@@ -266,7 +266,7 @@ function TemplatePreview({ template }: { template: TemplateRecord }) {
       <div className="mt-2 space-y-2 border-t pt-2">
         {blocks.map((b, i) => (
           <div key={i}>
-            <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+            <p className="text-micro font-semibold uppercase tracking-wider text-muted-foreground">
               {b.heading}
             </p>
             <p className="mt-0.5 line-clamp-4 whitespace-pre-line text-xs leading-relaxed text-foreground/80">

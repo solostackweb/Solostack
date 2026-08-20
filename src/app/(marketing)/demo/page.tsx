@@ -44,7 +44,7 @@ export default function DemoPage() {
       <Section size="default" className="pb-14 sm:pb-16">
         {loomUrl ? (
           <div className="mx-auto max-w-3xl">
-            <div className="overflow-hidden rounded-xl border bg-card shadow-xl">
+            <div className="overflow-hidden rounded-lg border bg-card shadow-xl">
               <div className="relative aspect-video">
                 <iframe
                   src={loomUrl}
@@ -58,7 +58,7 @@ export default function DemoPage() {
           </div>
         ) : (
           <div className="mx-auto max-w-3xl">
-            <div className="flex aspect-video items-center justify-center overflow-hidden rounded-xl border border-dashed bg-muted/30">
+            <div className="flex aspect-video items-center justify-center overflow-hidden rounded-lg border border-dashed bg-muted/30">
               <div className="flex flex-col items-center gap-3 text-center">
                 <span className="flex h-14 w-14 items-center justify-center rounded-full bg-primary/10 text-primary">
                   <Play className="h-6 w-6" />

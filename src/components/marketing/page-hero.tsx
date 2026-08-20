@@ -43,11 +43,11 @@ export function PageHero({
         )}
       >
         {eyebrow ? <SectionEyebrow>{eyebrow}</SectionEyebrow> : null}
-        <h1 className="max-w-3xl text-balance font-display text-[32px] font-semibold leading-[1.08] tracking-[-0.02em] text-foreground sm:text-[42px] lg:text-5xl">
+        <h1 className="max-w-3xl text-balance font-display text-4xl font-semibold leading-[1.08] tracking-[-0.02em] text-foreground sm:text-5xl lg:text-6xl">
           {title}
         </h1>
         {subtitle ? (
-          <p className={cn("max-w-2xl text-pretty text-[15px] leading-[1.7] text-muted-foreground sm:text-[17px]", align === "center" && "mx-auto")}>
+          <p className={cn("max-w-2xl text-pretty text-sm leading-[1.7] text-muted-foreground sm:text-lg", align === "center" && "mx-auto")}>
             {subtitle}
           </p>
         ) : null}

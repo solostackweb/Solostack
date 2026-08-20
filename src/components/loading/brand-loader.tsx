@@ -30,6 +30,7 @@
 
 import * as React from "react";
 import { cn } from "@/lib/utils";
+import { BRAND_PRIMARY, BRAND_ACCENT } from "@/config/brand-colors";
 
 export type BrandLoaderSize = "sm" | "md" | "lg" | "xl";
 
@@ -193,8 +194,8 @@ export function BrandLoader({
 
       <defs>
         <linearGradient id={`${styleId}-grad`} x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%"   stopColor="#2563EB" />
-          <stop offset="100%" stopColor="#4F46E5" />
+          <stop offset="0%"   stopColor={BRAND_PRIMARY} />
+          <stop offset="100%" stopColor={BRAND_ACCENT} />
         </linearGradient>
         {/* Subtle depth glow — only visible at lg/xl, cheap blur composite */}
         <filter id={`${styleId}-glow`} x="-20%" y="-20%" width="140%" height="140%">

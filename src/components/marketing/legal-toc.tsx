@@ -66,17 +66,17 @@ export function LegalToc({ contentId }: { contentId: string }) {
     <aside className="hidden lg:block print:hidden">
       <div className="sticky top-24 flex max-h-[calc(100vh-7rem)] flex-col gap-3 rounded-2xl border border-border bg-muted/40 p-4 shadow-sm">
         <div className="min-h-0 flex-1 overflow-y-auto pr-1">
-          <p className="mb-3 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+          <p className="mb-3 flex items-center gap-2 text-micro font-semibold uppercase tracking-wider text-muted-foreground">
             <span className="h-1.5 w-1.5 rounded-full bg-primary" />
             On this page
           </p>
-          <nav className="flex flex-col gap-0.5 text-[13px] leading-tight">
+          <nav className="flex flex-col gap-0.5 text-xs leading-tight">
             {items.map((item) => (
               <a
                 key={item.id}
                 href={`#${item.id}`}
                 className={cn(
-                  "rounded-md border-l-2 py-1.5 pl-3 transition-colors",
+                  "rounded-lg border-l-2 py-1.5 pl-3 transition-colors",
                   activeId === item.id
                     ? "border-primary bg-background font-medium text-foreground shadow-sm"
                     : "border-transparent text-muted-foreground hover:border-border hover:text-foreground",
@@ -90,7 +90,7 @@ export function LegalToc({ contentId }: { contentId: string }) {
         <button
           type="button"
           onClick={() => window.print()}
-          className="inline-flex shrink-0 items-center gap-1.5 self-start rounded-md border border-border bg-background px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground print:hidden"
+          className="inline-flex shrink-0 items-center gap-1.5 self-start rounded-lg border border-border bg-background px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground print:hidden"
         >
           <Printer className="h-3.5 w-3.5" />
           Print / Save as PDF

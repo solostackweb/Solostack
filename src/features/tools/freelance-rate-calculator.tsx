@@ -162,7 +162,7 @@ export function FreelanceRateCalculator() {
         </p>
 
         <div className="mt-6">
-          <div className="text-[44px] font-bold leading-none tracking-tight sm:text-[56px]">
+          <div className="text-5xl font-bold leading-none tracking-tight sm:text-5xl">
             ₹{formatINR(Math.ceil(result.hourly / 50) * 50)}
             <span className="ml-1.5 text-base font-medium text-muted-foreground">
               / hour
@@ -242,11 +242,11 @@ function Field({
           step={step}
           min={min}
           onChange={(e) => onChange(Number(e.target.value) || 0)}
-          className="h-9 w-full rounded-md border bg-background px-3 text-sm tabular-nums focus:outline-none focus:ring-2 focus:ring-primary/40"
+          className="h-9 w-full rounded-lg border bg-background px-3 text-sm tabular-nums focus:outline-none focus:ring-2 focus:ring-primary/40"
         />
       </div>
       {hint ? (
-        <p className="mt-1 text-[11px] text-muted-foreground">{hint}</p>
+        <p className="mt-1 text-xs text-muted-foreground">{hint}</p>
       ) : null}
     </label>
   );
@@ -289,7 +289,7 @@ function SliderField({
         className="mt-2 w-full accent-primary"
       />
       {hint ? (
-        <p className="mt-1 text-[11px] text-muted-foreground">{hint}</p>
+        <p className="mt-1 text-xs text-muted-foreground">{hint}</p>
       ) : null}
     </label>
   );
@@ -297,8 +297,8 @@ function SliderField({
 
 function ResultRow({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-md border bg-background/60 px-3 py-2">
-      <dt className="text-[11px] uppercase tracking-wider text-muted-foreground">
+    <div className="rounded-lg border bg-background/60 px-3 py-2">
+      <dt className="text-micro uppercase tracking-wider text-muted-foreground">
         {label}
       </dt>
       <dd className="mt-0.5 font-semibold tabular-nums">{value}</dd>

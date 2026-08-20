@@ -11,6 +11,7 @@ import { parseWelcomeContent } from "@/features/welcome-documents/content";
 import { WelcomeMarkdown } from "@/features/welcome-documents/markdown";
 import type { WelcomeDocumentRow } from "@/lib/supabase/types";
 import { getServerSupabase } from "@/lib/supabase/server";
+import { BRAND_PRIMARY } from "@/config/brand-colors";
 
 interface PageProps {
   params: Promise<{ token: string }>;
@@ -80,7 +81,7 @@ function WelcomeViewer({
   viewerEmail: string | null;
 }) {
   const sections = parseWelcomeContent(doc.content);
-  const brand = doc.brand_color ?? "#2563EB";
+  const brand = doc.brand_color ?? BRAND_PRIMARY;
 
   // Force light-mode CSS variable values on this public page.
   // The root layout wraps AppProviders (next-themes), which injects
@@ -126,7 +127,7 @@ function WelcomeViewer({
       <main className="relative mx-auto max-w-3xl px-4 py-8 sm:px-6 sm:py-12">
         {/* Eyebrow + title on the canvas */}
         <header className="mb-6 sm:mb-8">
-          <div className="inline-flex items-center gap-2 rounded-full border bg-white px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500 shadow-sm">
+          <div className="inline-flex items-center gap-2 rounded-full border bg-white px-3 py-1 text-micro font-semibold uppercase tracking-[0.16em] text-slate-500 shadow-sm">
             <BookOpen className="h-3.5 w-3.5" style={{ color: brand }} />
             Welcome guide
           </div>
@@ -160,7 +161,7 @@ function WelcomeViewer({
                     </span>
                     {section.heading}
                   </h2>
-                  <div className="pl-8 text-[15px] leading-relaxed text-slate-700 sm:pl-9">
+                  <div className="pl-8 text-sm leading-relaxed text-slate-700 sm:pl-9">
                     <WelcomeMarkdown source={section.body} />
                   </div>
                 </section>

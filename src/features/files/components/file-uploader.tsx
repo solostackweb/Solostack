@@ -159,7 +159,7 @@ export function FileUploader({
         }}
         onClick={() => inputRef.current?.click()}
         className={cn(
-          "flex cursor-pointer flex-col items-center justify-center gap-2 rounded-md border border-dashed bg-muted/30 px-4 py-8 text-center transition-colors",
+          "flex cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border border-dashed bg-muted/30 px-4 py-8 text-center transition-colors",
           isOver
             ? "border-primary bg-primary/5"
             : "hover:border-primary/40 hover:bg-muted/50",
@@ -193,7 +193,7 @@ export function FileUploader({
           {queue.map((item) => (
             <li
               key={item.id}
-              className="flex items-center gap-3 rounded-md border bg-card p-3"
+              className="flex items-center gap-3 rounded-lg border bg-card p-3"
             >
               <Paperclip className="h-4 w-4 shrink-0 text-muted-foreground" />
               <div className="min-w-0 flex-1">
@@ -201,7 +201,7 @@ export function FileUploader({
                   <p className="truncate text-sm font-medium">
                     {item.file.name}
                   </p>
-                  <span className="shrink-0 text-[11px] tabular-nums text-muted-foreground">
+                  <span className="shrink-0 text-micro tabular-nums text-muted-foreground">
                     {formatBytes(item.file.size)}
                   </span>
                 </div>
@@ -220,12 +220,12 @@ export function FileUploader({
                   </div>
                 )}
                 {item.status === "error" && (
-                  <p className="mt-1 text-[11px] text-destructive">
+                  <p className="mt-1 text-xs text-destructive">
                     {item.error}
                   </p>
                 )}
                 {item.status === "done" && (
-                  <p className="mt-1 text-[11px] text-success">Uploaded</p>
+                  <p className="mt-1 text-xs text-success">Uploaded</p>
                 )}
               </div>
               {item.status === "uploading" ? (

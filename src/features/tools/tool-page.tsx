@@ -58,10 +58,10 @@ export function ToolFooter({
       <Section size="default" className="pb-10 pt-12 sm:pt-14">
         <Reveal>
           <div className="mx-auto max-w-3xl overflow-hidden rounded-2xl border bg-card p-8 text-center shadow-sm sm:p-10">
-            <h2 className="text-2xl font-semibold tracking-tight sm:text-[28px]">
+            <h2 className="text-2xl font-semibold tracking-tight sm:text-2xl">
               {ctaHeadline}
             </h2>
-            <p className="mx-auto mt-3 max-w-xl text-[15px] leading-relaxed text-muted-foreground">
+            <p className="mx-auto mt-3 max-w-xl text-sm leading-relaxed text-muted-foreground">
               {ctaSubheadline}
             </p>
             <div className="mt-7 flex flex-wrap items-center justify-center gap-3">
@@ -82,7 +82,7 @@ export function ToolFooter({
 
       <Section size="default" className="pb-20">
         <Reveal>
-          <div className="mx-auto max-w-xl rounded-xl border bg-muted/20 p-6 text-center">
+          <div className="mx-auto max-w-xl rounded-lg border bg-muted/20 p-6 text-center">
             <p className="text-sm font-medium">
               Get one practical India-freelancer tip a month.
             </p>
@@ -124,7 +124,7 @@ export function ToolInlineCta({
   href?: string;
 }) {
   return (
-    <div className="mt-5 flex flex-col gap-3 rounded-xl border border-primary/20 bg-primary/[0.04] p-4 sm:flex-row sm:items-center sm:justify-between">
+    <div className="mt-5 flex flex-col gap-3 rounded-lg border border-primary/20 bg-primary/[0.04] p-4 sm:flex-row sm:items-center sm:justify-between">
       <div className="flex items-center gap-2.5">
         <Zap className="h-4 w-4 shrink-0 text-primary" aria-hidden />
         <p className="text-sm text-muted-foreground">

@@ -51,7 +51,7 @@ export default async function PaymentsSettingsPage() {
 
       <div className="space-y-5">
         {showLegacyHint && (
-          <div className="rounded-lg border border-amber-500/30 bg-amber-500/[0.04] p-4 text-xs leading-relaxed text-amber-800 dark:text-amber-400">
+          <div className="rounded-lg border border-warning-subtle bg-warning/[0.04] p-4 text-xs leading-relaxed text-warning-strong">
             <p className="font-semibold">We&apos;ve upgraded the payments experience.</p>
             <p className="mt-1">
               The old &quot;paste your Razorpay key&quot; flow is retired. Set up

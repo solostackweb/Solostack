@@ -66,8 +66,8 @@ export function FreePlanBanner({
       role="status"
       className={
         isBlocked
-          ? "flex items-center justify-between gap-3 rounded-xl border border-destructive/20 bg-destructive/[0.04] px-4 py-3 text-sm"
-          : "flex items-center justify-between gap-3 rounded-xl border border-primary/20 bg-gradient-to-r from-primary/[0.05] to-violet-500/[0.03] px-4 py-3 text-sm"
+          ? "flex items-center justify-between gap-3 rounded-lg border border-destructive/20 bg-destructive/[0.04] px-4 py-3 text-sm"
+          : "flex items-center justify-between gap-3 rounded-lg border border-primary/20 bg-gradient-to-r from-primary/[0.05] to-violet-500/[0.03] px-4 py-3 text-sm"
       }
     >
       <div className="flex items-center gap-2.5">
@@ -79,7 +79,7 @@ export function FreePlanBanner({
           }
           aria-hidden
         />
-        <span className="text-[13px] text-muted-foreground">
+        <span className="text-xs text-muted-foreground">
           {message}{" "}
           <Link
             href="/dashboard/settings/billing"

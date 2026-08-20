@@ -170,8 +170,8 @@ function Leaf({
   tone: "string" | "number" | "bool" | "muted";
 }) {
   const toneClass = {
-    string: "text-emerald-700 dark:text-emerald-400",
-    number: "text-sky-700 dark:text-sky-400",
+    string: "text-success-strong",
+    number: "text-info-strong",
     bool: "text-violet-700 dark:text-violet-400",
     muted: "text-muted-foreground",
   }[tone];

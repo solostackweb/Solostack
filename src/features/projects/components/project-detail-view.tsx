@@ -317,7 +317,7 @@ export function ProjectDetailView({
                     className="flex items-center justify-between gap-3 py-3"
                   >
                     <div className="flex min-w-0 items-center gap-3">
-                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
+                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
                         <FileText className="h-4 w-4" />
                       </div>
                       <div className="min-w-0">
@@ -375,7 +375,7 @@ export function ProjectDetailView({
                     className="flex items-center justify-between gap-3 py-3"
                   >
                     <div className="flex min-w-0 items-center gap-3">
-                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
+                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
                         <FileSignature className="h-4 w-4" />
                       </div>
                       <div className="min-w-0">
@@ -435,7 +435,7 @@ export function ProjectDetailView({
                     className="flex items-center justify-between gap-3 py-3"
                   >
                     <div className="flex min-w-0 items-center gap-3">
-                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
+                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
                         <BookOpen className="h-4 w-4" />
                       </div>
                       <div className="min-w-0">
@@ -495,7 +495,7 @@ export function ProjectDetailView({
                     className="flex items-center justify-between py-3"
                   >
                     <div className="flex items-center gap-3">
-                      <div className="flex h-8 w-8 items-center justify-center rounded-md bg-primary/10 text-primary">
+                      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
                         <FileText className="h-4 w-4" />
                       </div>
                       <div>
@@ -536,7 +536,7 @@ export function ProjectDetailView({
         <aside className="space-y-4">
           <Card>
             <CardContent className="space-y-3 p-5">
-              <h2 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+              <h2 className="text-micro font-semibold uppercase tracking-wider text-muted-foreground">
                 Status history
               </h2>
               <ProjectStatusHistory entries={statusHistory} />
@@ -551,7 +551,7 @@ export function ProjectDetailView({
                     className="inline-flex items-center gap-2 hover:underline"
                   >
                     <Avatar className="h-5 w-5">
-                      <AvatarFallback className="text-[9px]">
+                      <AvatarFallback className="text-xs">
                         {getClientInitials(getClientDisplayName(client))}
                       </AvatarFallback>
                     </Avatar>
@@ -657,7 +657,7 @@ function MetaRow({
     <div className="flex items-center justify-between gap-4">
       <span className="inline-flex items-center gap-2 text-muted-foreground">
         <Icon className="h-3.5 w-3.5" />
-        <span className="text-[11px] font-semibold uppercase tracking-wider">
+        <span className="text-micro font-semibold uppercase tracking-wider">
           {label}
         </span>
       </span>

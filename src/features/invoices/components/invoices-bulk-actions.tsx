@@ -30,9 +30,9 @@ export function InvoicesBulkActions({
       aria-label="Bulk actions"
       className="pointer-events-none fixed inset-x-0 bottom-6 z-40 flex justify-center px-4"
     >
-      <div className="pointer-events-auto flex items-center gap-4 rounded-full border border-slate-800 bg-slate-900 px-4 py-2 text-slate-100 shadow-2xl shadow-black/20 dark:border-slate-700 dark:bg-slate-950 animate-in fade-in slide-in-from-bottom-2">
+      <div className="pointer-events-auto flex items-center gap-4 rounded-full border border-border bg-foreground px-4 py-2 text-background shadow-2xl shadow-black/20 animate-in fade-in slide-in-from-bottom-2">
         <div className="flex items-center gap-2 pr-3">
-          <span className="inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-primary px-1.5 text-[11px] font-semibold text-primary-foreground tabular-nums">
+          <span className="inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-primary px-1.5 text-micro font-semibold text-primary-foreground tabular-nums">
             {selectedCount}
           </span>
           <span className="text-sm font-medium">
@@ -40,7 +40,7 @@ export function InvoicesBulkActions({
           </span>
         </div>
 
-        <span className="h-4 w-px bg-slate-700" />
+        <span className="h-4 w-px bg-foreground" />
 
         <BulkButton onClick={onMarkPaid} icon={CheckCircle2} label="Mark as paid" />
         <BulkButton onClick={onExport} icon={Download} label="Export" />
@@ -51,13 +51,13 @@ export function InvoicesBulkActions({
           tone="danger"
         />
 
-        <span className="h-4 w-px bg-slate-700" />
+        <span className="h-4 w-px bg-foreground" />
 
         <button
           type="button"
           onClick={onClear}
           aria-label="Clear selection"
-          className="rounded-full p-1 text-slate-400 transition-colors hover:bg-slate-800 hover:text-white"
+          className="rounded-full p-1 text-muted-foreground transition-colors hover:bg-foreground hover:text-white"
         >
           <X className="h-4 w-4" />
         </button>
@@ -82,10 +82,10 @@ function BulkButton({
       type="button"
       onClick={onClick}
       className={
-        "inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-sm font-medium transition-colors hover:bg-slate-800 " +
+        "inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-sm font-medium transition-colors hover:bg-foreground " +
         (tone === "danger"
-          ? "text-slate-200 hover:text-red-400"
-          : "text-slate-200 hover:text-white")
+          ? "text-background hover:text-destructive-strong"
+          : "text-background hover:text-white")
       }
     >
       <Icon className="h-3.5 w-3.5" />

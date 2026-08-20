@@ -80,10 +80,10 @@ const UPDATE_TYPE_BORDER: Record<PortalUpdateType, string> = {
 const UPDATE_TYPE_BADGE: Record<PortalUpdateType, string> = {
   progress:    "bg-blue-500/10 text-blue-700 dark:text-blue-400",
   deliverable: "bg-violet-500/10 text-violet-700 dark:text-violet-400",
-  revision:    "bg-amber-500/10 text-amber-700 dark:text-amber-400",
-  payment:     "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400",
+  revision:    "bg-warning-subtle text-warning-strong",
+  payment:     "bg-success-subtle text-success-strong",
   milestone:   "bg-orange-500/10 text-orange-700 dark:text-orange-400",
-  meeting:     "bg-sky-500/10 text-sky-700 dark:text-sky-400",
+  meeting:     "bg-info-subtle text-info-strong",
   general:     "bg-muted text-muted-foreground",
 };
 
@@ -97,10 +97,10 @@ const APPROVAL_LABELS: Record<PortalUpdateApprovalStatus, string> = {
 
 const APPROVAL_BADGE: Record<PortalUpdateApprovalStatus, string> = {
   none:               "",
-  submitted:          "bg-amber-500/10 text-amber-700 dark:text-amber-400",
-  under_review:       "bg-sky-500/10 text-sky-700 dark:text-sky-400",
-  approved:           "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400",
-  revision_requested: "bg-rose-500/10 text-rose-700 dark:text-rose-400",
+  submitted:          "bg-warning-subtle text-warning-strong",
+  under_review:       "bg-info-subtle text-info-strong",
+  approved:           "bg-success-subtle text-success-strong",
+  revision_requested: "bg-destructive-subtle text-destructive-strong",
 };
 
 // ---------------------------------------------------------------------------
@@ -123,7 +123,7 @@ export function UpdatesSection({
           <TrendingUp className="h-4 w-4 text-muted-foreground" />
           Updates
           {updates.length > 0 && (
-            <span className="rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold text-primary">
+            <span className="rounded-full bg-primary/10 px-1.5 py-0.5 text-micro font-semibold text-primary">
               {updates.length}
             </span>
           )}
@@ -168,7 +168,7 @@ export function UpdatesSection({
             {hasMore && (
               <button
                 type="button"
-                className="flex w-full items-center justify-center gap-1.5 py-1 text-[11px] font-medium text-muted-foreground hover:text-foreground transition-colors"
+                className="flex w-full items-center justify-center gap-1.5 py-1 text-micro font-medium text-muted-foreground hover:text-foreground transition-colors"
                 onClick={() => setShowAll((v) => !v)}
               >
                 {showAll ? (
@@ -268,11 +268,11 @@ function UpdateCard({
       {/* Header row: badges + timestamp + delete */}
       <div className="flex items-start justify-between gap-2">
         <div className="flex flex-wrap items-center gap-1.5 min-w-0">
-          <span className={`inline-flex items-center rounded-md px-1.5 py-0.5 text-[10px] font-semibold ${UPDATE_TYPE_BADGE[update.update_type]}`}>
+          <span className={`inline-flex items-center rounded-lg px-1.5 py-0.5 text-micro font-semibold ${UPDATE_TYPE_BADGE[update.update_type]}`}>
             {UPDATE_TYPE_LABELS[update.update_type]}
           </span>
           {update.approval_status !== "none" && APPROVAL_LABELS[update.approval_status] && (
-            <span className={`inline-flex items-center rounded-md px-1.5 py-0.5 text-[10px] font-semibold ${APPROVAL_BADGE[update.approval_status]}`}>
+            <span className={`inline-flex items-center rounded-lg px-1.5 py-0.5 text-micro font-semibold ${APPROVAL_BADGE[update.approval_status]}`}>
               {APPROVAL_LABELS[update.approval_status]}
             </span>
           )}
@@ -280,7 +280,7 @@ function UpdateCard({
         <div className="flex shrink-0 items-center gap-1.5">
           <time
             dateTime={update.created_at}
-            className="text-[11px] tabular-nums text-muted-foreground"
+            className="text-xs tabular-nums text-muted-foreground"
           >
             {formatRelativeDate(update.created_at)}
           </time>
@@ -305,7 +305,7 @@ function UpdateCard({
             {update.body}
           </p>
         )}
-        <p className="text-[11px] text-muted-foreground">
+        <p className="text-micro text-muted-foreground">
           by{" "}
           <span className="font-medium text-foreground">
             {update.author?.full_name ?? update.author?.email ?? "Freelancer"}
@@ -315,7 +315,7 @@ function UpdateCard({
 
       {/* Error */}
       {error && (
-        <p className="rounded-md bg-destructive/10 px-2 py-1.5 text-xs text-destructive">
+        <p className="rounded-lg bg-destructive/10 px-2 py-1.5 text-xs text-destructive">
           {error}
         </p>
       )}
@@ -353,7 +353,7 @@ function UpdateCard({
           </Button>
         )}
         {!isOwner && hasAcknowledged && update.approval_status !== "approved" && (
-          <span className="inline-flex items-center gap-1 text-[11px] font-medium text-emerald-600 dark:text-emerald-400">
+          <span className="inline-flex items-center gap-1 text-micro font-medium text-success-strong">
             <CheckCircle2 className="h-3 w-3" /> Acknowledged
           </span>
         )}
@@ -364,7 +364,7 @@ function UpdateCard({
             <Button
               size="sm"
               variant="outline"
-              className="h-7 gap-1.5 text-xs border-emerald-500/40 text-emerald-700 hover:bg-emerald-500/10 dark:text-emerald-400"
+              className="h-7 gap-1.5 text-xs border-success-subtle text-success-strong hover:bg-success-subtle"
               disabled={pending || hasApproved}
               onClick={() => react("approved")}
             >
@@ -374,7 +374,7 @@ function UpdateCard({
             <Button
               size="sm"
               variant="outline"
-              className="h-7 gap-1.5 text-xs border-amber-500/40 text-amber-700 hover:bg-amber-500/10 dark:text-amber-400"
+              className="h-7 gap-1.5 text-xs border-warning-subtle text-warning-strong hover:bg-warning-subtle"
               disabled={pending || hasRevisionRequested}
               onClick={() => react("revision_requested")}
             >
@@ -384,7 +384,7 @@ function UpdateCard({
           </>
         )}
         {!isOwner && hasApproved && (
-          <span className="inline-flex items-center gap-1 text-[11px] font-medium text-emerald-600 dark:text-emerald-400">
+          <span className="inline-flex items-center gap-1 text-micro font-medium text-success-strong">
             <ThumbsUp className="h-3 w-3" /> Approved
           </span>
         )}
@@ -392,7 +392,7 @@ function UpdateCard({
         {/* Comment */}
         <button
           type="button"
-          className="inline-flex items-center gap-1 text-[11px] text-muted-foreground transition-colors hover:text-foreground"
+          className="inline-flex items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-foreground"
           onClick={() => setCommentOpen((v) => !v)}
         >
           <MessageSquare className="h-3 w-3" />
@@ -405,7 +405,7 @@ function UpdateCard({
             type="button"
             aria-label="Share via WhatsApp"
             title="Share via WhatsApp"
-            className="ml-auto inline-flex items-center gap-1 text-[11px] text-muted-foreground transition-colors hover:text-[#25D366]"
+            className="ml-auto inline-flex items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-[#25D366]"
             onClick={() => {
               const portalUrl = `${typeof window !== "undefined" ? window.location.origin : ""}${portalClientHome(portalId)}#portal-updates`;
               sharePortalUpdateOnWhatsApp({
@@ -552,7 +552,7 @@ function CreateUpdateDialog({
             />
           </div>
           {error && (
-            <p className="rounded-md bg-destructive/10 p-2 text-xs text-destructive">{error}</p>
+            <p className="rounded-lg bg-destructive/10 p-2 text-xs text-destructive">{error}</p>
           )}
           <div className="mt-4 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
             <Button type="button" variant="ghost" onClick={() => onOpenChange(false)} disabled={pending}>

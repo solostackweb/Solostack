@@ -24,7 +24,7 @@ export default async function AdminQueryPage() {
         subtitle="Read-only query against public schema - 30s timeout - audited"
       />
       <SqlRunner />
-      <p className="text-[11px] text-muted-foreground">
+      <p className="text-xs text-muted-foreground">
         Built-in escape hatch for the questions the console UI hasn&apos;t
         modeled yet. Only <code>SELECT</code> / <code>WITH</code> /{" "}
         <code>EXPLAIN</code> are allowed. Schema reference:{" "}

@@ -105,7 +105,7 @@ export function DashboardSetupChecklist({ hasSignature }: Props) {
             >
               <span className="relative flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/15 text-primary">
                 <CheckCircle2 className="h-4 w-4" aria-hidden />
-                <span className="absolute -bottom-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold tabular-nums text-primary-foreground ring-2 ring-background">
+                <span className="absolute -bottom-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-micro font-bold tabular-nums text-primary-foreground ring-2 ring-background">
                   {remaining}
                 </span>
               </span>
@@ -113,7 +113,7 @@ export function DashboardSetupChecklist({ hasSignature }: Props) {
                 <p className="truncate text-sm font-semibold">
                   Finish setting up
                 </p>
-                <p className="truncate text-[11px] text-muted-foreground">
+                <p className="truncate text-micro text-muted-foreground">
                   {remaining} {remaining === 1 ? "task" : "tasks"} left -{" "}
                   {percent}% done
                 </p>
@@ -204,10 +204,10 @@ function ChecklistFullCard({
 
       <div className="relative">
         <div className="flex items-center gap-3">
-          <span className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
+          <span className="text-micro font-semibold uppercase tracking-widest text-muted-foreground">
             Finish setting up
           </span>
-          <span className="text-[11px] tabular-nums text-muted-foreground">
+          <span className="text-micro tabular-nums text-muted-foreground">
             {done} / {total}
           </span>
         </div>
@@ -237,7 +237,7 @@ function ChecklistFullCard({
               >
                 <span
                   className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center ${
-                    item.done ? "text-emerald-600" : "text-muted-foreground"
+                    item.done ? "text-success-strong" : "text-muted-foreground"
                   }`}
                 >
                   {item.done ? (
@@ -259,7 +259,7 @@ function ChecklistFullCard({
                   </p>
                 </div>
                 {!item.done ? (
-                  <span className="mt-1 flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground transition group-hover:text-foreground">
+                  <span className="mt-1 flex h-6 w-6 items-center justify-center rounded-lg text-muted-foreground transition group-hover:text-foreground">
                     <ArrowRight className="h-3.5 w-3.5" />
                   </span>
                 ) : null}

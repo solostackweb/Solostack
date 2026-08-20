@@ -79,7 +79,7 @@ export function InvoiceItemRow({
           aria-invalid={!!itemErrors?.description}
         />
         {itemErrors?.description?.message && (
-          <p className="mt-1 text-[11px] text-destructive">
+          <p className="mt-1 text-xs text-destructive">
             {itemErrors.description.message}
           </p>
         )}
@@ -143,7 +143,7 @@ export function InvoiceItemRow({
 
 export function InvoiceItemsHeader() {
   return (
-    <div className="hidden grid-cols-12 items-center gap-2 border-b bg-muted/30 px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground sm:grid">
+    <div className="hidden grid-cols-12 items-center gap-2 border-b bg-muted/30 px-3 py-2 text-micro font-semibold uppercase tracking-wider text-muted-foreground sm:grid">
       <div className="col-span-1" />
       <div className="col-span-4">Description</div>
       <div className="col-span-2 text-right">Qty</div>

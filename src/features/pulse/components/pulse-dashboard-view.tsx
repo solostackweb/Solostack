@@ -216,7 +216,7 @@ export function PulseDashboardView({
               type="button"
               onClick={() => setPreset(r)}
               className={cn(
-                "rounded-md px-3 py-1.5 font-medium transition",
+                "rounded-lg px-3 py-1.5 font-medium transition",
                 !isCustom && range === r
                   ? "bg-background shadow-sm"
                   : "text-muted-foreground hover:text-foreground",
@@ -229,7 +229,7 @@ export function PulseDashboardView({
         <div className="space-y-1">
           <div className="flex items-end gap-2">
             <label className="space-y-1">
-              <span className="text-[11px] font-medium text-muted-foreground">From</span>
+              <span className="text-micro font-medium text-muted-foreground">From</span>
               <Input
                 type="date"
                 value={draftRange.from}
@@ -241,7 +241,7 @@ export function PulseDashboardView({
               />
             </label>
             <label className="space-y-1">
-              <span className="text-[11px] font-medium text-muted-foreground">To</span>
+              <span className="text-micro font-medium text-muted-foreground">To</span>
               <Input
                 type="date"
                 value={draftRange.to}
@@ -355,7 +355,7 @@ export function PulseDashboardView({
       <Card>
         <CardContent className="space-y-4 p-5">
           <div className="flex items-center justify-between">
-            <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
+            <p className="text-micro font-bold uppercase tracking-widest text-muted-foreground">
               Top clients by paid revenue
             </p>
             <Link
@@ -381,7 +381,7 @@ export function PulseDashboardView({
               {topClients.map((c) => (
                 <li
                   key={c.clientId ?? c.name}
-                  className="flex items-center justify-between gap-3 rounded-md px-1 py-2.5 transition-colors hover:bg-accent/50"
+                  className="flex items-center justify-between gap-3 rounded-lg px-1 py-2.5 transition-colors hover:bg-accent/50"
                 >
                   {c.clientId ? (
                     <Link
@@ -442,7 +442,7 @@ function RevenueStudio({
               <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-primary/10 to-cyan-500/10 text-primary ring-1 ring-primary/15">
                 <LineChart className="h-4 w-4" />
               </span>
-              <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
+              <p className="text-micro font-bold uppercase tracking-widest text-muted-foreground">
                 Revenue studio
               </p>
             </div>
@@ -544,7 +544,7 @@ function PulseChartTooltip({
   const issued = payload.find((p) => p.dataKey === "issued")?.value ?? 0;
   const paidInvoices = payload.find((p) => p.dataKey === "paidInvoices")?.value ?? 0;
   return (
-    <div className="rounded-xl border bg-popover px-3.5 py-2.5 text-xs shadow-xl shadow-primary/10">
+    <div className="rounded-lg border bg-popover px-3.5 py-2.5 text-xs shadow-xl shadow-primary/10">
       <p className="font-semibold text-popover-foreground">{formatMonthLabel(label ?? "")}</p>
       <p className="mt-1.5 tabular-nums text-muted-foreground">
         Paid: <span className="font-bold text-foreground">{formatINR(paid)}</span>
@@ -567,7 +567,7 @@ function PaymentHealthCard({ analytics }: { analytics: PulseAnalytics }) {
     <Card>
       <CardContent className="flex min-w-0 flex-wrap items-center gap-x-7 gap-y-5 overflow-hidden p-5">
         <div className="min-w-[220px] flex-1 basis-[240px]">
-          <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
+          <p className="text-micro font-bold uppercase tracking-widest text-muted-foreground">
             Payment health
           </p>
           <h3 className="mt-3 text-lg font-semibold tracking-tight">Collection quality</h3>
@@ -594,7 +594,7 @@ function PaymentHealthCard({ analytics }: { analytics: PulseAnalytics }) {
           </ResponsiveContainer>
           <div className="absolute inset-0 flex flex-col items-center justify-center">
             <p className="text-3xl font-bold tabular-nums">{rate}%</p>
-            <p className="text-[11px] text-muted-foreground">collected</p>
+            <p className="text-micro text-muted-foreground">collected</p>
           </div>
         </div>
         <div className="grid min-w-[210px] flex-1 basis-[220px] gap-2 overflow-hidden">
@@ -610,7 +610,7 @@ function PaymentHealthCard({ analytics }: { analytics: PulseAnalytics }) {
 function MetricRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex min-w-0 items-center justify-between gap-3 rounded-lg border bg-muted/15 px-3 py-2.5">
-      <span className="min-w-0 truncate text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+      <span className="min-w-0 truncate text-micro font-semibold uppercase tracking-wider text-muted-foreground">
         {label}
       </span>
       <span className="max-w-[55%] shrink-0 truncate text-right text-sm font-bold tabular-nums">{value}</span>
@@ -631,7 +631,7 @@ function ProposalPerformanceCard({
       <CardContent className="flex h-full min-h-[260px] flex-col p-5">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
+            <p className="text-micro font-bold uppercase tracking-widest text-muted-foreground">
               Proposal performance
             </p>
             <h3 className="mt-3 truncate text-lg font-semibold tracking-tight">Win momentum</h3>
@@ -639,7 +639,7 @@ function ProposalPerformanceCard({
               See whether proposals are turning into accepted work.
             </p>
           </div>
-          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
             <Target className="h-5 w-5" />
           </span>
         </div>
@@ -652,7 +652,7 @@ function ProposalPerformanceCard({
         <div className="mt-auto pt-4">
           <div className="h-2 overflow-hidden rounded-full bg-muted">
             <div
-              className="h-full rounded-full bg-emerald-500"
+              className="h-full rounded-full bg-success"
               style={{ width: `${decided > 0 ? Math.round((proposals.accepted / decided) * 100) : 0}%` }}
             />
           </div>
@@ -678,7 +678,7 @@ function GlobalMixCard({
       <CardContent className="flex h-full min-h-[260px] flex-col overflow-hidden p-5">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
+            <p className="text-micro font-bold uppercase tracking-widest text-muted-foreground">
               Global revenue
             </p>
             <h3 className="mt-3 truncate text-lg font-semibold tracking-tight">Domestic vs international</h3>
@@ -686,7 +686,7 @@ function GlobalMixCard({
               INR view of where paid revenue is coming from.
             </p>
           </div>
-          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-cyan-500/10 text-cyan-600 dark:text-cyan-300">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-cyan-500/10 text-cyan-600 dark:text-cyan-300">
             <Globe2 className="h-5 w-5" />
           </span>
         </div>
@@ -733,7 +733,7 @@ function CashForecastCard({
       <CardContent className="flex h-full min-h-[260px] flex-col p-5">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
+            <p className="text-micro font-bold uppercase tracking-widest text-muted-foreground">
               Cash forecast
             </p>
             <h3 className="mt-3 truncate text-lg font-semibold tracking-tight">Next 30 days</h3>
@@ -741,7 +741,7 @@ function CashForecastCard({
               Open invoices grouped by urgency.
             </p>
           </div>
-          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-300">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-success-subtle text-success-strong">
             <Wallet className="h-5 w-5" />
           </span>
         </div>
@@ -794,7 +794,7 @@ function OperatingDetailsCard({
       <CardContent className="space-y-4 p-5">
         <div className="flex min-w-0 items-center justify-between gap-3">
           <div className="min-w-0">
-            <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
+            <p className="text-micro font-bold uppercase tracking-widest text-muted-foreground">
               Operating details
             </p>
             <h3 className="mt-2 truncate text-lg font-semibold tracking-tight">Full business pulse</h3>
@@ -808,11 +808,11 @@ function OperatingDetailsCard({
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {items.map((item) => (
             <div key={item.label} className="min-w-0 rounded-lg border bg-muted/15 p-3">
-              <p className="truncate text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+              <p className="truncate text-micro font-semibold uppercase tracking-wider text-muted-foreground">
                 {item.label}
               </p>
               <p className="mt-1 truncate text-base font-bold tabular-nums" title={item.value}>{item.value}</p>
-              <p className="mt-0.5 truncate text-[11px] text-muted-foreground">{item.sub}</p>
+              <p className="mt-0.5 truncate text-micro text-muted-foreground">{item.sub}</p>
             </div>
           ))}
         </div>
@@ -833,7 +833,7 @@ function ClientMixCard({
     <Card>
       <CardContent className="min-w-0 space-y-5 overflow-hidden p-5">
         <div className="min-w-0">
-          <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
+          <p className="text-micro font-bold uppercase tracking-widest text-muted-foreground">
             Client mix
           </p>
           <h3 className="mt-3 truncate text-lg font-semibold tracking-tight">Revenue concentration</h3>
@@ -906,7 +906,7 @@ function ClientMixTooltip({
   if (!active || !payload?.length) return null;
   const item = payload[0];
   return (
-    <div className="rounded-xl border border-border bg-popover px-3.5 py-2.5 text-xs text-popover-foreground shadow-xl shadow-black/10">
+    <div className="rounded-lg border border-border bg-popover px-3.5 py-2.5 text-xs text-popover-foreground shadow-xl shadow-black/10">
       <p className="font-semibold">{item.name ?? "Client"}</p>
       <p className="mt-1 tabular-nums text-muted-foreground">
         Revenue: <span className="font-bold text-popover-foreground">{formatINR(Number(item.value) || 0)}</span>
@@ -924,11 +924,11 @@ function AgingCard({
 }) {
   const a = receivables.aging;
   const rows = [
-    { label: "Current", value: a.current, tone: "bg-emerald-500" },
-    { label: "1–30 days", value: a.d1_30, tone: "bg-amber-400" },
+    { label: "Current", value: a.current, tone: "bg-success" },
+    { label: "1–30 days", value: a.d1_30, tone: "bg-warning" },
     { label: "31–60 days", value: a.d31_60, tone: "bg-orange-500" },
-    { label: "61–90 days", value: a.d61_90, tone: "bg-red-500" },
-    { label: "90+ days", value: a.d90plus, tone: "bg-red-700" },
+    { label: "61–90 days", value: a.d61_90, tone: "bg-destructive" },
+    { label: "90+ days", value: a.d90plus, tone: "bg-destructive" },
   ];
   const max = Math.max(1, ...rows.map((r) => r.value));
   const hasAny = receivables.outstandingTotal > 0;
@@ -937,13 +937,13 @@ function AgingCard({
     <Card>
       <CardContent className="space-y-4 p-5">
         <div className="flex items-center justify-between">
-          <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
+          <p className="text-micro font-bold uppercase tracking-widest text-muted-foreground">
             Receivables aging
           </p>
           {receivables.overdueCount > 0 ? (
             <Link
               href="/dashboard/invoices?status=overdue"
-              className="inline-flex items-center gap-1 text-xs font-semibold text-amber-600 hover:text-amber-700 dark:text-amber-400"
+              className="inline-flex items-center gap-1 text-xs font-semibold text-warning-strong hover:text-warning-strong"
             >
               <AlertTriangle className="h-3.5 w-3.5" />
               {receivables.overdueCount} overdue
@@ -992,7 +992,7 @@ function FunnelCard({ funnel }: { funnel: PulseAnalytics["funnel"] }) {
   return (
     <Card>
       <CardContent className="space-y-4 p-5">
-        <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
+        <p className="text-micro font-bold uppercase tracking-widest text-muted-foreground">
           Invoice funnel (this range)
         </p>
         {funnel.issued === 0 ? (
@@ -1008,7 +1008,7 @@ function FunnelCard({ funnel }: { funnel: PulseAnalytics["funnel"] }) {
                   <span className="tabular-nums text-muted-foreground">
                     {s.value}
                     {s.rate !== null ? (
-                      <span className="ml-1 text-[11px]">({Math.round(s.rate)}%)</span>
+                      <span className="ml-1 text-xs">({Math.round(s.rate)}%)</span>
                     ) : null}
                   </span>
                 </div>
@@ -1046,12 +1046,12 @@ function GstCard({ gst }: { gst: PulseAnalytics["gst"] }) {
             <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-primary/10 to-indigo-500/10 text-primary ring-1 ring-primary/15">
               <Landmark className="h-4 w-4" />
             </span>
-            <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
+            <p className="text-micro font-bold uppercase tracking-widest text-muted-foreground">
               GST summary (this range)
             </p>
           </div>
           {!gst.registered ? (
-            <span className="rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold text-amber-600 dark:text-amber-400">
+            <span className="rounded-full border border-warning-subtle bg-warning-subtle px-2 py-0.5 text-micro font-semibold text-warning-strong">
               Not registered
             </span>
           ) : null}
@@ -1069,7 +1069,7 @@ function GstCard({ gst }: { gst: PulseAnalytics["gst"] }) {
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
               {tiles.map((x) => (
                 <div key={x.label} className="rounded-lg border bg-muted/20 p-3">
-                  <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                  <p className="text-micro font-semibold uppercase tracking-wider text-muted-foreground">
                     {x.label}
                   </p>
                   <p className="mt-0.5 text-sm font-bold tabular-nums">{formatINR(x.value)}</p>
@@ -1092,13 +1092,13 @@ function GstCard({ gst }: { gst: PulseAnalytics["gst"] }) {
 
             {/* By rate */}
             <div className="space-y-2">
-              <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+              <p className="text-micro font-semibold uppercase tracking-wider text-muted-foreground">
                 By rate
               </p>
               <div className="overflow-x-auto">
                 <table className="w-full min-w-[460px] text-sm">
                   <thead>
-                    <tr className="border-b text-[11px] uppercase tracking-wider text-muted-foreground">
+                    <tr className="border-b text-micro uppercase tracking-wider text-muted-foreground">
                       <th className="py-1.5 text-left font-semibold">Rate</th>
                       <th className="py-1.5 text-right font-semibold">Taxable</th>
                       <th className="py-1.5 text-right font-semibold">CGST</th>
@@ -1126,13 +1126,13 @@ function GstCard({ gst }: { gst: PulseAnalytics["gst"] }) {
             {/* By client / state */}
             {gst.byClient.length > 0 ? (
               <div className="space-y-2">
-                <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                <p className="text-micro font-semibold uppercase tracking-wider text-muted-foreground">
                   By client &amp; place of supply
                 </p>
                 <div className="overflow-x-auto">
                   <table className="w-full min-w-[460px] text-sm">
                     <thead>
-                      <tr className="border-b text-[11px] uppercase tracking-wider text-muted-foreground">
+                      <tr className="border-b text-micro uppercase tracking-wider text-muted-foreground">
                         <th className="py-1.5 text-left font-semibold">Client</th>
                         <th className="py-1.5 text-left font-semibold">State</th>
                         <th className="py-1.5 text-left font-semibold">Type</th>
@@ -1146,7 +1146,7 @@ function GstCard({ gst }: { gst: PulseAnalytics["gst"] }) {
                           <td className="max-w-[160px] truncate py-1.5 font-medium">{c.clientName}</td>
                           <td className="py-1.5 text-muted-foreground">{c.stateCode ?? "—"}</td>
                           <td className="py-1.5">
-                            <span className="rounded-full border px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground">
+                            <span className="rounded-full border px-1.5 py-0.5 text-micro font-semibold text-muted-foreground">
                               {c.b2b ? "B2B" : "B2C"}
                             </span>
                           </td>
@@ -1161,7 +1161,7 @@ function GstCard({ gst }: { gst: PulseAnalytics["gst"] }) {
             ) : null}
 
             {gst.exempt.count > 0 ? (
-              <p className="text-[11px] text-muted-foreground">
+              <p className="text-xs text-muted-foreground">
                 Plus {formatINR(gst.exempt.taxable)} in non-GST / exempt supplies across{" "}
                 {gst.exempt.count} invoice{gst.exempt.count === 1 ? "" : "s"} (excluded from tax totals).
               </p>
@@ -1185,7 +1185,7 @@ function ProjectRevenueCard({ byProject }: { byProject: PulseInsights["byProject
           <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-primary/10 to-indigo-500/10 text-primary ring-1 ring-primary/15">
             <FolderKanban className="h-4 w-4" />
           </span>
-          <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
+          <p className="text-micro font-bold uppercase tracking-widest text-muted-foreground">
             Revenue by project
           </p>
         </div>
@@ -1228,7 +1228,7 @@ function ProfitabilityCard({ p }: { p: PulseInsights["profitability"] }) {
           <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-primary/10 to-indigo-500/10 text-primary ring-1 ring-primary/15">
             <Timer className="h-4 w-4" />
           </span>
-          <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
+          <p className="text-micro font-bold uppercase tracking-widest text-muted-foreground">
             Time profitability
           </p>
         </div>
@@ -1249,13 +1249,13 @@ function ProfitabilityCard({ p }: { p: PulseInsights["profitability"] }) {
               <Mini label="Unbilled value" value={formatINR(p.unbilledAmount)} />
             </div>
             <div className="space-y-1.5">
-              <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+              <div className="flex items-center justify-between text-xs text-muted-foreground">
                 <span>Invoiced {formatINR(p.invoicedAmount)}</span>
                 <span>Unbilled {formatINR(p.unbilledAmount)}</span>
               </div>
               <div className="flex h-2 overflow-hidden rounded-full bg-muted">
                 <div
-                  className="h-full bg-emerald-500"
+                  className="h-full bg-success"
                   style={{
                     width: `${
                       p.billableAmount > 0
@@ -1265,7 +1265,7 @@ function ProfitabilityCard({ p }: { p: PulseInsights["profitability"] }) {
                   }}
                 />
                 <div
-                  className="h-full bg-amber-400"
+                  className="h-full bg-warning"
                   style={{
                     width: `${
                       p.billableAmount > 0
@@ -1286,11 +1286,11 @@ function ProfitabilityCard({ p }: { p: PulseInsights["profitability"] }) {
 function Mini({ label, value, sub }: { label: string; value: string; sub?: string }) {
   return (
     <div className="rounded-lg border bg-muted/20 p-3">
-      <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+      <p className="text-micro font-semibold uppercase tracking-wider text-muted-foreground">
         {label}
       </p>
       <p className="mt-0.5 text-sm font-bold tabular-nums">{value}</p>
-      {sub ? <p className="text-[10px] text-muted-foreground">{sub}</p> : null}
+      {sub ? <p className="text-micro text-muted-foreground">{sub}</p> : null}
     </div>
   );
 }
@@ -1308,10 +1308,10 @@ function ConcentrationStrip({
   const top1 = concentration.top1Pct;
   const riskTone =
     top1 != null && top1 >= 50
-      ? "text-amber-600 dark:text-amber-400"
+      ? "text-warning-strong"
       : "text-muted-foreground";
   return (
-    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 rounded-lg bg-muted/30 px-3 py-2 text-[11px] text-muted-foreground">
+    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 rounded-lg bg-muted/30 px-3 py-2 text-micro text-muted-foreground">
       {top1 != null ? (
         <span className={riskTone}>
           Top client = <span className="font-semibold">{Math.round(top1)}%</span> of revenue
@@ -1344,7 +1344,7 @@ function ClientCell({
   return (
     <>
       <Avatar className="h-9 w-9 ring-1 ring-border">
-        <AvatarFallback className="bg-gradient-to-br from-primary/10 to-indigo-500/10 text-[11px] font-bold text-primary">
+        <AvatarFallback className="bg-gradient-to-br from-primary/10 to-indigo-500/10 text-micro font-bold text-primary">
           {initials}
         </AvatarFallback>
       </Avatar>
@@ -1377,9 +1377,9 @@ function Kpi({
 }) {
   const iconTone =
     tone === "success"
-      ? "bg-gradient-to-br from-emerald-500/10 to-teal-500/10 text-emerald-600 ring-emerald-500/15 dark:text-emerald-400"
+      ? "bg-gradient-to-br from-emerald-500/10 to-teal-500/10 text-success-strong ring-success-subtle"
       : tone === "warning"
-        ? "bg-gradient-to-br from-amber-500/10 to-orange-500/10 text-amber-600 ring-amber-500/15 dark:text-amber-400"
+        ? "bg-gradient-to-br from-amber-500/10 to-orange-500/10 text-warning-strong ring-warning-subtle"
         : "bg-gradient-to-br from-primary/10 to-indigo-500/10 text-primary ring-primary/15";
 
   const TrendIcon =
@@ -1388,16 +1388,16 @@ function Kpi({
     delta == null
       ? "text-muted-foreground"
       : delta > 0.5
-        ? "text-emerald-600 dark:text-emerald-400"
+        ? "text-success-strong"
         : delta < -0.5
-          ? "text-red-600 dark:text-red-400"
+          ? "text-destructive-strong"
           : "text-muted-foreground";
 
   return (
     <Card className="group transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/20 hover:shadow-lg hover:shadow-primary/[0.05]">
       <CardContent className="space-y-2 p-5">
         <div className="flex items-center justify-between gap-2">
-          <p className="min-w-0 break-words text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
+          <p className="min-w-0 break-words text-micro font-semibold uppercase tracking-widest text-muted-foreground">
             {label}
           </p>
           <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ring-1 ${iconTone}`}>
@@ -1407,13 +1407,13 @@ function Kpi({
         <div className="flex items-baseline gap-2">
           <p className="text-2xl font-bold tabular-nums tracking-tight">{value}</p>
           {delta != null ? (
-            <span className={`inline-flex items-center gap-0.5 text-[12px] font-semibold ${trendClass}`}>
+            <span className={`inline-flex items-center gap-0.5 text-xs font-semibold ${trendClass}`}>
               <TrendIcon className="h-3.5 w-3.5" />
               {Math.abs(delta)}%
             </span>
           ) : null}
         </div>
-        {helper && <p className="text-[11px] text-muted-foreground">{helper}</p>}
+        {helper && <p className="text-xs text-muted-foreground">{helper}</p>}
       </CardContent>
     </Card>
   );

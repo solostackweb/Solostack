@@ -172,7 +172,7 @@ export default function InvoiceSettingsPage() {
             </Select>
           </SettingsField>
           ) : (
-            <div className="rounded-md border bg-muted/40 p-4 text-sm sm:col-span-2">
+            <div className="rounded-lg border bg-muted/40 p-4 text-sm sm:col-span-2">
               <p className="font-medium">Standard invoice defaults</p>
               <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
                 GST defaults are hidden because your company profile is not GST

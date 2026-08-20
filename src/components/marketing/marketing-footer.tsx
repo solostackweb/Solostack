@@ -68,7 +68,7 @@ export function MarketingFooter({
               workspace for freelancers and small studios.
             </p>
             <div className="space-y-2 pt-1">
-              <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
+              <p className="text-micro font-bold uppercase tracking-widest text-muted-foreground">
                 Newsletter
               </p>
               <p className="text-xs text-muted-foreground">
@@ -85,7 +85,7 @@ export function MarketingFooter({
 
           {columns.map((col) => (
             <div key={col.heading} className="space-y-4">
-              <h4 className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
+              <h4 className="text-micro font-bold uppercase tracking-widest text-muted-foreground">
                 {col.heading}
               </h4>
               <ul className="space-y-2.5">

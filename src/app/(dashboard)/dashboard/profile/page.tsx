@@ -77,7 +77,7 @@ export default async function ProfilePage() {
               <Detail label="Timezone" value={profile.timezone} />
             </div>
             {profile.bio && (
-              <div className="rounded-md border bg-muted/30 p-3 text-xs text-muted-foreground">
+              <div className="rounded-lg border bg-muted/30 p-3 text-xs text-muted-foreground">
                 {profile.bio}
               </div>
             )}

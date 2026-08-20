@@ -144,7 +144,7 @@ function FeatureTile({ feature }: { feature: Feature }) {
       ) : null}
       <span
         className={cn(
-          "inline-flex h-10 w-10 items-center justify-center rounded-xl ring-1 transition-all duration-250 group-hover:scale-105",
+          "inline-flex h-10 w-10 items-center justify-center rounded-lg ring-1 transition-all duration-250 group-hover:scale-105",
           accent
             ? "btn-gradient border-0 text-white shadow-lg shadow-primary/25 ring-0"
             : "border-0 bg-gradient-to-br from-primary/12 to-primary/8 text-primary ring-primary/15 group-hover:from-primary/18 group-hover:shadow-md group-hover:shadow-primary/10",
@@ -153,7 +153,7 @@ function FeatureTile({ feature }: { feature: Feature }) {
         <Icon className="h-[18px] w-[18px]" strokeWidth={2} />
       </span>
       <div className="space-y-1.5">
-        <h3 className="text-base font-semibold tracking-tight lg:text-[17px]">
+        <h3 className="text-base font-semibold tracking-tight lg:text-lg">
           {title}
         </h3>
         <p className="text-sm leading-relaxed text-muted-foreground lg:text-[14.5px]">

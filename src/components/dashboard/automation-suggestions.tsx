@@ -18,7 +18,7 @@ import type { AutomationSuggestionRecord } from "@/features/automation/server";
 
 const TONE_STYLES = {
   info: "border-primary/20 bg-primary/5",
-  warning: "border-amber-500/25 bg-amber-500/10",
+  warning: "border-warning-subtle bg-warning-subtle",
   danger: "border-destructive/25 bg-destructive/10",
 } as const;
 
@@ -39,7 +39,7 @@ export function AutomationSuggestions({
             Ivo spots repeatable admin, then waits for your approval.
           </CardDescription>
         </div>
-        <span className="inline-flex w-fit items-center gap-1.5 rounded-full border bg-background px-2.5 py-1 text-[11px] font-semibold text-muted-foreground">
+        <span className="inline-flex w-fit items-center gap-1.5 rounded-full border bg-background px-2.5 py-1 text-micro font-semibold text-muted-foreground">
           <Bot className="h-3.5 w-3.5" />
           Approval first
         </span>

@@ -35,7 +35,7 @@ export default function TalkPage() {
     >
       {calUrl ? (
         <div className="not-prose">
-          <div className="overflow-hidden rounded-xl border bg-card">
+          <div className="overflow-hidden rounded-lg border bg-card">
             <iframe
               src={calUrl}
               title="Book a 30-minute call with the Stackivo team"
@@ -48,7 +48,7 @@ export default function TalkPage() {
           </p>
         </div>
       ) : (
-        <div className="not-prose rounded-xl border border-dashed bg-muted/30 p-6 text-sm">
+        <div className="not-prose rounded-lg border border-dashed bg-muted/30 p-6 text-sm">
           <div className="flex items-center gap-2 font-medium">
             <Calendar className="h-4 w-4" />
             Booking calendar coming soon
@@ -59,7 +59,7 @@ export default function TalkPage() {
           </p>
           <ul className="mt-3 space-y-2 text-sm">
             <li className="flex items-start gap-2">
-              <MessageCircle className="mt-0.5 h-4 w-4 text-emerald-600" />
+              <MessageCircle className="mt-0.5 h-4 w-4 text-success-strong" />
               <span>
                 <strong>Live chat</strong> — open the chat icon at the
                 bottom-right.

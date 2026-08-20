@@ -15,7 +15,7 @@ function Skeleton({ className, ...props }: React.HTMLAttributes<HTMLDivElement>)
   return (
     <div
       className={cn(
-        "relative overflow-hidden rounded-md bg-muted/60",
+        "relative overflow-hidden rounded-lg bg-muted/60",
         // Shimmer wave — wider gradient for a smoother, more premium sweep
         "before:absolute before:inset-0 before:-translate-x-full",
         "before:animate-shimmer",

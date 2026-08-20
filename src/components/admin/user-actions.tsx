@@ -69,18 +69,18 @@ export function UserActions({ user }: UserActionsProps) {
 
   return (
     <section className="space-y-3">
-      <h2 className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+      <h2 className="flex items-center gap-2 text-micro font-semibold uppercase tracking-wider text-muted-foreground">
         Actions
       </h2>
 
-      <div className="space-y-2 rounded-xl border bg-card shadow-sm shadow-black/[0.03] p-3">
+      <div className="space-y-2 rounded-lg border bg-card shadow-sm shadow-black/[0.03] p-3">
         {/* View as - routine */}
         <form action="/api/admin/view-as/start" method="post">
           <input type="hidden" name="userId" value={user.id} />
           <ActionRow icon={Eye} title="Review mode" hint="Lock writes while reviewing">
             <button
               type="submit"
-              className="inline-flex h-7 items-center justify-center rounded-md border px-3 text-xs hover:bg-accent"
+              className="inline-flex h-7 items-center justify-center rounded-lg border px-3 text-xs hover:bg-accent"
             >
               Start
             </button>
@@ -208,7 +208,7 @@ function ActionRow({
         <div>
           <div className="font-medium text-foreground">{title}</div>
           {hint ? (
-            <div className="text-[11px] text-muted-foreground">{hint}</div>
+            <div className="text-micro text-muted-foreground">{hint}</div>
           ) : null}
         </div>
       </div>
@@ -312,7 +312,7 @@ function CompPlanForm({
               onChange={(e) => setDays(parseInt(e.target.value, 10) || 30)}
               className="h-7 w-16 rounded border bg-background px-1.5 text-xs tabular-nums"
             />
-            <span className="self-center text-[11px] text-muted-foreground">
+            <span className="self-center text-xs text-muted-foreground">
               days
             </span>
           </div>

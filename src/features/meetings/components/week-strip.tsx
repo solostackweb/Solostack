@@ -88,7 +88,7 @@ export function WeekStrip({
   );
 
   return (
-    <div className="flex flex-col gap-3 rounded-xl border bg-card p-3 sm:flex-row sm:items-center sm:gap-4">
+    <div className="flex flex-col gap-3 rounded-lg border bg-card p-3 sm:flex-row sm:items-center sm:gap-4">
       {/* Next call — the single most useful fact on this page. */}
       <div className="flex min-w-0 flex-1 items-center gap-3">
         <div
@@ -147,7 +147,7 @@ export function WeekStrip({
                 count === 1 ? "" : "s"
               }`}
             >
-              <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+              <span className="text-micro font-semibold uppercase tracking-wider text-muted-foreground">
                 {new Intl.DateTimeFormat(undefined, { weekday: "short" })
                   .format(day)
                   .slice(0, 2)}
@@ -163,7 +163,7 @@ export function WeekStrip({
               <span
                 className={cn(
                   "h-1 w-1 rounded-full",
-                  count > 0 ? "bg-emerald-500" : "bg-transparent",
+                  count > 0 ? "bg-success" : "bg-transparent",
                 )}
               />
             </div>

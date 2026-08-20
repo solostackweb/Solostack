@@ -20,7 +20,7 @@ export default async function AdminFlagsPage() {
       />
 
       {!trimmed ? (
-        <div className="rounded-md border border-dashed bg-muted/20 p-4 text-xs text-muted-foreground">
+        <div className="rounded-lg border border-dashed bg-muted/20 p-4 text-xs text-muted-foreground">
           <p className="mb-2">No PostHog feature-flags URL configured.</p>
           <p>
             Add <code>POSTHOG_FLAGS_URL=&lt;url&gt;</code> to your Vercel environment variables
@@ -32,7 +32,7 @@ export default async function AdminFlagsPage() {
       ) : (
         <iframe
           src={trimmed}
-          className="w-full flex-1 rounded-xl border bg-card shadow-sm shadow-black/[0.03]"
+          className="w-full flex-1 rounded-lg border bg-card shadow-sm shadow-black/[0.03]"
           loading="lazy"
           title="PostHog feature flags"
           referrerPolicy="strict-origin-when-cross-origin"

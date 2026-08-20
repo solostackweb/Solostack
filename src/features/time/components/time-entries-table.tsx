@@ -120,10 +120,10 @@ export function TimeEntriesTable({
             return (
               <li key={group.date}>
                 <div className="flex items-center justify-between border-b bg-muted/30 px-5 py-2">
-                  <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                  <span className="text-micro font-semibold uppercase tracking-wider text-muted-foreground">
                     {formatDateHeader(group.date)}
                   </span>
-                  <span className="text-[11px] font-medium tabular-nums text-muted-foreground">
+                  <span className="text-micro font-medium tabular-nums text-muted-foreground">
                     {formatDuration(dayTotal, { compact: true })}
                   </span>
                 </div>
@@ -220,7 +220,7 @@ function EntryRow({
           {entry.invoiceId && (
             <>
               <span>·</span>
-              <span className="inline-flex items-center rounded-full bg-success/10 px-1.5 py-0.5 text-[10px] font-semibold text-success">
+              <span className="inline-flex items-center rounded-full bg-success/10 px-1.5 py-0.5 text-micro font-semibold text-success">
                 Invoiced
               </span>
             </>

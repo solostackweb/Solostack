@@ -75,11 +75,11 @@ export default async function AdminEmailsPage({ searchParams }: Props) {
         subtitle={
           <span>
             Delivery log + suppressions - last-24h counts:{" "}
-            <span className="text-emerald-600 dark:text-emerald-400">
+            <span className="text-success-strong">
               OK {emails.counts.delivered}
             </span>{" "}
             -{" "}
-            <span className="text-red-600 dark:text-red-400">
+            <span className="text-destructive-strong">
               ERR {emails.counts.failed + emails.counts.bounced + emails.counts.blocked}
             </span>
           </span>
@@ -94,7 +94,7 @@ export default async function AdminEmailsPage({ searchParams }: Props) {
               Brevo - Last 30 Days
             </h2>
             {brevoAccount && (
-              <span className="text-[11px] text-muted-foreground">
+              <span className="text-micro text-muted-foreground">
                 {brevoAccount.email} - Plan: {brevoAccount.plan}
                 {brevoAccount.creditsLeft !== null
                   ? ` - ${brevoAccount.creditsLeft.toLocaleString()} sends left`
@@ -211,7 +211,7 @@ export default async function AdminEmailsPage({ searchParams }: Props) {
               {count !== null ? (
                 <span
                   className={cn(
-                    "rounded bg-muted px-1.5 text-[10px] tabular-nums",
+                    "rounded bg-muted px-1.5 text-xs tabular-nums",
                     active
                       ? "bg-foreground/10 text-foreground"
                       : "text-muted-foreground",
@@ -264,7 +264,7 @@ export default async function AdminEmailsPage({ searchParams }: Props) {
         {emails.rows.length === 0 ? (
           <Empty>No matching deliveries.</Empty>
         ) : (
-          <ul className="overflow-hidden rounded-xl border bg-card shadow-sm shadow-black/[0.03]">
+          <ul className="overflow-hidden rounded-lg border bg-card shadow-sm shadow-black/[0.03]">
             {emails.rows.map((row) => (
               <li
                 key={row.id}
@@ -294,7 +294,7 @@ export default async function AdminEmailsPage({ searchParams }: Props) {
                   </div>
                 ) : null}
                 {row.error ? (
-                  <div className="ml-4 mt-0.5 truncate text-red-600 dark:text-red-400">
+                  <div className="ml-4 mt-0.5 truncate text-destructive-strong">
                     {row.error}
                   </div>
                 ) : null}
@@ -357,7 +357,7 @@ export default async function AdminEmailsPage({ searchParams }: Props) {
         {suppressions.length === 0 ? (
           <Empty>No suppressions on file.</Empty>
         ) : (
-          <ul className="overflow-hidden rounded-xl border bg-card shadow-sm shadow-black/[0.03] text-xs">
+          <ul className="overflow-hidden rounded-lg border bg-card shadow-sm shadow-black/[0.03] text-xs">
             {suppressions.map((s) => (
               <li
                 key={s.email}
@@ -365,7 +365,7 @@ export default async function AdminEmailsPage({ searchParams }: Props) {
               >
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="font-mono">{s.email}</span>
-                  <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] uppercase tracking-wider text-muted-foreground">
+                  <span className="rounded bg-muted px-1.5 py-0.5 text-micro uppercase tracking-wider text-muted-foreground">
                     {s.reason}
                   </span>
                   <span className="text-muted-foreground">{s.provider}</span>
@@ -382,7 +382,7 @@ export default async function AdminEmailsPage({ searchParams }: Props) {
         )}
       </section>
 
-      <p className="text-[11px] text-muted-foreground">
+      <p className="text-xs text-muted-foreground">
         Brevo dashboard{" "}
         <a
           className="inline-flex items-center gap-0.5 hover:text-foreground"
@@ -403,11 +403,11 @@ export default async function AdminEmailsPage({ searchParams }: Props) {
 function StatusDot({ status }: { status: string }) {
   const tone =
     status === "delivered" || status === "opened" || status === "clicked"
-      ? "bg-emerald-500"
+      ? "bg-success"
       : status === "queued" || status === "sent"
-        ? "bg-sky-500"
+        ? "bg-info"
         : status === "bounced" || status === "blocked" || status === "failed"
-          ? "bg-red-500"
+          ? "bg-destructive"
           : "bg-muted-foreground/50";
   return (
     <span className="inline-flex items-center gap-1">
@@ -419,7 +419,7 @@ function StatusDot({ status }: { status: string }) {
 
 function SectionTitle({ children }: { children: React.ReactNode }) {
   return (
-    <h2 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+    <h2 className="text-micro font-semibold uppercase tracking-wider text-muted-foreground">
       {children}
     </h2>
   );

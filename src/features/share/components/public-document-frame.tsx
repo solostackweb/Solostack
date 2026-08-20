@@ -2,6 +2,7 @@ import * as React from "react";
 import Link from "next/link";
 import { Download, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { DEFAULT_DOCUMENT_BRAND } from "@/config/brand-colors";
 
 interface Props {
   /** Pre-formatted heading (e.g. "Invoice INV-0042"). */
@@ -43,7 +44,7 @@ export function PublicDocumentFrame({
   children,
   primaryAction,
 }: Props) {
-  const accentColor = accent ?? "#0F172A";
+  const accentColor = accent ?? DEFAULT_DOCUMENT_BRAND;
 
   return (
     <div className="relative min-h-svh bg-muted/40">
@@ -64,11 +65,11 @@ export function PublicDocumentFrame({
             <img
               src={logoUrl}
               alt={senderName}
-              className="h-11 w-11 shrink-0 rounded-xl border bg-background object-contain p-1 shadow-sm"
+              className="h-11 w-11 shrink-0 rounded-lg border bg-background object-contain p-1 shadow-sm"
             />
           ) : (
             <div
-              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-base font-bold text-white shadow-sm"
+              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-base font-bold text-white shadow-sm"
               style={{ backgroundColor: accentColor }}
             >
               {senderName.slice(0, 1).toUpperCase()}
@@ -85,10 +86,10 @@ export function PublicDocumentFrame({
           </div>
         </div>
 
-        <header className="sticky top-0 z-20 -mx-3 mb-5 border-b bg-background/95 px-3 py-3 backdrop-blur supports-[backdrop-filter]:bg-background/80 sm:static sm:mx-0 sm:mb-6 sm:rounded-xl sm:border sm:px-5 sm:py-4 sm:shadow-sm">
+        <header className="sticky top-0 z-20 -mx-3 mb-5 border-b bg-background/95 px-3 py-3 backdrop-blur supports-[backdrop-filter]:bg-background/80 sm:static sm:mx-0 sm:mb-6 sm:rounded-lg sm:border sm:px-5 sm:py-4 sm:shadow-sm">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="min-w-0">
-              <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+              <div className="flex items-center gap-2 text-micro font-semibold uppercase tracking-[0.14em] text-muted-foreground">
                 {eyebrow}
                 {statusBadge}
               </div>

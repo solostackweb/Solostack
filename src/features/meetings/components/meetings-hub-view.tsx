@@ -45,8 +45,8 @@ function formatSlot(iso: string): string {
 }
 
 const STATUS_STYLE: Record<MeetingStatus, string> = {
-  proposed: "bg-amber-500/10 text-amber-700 dark:text-amber-300",
-  confirmed: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
+  proposed: "bg-warning-subtle text-warning-strong",
+  confirmed: "bg-success-subtle text-success-strong",
   cancelled: "bg-muted text-muted-foreground",
   completed: "bg-primary/10 text-primary",
 };
@@ -63,21 +63,21 @@ const COLUMNS: Array<{
   {
     key: "waiting",
     label: "Waiting for client",
-    dot: "bg-amber-400",
-    count: "text-amber-600 dark:text-amber-400",
+    dot: "bg-warning",
+    count: "text-warning-strong",
     empty: "No calls waiting on a client.",
   },
   {
     key: "scheduled",
     label: "Scheduled",
-    dot: "bg-emerald-400",
-    count: "text-emerald-600 dark:text-emerald-400",
+    dot: "bg-success",
+    count: "text-success-strong",
     empty: "Nothing scheduled yet.",
   },
   {
     key: "wrapped",
     label: "Wrapped up",
-    dot: "bg-slate-400",
+    dot: "bg-foreground",
     count: "text-muted-foreground",
     empty: "Completed and cancelled calls land here.",
   },
@@ -241,8 +241,8 @@ export function MeetingsHubView({
                     handleDrop(col.key);
                   }}
                   className={cn(
-                    "flex flex-col gap-3 rounded-xl border bg-muted/30 p-3 transition-colors",
-                    isOver && "ring-2 ring-emerald-400/60",
+                    "flex flex-col gap-3 rounded-lg border bg-muted/30 p-3 transition-colors",
+                    isOver && "ring-2 ring-success-subtle",
                   )}
                 >
                   <div className="flex items-center gap-2 px-1">
@@ -325,7 +325,7 @@ function Header({
         <div className="flex flex-wrap items-center gap-2">
           {calendar.connected ? (
             <span
-              className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-2.5 py-1 text-[11px] font-semibold text-emerald-700 dark:text-emerald-300"
+              className="inline-flex items-center gap-1.5 rounded-full bg-success-subtle px-2.5 py-1 text-micro font-semibold text-success-strong"
               title={
                 calendar.email
                   ? `Google Calendar connected as ${calendar.email}`
@@ -439,7 +439,7 @@ function MeetingCard({
           </Link>
           <span
             className={cn(
-              "shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold",
+              "shrink-0 rounded-full px-2 py-0.5 text-micro font-semibold",
               STATUS_STYLE[status],
             )}
           >

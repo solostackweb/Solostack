@@ -44,7 +44,7 @@ export function UsersBulk({ children, suppressAction, exportUrl }: Props) {
 
   return (
     <form ref={formRef} action={exportUrl} method="post" onChange={recount}>
-      <div className="mb-2 flex flex-wrap items-center gap-2 rounded-md border bg-muted/30 px-3 py-2 text-xs">
+      <div className="mb-2 flex flex-wrap items-center gap-2 rounded-lg border bg-muted/30 px-3 py-2 text-xs">
         <label className="flex items-center gap-1.5">
           <input type="checkbox" onChange={(e) => toggleAll(e.target.checked)} />
           Select all on page
@@ -58,7 +58,7 @@ export function UsersBulk({ children, suppressAction, exportUrl }: Props) {
             formAction={exportUrl}
             formMethod="post"
             disabled={none}
-            className="inline-flex h-7 items-center gap-1.5 rounded-md border px-2.5 font-medium hover:bg-accent disabled:opacity-40"
+            className="inline-flex h-7 items-center gap-1.5 rounded-lg border px-2.5 font-medium hover:bg-accent disabled:opacity-40"
           >
             <Download className="h-3 w-3" /> Export selected
           </button>
@@ -71,7 +71,7 @@ export function UsersBulk({ children, suppressAction, exportUrl }: Props) {
                 e.preventDefault();
               }
             }}
-            className="inline-flex h-7 items-center gap-1.5 rounded-md border border-red-500/30 px-2.5 font-medium text-red-600 hover:bg-red-500/5 disabled:opacity-40"
+            className="inline-flex h-7 items-center gap-1.5 rounded-lg border border-destructive-subtle px-2.5 font-medium text-destructive-strong hover:bg-destructive-subtle disabled:opacity-40"
           >
             <MailX className="h-3 w-3" /> Suppress selected
           </button>

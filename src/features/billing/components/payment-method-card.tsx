@@ -17,7 +17,7 @@ export function PaymentMethodCard({ subscription, payments }: Props) {
     <Card>
       <CardContent className="space-y-5 p-6">
         <div className="flex items-start gap-4">
-          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md border bg-muted text-muted-foreground">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border bg-muted text-muted-foreground">
             <CreditCard className="h-5 w-5" />
           </span>
           <div className="min-w-0 flex-1">
@@ -25,7 +25,7 @@ export function PaymentMethodCard({ subscription, payments }: Props) {
               <h3 className="text-base font-semibold leading-none tracking-tight">
                 Payment method
               </h3>
-              <Badge variant="secondary" className="h-5 shrink-0 px-1.5 text-[10px]">
+              <Badge variant="secondary" className="h-5 shrink-0 px-1.5 text-micro">
                 Managed in Stackivo
               </Badge>
             </div>
@@ -49,7 +49,7 @@ export function PaymentMethodCard({ subscription, payments }: Props) {
           </div>
         </div>
 
-        <div className="rounded-md border bg-muted/30 px-4 py-3 text-sm leading-6 text-muted-foreground">
+        <div className="rounded-lg border bg-muted/30 px-4 py-3 text-sm leading-6 text-muted-foreground">
           Use the plan controls below to upgrade, renew, downgrade, or cancel.
           Payment updates happen through Stackivo checkout.
         </div>

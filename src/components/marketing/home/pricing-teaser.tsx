@@ -52,14 +52,14 @@ export function PricingTeaser() {
             <StaggerItem key={plan.id} className="h-full">
               <div
                 className={cn(
-                  "relative flex h-full flex-col rounded-3xl border bg-card p-7",
+                  "relative flex h-full flex-col rounded-2xl border bg-card p-7",
                   featured
                     ? "border-primary/30 shadow-xl shadow-primary/10 ring-1 ring-primary/20"
                     : "border-border/80",
                 )}
               >
                 {featured ? (
-                  <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-primary px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-primary-foreground">
+                  <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-primary px-3 py-1 text-micro font-bold uppercase tracking-wider text-primary-foreground">
                     Most popular
                   </span>
                 ) : null}
@@ -73,7 +73,7 @@ export function PricingTeaser() {
                     {plan.priceMonthlyPaise ? "/month" : "forever"}
                   </span>
                 </p>
-                <p className="mt-1.5 text-[13px] text-muted-foreground">{plan.description}</p>
+                <p className="mt-1.5 text-xs text-muted-foreground">{plan.description}</p>
 
                 <ul className="mt-6 flex-1 space-y-2.5">
                   {(HIGHLIGHTS[plan.id] ?? []).map((f) => (

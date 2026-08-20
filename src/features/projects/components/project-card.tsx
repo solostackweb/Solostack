@@ -79,7 +79,7 @@ export function ProjectCard({
                   size={variant === "kanban" ? "sm" : "md"}
                 />
               </div>
-              <h3 className="mt-2.5 truncate text-[15px] font-bold tracking-tight transition-colors group-hover:text-primary">
+              <h3 className="mt-2.5 truncate text-sm font-bold tracking-tight transition-colors group-hover:text-primary">
                 {project.name}
               </h3>
               {clientName ? (
@@ -118,7 +118,7 @@ export function ProjectCard({
             </p>
           )}
 
-          <div className="mt-auto flex items-center justify-between gap-3 border-t pt-3 text-[11px] text-muted-foreground">
+          <div className="mt-auto flex items-center justify-between gap-3 border-t pt-3 text-xs text-muted-foreground">
             <span className="tabular-nums">
               Created{" "}
               {new Date(project.createdAt).toLocaleDateString("en-IN", {

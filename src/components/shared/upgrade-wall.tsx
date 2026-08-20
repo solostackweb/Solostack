@@ -55,7 +55,7 @@ export function UpgradeWall({
       {preview && (
         <div
           aria-hidden
-          className="pointer-events-none absolute inset-0 select-none overflow-hidden rounded-xl opacity-40 blur-sm"
+          className="pointer-events-none absolute inset-0 select-none overflow-hidden rounded-lg opacity-40 blur-sm"
         >
           {preview}
         </div>
@@ -66,7 +66,7 @@ export function UpgradeWall({
         <div className="w-full max-w-md">
           {/* Plan badge */}
           <div className="mb-5 flex justify-center">
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/25 bg-gradient-to-r from-primary/10 to-violet-500/8 px-3.5 py-1 text-[11px] font-semibold uppercase tracking-widest text-primary">
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/25 bg-gradient-to-r from-primary/10 to-violet-500/8 px-3.5 py-1 text-micro font-semibold uppercase tracking-widest text-primary">
               <Sparkles className="h-3 w-3" />
               {requiredPlan} feature
             </span>
@@ -81,7 +81,7 @@ export function UpgradeWall({
 
           {/* Copy */}
           <div className="mb-6 text-center">
-            <h2 className="text-[22px] font-bold tracking-tight">{title}</h2>
+            <h2 className="text-xl font-bold tracking-tight">{title}</h2>
             <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
               {description}
             </p>
@@ -116,7 +116,7 @@ export function UpgradeWall({
           <div className="flex flex-col gap-3 sm:flex-row sm:justify-center">
             <Button
               asChild
-              className="btn-gradient h-11 min-w-[160px] rounded-xl border-0"
+              className="btn-gradient h-11 min-w-[160px] rounded-lg border-0"
             >
               <Link href="/dashboard/settings/billing">
                 Upgrade to {requiredPlan}
@@ -129,7 +129,7 @@ export function UpgradeWall({
           </div>
 
           {/* Social proof micro-copy */}
-          <p className="mt-5 text-center text-[11px] text-muted-foreground">
+          <p className="mt-5 text-center text-xs text-muted-foreground">
             No long-term commitment · Cancel anytime · Instant access
           </p>
         </div>

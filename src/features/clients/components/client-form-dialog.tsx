@@ -191,7 +191,7 @@ export function ClientFormDialog({
           className="space-y-5"
         >
           {state && !state.ok && (
-            <p className="rounded-md border border-destructive/40 bg-destructive/5 px-3 py-2 text-xs text-destructive">
+            <p className="rounded-lg border border-destructive/40 bg-destructive/5 px-3 py-2 text-xs text-destructive">
               {state.error}
             </p>
           )}
@@ -207,7 +207,7 @@ export function ClientFormDialog({
                   setCurrency(c === "IN" ? "INR" : currencyForCountry(c));
                   if (c !== "IN") setSelectedStateCode("");
                 }}
-                className="block h-9 w-full rounded-md border bg-background px-3 text-sm"
+                className="block h-9 w-full rounded-lg border bg-background px-3 text-sm"
               >
                 {COUNTRIES.map((c) => (
                   <option key={c.code} value={c.code}>
@@ -222,7 +222,7 @@ export function ClientFormDialog({
                   name="currency"
                   value={currency}
                   onChange={(e) => setCurrency(e.target.value)}
-                  className="block h-9 w-full rounded-md border bg-background px-3 text-sm"
+                  className="block h-9 w-full rounded-lg border bg-background px-3 text-sm"
                 >
                   {CURRENCIES.map((c) => (
                     <option key={c} value={c}>
@@ -259,7 +259,7 @@ export function ClientFormDialog({
               />
             </Field>
             <Field label="Phone" error={errs?.phone?.[0]}>
-              <div className="flex h-9 rounded-md border border-input bg-background shadow-sm transition-all focus-within:border-primary/40 focus-within:ring-4 focus-within:ring-primary/15">
+              <div className="flex h-9 rounded-lg border border-input bg-background shadow-sm transition-all focus-within:border-primary/40 focus-within:ring-4 focus-within:ring-primary/15">
                 {selectedPhoneCode ? (
                   <span className="inline-flex min-w-14 items-center justify-center border-r px-3 text-sm font-medium text-muted-foreground">
                     {selectedPhoneCode}
@@ -277,7 +277,7 @@ export function ClientFormDialog({
           </div>
 
           {isDomestic && (
-          <div className="flex items-start justify-between rounded-md border p-4">
+          <div className="flex items-start justify-between rounded-lg border p-4">
             <div className="space-y-1">
               <Label htmlFor="gstRegistered" className="text-sm font-medium">
                 GST registered?

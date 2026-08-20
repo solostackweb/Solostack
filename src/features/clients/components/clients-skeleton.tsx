@@ -32,19 +32,19 @@ export function ClientsListSkeleton() {
       {/* Mobile: card skeletons */}
       <div className="space-y-2 md:hidden">
         {Array.from({ length: 6 }).map((_, i) => (
-          <div key={i} className="flex items-center gap-3 rounded-xl border bg-card p-3">
+          <div key={i} className="flex items-center gap-3 rounded-lg border bg-card p-3">
             <Skeleton className="h-10 w-10 shrink-0 rounded-full" />
             <div className="min-w-0 flex-1 space-y-1.5">
               <Skeleton className="h-4 w-36" />
               <Skeleton className="h-3 w-48" />
             </div>
-            <Skeleton className="h-8 w-8 shrink-0 rounded-md" />
+            <Skeleton className="h-8 w-8 shrink-0 rounded-lg" />
           </div>
         ))}
       </div>
 
       {/* Desktop: table skeleton */}
-      <div className="hidden rounded-md border bg-card md:block">
+      <div className="hidden rounded-lg border bg-card md:block">
         <Skeleton className="h-10 w-full rounded-none" />
         {Array.from({ length: 8 }).map((_, i) => (
           <Skeleton key={i} className="h-14 w-full rounded-none border-t" />

@@ -16,6 +16,7 @@ import type {
 } from "../types";
 import { WelcomeEditor } from "./welcome-editor";
 import { WELCOME_DOCUMENT_NEW, WELCOME_DOCUMENTS_INDEX } from "../routes";
+import { BRAND_PRIMARY } from "@/config/brand-colors";
 
 interface ClientOption {
   id: string;
@@ -84,7 +85,7 @@ export function WelcomeNewView({
         })),
         clientId: draft.clientId || null,
         projectId: null,
-        brandColor: defaultBrandColor ?? "#2563EB",
+        brandColor: defaultBrandColor ?? BRAND_PRIMARY,
       });
       setShowBlankEditor(false);
     },
@@ -150,7 +151,7 @@ export function WelcomeNewView({
             sections: preset.sections,
             clientId: prefillClientId,
             projectId: prefillProjectId,
-            brandColor: defaultBrandColor ?? "#2563EB",
+            brandColor: defaultBrandColor ?? BRAND_PRIMARY,
           }}
         />
       </div>
@@ -183,7 +184,7 @@ export function WelcomeNewView({
             sections: BLANK_SECTIONS,
             clientId: prefillClientId,
             projectId: prefillProjectId,
-            brandColor: defaultBrandColor ?? "#2563EB",
+            brandColor: defaultBrandColor ?? BRAND_PRIMARY,
           }}
         />
       </div>
@@ -255,7 +256,7 @@ function BlankCard({ onSelect }: { onSelect: () => void }) {
       onClick={onSelect}
       className="group flex h-full flex-col rounded-lg border border-dashed bg-muted/20 p-4 text-left transition hover:border-primary hover:bg-muted/40"
     >
-      <div className="flex h-9 w-9 items-center justify-center rounded-md bg-background text-muted-foreground">
+      <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-background text-muted-foreground">
         <FileText className="h-4 w-4" />
       </div>
       <div className="mt-3 flex-1">
@@ -277,7 +278,7 @@ function TemplateCard({ tpl }: { tpl: WelcomeDocumentTemplate }) {
     >
       <Card className="h-full transition group-hover:border-primary group-hover:shadow-sm">
         <CardContent className="flex h-full flex-col p-4">
-          <div className="flex h-9 w-9 items-center justify-center rounded-md bg-primary/10 text-primary">
+          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
             <Icon className="h-4 w-4" />
           </div>
           <div className="mt-3 flex-1">
@@ -288,7 +289,7 @@ function TemplateCard({ tpl }: { tpl: WelcomeDocumentTemplate }) {
               </p>
             )}
           </div>
-          <p className="mt-3 text-[11px] text-muted-foreground">
+          <p className="mt-3 text-xs text-muted-foreground">
             {tpl.sections.length}{" "}
             {tpl.sections.length === 1 ? "section" : "sections"}
             {tpl.category ? ` · ${tpl.category}` : ""}

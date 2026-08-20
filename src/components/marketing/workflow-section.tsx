@@ -70,10 +70,10 @@ export function WorkflowSection() {
             <StaggerItem key={s.title}>
               <div className="group relative flex h-full flex-col gap-4 rounded-2xl border bg-card p-6 transition-all duration-300 ease-out hover:-translate-y-1.5 hover:border-primary/30 hover:shadow-xl hover:shadow-primary/[0.04] lg:p-7">
                 <div className="flex items-center justify-between">
-                  <span className="flex h-10 w-10 items-center justify-center rounded-xl border bg-background text-primary shadow-sm transition-all duration-300 group-hover:scale-110 group-hover:border-primary/40 group-hover:shadow-md">
+                  <span className="flex h-10 w-10 items-center justify-center rounded-lg border bg-background text-primary shadow-sm transition-all duration-300 group-hover:scale-110 group-hover:border-primary/40 group-hover:shadow-md">
                     <s.icon className="h-[18px] w-[18px]" />
                   </span>
-                  <span className="font-mono text-[11px] font-semibold tracking-wider text-muted-foreground">
+                  <span className="font-mono text-micro font-semibold tracking-wider text-muted-foreground">
                     {String(i + 1).padStart(2, "0")}
                   </span>
                 </div>

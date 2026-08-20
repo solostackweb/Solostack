@@ -516,7 +516,7 @@ export function ContractDetailView({
               <div className="space-y-5">
                 <div className="grid gap-3 sm:grid-cols-[1fr_180px]">
                   <div className="space-y-1.5">
-                    <label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                    <label className="text-micro font-semibold uppercase tracking-wider text-muted-foreground">
                       Title
                     </label>
                     <Input
@@ -526,7 +526,7 @@ export function ContractDetailView({
                     />
                   </div>
                   <div className="space-y-1.5">
-                    <label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                    <label className="text-micro font-semibold uppercase tracking-wider text-muted-foreground">
                       Value ({contract.currency || "INR"})
                     </label>
                     <Input
@@ -594,7 +594,7 @@ export function ContractDetailView({
             ) : (
               <>
             <header className="border-b pb-6">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+              <p className="text-micro font-semibold uppercase tracking-[0.18em] text-muted-foreground">
                 {CONTRACT_KIND_LABEL[contract.kind]}
               </p>
               <h1
@@ -648,7 +648,7 @@ export function ContractDetailView({
             {contract.kind === "contract" && (
               <section className="border-t pt-6">
                 <div className="mb-4 flex items-center justify-between gap-3">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                  <p className="text-micro font-semibold uppercase tracking-[0.18em] text-muted-foreground">
                     Signature record
                   </p>
                   {contract.status === "signed" && (
@@ -704,7 +704,7 @@ export function ContractDetailView({
             <CardContent className="space-y-4 p-5 text-sm">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                  <p className="text-micro font-semibold uppercase tracking-wider text-muted-foreground">
                     Status
                   </p>
                   <div className="mt-1">
@@ -713,7 +713,7 @@ export function ContractDetailView({
                 </div>
                 {contract.valueAmount != null && contract.valueAmount > 0 && (
                   <div className="text-right">
-                    <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                    <p className="text-micro font-semibold uppercase tracking-wider text-muted-foreground">
                       Value
                     </p>
                     <p className="mt-1 text-base font-semibold tabular-nums">
@@ -737,7 +737,7 @@ export function ContractDetailView({
                         className="inline-flex items-center gap-2 hover:underline"
                       >
                         <Avatar className="h-5 w-5">
-                          <AvatarFallback className="text-[9px]">
+                          <AvatarFallback className="text-xs">
                             {getClientInitials(clientName ?? "")}
                           </AvatarFallback>
                         </Avatar>
@@ -785,7 +785,7 @@ export function ContractDetailView({
                   <MetaRow
                     label="Sign URL"
                     value={
-                      <code className="truncate font-mono text-[11px] text-muted-foreground">
+                      <code className="truncate font-mono text-xs text-muted-foreground">
                         /c/{contract.publicToken}
                       </code>
                     }
@@ -827,7 +827,7 @@ function DashboardSignatureBlock({
 }) {
   return (
     <div className="rounded-lg border bg-muted/20 p-4">
-      <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+      <p className="text-micro font-semibold uppercase tracking-[0.16em] text-muted-foreground">
         {role}
       </p>
       <div className="mt-4 flex h-20 items-end border-b border-dashed pb-2">
@@ -872,7 +872,7 @@ function MetaRow({
 }) {
   return (
     <div className={cn("flex items-center justify-between gap-4 text-xs")}>
-      <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+      <span className="text-micro font-semibold uppercase tracking-wider text-muted-foreground">
         {label}
       </span>
       <span className="min-w-0 truncate text-right text-sm">{value}</span>

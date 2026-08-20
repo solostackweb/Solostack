@@ -66,7 +66,7 @@ export default async function PublicContractPage({ params }: Props) {
       statusBadge={
         <Badge
           variant="secondary"
-          className={`h-5 px-1.5 text-[10px] capitalize ${tone}`}
+          className={`h-5 px-1.5 text-xs capitalize ${tone}`}
         >
           {status}
         </Badge>

@@ -297,7 +297,7 @@ export function OnboardingTour({ done = false }: { done?: boolean }) {
     >
       {rect ? (
         <div
-          className="pointer-events-none absolute rounded-xl ring-2 ring-primary transition-all duration-300 ease-out"
+          className="pointer-events-none absolute rounded-lg ring-2 ring-primary transition-all duration-300 ease-out"
           style={{
             top: rect.top - pad,
             left: rect.left - pad,
@@ -317,23 +317,23 @@ export function OnboardingTour({ done = false }: { done?: boolean }) {
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-start justify-between gap-3">
-          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
             <Icon className="h-[18px] w-[18px]" />
           </span>
           <button
             type="button"
             onClick={finish}
-            className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            className="rounded-lg p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
             aria-label="Skip tour"
           >
             <X className="h-4 w-4" />
           </button>
         </div>
 
-        <h3 className="mt-3 font-display text-[16px] font-semibold tracking-tight text-foreground">
+        <h3 className="mt-3 font-display text-base font-semibold tracking-tight text-foreground">
           {current.title}
         </h3>
-        <p className="mt-1.5 text-[13px] leading-relaxed text-muted-foreground">
+        <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
           {current.body}
         </p>
 
@@ -351,7 +351,7 @@ export function OnboardingTour({ done = false }: { done?: boolean }) {
         </div>
 
         <div className="mt-4 flex items-center justify-between gap-2">
-          <span className="text-[11px] font-medium text-muted-foreground">
+          <span className="text-micro font-medium text-muted-foreground">
             {step + 1} of {STEPS.length}
           </span>
           <div className="flex items-center gap-2">
@@ -359,7 +359,7 @@ export function OnboardingTour({ done = false }: { done?: boolean }) {
               <button
                 type="button"
                 onClick={goBack}
-                className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-[13px] font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
               >
                 <ArrowLeft className="h-3.5 w-3.5" /> Back
               </button>
@@ -368,7 +368,7 @@ export function OnboardingTour({ done = false }: { done?: boolean }) {
               <button
                 type="button"
                 onClick={goNext}
-                className="inline-flex items-center gap-1 rounded-lg bg-primary px-3 py-1.5 text-[13px] font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
+                className="inline-flex items-center gap-1 rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
               >
                 Next <ArrowRight className="h-3.5 w-3.5" />
               </button>
@@ -379,7 +379,7 @@ export function OnboardingTour({ done = false }: { done?: boolean }) {
                   finish();
                   router.push("/dashboard/clients?create=1");
                 }}
-                className="inline-flex items-center gap-1 rounded-lg bg-primary px-3 py-1.5 text-[13px] font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
+                className="inline-flex items-center gap-1 rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
               >
                 <Check className="h-3.5 w-3.5" /> Add a client
               </button>
@@ -391,7 +391,7 @@ export function OnboardingTour({ done = false }: { done?: boolean }) {
           <button
             type="button"
             onClick={finish}
-            className="mt-2 w-full text-center text-[11px] text-muted-foreground/80 transition-colors hover:text-foreground"
+            className="mt-2 w-full text-center text-xs text-muted-foreground/80 transition-colors hover:text-foreground"
           >
             Skip tour
           </button>

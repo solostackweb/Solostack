@@ -35,7 +35,7 @@ function Cta({
   cta: string;
 }) {
   return (
-    <div className="not-prose my-8 rounded-xl border bg-card p-5">
+    <div className="not-prose my-8 rounded-lg border bg-card p-5">
       <p className="text-sm font-medium">
         {children}{" "}
         <Link
@@ -244,7 +244,7 @@ export const POSTS: readonly BlogPost[] = [
         </ul>
 
         <h2>The honest formula</h2>
-        <pre className="rounded-md border bg-muted/40 px-3 py-2 text-xs">{`hourly_rate = (target_income / (1 - tax_rate) + annual_expenses)
+        <pre className="rounded-lg border bg-muted/40 px-3 py-2 text-xs">{`hourly_rate = (target_income / (1 - tax_rate) + annual_expenses)
               / (working_weeks * hours_per_week * billable_pct)`}</pre>
         <p>
           Plug numbers in:

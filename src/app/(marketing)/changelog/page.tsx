@@ -76,12 +76,12 @@ const ENTRIES: Entry[] = [
 
 const TAG_STYLES: Record<Entry["items"][number]["tag"], string> = {
   shipped:
-    "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/30",
+    "bg-success-subtle text-success-strong border-success-subtle",
   added: "bg-blue-500/10 text-blue-700 dark:text-blue-300 border-blue-500/30",
   improved:
     "bg-violet-500/10 text-violet-700 dark:text-violet-300 border-violet-500/30",
   fixed:
-    "bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/30",
+    "bg-warning-subtle text-warning-strong border-warning-subtle",
 };
 
 export default function ChangelogPage() {
@@ -115,7 +115,7 @@ export default function ChangelogPage() {
                   className="flex items-start gap-3 text-sm leading-7"
                 >
                   <span
-                    className={`mt-1 inline-flex shrink-0 items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${TAG_STYLES[item.tag]}`}
+                    className={`mt-1 inline-flex shrink-0 items-center rounded-full border px-2 py-0.5 text-micro font-semibold uppercase tracking-wider ${TAG_STYLES[item.tag]}`}
                   >
                     {item.tag}
                   </span>

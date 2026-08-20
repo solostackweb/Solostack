@@ -43,7 +43,7 @@ export function PortalScheduledCalls({
     <section className="space-y-3">
       <h2 className="text-sm font-semibold">Scheduled calls</h2>
       {meetings.length === 0 ? (
-        <p className="rounded-xl border border-dashed bg-muted/20 p-6 text-center text-sm text-muted-foreground">
+        <p className="rounded-lg border border-dashed bg-muted/20 p-6 text-center text-sm text-muted-foreground">
           No calls scheduled yet. When your freelancer sets one up, you&apos;ll
           pick a time and join right here.
         </p>
@@ -80,7 +80,7 @@ function PortalCallCard({ meeting }: { meeting: PortalMeeting }) {
   };
 
   return (
-    <div className="rounded-xl border bg-card p-4">
+    <div className="rounded-lg border bg-card p-4">
       <p className="text-sm font-semibold">{meeting.topic}</p>
       <p className="text-xs text-muted-foreground">
         {meeting.durationMinutes} min
@@ -88,7 +88,7 @@ function PortalCallCard({ meeting }: { meeting: PortalMeeting }) {
 
       {confirmedAt ? (
         <div className="mt-3 space-y-2">
-          <div className="flex items-center gap-2 text-sm text-emerald-600">
+          <div className="flex items-center gap-2 text-sm text-success-strong">
             <CheckCircle2 className="h-4 w-4" />
             {formatSlot(confirmedAt)}
           </div>
@@ -97,7 +97,7 @@ function PortalCallCard({ meeting }: { meeting: PortalMeeting }) {
               href={meeting.meetLink}
               target="_blank"
               rel="noreferrer"
-              className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground"
+              className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-sm font-medium text-primary-foreground"
             >
               <Video className="h-4 w-4" /> Join Google Meet
             </a>

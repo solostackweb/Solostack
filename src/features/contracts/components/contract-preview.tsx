@@ -59,7 +59,7 @@ export function ContractPreview({
       {/* Masthead */}
       <header className="mb-8 flex items-start justify-between gap-4 border-b pb-6">
         <div>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+          <p className="text-micro font-semibold uppercase tracking-[0.18em] text-muted-foreground">
             {CONTRACT_KIND_LABEL[contract.kind]}
           </p>
           <h1
@@ -96,7 +96,7 @@ export function ContractPreview({
       <div
         className={cn(
           "space-y-6 leading-relaxed",
-          compact ? "text-[13px]" : "text-sm",
+          compact ? "text-xs" : "text-sm",
         )}
       >
         {contract.sections.map((s, i) => (
@@ -106,7 +106,7 @@ export function ContractPreview({
 
       {/* Signatures */}
       <footer className="mt-10 border-t pt-8">
-        <p className="mb-5 text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+        <p className="mb-5 text-micro font-semibold uppercase tracking-[0.18em] text-muted-foreground">
           Signatures
         </p>
         <div className="grid gap-6 sm:grid-cols-2">
@@ -152,7 +152,7 @@ function SignatureBlock({ signer }: { signer: ContractSigner }) {
     signer.role === "freelancer" && Boolean(profile?.signatureType);
   return (
     <div className="space-y-2">
-      <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+      <p className="text-micro font-medium uppercase tracking-wider text-muted-foreground">
         {signer.role === "client" ? "Client" : "Freelancer"}
       </p>
       <div className="relative flex h-16 items-end border-b">
@@ -191,7 +191,7 @@ function SignatureBlock({ signer }: { signer: ContractSigner }) {
             {signer.name}
           </span>
         ) : (
-          <span className="mb-1 text-[11px] text-muted-foreground/60">
+          <span className="mb-1 text-xs text-muted-foreground/60">
             Awaiting signature
           </span>
         )}
@@ -202,7 +202,7 @@ function SignatureBlock({ signer }: { signer: ContractSigner }) {
           <p className="text-muted-foreground">{signer.email}</p>
         </div>
         {signed && signer.signedAt && (
-          <p className="text-[10px] tabular-nums text-muted-foreground">
+          <p className="text-micro tabular-nums text-muted-foreground">
             Signed {new Date(signer.signedAt).toLocaleDateString("en-IN", {
               day: "2-digit",
               month: "short",

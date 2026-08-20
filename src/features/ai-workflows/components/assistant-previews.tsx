@@ -122,7 +122,7 @@ export function ConfirmBlock({
   return (
     <div className="space-y-3">
       <p className="font-semibold">{summary.title}</p>
-      <div className="rounded-xl border bg-muted/20 p-3 text-xs space-y-1.5">
+      <div className="rounded-lg border bg-muted/20 p-3 text-xs space-y-1.5">
         {summary.lines.map(([label, value]) => (
           <div key={label} className="flex justify-between gap-3">
             <span className="text-muted-foreground">{label}</span>
@@ -160,16 +160,16 @@ export function InvoiceDraftPreview({
           {preview.invoiceNumber} · {preview.clientName}
         </p>
         {preview.isExport ? (
-          <p className="mt-1.5 inline-flex items-center gap-1 rounded-md bg-sky-500/10 px-2 py-0.5 text-[11px] font-medium text-sky-700 dark:text-sky-400">
+          <p className="mt-1.5 inline-flex items-center gap-1 rounded-lg bg-info-subtle px-2 py-0.5 text-micro font-medium text-info-strong">
             Export invoice · {preview.currency} · zero-rated, no GST (supply under LUT)
           </p>
         ) : preview.taxTotal > 0 ? (
-          <p className="mt-1.5 inline-flex items-center gap-1 rounded-md bg-emerald-500/10 px-2 py-0.5 text-[11px] font-medium text-emerald-700 dark:text-emerald-400">
+          <p className="mt-1.5 inline-flex items-center gap-1 rounded-lg bg-success-subtle px-2 py-0.5 text-micro font-medium text-success-strong">
             Domestic invoice · GST applied
           </p>
         ) : null}
       </div>
-      <div className="rounded-xl border bg-muted/20 p-3 text-xs space-y-1.5">
+      <div className="rounded-lg border bg-muted/20 p-3 text-xs space-y-1.5">
         <div className="flex justify-between gap-3">
           <span className="text-muted-foreground">Work</span>
           <span className="text-right font-medium">{preview.description}</span>
@@ -183,7 +183,7 @@ export function InvoiceDraftPreview({
         {preview.discount > 0 && (
           <div className="flex justify-between gap-3">
             <span className="text-muted-foreground">Discount</span>
-            <span className="text-red-500">
+            <span className="text-destructive-strong">
               −{formatAiMoney(preview.discount, preview.currency)}
             </span>
           </div>
@@ -256,7 +256,7 @@ export function InvoiceDeliveryActions({
           {preview.invoiceNumber} is ready to send. How would you like to deliver it?
         </p>
       </div>
-      <div className="rounded-xl border bg-muted/20 p-3 text-xs space-y-1">
+      <div className="rounded-lg border bg-muted/20 p-3 text-xs space-y-1">
         <div className="flex justify-between gap-3">
           <span className="text-muted-foreground">{preview.clientName}</span>
           <span className="font-semibold">
@@ -318,7 +318,7 @@ export function ClientPicker({
     <div className="space-y-3">
       <p className="text-sm">{label}</p>
       <select
-        className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+        className="w-full rounded-lg border bg-background px-3 py-2 text-sm"
         value={selected}
         onChange={(e) => setSelected(e.target.value)}
       >
@@ -366,7 +366,7 @@ export function ProjectPicker({
     <div className="space-y-3">
       <p className="text-sm">{label}</p>
       <select
-        className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+        className="w-full rounded-lg border bg-background px-3 py-2 text-sm"
         value={selected}
         onChange={(e) => setSelected(e.target.value)}
       >
@@ -408,7 +408,7 @@ export function StatePicker({
     <div className="space-y-3">
       <p className="text-sm">{label}</p>
       <select
-        className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+        className="w-full rounded-lg border bg-background px-3 py-2 text-sm"
         value={selected}
         onChange={(e) => setSelected(e.target.value)}
       >
@@ -493,7 +493,7 @@ export function ContractDraftPreview({
           {preview.projectName ? ` · ${preview.projectName}` : ""}
         </p>
         {preview.isInternational ? (
-          <p className="mt-1.5 inline-flex items-center gap-1 rounded-md bg-sky-500/10 px-2 py-0.5 text-[11px] font-medium text-sky-700 dark:text-sky-400">
+          <p className="mt-1.5 inline-flex items-center gap-1 rounded-lg bg-info-subtle px-2 py-0.5 text-micro font-medium text-info-strong">
             Cross-border · {preview.currency} · governing law + electronic-signature clauses added
           </p>
         ) : null}
@@ -641,7 +641,7 @@ export function WelcomeDocDeliveryActions({
 
 
 const ROW_CHIP =
-  "inline-flex items-center gap-1 rounded-md border px-2 py-1 text-[11px] font-medium transition-colors hover:bg-muted disabled:opacity-50";
+  "inline-flex items-center gap-1 rounded-lg border px-2 py-1 text-micro font-medium transition-colors hover:bg-muted disabled:opacity-50";
 
 function documentStatus(status: string): {
   label: string;
@@ -660,8 +660,8 @@ function documentStatus(status: string): {
     return {
       label: normalized.replace(/_/g, " "),
       badgeClass:
-        "bg-emerald-500/10 text-emerald-700 ring-emerald-500/20 dark:text-emerald-400",
-      cardClass: "border-l-emerald-500 bg-emerald-500/[0.03]",
+        "bg-success-subtle text-success-strong ring-success-subtle",
+      cardClass: "border-l-emerald-500 bg-success/[0.03]",
     };
   }
   if (["overdue", "declined", "rejected", "expired"].includes(normalized)) {
@@ -675,8 +675,8 @@ function documentStatus(status: string): {
     return {
       label: "Partially paid",
       badgeClass:
-        "bg-amber-500/10 text-amber-700 ring-amber-500/20 dark:text-amber-400",
-      cardClass: "border-l-amber-500 bg-amber-500/[0.03]",
+        "bg-warning-subtle text-warning-strong ring-warning-subtle",
+      cardClass: "border-l-amber-500 bg-warning/[0.03]",
     };
   }
   if (normalized === "cancelled") {
@@ -697,7 +697,7 @@ function DocumentStatusBadge({ status }: { status: string }) {
   const presentation = documentStatus(status);
   return (
     <span
-      className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold capitalize ring-1 ring-inset ${presentation.badgeClass}`}
+      className={`shrink-0 rounded-full px-2 py-0.5 text-micro font-semibold capitalize ring-1 ring-inset ${presentation.badgeClass}`}
     >
       {presentation.label}
     </span>
@@ -718,27 +718,27 @@ export function PreparedEmailBlock({
   onCopy: () => void;
 }) {
   return (
-    <div className="overflow-hidden rounded-xl border border-primary/20 bg-background">
+    <div className="overflow-hidden rounded-lg border border-primary/20 bg-background">
       <div className="border-b bg-primary/[0.04] px-3 py-2.5">
         <div className="flex items-center justify-between gap-2">
           <p className="text-xs font-semibold text-foreground">Email ready for review</p>
-          <span className="rounded-full border bg-background px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
+          <span className="rounded-full border bg-background px-2 py-0.5 text-micro font-medium text-muted-foreground">
             {handled ? "Sent" : "Not sent"}
           </span>
         </div>
-        <p className="mt-1 text-[11px] text-muted-foreground">
+        <p className="mt-1 text-micro text-muted-foreground">
           To {action.recipientName || "recipient"}
           {action.recipientEmail ? ` · ${action.recipientEmail}` : " · no email on file"}
         </p>
       </div>
       <div className="p-3">
-        <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Subject</p>
+        <p className="text-micro font-semibold uppercase tracking-wide text-muted-foreground">Subject</p>
         <p className="mt-1 text-sm font-semibold text-foreground">{action.subject}</p>
         <div className="mt-3 whitespace-pre-wrap rounded-lg border bg-muted/20 p-3 text-xs leading-relaxed text-foreground/85">
           {action.body}
         </div>
         {!action.recipientEmail ? (
-          <p className="mt-2 text-[11px] text-amber-700 dark:text-amber-400">
+          <p className="mt-2 text-xs text-warning-strong">
             Add an email address to this client before sending, or copy the draft.
           </p>
         ) : null}
@@ -792,7 +792,7 @@ export function InvoiceListBlock({
         const busy = busyId === r.id;
         const presentation = documentStatus(r.status);
         return (
-          <div key={r.id} className={`rounded-xl border border-l-[3px] p-2.5 ${presentation.cardClass}`}>
+          <div key={r.id} className={`rounded-lg border border-l-[3px] p-2.5 ${presentation.cardClass}`}>
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0">
                 <p className="truncate text-xs font-semibold">
@@ -801,7 +801,7 @@ export function InvoiceListBlock({
               </div>
               <DocumentStatusBadge status={r.status} />
             </div>
-              <p className="text-[11px] text-muted-foreground">
+              <p className="text-xs text-muted-foreground">
                 {formatAiMoney(r.totalAmount, r.currency)}
                 {r.dueDate ? ` · due ${r.dueDate}` : ""}
               </p>
@@ -866,12 +866,12 @@ export function ContractListBlock({
         const sendable = r.status === "draft" || r.status === "sent" || r.status === "viewed";
         const presentation = documentStatus(r.status);
         return (
-          <div key={r.id} className={`rounded-xl border border-l-[3px] p-2.5 ${presentation.cardClass}`}>
+          <div key={r.id} className={`rounded-lg border border-l-[3px] p-2.5 ${presentation.cardClass}`}>
             <div className="flex items-start justify-between gap-2">
               <p className="min-w-0 truncate text-xs font-semibold">{r.title}</p>
               <DocumentStatusBadge status={r.status} />
             </div>
-            <p className="text-[11px] text-muted-foreground">
+            <p className="text-micro text-muted-foreground">
               {r.kind} · {r.clientName}
             </p>
             <div className="mt-2 flex flex-wrap gap-1.5">
@@ -918,12 +918,12 @@ export function ProposalListBlock({
         const sendable = ["draft", "sent", "viewed"].includes(row.status);
         const presentation = documentStatus(row.status);
         return (
-          <div key={row.id} className={`rounded-xl border border-l-[3px] p-2.5 ${presentation.cardClass}`}>
+          <div key={row.id} className={`rounded-lg border border-l-[3px] p-2.5 ${presentation.cardClass}`}>
             <div className="flex items-start justify-between gap-2">
               <p className="min-w-0 truncate text-xs font-semibold">{row.title}</p>
               <DocumentStatusBadge status={row.status} />
             </div>
-            <p className="text-[11px] text-muted-foreground">
+            <p className="text-micro text-muted-foreground">
               {row.clientName} · {formatAiMoney(row.totalAmount, row.currency)}
               {row.validUntil ? ` · valid until ${row.validUntil}` : ""}
             </p>
@@ -986,7 +986,7 @@ export function ClientListBlock({
   return (
     <div className="space-y-2">
       {rows.map((r) => (
-        <div key={r.id} className="rounded-xl border bg-muted/20 p-2.5">
+        <div key={r.id} className="rounded-lg border bg-muted/20 p-2.5">
           <p className="truncate text-xs font-semibold">{r.name}</p>
           <div className="mt-2 flex flex-wrap gap-1.5">
             <a href={`/dashboard/clients/${r.id}`} className={ROW_CHIP}>
@@ -1025,9 +1025,9 @@ export function ProjectListBlock({
   return (
     <div className="space-y-2">
       {rows.map((r) => (
-        <div key={r.id} className="rounded-xl border bg-muted/20 p-2.5">
+        <div key={r.id} className="rounded-lg border bg-muted/20 p-2.5">
           <p className="truncate text-xs font-semibold">{r.name}</p>
-          <p className="text-[11px] text-muted-foreground">
+          <p className="text-micro text-muted-foreground">
             {r.clientName} · {r.status.replace(/_/g, " ")}
             {r.dueDate ? ` · due ${r.dueDate}` : ""}
           </p>
@@ -1090,7 +1090,7 @@ export function MeetingListBlock({
   return (
     <div className="space-y-2">
       {rows.map((row) => (
-        <div key={row.id} className="rounded-xl border bg-muted/20 p-3">
+        <div key={row.id} className="rounded-lg border bg-muted/20 p-3">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
               <p className="truncate text-sm font-semibold">{row.topic}</p>
@@ -1098,7 +1098,7 @@ export function MeetingListBlock({
                 {row.clientName} · {row.durationMinutes} min
               </p>
             </div>
-            <span className="shrink-0 rounded-full border bg-background px-2 py-0.5 text-[10px] font-medium capitalize text-muted-foreground">
+            <span className="shrink-0 rounded-full border bg-background px-2 py-0.5 text-micro font-medium capitalize text-muted-foreground">
               {row.status === "proposed" ? "Awaiting time" : row.status}
             </span>
           </div>
@@ -1144,7 +1144,7 @@ export function QuestionnaireSendPickerBlock({
 }) {
   if (rows.length === 0) {
     return (
-      <div className="rounded-xl border bg-muted/20 p-3 text-sm">
+      <div className="rounded-lg border bg-muted/20 p-3 text-sm">
         <p>No active questionnaires are available.</p>
         <button type="button" onClick={onDraft} className={`${ROW_CHIP} mt-2`}>
           <Sparkles className="h-3 w-3" /> Draft with IVo
@@ -1165,9 +1165,9 @@ export function QuestionnaireSendPickerBlock({
         <Sparkles className="h-3 w-3" /> Draft a project-specific questionnaire
       </button>
       {rows.map((row) => (
-        <div key={row.id} className="rounded-xl border bg-muted/20 p-2.5">
+        <div key={row.id} className="rounded-lg border bg-muted/20 p-2.5">
           <p className="text-xs font-semibold">{row.title}</p>
-          <p className="mt-0.5 text-[11px] text-muted-foreground">
+          <p className="mt-0.5 text-micro text-muted-foreground">
             {row.questionCount} question{row.questionCount === 1 ? "" : "s"}
             {row.description ? ` · ${row.description}` : ""}
           </p>
@@ -1190,7 +1190,7 @@ export function QuestionnaireDraftResultBlock({
   onSend: () => void;
 }) {
   return (
-    <div className="space-y-3 rounded-xl border bg-muted/20 p-3">
+    <div className="space-y-3 rounded-lg border bg-muted/20 p-3">
       <div>
         <p className="text-sm font-semibold">{draft.title}</p>
         <p className="text-xs text-muted-foreground">
@@ -1222,7 +1222,7 @@ export function QuestionnaireDraftResultBlock({
           <Send className="h-3 w-3" /> Send to {draft.clientName}
         </button>
       </div>
-      <p className="text-[11px] text-muted-foreground">Nothing has been sent yet. Sending remains a separate audited action.</p>
+      <p className="text-xs text-muted-foreground">Nothing has been sent yet. Sending remains a separate audited action.</p>
     </div>
   );
 }
@@ -1237,9 +1237,9 @@ export function QuestionnaireRefinementPreviewBlock({
   onCancel: () => void;
 }) {
   const questionList = (questions: AiQuestionnaireDraftPreview["questions"]) => (
-    <ol className="space-y-1 text-[11px]">
+    <ol className="space-y-1 text-xs">
       {questions.map((question, index) => (
-        <li key={question.id} className="rounded-md border bg-background/70 px-2 py-1.5">
+        <li key={question.id} className="rounded-lg border bg-background/70 px-2 py-1.5">
           {index + 1}. {question.label}
           <span className="text-muted-foreground"> · {question.required ? "required" : "optional"}</span>
         </li>
@@ -1247,7 +1247,7 @@ export function QuestionnaireRefinementPreviewBlock({
     </ol>
   );
   return (
-    <div className="space-y-3 rounded-xl border bg-muted/20 p-3">
+    <div className="space-y-3 rounded-lg border bg-muted/20 p-3">
       <div>
         <p className="text-sm font-semibold">Review questionnaire changes</p>
         <p className="text-xs text-muted-foreground">{proposal.instruction}</p>
@@ -1266,7 +1266,7 @@ export function QuestionnaireRefinementPreviewBlock({
         <Button type="button" size="sm" onClick={onApply}>Apply changes</Button>
         <Button type="button" size="sm" variant="outline" onClick={onCancel}>Keep current draft</Button>
       </div>
-      <p className="text-[11px] text-muted-foreground">Applying updates the internal draft only. It does not send anything.</p>
+      <p className="text-xs text-muted-foreground">Applying updates the internal draft only. It does not send anything.</p>
     </div>
   );
 }
@@ -1291,13 +1291,13 @@ export function WelcomeDocListBlock({
   return (
     <div className="space-y-2">
       {rows.map((r) => (
-        <div key={r.id} className="rounded-xl border bg-muted/20 p-2.5">
+        <div key={r.id} className="rounded-lg border bg-muted/20 p-2.5">
           <p className="truncate text-xs font-semibold">{r.title}</p>
-          <p className="text-[11px] text-muted-foreground">
+          <p className="text-micro text-muted-foreground">
             {r.clientName} · {r.status}
             {r.sentAt ? ` · sent ${r.sentAt.slice(0, 10)}` : ""}
           </p>
-          <p className="mt-0.5 text-[11px] text-muted-foreground">
+          <p className="mt-0.5 text-xs text-muted-foreground">
             {r.views} view{r.views === 1 ? "" : "s"}
           </p>
           <div className="mt-2 flex flex-wrap gap-1.5">

@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Workflow, ArrowRight, MailQuestion } from "lucide-react";
 import { listPortalsForCurrentUser } from "@/features/portals/server";
 import { portalClientHome } from "@/features/portals/routes";
+import { BRAND_PRIMARY } from "@/config/brand-colors";
 
 export const metadata = { title: "Your portals" };
 export const dynamic = "force-dynamic";
@@ -43,7 +44,7 @@ export default async function ClientPortalIndexPage() {
           When a freelancer or agency invites you to their workspace,
           you&apos;ll find it here. Invitations are sent by email.
         </p>
-        <div className="mt-5 flex items-start gap-2.5 rounded-md bg-muted/40 p-3 text-left">
+        <div className="mt-5 flex items-start gap-2.5 rounded-lg bg-muted/40 p-3 text-left">
           <MailQuestion className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
           <p className="text-xs leading-relaxed text-muted-foreground">
             Looking for an invite? Check your inbox (and spam folder) for an
@@ -73,18 +74,18 @@ export default async function ClientPortalIndexPage() {
               <CardContent className="space-y-3 p-4 sm:p-5">
                 <div className="flex items-start justify-between gap-3">
                   <div
-                    className="h-9 w-9 shrink-0 rounded-md"
-                    style={{ background: p.brand_color ?? "#2563EB" }}
+                    className="h-9 w-9 shrink-0 rounded-lg"
+                    style={{ background: p.brand_color ?? BRAND_PRIMARY }}
                     aria-hidden
                   />
-                  <Badge variant="outline" className="capitalize text-[10px]">
+                  <Badge variant="outline" className="capitalize text-micro">
                     {p.status}
                   </Badge>
                 </div>
                 <p className="line-clamp-2 text-sm font-semibold leading-snug">
                   {p.name}
                 </p>
-                <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground transition group-hover:text-foreground">
+                <span className="inline-flex items-center gap-1 text-micro text-muted-foreground transition group-hover:text-foreground">
                   Open workspace <ArrowRight className="h-3 w-3" />
                 </span>
               </CardContent>

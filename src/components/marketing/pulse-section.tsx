@@ -83,7 +83,7 @@ function PulseMockup() {
         />
       </svg>
 
-      <div className="mt-2 flex justify-between text-[10px] text-muted-foreground">
+      <div className="mt-2 flex justify-between text-xs text-muted-foreground">
         {months.map((m) => (
           <span key={m}>{m}</span>
         ))}
@@ -109,7 +109,7 @@ function Mini({
 }) {
   return (
     <div className="rounded-lg border p-3">
-      <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
+      <p className="text-micro uppercase tracking-wider text-muted-foreground">
         {label}
       </p>
       <p

@@ -15,11 +15,11 @@ export default function Loading() {
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div className="space-y-1.5">
             <Skeleton className="h-3.5 w-14" />
-            <Skeleton className="h-9 w-full rounded-md" />
+            <Skeleton className="h-9 w-full rounded-lg" />
           </div>
           <div className="space-y-1.5">
             <Skeleton className="h-3.5 w-16" />
-            <Skeleton className="h-9 w-full rounded-md" />
+            <Skeleton className="h-9 w-full rounded-lg" />
           </div>
         </div>
 
@@ -27,27 +27,27 @@ export default function Loading() {
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div className="space-y-1.5">
             <Skeleton className="h-3.5 w-20" />
-            <Skeleton className="h-9 w-full rounded-md" />
+            <Skeleton className="h-9 w-full rounded-lg" />
           </div>
           <div className="space-y-1.5">
             <Skeleton className="h-3.5 w-24" />
-            <Skeleton className="h-9 w-full rounded-md" />
+            <Skeleton className="h-9 w-full rounded-lg" />
           </div>
         </div>
 
         {/* Rich text editor area */}
         <div className="space-y-1.5">
           <Skeleton className="h-3.5 w-16" />
-          <Skeleton className="h-10 w-full rounded-t-md" />
-          <Skeleton className="h-48 w-full rounded-b-md" />
+          <Skeleton className="h-10 w-full rounded-t-lg" />
+          <Skeleton className="h-48 w-full rounded-b-lg" />
         </div>
 
         {/* Signature section */}
-        <div className="rounded-md border p-4 space-y-3">
+        <div className="rounded-lg border p-4 space-y-3">
           <Skeleton className="h-4 w-32" />
           <div className="grid grid-cols-2 gap-4">
-            <Skeleton className="h-16 rounded-md" />
-            <Skeleton className="h-16 rounded-md" />
+            <Skeleton className="h-16 rounded-lg" />
+            <Skeleton className="h-16 rounded-lg" />
           </div>
         </div>
 

@@ -38,6 +38,7 @@ import { deleteObject } from "@/lib/r2/client";
 import { renderPortalInviteEmail } from "@/features/email/templates";
 import type { ActionResult } from "@/features/invoices/delivery";
 import { acceptPortalInvitation } from "./invitations";
+import { BRAND_PRIMARY } from "@/config/brand-colors";
 
 // =============================================================================
 // PORTAL CRUD
@@ -111,7 +112,7 @@ export async function createPortalAction(
       owner_user_id: user.id,
       name: parsed.data.name,
       client_id: parsed.data.clientId,
-      brand_color: parsed.data.brandColor ?? "#2563EB",
+      brand_color: parsed.data.brandColor ?? BRAND_PRIMARY,
     } as never)
     .select("id")
     .single();

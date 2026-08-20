@@ -18,8 +18,8 @@ import type { Meeting, MeetingStatus } from "../types";
 const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
 const DOT: Record<MeetingStatus, string> = {
-  proposed: "bg-amber-400",
-  confirmed: "bg-emerald-500",
+  proposed: "bg-warning",
+  confirmed: "bg-success",
   cancelled: "bg-muted-foreground/40",
   completed: "bg-primary/60",
 };
@@ -117,7 +117,7 @@ export function MeetingCalendar({
             type="button"
             onClick={() => shiftMonth(-1)}
             aria-label="Previous month"
-            className="rounded-md border p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            className="rounded-lg border p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
           >
             <ChevronLeft className="h-3.5 w-3.5" />
           </button>
@@ -127,7 +127,7 @@ export function MeetingCalendar({
               setView(new Date(today.getFullYear(), today.getMonth(), 1));
               onSelectDate(null);
             }}
-            className="rounded-md border px-2 py-1 text-[11px] font-semibold text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            className="rounded-lg border px-2 py-1 text-micro font-semibold text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
           >
             Today
           </button>
@@ -135,7 +135,7 @@ export function MeetingCalendar({
             type="button"
             onClick={() => shiftMonth(1)}
             aria-label="Next month"
-            className="rounded-md border p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            className="rounded-lg border p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
           >
             <ChevronRight className="h-3.5 w-3.5" />
           </button>
@@ -146,7 +146,7 @@ export function MeetingCalendar({
         {WEEKDAYS.map((day) => (
           <div
             key={day}
-            className="pb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground"
+            className="pb-1 text-micro font-semibold uppercase tracking-wider text-muted-foreground"
           >
             {day.slice(0, 1)}
           </div>
@@ -218,7 +218,7 @@ export function MeetingCalendar({
                   <button
                     type="button"
                     onClick={() => onOpenMeeting(meeting.id)}
-                    className="flex w-full items-center gap-2 rounded-md bg-background p-2 text-left text-xs transition-colors hover:bg-background/60"
+                    className="flex w-full items-center gap-2 rounded-lg bg-background p-2 text-left text-xs transition-colors hover:bg-background/60"
                   >
                     <span
                       className={cn(

@@ -46,10 +46,10 @@ export function AccountingOverview({
   return (
     <Card className="border-border/60 shadow-sm shadow-primary/[0.03]">
       <CardHeader className="pb-3">
-        <CardTitle className="text-[15px] font-semibold tracking-tight">
+        <CardTitle className="text-sm font-semibold tracking-tight">
           Business overview
         </CardTitle>
-        <CardDescription className="text-[13px]">
+        <CardDescription className="text-xs">
           Issued invoices are{" "}
           <span className="font-medium text-foreground/70">receivables</span>,
           not revenue — cash collected is what actually moved into your bank.
@@ -120,30 +120,30 @@ function Tile({ icon: Icon, label, value, sub, tone, featured }: TileProps) {
   return (
     <div
       className={cn(
-        "card-lift flex items-start justify-between gap-3 rounded-xl border p-4 transition-all",
+        "card-lift flex items-start justify-between gap-3 rounded-lg border p-4 transition-all",
         featured && "col-span-2 lg:col-span-1",
         tone === "default" && "border-border/60 bg-card",
-        tone === "success" && "border-emerald-500/15 bg-emerald-500/[0.03]",
-        tone === "warning" && "border-amber-500/15 bg-amber-500/[0.03]",
+        tone === "success" && "border-success-subtle bg-success/[0.03]",
+        tone === "warning" && "border-warning-subtle bg-warning/[0.03]",
         tone === "danger"  && "border-destructive/15 bg-destructive/[0.03]",
         tone === "time"    && "border-blue-500/15 bg-blue-500/[0.03]",
       )}
     >
       <div className="min-w-0 space-y-1">
-        <p className="break-words text-[11px] font-semibold uppercase tracking-widest text-muted-foreground/70">
+        <p className="break-words text-micro font-semibold uppercase tracking-widest text-muted-foreground/70">
           {label}
         </p>
         <p className="text-xl font-semibold tabular-nums tracking-tight sm:text-2xl">
           {value}
         </p>
-        <p className="text-[11px] text-muted-foreground/70">{sub}</p>
+        <p className="text-micro text-muted-foreground/70">{sub}</p>
       </div>
       <div
         className={cn(
-          "flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ring-1",
+          "flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ring-1",
           tone === "default" && "bg-gradient-to-br from-primary/12 to-blue-500/8 text-primary ring-primary/15",
-          tone === "success" && "bg-emerald-500/12 text-emerald-600 ring-emerald-500/18 dark:text-emerald-400",
-          tone === "warning" && "bg-amber-500/12 text-amber-600 ring-amber-500/18 dark:text-amber-400",
+          tone === "success" && "bg-success-subtle text-success-strong ring-success-subtle",
+          tone === "warning" && "bg-warning-subtle text-warning-strong ring-warning-subtle",
           tone === "danger"  && "bg-destructive/12 text-destructive ring-destructive/18",
           tone === "time"    && "bg-blue-500/12 text-blue-600 ring-blue-500/18 dark:text-blue-400",
         )}

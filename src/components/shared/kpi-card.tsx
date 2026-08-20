@@ -26,7 +26,7 @@ export function KpiCard({ label, value, delta, icon: Icon, className }: KpiCardP
       />
       <CardContent className="p-5">
         <div className="flex items-center justify-between">
-          <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
+          <p className="text-micro font-semibold uppercase tracking-widest text-muted-foreground">
             {label}
           </p>
           {Icon ? (
@@ -40,7 +40,7 @@ export function KpiCard({ label, value, delta, icon: Icon, className }: KpiCardP
           <div
             className={cn(
               "mt-2 flex items-center gap-1 text-xs font-medium",
-              delta.trend === "up" && "text-emerald-600 dark:text-emerald-500",
+              delta.trend === "up" && "text-success-strong",
               delta.trend === "down" && "text-destructive",
               delta.trend === "neutral" && "text-muted-foreground",
             )}

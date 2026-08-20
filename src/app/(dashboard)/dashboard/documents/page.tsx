@@ -71,7 +71,7 @@ function Card({ card }: { card: DocCard }) {
       className="group flex flex-col rounded-2xl border bg-card p-6 transition hover:border-primary/40 hover:shadow-sm"
     >
       <div className="flex items-center justify-between">
-        <div className="flex h-12 w-12 items-center justify-center rounded-xl border bg-background text-primary">
+        <div className="flex h-12 w-12 items-center justify-center rounded-lg border bg-background text-primary">
           <Icon className="h-6 w-6" />
         </div>
         <ArrowRight className="h-5 w-5 text-muted-foreground transition group-hover:translate-x-0.5 group-hover:text-primary" />

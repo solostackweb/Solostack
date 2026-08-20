@@ -66,11 +66,11 @@ export function ProposalPublicView({
         <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_340px] lg:items-stretch">
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="inline-flex items-center gap-1.5 rounded-full border bg-card px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground shadow-sm">
+              <span className="inline-flex items-center gap-1.5 rounded-full border bg-card px-3 py-1 text-micro font-semibold uppercase tracking-[0.16em] text-muted-foreground shadow-sm">
                 <FileText className="h-3.5 w-3.5 text-primary" />
                 Proposal
               </span>
-              <span className="inline-flex rounded-full border border-primary/25 bg-primary/10 px-3 py-1 text-[11px] font-semibold capitalize text-primary">
+              <span className="inline-flex rounded-full border border-primary/25 bg-primary/10 px-3 py-1 text-micro font-semibold capitalize text-primary">
                 {statusLabel}
               </span>
             </div>
@@ -103,28 +103,28 @@ export function ProposalPublicView({
             </div>
           </div>
 
-          <aside className="flex flex-col justify-between rounded-2xl bg-slate-900 p-6 text-slate-50 shadow-lg shadow-slate-900/10">
+          <aside className="flex flex-col justify-between rounded-2xl bg-foreground p-6 text-background shadow-lg shadow-slate-900/10">
             <div>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">
+              <p className="text-micro font-semibold uppercase tracking-[0.16em] text-muted-foreground">
                 Total proposal value
               </p>
               <p className="mt-3 text-4xl font-bold tracking-tight tabular-nums">
                 {formatMoney(total, proposal.currency)}
               </p>
-              <p className="mt-3 text-sm leading-6 text-slate-400">
+              <p className="mt-3 text-sm leading-6 text-muted-foreground">
                 {guidance.publicNote}
               </p>
             </div>
             <div className="mt-6 grid gap-2 border-t border-white/10 pt-4 text-sm">
-              <div className="flex justify-between text-slate-400">
+              <div className="flex justify-between text-muted-foreground">
                 <span>Subtotal</span>
-                <span className="tabular-nums text-slate-200">
+                <span className="tabular-nums text-background">
                   {formatMoney(subtotal, proposal.currency)}
                 </span>
               </div>
-              <div className="flex justify-between text-slate-400">
+              <div className="flex justify-between text-muted-foreground">
                 <span>Tax / charges</span>
-                <span className="tabular-nums text-slate-200">
+                <span className="tabular-nums text-background">
                   {formatMoney(taxAmount, proposal.currency)}
                 </span>
               </div>
@@ -139,7 +139,7 @@ export function ProposalPublicView({
               <Button
                 asChild
                 variant="outline"
-                className="mt-5 w-full border-white/15 bg-white/5 text-slate-100 hover:bg-white/10 hover:text-white"
+                className="mt-5 w-full border-white/15 bg-white/5 text-background hover:bg-white/10 hover:text-white"
               >
                 <a href={pdfUrl} target="_blank" rel="noreferrer">
                   <Download className="h-4 w-4" /> Download PDF
@@ -223,8 +223,8 @@ function GlanceItem({
   value: string;
 }) {
   return (
-    <div className="rounded-xl border bg-card p-4 shadow-sm">
-      <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+    <div className="rounded-lg border bg-card p-4 shadow-sm">
+      <div className="flex items-center gap-2 text-micro font-semibold uppercase tracking-[0.14em] text-muted-foreground">
         <Icon className="h-3.5 w-3.5 text-primary" />
         {label}
       </div>
@@ -247,12 +247,12 @@ function PartyBlock({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex gap-3 rounded-xl border bg-card p-4 shadow-sm">
+    <div className="flex gap-3 rounded-lg border bg-card p-4 shadow-sm">
       <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
         <Icon className="h-4 w-4" />
       </div>
       <div className="min-w-0">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+        <p className="text-micro font-semibold uppercase tracking-[0.16em] text-muted-foreground">
           {heading}
         </p>
         <p className="mt-1 truncate text-sm font-semibold">{name}</p>
@@ -284,11 +284,11 @@ function SectionPanel({
   return (
     <section className="rounded-2xl border bg-background p-5 shadow-sm">
       <div className="mb-4 flex items-start gap-3">
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
           <Icon className="h-4 w-4" />
         </div>
         <div>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-primary">
+          <p className="text-micro font-semibold uppercase tracking-[0.16em] text-primary">
             {eyebrow}
           </p>
           <h3 className="mt-1 text-lg font-semibold tracking-tight">{title}</h3>
@@ -327,7 +327,7 @@ function PricingTable({
   proposal: PublicProposalData["proposal"];
 }) {
   return (
-    <div className="overflow-hidden rounded-xl border">
+    <div className="overflow-hidden rounded-lg border">
       <div className="hidden grid-cols-[minmax(0,1fr)_80px_120px_130px] gap-3 border-b bg-muted/50 px-5 py-3 text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground md:grid">
         <span>Description</span>
         <span className="text-right">Qty</span>
@@ -444,7 +444,7 @@ function NextSteps() {
       </div>
       <div className="grid gap-3 md:grid-cols-3">
         {steps.map((step, index) => (
-          <div key={step.title} className="rounded-xl border bg-background p-4">
+          <div key={step.title} className="rounded-lg border bg-background p-4">
             <div className="flex items-center justify-between gap-3">
               <span className="flex h-7 w-7 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
                 {index + 1}
@@ -465,9 +465,9 @@ function NextSteps() {
 function AcceptancePanel({ proposal }: { proposal: PublicProposalData["proposal"] }) {
   if (proposal.status === "accepted") {
     return (
-      <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-6 text-sm text-muted-foreground">
+      <div className="rounded-2xl border border-success-subtle bg-success-subtle p-6 text-sm text-muted-foreground">
         <div className="flex gap-3">
-          <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-emerald-500" />
+          <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-success-strong" />
           <div>
             <p className="font-semibold text-foreground">Proposal accepted</p>
             <p className="mt-1 leading-6">
@@ -481,13 +481,13 @@ function AcceptancePanel({ proposal }: { proposal: PublicProposalData["proposal"
   }
 
   return (
-    <div className="rounded-2xl bg-slate-900 p-6 text-slate-50 shadow-lg shadow-slate-900/10 sm:p-8">
+    <div className="rounded-2xl bg-foreground p-6 text-background shadow-lg shadow-slate-900/10 sm:p-8">
       <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
         <div className="min-w-0">
           <p className="text-xl font-semibold tracking-tight sm:text-2xl">
             Ready to move ahead?
           </p>
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-400">
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
             Accepting lets the freelancer prepare the next step — contract, project, or
             invoice. It takes one click and is not an e-signature contract.
           </p>
@@ -497,7 +497,7 @@ function AcceptancePanel({ proposal }: { proposal: PublicProposalData["proposal"
           <Button
             type="submit"
             size="lg"
-            className="w-full bg-white text-slate-900 shadow-sm hover:bg-slate-100 sm:w-auto sm:px-8"
+            className="w-full bg-white text-foreground shadow-sm hover:bg-muted sm:w-auto sm:px-8"
           >
             <CheckCircle2 className="h-4 w-4" /> Accept proposal
           </Button>

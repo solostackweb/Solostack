@@ -31,7 +31,7 @@ export function SuppressionRemoveButton({ email }: { email: string }) {
         announce(res, router);
         setPending(false);
       }}
-      className="inline-flex h-6 items-center gap-1 rounded border border-red-500/30 px-2 text-[11px] text-red-700 hover:bg-red-500/10 disabled:opacity-50 dark:text-red-300"
+      className="inline-flex h-6 items-center gap-1 rounded border border-destructive-subtle px-2 text-xs text-destructive-strong hover:bg-destructive-subtle disabled:opacity-50"
     >
       <Trash2 className="h-3 w-3" />
       Remove

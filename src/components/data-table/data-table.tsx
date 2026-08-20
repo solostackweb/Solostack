@@ -136,7 +136,7 @@ export function DataTable<TData, TValue>({
 
       <div
         className={cn(
-          "overflow-hidden rounded-md border bg-card",
+          "overflow-hidden rounded-lg border bg-card",
           mobileCard && "hidden md:block",
         )}
       >

@@ -279,7 +279,7 @@ export function SignatureCaptureModal({
                 <p className="text-sm text-muted-foreground">
                   Sign using your mouse, touchscreen, or trackpad.
                 </p>
-                <div className="rounded-lg border-2 border-dashed bg-slate-50 p-2 sm:p-4">
+                <div className="rounded-lg border-2 border-dashed bg-muted p-2 sm:p-4">
                   <SignatureCanvas
                     ref={signatureCanvasRef}
                     onEnd={() => {
@@ -292,7 +292,7 @@ export function SignatureCaptureModal({
                     }}
                     canvasProps={{
                       style: { width: "100%", height: "200px", display: "block", touchAction: "none" },
-                      className: "border border-slate-200 rounded w-full cursor-crosshair",
+                      className: "border border-border rounded w-full cursor-crosshair",
                     }}
                     backgroundColor="white"
                     penColor="#000000"
@@ -341,7 +341,7 @@ export function SignatureCaptureModal({
                   id="font-select"
                   value={selectedFont}
                   onChange={(e) => setSelectedFont(e.target.value)}
-                  className="w-full px-3 py-2 border border-input rounded-md bg-background text-sm"
+                  className="w-full px-3 py-2 border border-input rounded-lg bg-background text-sm"
                 >
                   <option value="dancing-script">Dancing Script</option>
                   <option value="great-vibes">Great Vibes</option>
@@ -351,9 +351,9 @@ export function SignatureCaptureModal({
               </div>
 
               {typedName && (
-                <div className="p-4 border-2 border-dashed rounded-lg bg-slate-50">
+                <div className="p-4 border-2 border-dashed rounded-lg bg-muted">
                   <p
-                    className="text-4xl text-center text-slate-600"
+                    className="text-4xl text-center text-muted-foreground"
                     style={{
                       fontFamily:
                         selectedFont === "dancing-script"
@@ -378,7 +378,7 @@ export function SignatureCaptureModal({
                   Upload PNG, JPG, or WEBP image (max 5MB)
                 </p>
                 <div
-                  className="border-2 border-dashed rounded-lg p-8 text-center cursor-pointer hover:bg-slate-50 transition"
+                  className="border-2 border-dashed rounded-lg p-8 text-center cursor-pointer hover:bg-muted transition"
                   onClick={() => fileInputRef.current?.click()}
                 >
                   {uploadedImage ? (
@@ -429,9 +429,9 @@ export function SignatureCaptureModal({
 
             {showConsent ? (
               <>
-                <div className="flex gap-2 rounded-md border border-amber-200 bg-amber-50 p-3">
-                  <AlertCircle className="mt-0.5 h-5 w-5 flex-shrink-0 text-amber-600" />
-                  <p className="text-sm text-amber-900">
+                <div className="flex gap-2 rounded-lg border border-warning-subtle bg-warning-subtle p-3">
+                  <AlertCircle className="mt-0.5 h-5 w-5 flex-shrink-0 text-warning-strong" />
+                  <p className="text-sm text-warning-strong">
                     Before signing, you must accept the following:
                   </p>
                 </div>

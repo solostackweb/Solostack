@@ -152,7 +152,7 @@ const SelectTrigger = React.forwardRef<
       aria-expanded={ctx.open}
       disabled={disabled ?? ctx.disabled}
       className={cn(
-        "flex h-9 w-full items-center justify-between whitespace-nowrap rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm ring-offset-background transition-all placeholder:text-muted-foreground/70 hover:border-input/80 focus:border-primary/40 focus:outline-none focus:ring-4 focus:ring-primary/15 disabled:cursor-not-allowed disabled:opacity-50 [&>span]:line-clamp-1",
+        "flex h-10 w-full items-center justify-between whitespace-nowrap rounded-lg border border-input bg-background px-3 py-1 text-base md:text-sm shadow-sm ring-offset-background transition-all placeholder:text-muted-foreground/70 hover:border-input/80 focus:border-primary/40 focus:outline-none focus:ring-4 focus:ring-primary/15 disabled:cursor-not-allowed disabled:opacity-50 [&>span]:line-clamp-1",
         className,
       )}
       onClick={(event) => {
@@ -267,7 +267,7 @@ const SelectContent = React.forwardRef<HTMLDivElement, SelectContentProps>(
         data-state={ctx.open ? "open" : "closed"}
         className={cn(
           portalTarget ? "absolute" : "fixed",
-          "z-[70] min-w-[8rem] overflow-y-auto overflow-x-hidden overscroll-contain rounded-md border bg-popover p-1 text-popover-foreground shadow-md outline-none",
+          "z-[70] min-w-[8rem] overflow-y-auto overflow-x-hidden overscroll-contain rounded-lg border bg-popover p-1 text-popover-foreground shadow-md outline-none",
           ctx.open
             ? "animate-in fade-in-0 zoom-in-95"
             : "pointer-events-none hidden",

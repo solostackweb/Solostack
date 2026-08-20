@@ -79,10 +79,10 @@ export function TimeAnalyticsView({
       <Card>
         <CardContent className="space-y-3 p-5">
           <div className="flex items-center justify-between">
-            <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+            <p className="text-micro font-semibold uppercase tracking-wider text-muted-foreground">
               Daily hours
             </p>
-            <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
+            <div className="flex items-center gap-3 text-micro text-muted-foreground">
               <span className="flex items-center gap-1">
                 <span className="h-2 w-2 rounded-full bg-primary" /> Billable
               </span>
@@ -172,11 +172,11 @@ function Stat({ label, value, sub }: { label: string; value: string; sub?: strin
   return (
     <Card>
       <CardContent className="p-4">
-        <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+        <p className="text-micro font-semibold uppercase tracking-wider text-muted-foreground">
           {label}
         </p>
         <p className="mt-1 text-xl font-semibold tabular-nums">{value}</p>
-        {sub ? <p className="text-[11px] text-muted-foreground">{sub}</p> : null}
+        {sub ? <p className="text-micro text-muted-foreground">{sub}</p> : null}
       </CardContent>
     </Card>
   );
@@ -192,7 +192,7 @@ function BreakdownCard({
   return (
     <Card>
       <CardContent className="space-y-4 p-5">
-        <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+        <p className="text-micro font-semibold uppercase tracking-wider text-muted-foreground">
           {title}
         </p>
         {rows.length === 0 ? (
@@ -211,7 +211,7 @@ function BreakdownCard({
                   <div className="h-full bg-primary" style={{ width: `${row.pct}%` }} />
                 </div>
                 {row.amount > 0 ? (
-                  <div className="flex justify-end text-[11px] text-muted-foreground">
+                  <div className="flex justify-end text-xs text-muted-foreground">
                     <span className="tabular-nums">{formatINR(row.amount)}</span>
                   </div>
                 ) : null}

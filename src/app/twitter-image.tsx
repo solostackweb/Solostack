@@ -1,5 +1,6 @@
 import { ImageResponse } from "next/og";
 import { siteConfig } from "@/config/site";
+import { BRAND_PRIMARY, BRAND_PRIMARY_DEEP, BRAND_ON_DARK } from "@/config/brand-colors";
 
 /**
  * Site-wide Open Graph image, generated at build time via next/og.
@@ -40,7 +41,7 @@ export default function OpengraphImage() {
               width: "84px",
               height: "84px",
               borderRadius: "20px",
-              background: "linear-gradient(135deg, #2563EB, #1D4ED8)",
+              background: `linear-gradient(135deg, ${BRAND_PRIMARY}, ${BRAND_PRIMARY_DEEP})`,
             }}
           >
             <div
@@ -100,7 +101,7 @@ export default function OpengraphImage() {
             display: "flex",
             marginTop: "56px",
             fontSize: "24px",
-            color: "#60A5FA",
+            color: BRAND_ON_DARK,
             fontWeight: 600,
           }}
         >

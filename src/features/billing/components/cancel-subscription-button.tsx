@@ -81,8 +81,8 @@ export function CancelSubscriptionButton({ cancelsOn, className }: Props) {
           </AlertDialogDescription>
         </AlertDialogHeader>
 
-        <div className="rounded-md border border-emerald-500/30 bg-emerald-500/5 p-3 text-xs">
-          <div className="font-medium text-emerald-700 dark:text-emerald-300">
+        <div className="rounded-lg border border-success-subtle bg-success-subtle p-3 text-xs">
+          <div className="font-medium text-success-strong">
             Before you go — got 60 seconds?
           </div>
           <p className="mt-1 text-muted-foreground">
@@ -93,7 +93,7 @@ export function CancelSubscriptionButton({ cancelsOn, className }: Props) {
           <Link
             href="/help"
             onClick={() => setOpen(false)}
-            className="mt-2 inline-flex h-7 items-center rounded-md bg-emerald-600 px-3 text-[11px] font-medium text-white hover:bg-emerald-700"
+            className="mt-2 inline-flex h-7 items-center rounded-lg bg-success px-3 text-micro font-medium text-white hover:bg-success"
           >
             Chat with the founder
           </Link>

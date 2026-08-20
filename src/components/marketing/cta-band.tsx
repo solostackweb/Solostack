@@ -24,12 +24,12 @@ export function CtaBand({
       />
       <div className="relative mx-auto w-full max-w-[1280px] px-5 py-20 sm:px-8 sm:py-24 lg:px-10 lg:py-28 xl:px-14 2xl:px-20">
         <div className="mx-auto flex max-w-3xl flex-col items-center text-center">
-          <h2 className="text-balance text-3xl font-bold tracking-tight sm:text-[42px] lg:text-[54px] lg:leading-[1.04] lg:tracking-[-0.025em]">
+          <h2 className="text-balance text-3xl font-bold tracking-tight sm:text-4xl lg:text-5xl lg:leading-[1.04] lg:tracking-[-0.025em]">
             {authed
               ? <>Your workspace is <span className="text-gradient">ready when you are.</span></>
               : <>Run your freelance business <span className="text-gradient">like a real one.</span></>}
           </h2>
-          <p className="mt-5 text-pretty text-base leading-[1.8] text-muted-foreground sm:text-[17px]">
+          <p className="mt-5 text-pretty text-base leading-[1.8] text-muted-foreground sm:text-lg">
             {authed
               ? authState.showUpgradeNudge
                 ? "Need more clients? Upgrade inside Stackivo and keep your billing, usage, receipts, and plan controls in one place."

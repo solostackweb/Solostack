@@ -55,7 +55,7 @@ export default function ContactPage() {
           }
         />
         <ContactTile
-          icon={<Twitter className="h-4 w-4 text-sky-500" />}
+          icon={<Twitter className="h-4 w-4 text-info-strong" />}
           title="Twitter / X"
           description="Public DMs are open. Quickest for short questions."
           cta={

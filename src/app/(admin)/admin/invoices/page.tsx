@@ -56,7 +56,7 @@ export default async function AdminInvoicesPage({ searchParams }: Props) {
       <form
         method="get"
         action="/admin/invoices"
-        className="flex flex-wrap items-center gap-2 rounded-xl border bg-card/95 p-2 shadow-sm shadow-black/[0.025] dark:bg-card"
+        className="flex flex-wrap items-center gap-2 rounded-lg border bg-card/95 p-2 shadow-sm shadow-black/[0.025] dark:bg-card"
       >
         <input
           type="text"
@@ -126,7 +126,7 @@ export default async function AdminInvoicesPage({ searchParams }: Props) {
                   <AdminTd>
                     <div className="leading-tight">
                       <div className="font-medium">{r.full_name}</div>
-                      <div className="truncate text-[11px] text-muted-foreground">
+                      <div className="truncate text-micro text-muted-foreground">
                         {r.email}
                       </div>
                     </div>
@@ -137,10 +137,10 @@ export default async function AdminInvoicesPage({ searchParams }: Props) {
                   <AdminTd className="tabular-nums">
                     {formatCurrencyAmount(r.total_amount, r.currency)}
                   </AdminTd>
-                  <AdminTd className="hidden font-mono text-[11px] tabular-nums text-muted-foreground sm:table-cell">
+                  <AdminTd className="hidden font-mono text-xs tabular-nums text-muted-foreground sm:table-cell">
                     {formatIstStamp(r.issue_date)}
                   </AdminTd>
-                  <AdminTd className="hidden font-mono text-[11px] tabular-nums text-muted-foreground md:table-cell">
+                  <AdminTd className="hidden font-mono text-xs tabular-nums text-muted-foreground md:table-cell">
                     {formatIstStamp(r.due_date)}
                   </AdminTd>
                 </AdminTr>
@@ -160,16 +160,16 @@ export default async function AdminInvoicesPage({ searchParams }: Props) {
 function StatusBadge({ status }: { status: string }) {
   const tone =
     status === "paid"
-      ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
+      ? "bg-success-subtle text-success-strong"
       : status === "overdue"
-        ? "bg-red-500/10 text-red-700 dark:text-red-400"
+        ? "bg-destructive-subtle text-destructive-strong"
         : status === "draft"
           ? "bg-muted text-muted-foreground"
-          : "bg-sky-500/10 text-sky-700 dark:text-sky-400";
+          : "bg-info-subtle text-info-strong";
   return (
     <span
       className={cn(
-        "inline-block rounded px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wider",
+        "inline-block rounded px-1.5 py-0.5 text-micro font-medium uppercase tracking-wider",
         tone,
       )}
     >

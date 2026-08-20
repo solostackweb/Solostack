@@ -406,7 +406,7 @@ export function ProposalBuilderView({
         void handleIvoDraft(field);
       }}
       disabled={ivoDrafting !== null}
-      className="inline-flex items-center gap-1 rounded-md border border-primary/20 bg-primary/5 px-2 py-0.5 text-[11px] font-semibold text-primary transition-colors hover:bg-primary/10 disabled:opacity-50"
+      className="inline-flex items-center gap-1 rounded-lg border border-primary/20 bg-primary/5 px-2 py-0.5 text-micro font-semibold text-primary transition-colors hover:bg-primary/10 disabled:opacity-50"
     >
       <Sparkles className="h-3 w-3" />
       {ivoDrafting === field ? "Drafting…" : "Draft with Ivo"}
@@ -515,7 +515,7 @@ export function ProposalBuilderView({
           <Card
             className={cn(
               proposal.status === "accepted" &&
-                "border-emerald-500/30 bg-emerald-500/[0.04]",
+                "border-success-subtle bg-success/[0.04]",
             )}
           >
             <CardContent className="p-5">
@@ -524,7 +524,7 @@ export function ProposalBuilderView({
                   className={cn(
                     "flex h-9 w-9 shrink-0 items-center justify-center rounded-lg",
                     proposal.status === "accepted"
-                      ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                      ? "bg-success-subtle text-success-strong"
                       : "bg-primary/10 text-primary",
                   )}
                 >
@@ -760,7 +760,7 @@ export function ProposalBuilderView({
               <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(280px,380px)] lg:items-stretch">
                 <div className="rounded-lg border bg-primary/5 p-4 text-sm">
                   <div className="mb-1 flex flex-wrap items-center gap-2">
-                    <span className="rounded-full border bg-background px-2 py-0.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                    <span className="rounded-full border bg-background px-2 py-0.5 text-micro font-semibold uppercase tracking-[0.12em] text-muted-foreground">
                       {guidance.badge}
                     </span>
                     <span className="font-semibold">{guidance.modeLabel}</span>
@@ -826,7 +826,7 @@ export function ProposalBuilderView({
         </div>
 
         <aside className="min-w-0 xl:sticky xl:top-24 xl:self-start">
-          <div className="overflow-hidden rounded-xl border bg-card shadow-sm">
+          <div className="overflow-hidden rounded-lg border bg-card shadow-sm">
             <div className="border-b bg-muted/30 p-4">
               <div className="flex items-center justify-between gap-3">
                 <div>

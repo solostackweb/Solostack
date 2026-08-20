@@ -43,9 +43,9 @@ export function AdminTicketReply({ ticketId, canned }: Props) {
   };
 
   return (
-    <div className={cn("rounded-lg border", internal ? "bg-amber-500/5" : "bg-card")}>
+    <div className={cn("rounded-lg border", internal ? "bg-warning-subtle" : "bg-card")}>
       <div className="flex items-center justify-between gap-2 border-b px-3 py-2">
-        <div className="inline-flex rounded-md border p-0.5 text-xs">
+        <div className="inline-flex rounded-lg border p-0.5 text-xs">
           <button
             type="button"
             onClick={() => setInternal(false)}
@@ -58,7 +58,7 @@ export function AdminTicketReply({ ticketId, canned }: Props) {
             onClick={() => setInternal(true)}
             className={cn(
               "inline-flex items-center gap-1 rounded px-2 py-1",
-              internal && "bg-amber-500 text-white",
+              internal && "bg-warning text-white",
             )}
           >
             <StickyNote className="h-3 w-3" /> Internal note
@@ -70,12 +70,12 @@ export function AdminTicketReply({ ticketId, canned }: Props) {
             <button
               type="button"
               onClick={() => setShowCanned((v) => !v)}
-              className="inline-flex items-center gap-1 rounded-md border px-2 py-1 text-xs hover:bg-muted"
+              className="inline-flex items-center gap-1 rounded-lg border px-2 py-1 text-xs hover:bg-muted"
             >
               Canned <ChevronDown className="h-3 w-3" />
             </button>
             {showCanned ? (
-              <div className="absolute right-0 z-10 mt-1 max-h-64 w-64 overflow-y-auto rounded-md border bg-popover p-1 shadow-lg">
+              <div className="absolute right-0 z-10 mt-1 max-h-64 w-64 overflow-y-auto rounded-lg border bg-popover p-1 shadow-lg">
                 {canned.map((c) => (
                   <button
                     key={c.id}
@@ -104,7 +104,7 @@ export function AdminTicketReply({ ticketId, canned }: Props) {
       />
 
       <div className="flex items-center justify-between border-t px-3 py-2">
-        <span className="text-[11px] text-muted-foreground">
+        <span className="text-xs text-muted-foreground">
           {internal ? "Only visible to you." : "Sends an email + appears in the customer's chat."}
         </span>
         <button
@@ -112,8 +112,8 @@ export function AdminTicketReply({ ticketId, canned }: Props) {
           onClick={send}
           disabled={pending || !body.trim()}
           className={cn(
-            "inline-flex h-8 items-center gap-1.5 rounded-md px-3 text-xs font-medium text-background disabled:opacity-50",
-            internal ? "bg-amber-600" : "bg-foreground",
+            "inline-flex h-8 items-center gap-1.5 rounded-lg px-3 text-xs font-medium text-background disabled:opacity-50",
+            internal ? "bg-warning" : "bg-foreground",
           )}
         >
           {pending ? <Loader2 className="h-3 w-3 animate-spin" /> : <Send className="h-3 w-3" />}

@@ -77,7 +77,7 @@ export function MarketingHeader({ authState }: { authState: MarketingAuthState }
 
           <Sheet open={open} onOpenChange={setOpen}>
             <SheetTrigger asChild>
-              <Button variant="ghost" size="icon" className="rounded-xl lg:hidden" aria-label="Open navigation">
+              <Button variant="ghost" size="icon" className="rounded-lg lg:hidden" aria-label="Open navigation">
                 {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
               </Button>
             </SheetTrigger>
@@ -94,7 +94,7 @@ export function MarketingHeader({ authState }: { authState: MarketingAuthState }
                     key={l.label}
                     href={l.href}
                     onClick={() => setOpen(false)}
-                    className="rounded-xl px-3 py-3 text-[15px] font-medium hover:bg-accent"
+                    className="rounded-lg px-3 py-3 text-sm font-medium hover:bg-accent"
                   >
                     {l.label}
                   </Link>
@@ -153,7 +153,7 @@ function MobileCtas({ authState, onNavigate }: { authState: MarketingAuthState; 
           <Link
             href="/dashboard/settings/billing?upgrade=clients"
             onClick={onNavigate}
-            className="block rounded-xl px-3 py-2.5 text-sm font-medium text-muted-foreground hover:bg-accent hover:text-foreground"
+            className="block rounded-lg px-3 py-2.5 text-sm font-medium text-muted-foreground hover:bg-accent hover:text-foreground"
           >
             Upgrade to Pro
           </Link>

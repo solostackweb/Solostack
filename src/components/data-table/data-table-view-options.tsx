@@ -34,7 +34,7 @@ export function DataTableViewOptions<TData>({
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-44">
-        <DropdownMenuLabel className="text-[11px] uppercase tracking-wider text-muted-foreground">
+        <DropdownMenuLabel className="text-micro uppercase tracking-wider text-muted-foreground">
           Toggle columns
         </DropdownMenuLabel>
         <DropdownMenuSeparator />

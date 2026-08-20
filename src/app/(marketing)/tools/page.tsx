@@ -52,7 +52,7 @@ export default function ToolsIndexPage() {
 
         {/* Product cross-sell */}
         <Reveal className="mt-8">
-          <div className="flex flex-col items-center justify-between gap-5 rounded-3xl border border-primary/15 bg-primary/[0.03] px-7 py-8 text-center lg:flex-row lg:text-left">
+          <div className="flex flex-col items-center justify-between gap-5 rounded-2xl border border-primary/15 bg-primary/[0.03] px-7 py-8 text-center lg:flex-row lg:text-left">
             <div className="flex items-start gap-4">
               <span className="hidden h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary sm:flex">
                 <Sparkles className="h-5 w-5" />
@@ -100,7 +100,7 @@ function ToolCard({ tool }: { tool: ToolMeta }) {
     <Link
       href={`/tools/${tool.slug}`}
       data-cta={`tools_index_${tool.slug}`}
-      className="group flex h-full flex-col rounded-3xl border bg-card p-7 shadow-sm transition hover:-translate-y-0.5 hover:border-primary/20 hover:shadow-lg hover:shadow-primary/[0.05]"
+      className="group flex h-full flex-col rounded-2xl border bg-card p-7 shadow-sm transition hover:-translate-y-0.5 hover:border-primary/20 hover:shadow-lg hover:shadow-primary/[0.05]"
     >
       <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/10 text-primary">
         <Icon className="h-5 w-5" />

@@ -16,6 +16,7 @@ import { PortalView } from "@/features/portals/components/portal-view";
 import { isR2Configured } from "@/lib/r2/client";
 import { portalClientHome } from "@/features/portals/routes";
 import { formatCurrencyAmount } from "@/lib/format";
+import { BRAND_PRIMARY } from "@/config/brand-colors";
 
 export const metadata = { title: "Portal" };
 
@@ -72,12 +73,12 @@ export default async function PortalDetailPage({
     <div className="space-y-5">
       {/* ── Brand header — client name, status, money + view-as-client ─────── */}
       <section
-        className="overflow-hidden rounded-xl border bg-card shadow-sm"
-        style={{ borderTop: `4px solid ${portal.brand_color ?? "#2563EB"}` }}
+        className="overflow-hidden rounded-lg border bg-card shadow-sm"
+        style={{ borderTop: `4px solid ${portal.brand_color ?? BRAND_PRIMARY}` }}
       >
         <div className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between">
           <div className="min-w-0">
-            <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
+            <p className="text-micro font-semibold uppercase tracking-widest text-muted-foreground">
               Client portal
             </p>
             <h1 className="mt-1 truncate text-2xl font-semibold tracking-tight">
@@ -134,17 +135,17 @@ export default async function PortalDetailPage({
         />
       </section>
 
-      <div className="flex flex-wrap gap-2 text-[11px]">
+      <div className="flex flex-wrap gap-2 text-micro">
         {/* Status */}
         <span
           className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 font-semibold ${
             isActive
-              ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
+              ? "border-success-subtle bg-success-subtle text-success-strong"
               : "border-border bg-muted text-muted-foreground"
           }`}
         >
           <span
-            className={`h-1.5 w-1.5 rounded-full ${isActive ? "bg-emerald-500" : "bg-muted-foreground/40"}`}
+            className={`h-1.5 w-1.5 rounded-full ${isActive ? "bg-success" : "bg-muted-foreground/40"}`}
             aria-hidden
           />
           {isActive ? "Active" : portal.status}
@@ -186,7 +187,7 @@ export default async function PortalDetailPage({
         {pendingApprovals > 0 && (
           <Link
             href="#portal-updates"
-            className="inline-flex items-center gap-1.5 rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-1 font-semibold text-amber-700 transition-colors hover:bg-amber-500/15 dark:text-amber-400"
+            className="inline-flex items-center gap-1.5 rounded-full border border-warning-subtle bg-warning-subtle px-2.5 py-1 font-semibold text-warning-strong transition-colors hover:bg-warning-subtle"
           >
             <TrendingUp className="h-3 w-3" />
             {pendingApprovals} pending review
@@ -195,7 +196,7 @@ export default async function PortalDetailPage({
 
         {/* All good */}
         {activeMeetings === 0 && pendingApprovals === 0 && snapshot.members.length > 0 && (
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-1 font-medium text-emerald-700 dark:text-emerald-400">
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-success-subtle bg-success-subtle px-2.5 py-1 font-medium text-success-strong">
             <CheckCircle2 className="h-3 w-3" />
             All up to date
           </span>
@@ -206,7 +207,7 @@ export default async function PortalDetailPage({
       <PortalView
         portalId={id}
         portalName={portal.name}
-        brandColor={portal.brand_color ?? "#2563EB"}
+        brandColor={portal.brand_color ?? BRAND_PRIMARY}
         portalStatus={portal.status}
         currentUserId={access.userId}
         role="owner"
@@ -261,10 +262,10 @@ function PortalMetric({
   tone: "success" | "blue" | "amber" | "danger" | "muted";
 }) {
   const tones = {
-    success: "border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400",
+    success: "border-success-subtle bg-success-subtle text-success-strong",
     blue: "border-blue-500/20 bg-blue-500/10 text-blue-700 dark:text-blue-400",
-    amber: "border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-400",
-    danger: "border-rose-500/20 bg-rose-500/10 text-rose-700 dark:text-rose-400",
+    amber: "border-warning-subtle bg-warning-subtle text-warning-strong",
+    danger: "border-destructive-subtle bg-destructive-subtle text-destructive-strong",
     muted: "border-border bg-muted text-muted-foreground",
   };
 
@@ -272,7 +273,7 @@ function PortalMetric({
     <div className="rounded-lg border bg-card p-4 shadow-sm">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+          <p className="text-micro font-semibold uppercase tracking-[0.16em] text-muted-foreground">
             {label}
           </p>
           <p className="mt-2 text-xl font-bold tracking-tight">{value}</p>
@@ -288,7 +289,7 @@ function PortalMetric({
 function PortalMoneyStat({ label, value }: { label: string; value: string }) {
   return (
     <div className="min-w-[7rem] shrink-0 rounded-lg border bg-background/70 px-3 py-2">
-      <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+      <p className="text-micro font-semibold uppercase tracking-wider text-muted-foreground">
         {label}
       </p>
       <p className="mt-0.5 truncate font-mono text-sm font-semibold tabular-nums">

@@ -67,8 +67,8 @@ export function RevenueChart({ series }: RevenueChartProps) {
     <Card className="border-border/60 shadow-sm shadow-primary/[0.03]">
       <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-3">
         <div className="space-y-1">
-          <CardTitle className="text-[15px] font-semibold tracking-tight">Revenue overview</CardTitle>
-          <CardDescription className="text-[12px]">
+          <CardTitle className="text-sm font-semibold tracking-tight">Revenue overview</CardTitle>
+          <CardDescription className="text-xs">
             Paid invoice revenue over the last {series.length} months
           </CardDescription>
           <div className="flex items-baseline gap-2 pt-2">
@@ -77,7 +77,7 @@ export function RevenueChart({ series }: RevenueChartProps) {
             </span>
             {delta && (
               <span
-                className={`inline-flex items-center gap-0.5 text-[12px] font-semibold ${trendClass}`}
+                className={`inline-flex items-center gap-0.5 text-xs font-semibold ${trendClass}`}
               >
                 <TrendIcon className="h-3.5 w-3.5" />
                 {formatPercent(delta.value)}
@@ -139,7 +139,7 @@ export function RevenueChart({ series }: RevenueChartProps) {
                       | number
                       | undefined;
                     return (
-                      <div className="rounded-xl border border-border/60 bg-popover px-3.5 py-2.5 text-xs shadow-xl shadow-primary/10">
+                      <div className="rounded-lg border border-border/60 bg-popover px-3.5 py-2.5 text-xs shadow-xl shadow-primary/10">
                         <p className="font-semibold text-popover-foreground">
                           {formatMonthLabel(label as string)}
                         </p>
@@ -179,7 +179,7 @@ export function RevenueChart({ series }: RevenueChartProps) {
 
 function Legend() {
   return (
-    <div className="hidden items-center gap-4 text-[11px] text-muted-foreground sm:flex">
+    <div className="hidden items-center gap-4 text-xs text-muted-foreground sm:flex">
       <span className="inline-flex items-center gap-1.5">
         <span className="h-2 w-2 rounded-full bg-primary" /> Paid
       </span>

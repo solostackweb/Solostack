@@ -58,7 +58,7 @@ export default function BlogIndexPage() {
             <Link
               href={`/blog/${featured.slug}`}
               data-cta={`blog_index_${featured.slug}`}
-              className="group relative block overflow-hidden rounded-3xl border bg-card p-7 shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg hover:shadow-primary/[0.06] sm:p-10"
+              className="group relative block overflow-hidden rounded-2xl border bg-card p-7 shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg hover:shadow-primary/[0.06] sm:p-10"
             >
               <div
                 aria-hidden
@@ -68,7 +68,7 @@ export default function BlogIndexPage() {
               <h2 className="mt-4 max-w-3xl font-display text-2xl font-semibold tracking-tight transition group-hover:text-primary sm:text-3xl">
                 {featured.title}
               </h2>
-              <p className="mt-3 max-w-2xl text-[15px] leading-[1.7] text-muted-foreground sm:text-base">
+              <p className="mt-3 max-w-2xl text-sm leading-[1.7] text-muted-foreground sm:text-base">
                 {featured.description}
               </p>
               <span className="mt-5 inline-flex items-center gap-1.5 text-sm font-semibold text-primary">
@@ -105,7 +105,7 @@ export default function BlogIndexPage() {
 
         {/* Newsletter band */}
         <Reveal className="mt-12">
-          <div className="flex flex-col items-center justify-between gap-5 rounded-3xl border bg-muted/30 px-7 py-8 text-center sm:px-10 lg:flex-row lg:text-left">
+          <div className="flex flex-col items-center justify-between gap-5 rounded-2xl border bg-muted/30 px-7 py-8 text-center sm:px-10 lg:flex-row lg:text-left">
             <div>
               <p className="font-display text-lg font-semibold tracking-tight text-foreground">
                 One practical India-freelancer tip a month.
@@ -128,7 +128,7 @@ export default function BlogIndexPage() {
 
 function PostMeta({ post, latest }: { post: BlogPost; latest?: boolean }) {
   return (
-    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] uppercase tracking-wider text-muted-foreground">
+    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-micro uppercase tracking-wider text-muted-foreground">
       {latest ? (
         <span className="rounded-full bg-primary px-2.5 py-0.5 font-bold text-primary-foreground">
           Latest

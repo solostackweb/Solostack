@@ -70,12 +70,12 @@ export function MobileNav() {
             className="flex items-center gap-2.5 font-bold tracking-tight"
           >
             <StackivoMark className="h-8 w-8" />
-            <span className="text-[15px]">Stackivo</span>
+            <span className="text-sm">Stackivo</span>
           </Link>
         </div>
 
         <div className="flex-1 overflow-y-auto px-2 py-3">
-          <p className="mb-1.5 px-3 text-[10px] font-bold uppercase tracking-widest text-muted-foreground/70">
+          <p className="mb-1.5 px-3 text-micro font-bold uppercase tracking-widest text-muted-foreground/70">
             Workspace
           </p>
           <SidebarNav
@@ -86,7 +86,7 @@ export function MobileNav() {
 
           <Separator className="my-3" />
 
-          <p className="mb-1.5 px-3 text-[10px] font-bold uppercase tracking-widest text-muted-foreground/70">
+          <p className="mb-1.5 px-3 text-micro font-bold uppercase tracking-widest text-muted-foreground/70">
             Account
           </p>
           <SidebarNav items={secondaryNav} onNavigate={() => setOpen(false)} />
@@ -100,15 +100,15 @@ export function MobileNav() {
         >
           <div
             aria-hidden
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-gradient-to-br from-primary/15 to-blue-500/15 text-[12px] font-bold text-primary ring-1 ring-primary/15"
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-primary/15 to-blue-500/15 text-xs font-bold text-primary ring-1 ring-primary/15"
           >
             {workspaceInitials}
           </div>
           <div className="min-w-0 flex-1">
-            <p className="truncate text-[13px] font-semibold leading-tight">
+            <p className="truncate text-xs font-semibold leading-tight">
               {workspaceName}
             </p>
-            <p className="truncate text-[11px] capitalize leading-tight text-muted-foreground">
+            <p className="truncate text-micro capitalize leading-tight text-muted-foreground">
               {plan} plan
             </p>
           </div>

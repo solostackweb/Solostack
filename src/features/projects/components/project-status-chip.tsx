@@ -85,8 +85,8 @@ export function ProjectStatusChip({
     return (
       <span
         className={cn(
-          "inline-flex items-center gap-1.5 rounded-full ring-1 ring-inset px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider",
-          size === "sm" ? "text-[10px]" : "text-[11px] py-1",
+          "inline-flex items-center gap-1.5 rounded-full ring-1 ring-inset px-2 py-0.5 text-micro font-semibold uppercase tracking-wider",
+          size === "sm" ? "text-micro" : "text-micro py-1",
           cfg.chipClass,
           className,
         )}
@@ -113,8 +113,8 @@ export function ProjectStatusChip({
           className={cn(
             "group inline-flex items-center gap-1.5 rounded-full ring-1 ring-inset font-semibold uppercase tracking-wider transition-all hover:ring-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed",
             size === "sm"
-              ? "px-2 py-0.5 text-[10px]"
-              : "px-2.5 py-1 text-[11px]",
+              ? "px-2 py-0.5 text-micro"
+              : "px-2.5 py-1 text-xs",
             cfg.chipClass,
             className,
           )}
@@ -135,7 +135,7 @@ export function ProjectStatusChip({
           e.stopPropagation();
         }}
       >
-        <DropdownMenuLabel className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+        <DropdownMenuLabel className="text-micro font-semibold uppercase tracking-wider text-muted-foreground">
           Change status
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
@@ -157,10 +157,10 @@ export function ProjectStatusChip({
                 />
               </span>
               <span className="flex-1 min-w-0">
-                <span className="block text-[13px] font-medium">
+                <span className="block text-xs font-medium">
                   {itemCfg.label}
                 </span>
-                <span className="block text-[11px] text-muted-foreground">
+                <span className="block text-micro text-muted-foreground">
                   {itemCfg.description}
                 </span>
               </span>

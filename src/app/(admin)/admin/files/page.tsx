@@ -71,7 +71,7 @@ export default async function AdminFilesPage({ searchParams }: Props) {
       <form
         method="get"
         action="/admin/files"
-        className="flex flex-wrap items-center gap-2 rounded-xl border bg-card/95 p-2 shadow-sm shadow-black/[0.025] dark:bg-card"
+        className="flex flex-wrap items-center gap-2 rounded-lg border bg-card/95 p-2 shadow-sm shadow-black/[0.025] dark:bg-card"
       >
         <input
           type="text"
@@ -120,21 +120,21 @@ export default async function AdminFilesPage({ searchParams }: Props) {
                       className="block leading-tight hover:underline"
                     >
                       <div className="font-medium">{f.full_name}</div>
-                      <div className="truncate text-[11px] text-muted-foreground">
+                      <div className="truncate text-micro text-muted-foreground">
                         {f.email}
                       </div>
                     </Link>
                   </AdminTd>
-                  <AdminTd className="font-mono text-[11px] text-muted-foreground">
+                  <AdminTd className="font-mono text-xs text-muted-foreground">
                     {f.mime_type ?? "-"}
                   </AdminTd>
                   <AdminTd className="font-mono tabular-nums">
                     {formatBytes(f.file_size)}
                   </AdminTd>
-                  <AdminTd className="hidden font-mono text-[11px] text-muted-foreground sm:table-cell">
+                  <AdminTd className="hidden font-mono text-xs text-muted-foreground sm:table-cell">
                     {f.project_id ? shortenId(f.project_id) : "-"}
                   </AdminTd>
-                  <AdminTd className="font-mono text-[11px] tabular-nums text-muted-foreground">
+                  <AdminTd className="font-mono text-xs tabular-nums text-muted-foreground">
                     {formatRelative(f.created_at)}
                   </AdminTd>
                 </AdminTr>

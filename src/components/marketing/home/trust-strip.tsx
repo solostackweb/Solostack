@@ -24,7 +24,7 @@ export function TrustStrip() {
             rel="noopener noreferrer"
             data-cta="product_hunt_badge"
             aria-label="View Stackivo on Product Hunt (opens in a new tab)"
-            className="inline-flex rounded-xl transition-transform hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-4 focus-visible:ring-offset-background"
+            className="inline-flex rounded-lg transition-transform hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-4 focus-visible:ring-offset-background"
           >
             {/* Product Hunt serves and updates the launch vote count in this badge. */}
             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -33,7 +33,7 @@ export function TrustStrip() {
               alt="Stackivo — featured on Product Hunt"
               width={250}
               height={54}
-              className="h-[54px] w-[250px] rounded-xl"
+              className="h-[54px] w-[250px] rounded-lg"
             />
           </a>
 
@@ -43,7 +43,7 @@ export function TrustStrip() {
             rel="noopener noreferrer"
             data-cta="post_your_startup_badge"
             aria-label="View Stackivo on PostYourStartup (opens in a new tab)"
-            className="inline-flex rounded-xl transition-transform hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-4 focus-visible:ring-offset-background"
+            className="inline-flex rounded-lg transition-transform hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-4 focus-visible:ring-offset-background"
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
@@ -51,7 +51,7 @@ export function TrustStrip() {
               alt="Stackivo — featured on PostYourStartup"
               width={212}
               height={55}
-              className="h-[55px] w-[212px] rounded-xl"
+              className="h-[55px] w-[212px] rounded-lg"
             />
           </a>
 
@@ -61,7 +61,7 @@ export function TrustStrip() {
             rel="noopener noreferrer"
             data-cta="startup_fame_badge"
             aria-label="View Stackivo on Startup Fame (opens in a new tab)"
-            className="inline-flex rounded-xl transition-transform hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-4 focus-visible:ring-offset-background"
+            className="inline-flex rounded-lg transition-transform hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-4 focus-visible:ring-offset-background"
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
@@ -69,7 +69,7 @@ export function TrustStrip() {
               alt="Stackivo — featured on Startup Fame"
               width={171}
               height={54}
-              className="h-[54px] w-[171px] rounded-xl"
+              className="h-[54px] w-[171px] rounded-lg"
             />
           </a>
 
@@ -79,7 +79,7 @@ export function TrustStrip() {
             rel="noopener noreferrer"
             data-cta="open_launch_badge"
             aria-label="View Stackivo on Open-Launch (opens in a new tab)"
-            className="inline-flex rounded-xl transition-transform hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-4 focus-visible:ring-offset-background"
+            className="inline-flex rounded-lg transition-transform hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-4 focus-visible:ring-offset-background"
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
@@ -87,7 +87,7 @@ export function TrustStrip() {
               alt="Stackivo — featured on Open-Launch"
               width={200}
               height={50}
-              className="h-[50px] w-[200px] rounded-xl"
+              className="h-[50px] w-[200px] rounded-lg"
             />
           </a>
 
@@ -97,14 +97,14 @@ export function TrustStrip() {
             rel="noopener noreferrer"
             data-cta="tinylaunch_badge"
             aria-label="View TinyLaunch (opens in a new tab)"
-            className="inline-flex rounded-xl transition-transform hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-4 focus-visible:ring-offset-background"
+            className="inline-flex rounded-lg transition-transform hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-4 focus-visible:ring-offset-background"
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src="https://tinylaunch.com/tinylaunch_badge_launching_soon.svg"
               alt="Stackivo — launching soon on TinyLaunch"
               width={202}
-              className="h-auto w-[202px] rounded-xl"
+              className="h-auto w-[202px] rounded-lg"
             />
           </a>
 
@@ -114,13 +114,13 @@ export function TrustStrip() {
             rel="noopener noreferrer"
             data-cta="sell_with_boost_badge"
             aria-label="View Stackivo on Sell With Boost (opens in a new tab)"
-            className="inline-flex rounded-xl transition-transform hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-4 focus-visible:ring-offset-background"
+            className="inline-flex rounded-lg transition-transform hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-4 focus-visible:ring-offset-background"
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src="https://sellwithboost.com/badge/listing.svg"
               alt="Listed on Sell With Boost"
-              className="h-10 w-auto rounded-xl"
+              className="h-10 w-auto rounded-lg"
             />
           </a>
         </div>

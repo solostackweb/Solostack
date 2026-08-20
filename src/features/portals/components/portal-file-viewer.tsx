@@ -49,7 +49,7 @@ export function PortalFileViewer({
         </Button>
         <div className="min-w-0 flex-1">
           <h1 className="truncate text-sm font-semibold">{title}</h1>
-          <p className="text-[11px] text-muted-foreground">File preview</p>
+          <p className="text-micro text-muted-foreground">File preview</p>
         </div>
         <Button type="button" variant="ghost" size="icon" className="h-10 w-10 rounded-full" onClick={share} aria-label="Share">
           <Share2 className="h-4 w-4" />

@@ -19,6 +19,7 @@ import { cn } from "@/lib/utils";
 import { IvoContextActions } from "@/features/ai-workflows/components/ivo-context-actions";
 import { portalDashboardDetail } from "../routes";
 import { CreatePortalButton } from "./create-portal-button";
+import { BRAND_PRIMARY } from "@/config/brand-colors";
 
 interface PortalIndexViewProps {
   ownedPortals: Array<{
@@ -118,7 +119,7 @@ export function PortalIndexView({
                     : null;
                   const clientName =
                     client?.businessName || client?.fullName || "No client linked";
-                  const color = portal.brand_color ?? "#2563EB";
+                  const color = portal.brand_color ?? BRAND_PRIMARY;
                   return (
                     <Link
                       key={portal.id}
@@ -137,7 +138,7 @@ export function PortalIndexView({
                               >
                                 {portal.name.slice(0, 2).toUpperCase()}
                               </div>
-                              <Badge variant="outline" className="capitalize text-[10px]">
+                              <Badge variant="outline" className="capitalize text-xs">
                                 {portal.status}
                               </Badge>
                             </div>
@@ -151,7 +152,7 @@ export function PortalIndexView({
                               </p>
                             </div>
                             <div className="flex items-center justify-between gap-3 border-t pt-3">
-                              <p className="flex items-center gap-1 text-[11px] text-muted-foreground">
+                              <p className="flex items-center gap-1 text-xs text-muted-foreground">
                                 <Clock3 className="h-3.5 w-3.5" />
                                 Updated {new Date(portal.updated_at).toLocaleDateString()}
                               </p>
@@ -183,10 +184,10 @@ function PortalStat({
   value: string;
 }) {
   return (
-    <div className="rounded-xl border bg-card p-4 shadow-sm">
+    <div className="rounded-lg border bg-card p-4 shadow-sm">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+          <p className="text-micro font-semibold uppercase tracking-wider text-muted-foreground">
             {label}
           </p>
           <p className="mt-1 text-2xl font-semibold tracking-tight">{value}</p>

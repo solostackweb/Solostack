@@ -7,7 +7,7 @@
  * hand-rolling their own Panel / Stat / grid markup.
  *
  * Design tokens baked in here:
- *   - Surfaces: rounded-xl, border, bg-card, soft ring-shadow elevation.
+ *   - Surfaces: rounded-lg, border, bg-card, soft ring-shadow elevation.
  *   - Rhythm: 8pt spacing scale (gap-3/4/5, p-5/6), generous section gaps.
  *   - Numbers: tabular-nums everywhere data appears.
  *   - Tone: neutral | ok | warn | alert | info - a tiny, disciplined palette.
@@ -32,39 +32,39 @@ type IconType = React.ComponentType<{ className?: string }>;
 
 const TONE_TEXT: Record<Tone, string> = {
   neutral: "text-muted-foreground",
-  ok: "text-emerald-600 dark:text-emerald-400",
-  warn: "text-amber-600 dark:text-amber-400",
-  alert: "text-red-600 dark:text-red-400",
-  info: "text-sky-600 dark:text-sky-400",
+  ok: "text-success-strong",
+  warn: "text-warning-strong",
+  alert: "text-destructive-strong",
+  info: "text-info-strong",
 };
 
 const TONE_CHIP: Record<Tone, string> = {
   neutral: "bg-muted text-muted-foreground",
-  ok: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
-  warn: "bg-amber-500/10 text-amber-600 dark:text-amber-400",
-  alert: "bg-red-500/10 text-red-600 dark:text-red-400",
-  info: "bg-sky-500/10 text-sky-600 dark:text-sky-400",
+  ok: "bg-success-subtle text-success-strong",
+  warn: "bg-warning-subtle text-warning-strong",
+  alert: "bg-destructive-subtle text-destructive-strong",
+  info: "bg-info-subtle text-info-strong",
 };
 
 const TONE_SURFACE: Record<Tone, string> = {
   neutral: "",
-  ok: "border-emerald-500/25 bg-emerald-500/[0.045]",
-  warn: "border-amber-500/25 bg-amber-500/[0.045]",
-  alert: "border-red-500/25 bg-red-500/[0.045]",
-  info: "border-sky-500/25 bg-sky-500/[0.045]",
+  ok: "border-success-subtle bg-success/[0.045]",
+  warn: "border-warning-subtle bg-warning/[0.045]",
+  alert: "border-destructive-subtle bg-destructive/[0.045]",
+  info: "border-info-subtle bg-info/[0.045]",
 };
 
 const TONE_DOT: Record<Tone, string> = {
   neutral: "bg-muted-foreground/50",
-  ok: "bg-emerald-500",
-  warn: "bg-amber-500",
-  alert: "bg-red-500",
-  info: "bg-sky-500",
+  ok: "bg-success",
+  warn: "bg-warning",
+  alert: "bg-destructive",
+  info: "bg-info",
 };
 
 // Shared elevation for resting surfaces.
 const SURFACE =
-  "rounded-xl border bg-card/95 shadow-sm shadow-black/[0.035] dark:bg-card dark:shadow-black/25";
+  "rounded-lg border bg-card/95 shadow-sm shadow-black/[0.035] dark:bg-card dark:shadow-black/25";
 
 // ---------------------------------------------------------------------------
 // Layout
@@ -155,7 +155,7 @@ export function Panel({
             ) : null}
             <div className="min-w-0 space-y-0.5">
               {title ? (
-                <h2 className="truncate text-sm font-semibold tracking-tight sm:text-[15px]">
+                <h2 className="truncate text-sm font-semibold tracking-tight sm:text-sm">
                   {title}
                 </h2>
               ) : null}
@@ -243,7 +243,7 @@ export function StatCard({
   const body = (
     <>
       <div className="flex items-center justify-between gap-2">
-        <span className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+        <span className="text-micro font-medium uppercase tracking-wider text-muted-foreground">
           {label}
         </span>
         {Icon ? (
@@ -257,7 +257,7 @@ export function StatCard({
           </span>
         ) : null}
       </div>
-      <div className="mt-3 text-[26px] font-semibold leading-none tracking-tight tabular-nums sm:text-3xl">
+      <div className="mt-3 text-2xl font-semibold leading-none tracking-tight tabular-nums sm:text-3xl">
         {value}
       </div>
       <div className="mt-2 flex items-center gap-2">
@@ -273,7 +273,7 @@ export function StatCard({
           </span>
         ) : null}
         {hint ? (
-          <span className="text-[11px] text-muted-foreground tabular-nums">
+          <span className="text-xs text-muted-foreground tabular-nums">
             {hint}
           </span>
         ) : null}
@@ -321,7 +321,7 @@ export function Badge({
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[11px] font-medium",
+        "inline-flex items-center gap-1 rounded-lg px-2 py-0.5 text-micro font-medium",
         TONE_CHIP[tone],
         className,
       )}
@@ -442,7 +442,7 @@ export function AdminTableShell({
   return (
     <div
       className={cn(
-        "overflow-hidden rounded-xl border bg-card/95 shadow-sm shadow-black/[0.035] dark:bg-card dark:shadow-black/25",
+        "overflow-hidden rounded-lg border bg-card/95 shadow-sm shadow-black/[0.035] dark:bg-card dark:shadow-black/25",
         className,
       )}
     >
@@ -463,7 +463,7 @@ export function AdminTable({
 
 export function AdminThead({ children }: { children: ReactNode }) {
   return (
-    <thead className="bg-muted/45 text-left text-[11px] uppercase tracking-wider text-muted-foreground">
+    <thead className="bg-muted/45 text-left text-micro uppercase tracking-wider text-muted-foreground">
       {children}
     </thead>
   );

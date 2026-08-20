@@ -22,7 +22,7 @@ export function HeroMockup() {
       <div className="hidden w-52 shrink-0 flex-col border-r border-border/70 bg-muted/30 p-3 md:flex">
         <div className="flex items-center gap-2 px-2 py-1.5">
           <StackivoMark className="h-6 w-6 rounded-lg" />
-          <span className="text-[13px] font-semibold tracking-tight">Stackivo</span>
+          <span className="text-xs font-semibold tracking-tight">Stackivo</span>
         </div>
         <div className="mt-4 space-y-0.5">
           <SidebarItem icon={LayoutDashboard} label="Pulse" active />
@@ -33,11 +33,11 @@ export function HeroMockup() {
           <SidebarItem icon={Timer} label="Time" />
           <SidebarItem icon={Wallet} label="Payments" />
         </div>
-        <div className="mt-auto rounded-xl border border-primary/15 bg-primary/[0.05] p-3">
-          <p className="flex items-center gap-1.5 text-[11px] font-semibold text-primary">
+        <div className="mt-auto rounded-lg border border-primary/15 bg-primary/[0.05] p-3">
+          <p className="flex items-center gap-1.5 text-micro font-semibold text-primary">
             <Sparkles className="h-3 w-3" /> Stackivo AI
           </p>
-          <p className="mt-1 text-[10px] leading-relaxed text-muted-foreground">
+          <p className="mt-1 text-micro leading-relaxed text-muted-foreground">
             2 invoices are overdue. Want me to draft reminders?
           </p>
         </div>
@@ -47,14 +47,14 @@ export function HeroMockup() {
       <div className="min-w-0 flex-1 p-4 sm:p-6">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-[15px] font-semibold tracking-tight text-foreground">
+            <p className="text-sm font-semibold tracking-tight text-foreground">
               Good morning, Aarav
             </p>
-            <p className="text-[11px] text-muted-foreground">
+            <p className="text-micro text-muted-foreground">
               June 2026 · 4 active projects
             </p>
           </div>
-          <span className="hidden rounded-full bg-primary px-3.5 py-1.5 text-[11px] font-semibold text-primary-foreground sm:block">
+          <span className="hidden rounded-full bg-primary px-3.5 py-1.5 text-micro font-semibold text-primary-foreground sm:block">
             + New invoice
           </span>
         </div>
@@ -69,17 +69,17 @@ export function HeroMockup() {
 
         {/* Chart + invoices */}
         <div className="mt-3 grid gap-2.5 sm:gap-3 lg:grid-cols-[1.5fr_1fr]">
-          <div className="rounded-xl border border-border/70 bg-card p-4">
+          <div className="rounded-lg border border-border/70 bg-card p-4">
             <div className="flex items-center justify-between">
               <p className="text-xs font-semibold text-foreground">Revenue</p>
-              <p className="text-[10px] text-muted-foreground">Last 8 months</p>
+              <p className="text-micro text-muted-foreground">Last 8 months</p>
             </div>
             <div className="mt-3 flex h-24 items-end gap-1.5 sm:h-28 sm:gap-2">
               {[34, 48, 40, 62, 55, 74, 68, 92].map((h, i) => (
                 <div key={i} className="flex-1">
                   <div
                     className={cn(
-                      "w-full rounded-t-md",
+                      "w-full rounded-t-lg",
                       i === 7
                         ? "bg-gradient-to-t from-primary to-primary/70"
                         : "bg-primary/15",
@@ -89,14 +89,14 @@ export function HeroMockup() {
                 </div>
               ))}
             </div>
-            <div className="mt-2 flex justify-between text-[9px] text-muted-foreground/70">
+            <div className="mt-2 flex justify-between text-xs text-muted-foreground/70">
               {["Nov", "Dec", "Jan", "Feb", "Mar", "Apr", "May", "Jun"].map((m) => (
                 <span key={m}>{m}</span>
               ))}
             </div>
           </div>
 
-          <div className="rounded-xl border border-border/70 bg-card p-4">
+          <div className="rounded-lg border border-border/70 bg-card p-4">
             <p className="text-xs font-semibold text-foreground">Recent invoices</p>
             <div className="mt-3 space-y-2.5">
               <InvoiceRow name="Nexa Labs" amount="₹48,000" status="Paid" />
@@ -134,7 +134,7 @@ function SidebarItem({
       <Icon className="h-3.5 w-3.5" />
       {label}
       {badge ? (
-        <span className="ml-auto rounded-full bg-primary/15 px-1.5 text-[9px] font-semibold text-primary">
+        <span className="ml-auto rounded-full bg-primary/15 px-1.5 text-micro font-semibold text-primary">
           {badge}
         </span>
       ) : null}
@@ -154,8 +154,8 @@ function Stat({
   positive?: boolean;
 }) {
   return (
-    <div className="rounded-xl border border-border/70 bg-card p-3 sm:p-3.5">
-      <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+    <div className="rounded-lg border border-border/70 bg-card p-3 sm:p-3.5">
+      <p className="text-micro font-medium uppercase tracking-wide text-muted-foreground">
         {label}
       </p>
       <p className="mt-1 font-display text-base font-semibold tracking-tight text-foreground sm:text-lg">
@@ -163,7 +163,7 @@ function Stat({
       </p>
       <p
         className={cn(
-          "mt-0.5 text-[10px]",
+          "mt-0.5 text-micro",
           positive ? "font-medium text-success" : "text-muted-foreground",
         )}
       >
@@ -192,16 +192,16 @@ function InvoiceRow({
   return (
     <div className="flex items-center justify-between gap-2">
       <div className="flex min-w-0 items-center gap-2">
-        <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-secondary text-[9px] font-semibold text-secondary-foreground">
+        <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-secondary text-micro font-semibold text-secondary-foreground">
           {name[0]}
         </span>
-        <span className="truncate text-[11px] font-medium text-foreground">{name}</span>
+        <span className="truncate text-micro font-medium text-foreground">{name}</span>
       </div>
       <div className="flex shrink-0 items-center gap-2">
-        <span className="font-mono text-[11px] text-muted-foreground">{amount}</span>
+        <span className="font-mono text-micro text-muted-foreground">{amount}</span>
         <span
           className={cn(
-            "rounded-full px-2 py-0.5 text-[9px] font-semibold",
+            "rounded-full px-2 py-0.5 text-micro font-semibold",
             STATUS_STYLES[status],
           )}
         >

@@ -50,7 +50,7 @@ export function ReferralCard({ status }: ReferralCardProps) {
   }
 
   return (
-    <div className="rounded-xl border bg-card">
+    <div className="rounded-lg border bg-card">
       {/* Header */}
       <div className="flex items-start gap-3 border-b p-5">
         <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-violet-500/10 text-violet-500">
@@ -82,8 +82,8 @@ export function ReferralCard({ status }: ReferralCardProps) {
           >
             {copied ? (
               <>
-                <Check className="h-3.5 w-3.5 text-emerald-500" />
-                <span className="text-emerald-500">Copied</span>
+                <Check className="h-3.5 w-3.5 text-success-strong" />
+                <span className="text-success-strong">Copied</span>
               </>
             ) : (
               <>
@@ -104,7 +104,7 @@ export function ReferralCard({ status }: ReferralCardProps) {
             rel="noopener noreferrer"
             className="inline-flex items-center gap-1.5 rounded-full border bg-card px-3 py-1 text-xs font-medium transition-colors hover:border-foreground/30 hover:bg-muted/40"
           >
-            <span className="text-green-500">●</span> Share on WhatsApp
+            <span className="text-success-strong">●</span> Share on WhatsApp
           </a>
           <a
             href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(
@@ -114,7 +114,7 @@ export function ReferralCard({ status }: ReferralCardProps) {
             rel="noopener noreferrer"
             className="inline-flex items-center gap-1.5 rounded-full border bg-card px-3 py-1 text-xs font-medium transition-colors hover:border-foreground/30 hover:bg-muted/40"
           >
-            <span className="text-sky-400">●</span> Share on X
+            <span className="text-info-strong">●</span> Share on X
           </a>
         </div>
       </div>
@@ -125,19 +125,19 @@ export function ReferralCard({ status }: ReferralCardProps) {
           <span className="text-xl font-bold tabular-nums">
             {status.pendingCount + status.completedCount}
           </span>
-          <span className="text-[11px] text-muted-foreground">Signed up</span>
+          <span className="text-micro text-muted-foreground">Signed up</span>
         </div>
         <div className="flex flex-col items-center gap-0.5 p-4 text-center">
           <span className="text-xl font-bold tabular-nums">
             {status.completedCount}
           </span>
-          <span className="text-[11px] text-muted-foreground">Completed</span>
+          <span className="text-micro text-muted-foreground">Completed</span>
         </div>
         <div className="flex flex-col items-center gap-0.5 p-4 text-center">
           <span className="text-xl font-bold tabular-nums text-violet-500">
             {status.rewardMonthsEarned}
           </span>
-          <span className="text-[11px] text-muted-foreground">
+          <span className="text-micro text-muted-foreground">
             Months earned
           </span>
         </div>
@@ -177,7 +177,7 @@ export function ReferralNudge({ code }: { code: string }) {
   return (
     <button
       onClick={copy}
-      className="group flex w-full items-center gap-3 rounded-xl border bg-card p-4 text-left transition-all hover:border-violet-500/30 hover:bg-violet-500/5"
+      className="group flex w-full items-center gap-3 rounded-lg border bg-card p-4 text-left transition-all hover:border-violet-500/30 hover:bg-violet-500/5"
     >
       <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-violet-500/10 text-violet-500">
         <Users className="h-4 w-4" />
@@ -189,7 +189,7 @@ export function ReferralNudge({ code }: { code: string }) {
         </p>
       </div>
       {copied ? (
-        <Check className="h-4 w-4 shrink-0 text-emerald-500" />
+        <Check className="h-4 w-4 shrink-0 text-success-strong" />
       ) : (
         <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
       )}

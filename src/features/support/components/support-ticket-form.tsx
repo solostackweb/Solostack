@@ -89,8 +89,8 @@ export function SupportTicketForm({ initialEmail, showContactFields, channel }: 
 
   if (success) {
     return (
-      <div className="rounded-lg border border-emerald-500/40 bg-emerald-500/5 p-4 text-sm">
-        <h3 className="font-semibold text-emerald-700 dark:text-emerald-300">
+      <div className="rounded-lg border border-success-subtle bg-success-subtle p-4 text-sm">
+        <h3 className="font-semibold text-success-strong">
           Got it - your ticket is in
         </h3>
         <p className="mt-1 text-muted-foreground">
@@ -100,14 +100,14 @@ export function SupportTicketForm({ initialEmail, showContactFields, channel }: 
         <div className="mt-3 flex flex-wrap items-center gap-3">
           <Link
             href={success.href}
-            className="inline-flex items-center gap-1.5 rounded-md bg-foreground px-3 py-1.5 text-xs font-medium text-background hover:bg-foreground/90"
+            className="inline-flex items-center gap-1.5 rounded-lg bg-foreground px-3 py-1.5 text-xs font-medium text-background hover:bg-foreground/90"
           >
             View your ticket <ArrowRight className="h-3 w-3" />
           </Link>
           <button
             type="button"
             onClick={() => setSuccess(null)}
-            className="text-xs font-medium text-emerald-700 underline hover:opacity-80 dark:text-emerald-300"
+            className="text-xs font-medium text-success-strong underline hover:opacity-80"
           >
             Send another
           </button>
@@ -126,7 +126,7 @@ export function SupportTicketForm({ initialEmail, showContactFields, channel }: 
           {CATEGORY_OPTIONS.map((opt) => (
             <label
               key={opt.value}
-              className={`flex cursor-pointer items-start gap-2 rounded-md border p-2.5 text-xs transition hover:border-foreground/30 ${
+              className={`flex cursor-pointer items-start gap-2 rounded-lg border p-2.5 text-xs transition hover:border-foreground/30 ${
                 category === opt.value ? "border-foreground bg-muted/30" : "border-border"
               }`}
             >
@@ -140,7 +140,7 @@ export function SupportTicketForm({ initialEmail, showContactFields, channel }: 
               />
               <span>
                 <span className="block font-medium">{opt.label}</span>
-                <span className="block text-[11px] text-muted-foreground">{opt.hint}</span>
+                <span className="block text-micro text-muted-foreground">{opt.hint}</span>
               </span>
             </label>
           ))}
@@ -159,7 +159,7 @@ export function SupportTicketForm({ initialEmail, showContactFields, channel }: 
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="Optional"
-              className="block h-9 w-full rounded-md border bg-background px-3 text-sm"
+              className="block h-9 w-full rounded-lg border bg-background px-3 text-sm"
             />
           </div>
           <div className="space-y-1.5">
@@ -173,7 +173,7 @@ export function SupportTicketForm({ initialEmail, showContactFields, channel }: 
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="you@example.com"
-              className="block h-9 w-full rounded-md border bg-background px-3 text-sm"
+              className="block h-9 w-full rounded-lg border bg-background px-3 text-sm"
             />
           </div>
         </div>
@@ -191,7 +191,7 @@ export function SupportTicketForm({ initialEmail, showContactFields, channel }: 
           value={subject}
           onChange={(e) => setSubject(e.target.value)}
           placeholder="e.g. Razorpay checkout shows a blank page"
-          className="block h-9 w-full rounded-md border bg-background px-3 text-sm"
+          className="block h-9 w-full rounded-lg border bg-background px-3 text-sm"
         />
       </div>
 
@@ -207,9 +207,9 @@ export function SupportTicketForm({ initialEmail, showContactFields, channel }: 
           onChange={(e) => setMessage(e.target.value)}
           rows={6}
           placeholder="Steps to reproduce, what went wrong, what you expected..."
-          className="block w-full rounded-md border bg-background p-3 text-sm"
+          className="block w-full rounded-lg border bg-background p-3 text-sm"
         />
-        <div className="flex justify-between text-[11px] text-muted-foreground">
+        <div className="flex justify-between text-xs text-muted-foreground">
           <span>Plain text - you can attach screenshots by replying to the email.</span>
           <span>{message.length} / 8000</span>
         </div>
@@ -223,7 +223,7 @@ export function SupportTicketForm({ initialEmail, showContactFields, channel }: 
       <button
         type="submit"
         disabled={pending}
-        className="inline-flex h-9 items-center gap-2 rounded-md bg-foreground px-4 text-xs font-medium text-background hover:bg-foreground/90 disabled:opacity-50"
+        className="inline-flex h-9 items-center gap-2 rounded-lg bg-foreground px-4 text-xs font-medium text-background hover:bg-foreground/90 disabled:opacity-50"
       >
         {pending ? <Loader2 className="h-3 w-3 animate-spin" /> : null}
         {pending ? "Sending..." : "Send to support"}

@@ -92,9 +92,9 @@ export function TypedConfirmButton({
           setTyped("");
         }}
         className={cn(
-          "inline-flex items-center justify-center rounded-md border px-3 py-1.5 text-xs font-medium transition-colors",
+          "inline-flex items-center justify-center rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors",
           variant === "destructive"
-            ? "border-red-600/40 text-red-700 hover:bg-red-500/10 dark:text-red-300"
+            ? "border-destructive-subtle text-destructive-strong hover:bg-destructive-subtle"
             : "border-border hover:bg-accent",
           disabled && "cursor-not-allowed opacity-50",
           className,
@@ -108,10 +108,10 @@ export function TypedConfirmButton({
   return (
     <div
       className={cn(
-        "flex flex-col gap-2 rounded-md border p-3 text-xs",
+        "flex flex-col gap-2 rounded-lg border p-3 text-xs",
         variant === "destructive"
-          ? "border-red-600/40 bg-red-500/5"
-          : "border-amber-500/40 bg-amber-500/5",
+          ? "border-destructive-subtle bg-destructive-subtle"
+          : "border-warning-subtle bg-warning-subtle",
         className,
       )}
     >
@@ -138,9 +138,9 @@ export function TypedConfirmButton({
           disabled={!canSubmit}
           onClick={() => setSubmitting(true)}
           className={cn(
-            "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 font-medium",
+            "inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 font-medium",
             variant === "destructive"
-              ? "bg-red-600 text-white hover:bg-red-700"
+              ? "bg-destructive text-white hover:bg-destructive"
               : "bg-foreground text-background hover:bg-foreground/90",
             !canSubmit && "cursor-not-allowed opacity-50",
           )}
@@ -158,7 +158,7 @@ export function TypedConfirmButton({
             setOpen(false);
             setTyped("");
           }}
-          className="rounded-md border border-border px-3 py-1.5 hover:bg-accent"
+          className="rounded-lg border border-border px-3 py-1.5 hover:bg-accent"
         >
           Cancel
         </button>

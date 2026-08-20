@@ -48,8 +48,8 @@ function formatSlot(iso: string): string {
 }
 
 const STATUS_STYLE: Record<string, string> = {
-  proposed: "bg-amber-500/10 text-amber-700 dark:text-amber-300",
-  confirmed: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
+  proposed: "bg-warning-subtle text-warning-strong",
+  confirmed: "bg-success-subtle text-success-strong",
   cancelled: "bg-muted text-muted-foreground",
   completed: "bg-primary/10 text-primary",
 };
@@ -149,7 +149,7 @@ export function MeetingDetailView({
               <div className="flex flex-wrap items-center gap-2">
                 <span
                   className={cn(
-                    "rounded-full px-2 py-0.5 text-[11px] font-semibold",
+                    "rounded-full px-2 py-0.5 text-micro font-semibold",
                     STATUS_STYLE[meeting.status],
                   )}
                 >
@@ -164,7 +164,7 @@ export function MeetingDetailView({
 
               {meeting.status === "confirmed" && meeting.scheduledAt ? (
                 <div className="flex items-start gap-3">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
                     <CalendarClock className="h-5 w-5" />
                   </div>
                   <div className="min-w-0">

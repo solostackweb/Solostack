@@ -93,7 +93,7 @@ export function InvoiceMobileCard({
   ];
 
   return (
-    <SwipeRow actions={swipeActions} className="rounded-xl">
+    <SwipeRow actions={swipeActions} className="rounded-lg">
     <div
       role="button"
       tabIndex={0}
@@ -105,7 +105,7 @@ export function InvoiceMobileCard({
         }
       }}
       className={cn(
-        "tap-scale group relative flex w-full flex-col gap-2 rounded-xl border bg-card p-3.5 text-left shadow-sm transition-colors active:bg-muted/40",
+        "tap-scale group relative flex w-full flex-col gap-2 rounded-lg border bg-card p-3.5 text-left shadow-sm transition-colors active:bg-muted/40",
         isSelected && "border-primary/50 ring-1 ring-primary/30",
       )}
     >
@@ -125,29 +125,29 @@ export function InvoiceMobileCard({
 
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
-            <p className="truncate text-[14px] font-semibold leading-tight">
+            <p className="truncate text-sm font-semibold leading-tight">
               {invoice.invoiceNumber}
             </p>
             <InvoiceStatusBadge status={invoice.status} />
           </div>
-          <p className="mt-0.5 truncate text-[12px] text-muted-foreground">
+          <p className="mt-0.5 truncate text-xs text-muted-foreground">
             {clientName ?? "—"}
           </p>
         </div>
 
         <div className="flex shrink-0 flex-col items-end gap-0.5">
-          <div className="text-[15px] font-semibold tabular-nums leading-tight">
+          <div className="text-sm font-semibold tabular-nums leading-tight">
             {formatMoney(Number(invoice.totalAmount) || 0, invoice.currency)}
           </div>
           {invoice.taxTotal > 0 && (
-            <div className="text-[10px] tabular-nums text-muted-foreground">
+            <div className="text-xs tabular-nums text-muted-foreground">
               incl. {formatMoney(Number(invoice.taxTotal) || 0, invoice.currency)}
             </div>
           )}
         </div>
       </div>
 
-      <div className="flex items-center justify-between gap-2 border-t pt-2 text-[11px]">
+      <div className="flex items-center justify-between gap-2 border-t pt-2 text-xs">
         <div className="flex items-center gap-2 text-muted-foreground">
           <span>Issued {issued}</span>
           <span aria-hidden>·</span>

@@ -104,10 +104,10 @@ export function SqlRunner() {
       <div className="flex flex-col gap-2 lg:flex-row lg:items-start">
         <div className="flex-1 space-y-2">
           <div className="flex items-center justify-between gap-2">
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+            <span className="text-micro font-semibold uppercase tracking-wider text-muted-foreground">
               Query
             </span>
-            <span className="text-[10px] text-muted-foreground">
+            <span className="text-micro text-muted-foreground">
               SELECT / WITH / EXPLAIN only - 30s timeout - read-only role
             </span>
           </div>
@@ -117,14 +117,14 @@ export function SqlRunner() {
             onKeyDown={onKeyDown}
             spellCheck={false}
             rows={10}
-            className="w-full rounded-md border bg-muted/30 p-3 font-mono text-xs leading-relaxed"
+            className="w-full rounded-lg border bg-muted/30 p-3 font-mono text-xs leading-relaxed"
           />
           <div className="flex flex-wrap items-center gap-2">
             <button
               type="button"
               onClick={() => void run()}
               disabled={pending}
-              className="inline-flex h-8 items-center gap-1.5 rounded-md bg-foreground px-3 text-xs font-medium text-background hover:bg-foreground/90 disabled:opacity-60"
+              className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-foreground px-3 text-xs font-medium text-background hover:bg-foreground/90 disabled:opacity-60"
             >
               {pending ? (
                 <Loader2 className="h-3 w-3 animate-spin" />
@@ -139,13 +139,13 @@ export function SqlRunner() {
                 void navigator.clipboard.writeText(sql);
                 toast.success("Copied SQL");
               }}
-              className="inline-flex h-8 items-center gap-1.5 rounded-md border bg-background px-3 text-xs hover:bg-accent"
+              className="inline-flex h-8 items-center gap-1.5 rounded-lg border bg-background px-3 text-xs hover:bg-accent"
             >
               <Copy className="h-3 w-3" />
               Copy
             </button>
             {result ? (
-              <span className="text-[11px] tabular-nums text-muted-foreground">
+              <span className="text-xs tabular-nums text-muted-foreground">
                 {result.ok ? "OK" : "ERR"} {result.rowCount} rows - {result.elapsedMs}ms
               </span>
             ) : null}
@@ -153,10 +153,10 @@ export function SqlRunner() {
         </div>
 
         <aside className="w-full shrink-0 space-y-1.5 lg:w-64">
-          <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+          <span className="text-micro font-semibold uppercase tracking-wider text-muted-foreground">
             Saved queries
           </span>
-          <ul className="space-y-1 rounded-xl border bg-card shadow-sm shadow-black/[0.03] p-1.5">
+          <ul className="space-y-1 rounded-lg border bg-card shadow-sm shadow-black/[0.03] p-1.5">
             {SAVED.map((q) => (
               <li key={q.label}>
                 <button
@@ -182,12 +182,12 @@ export function SqlRunner() {
 function ResultPanel({ result }: { result: SqlResult }) {
   if (!result.ok) {
     return (
-      <div className="space-y-2 rounded-md border border-red-500/40 bg-red-500/5 p-3 text-xs">
-        <div className="font-medium text-red-700 dark:text-red-300">
+      <div className="space-y-2 rounded-lg border border-destructive-subtle bg-destructive-subtle p-3 text-xs">
+        <div className="font-medium text-destructive-strong">
           Query failed
         </div>
         {result.sqlstate ? (
-          <div className="font-mono text-[11px] text-muted-foreground">
+          <div className="font-mono text-micro text-muted-foreground">
             sqlstate {result.sqlstate}
           </div>
         ) : null}
@@ -200,7 +200,7 @@ function ResultPanel({ result }: { result: SqlResult }) {
 
   if (result.rows.length === 0) {
     return (
-      <div className="rounded-md border border-dashed bg-muted/20 px-3 py-3 text-xs text-muted-foreground">
+      <div className="rounded-lg border border-dashed bg-muted/20 px-3 py-3 text-xs text-muted-foreground">
         Query returned 0 rows.
       </div>
     );
@@ -208,12 +208,12 @@ function ResultPanel({ result }: { result: SqlResult }) {
 
   return (
     <div className="space-y-1.5">
-      <div className="text-[11px] text-muted-foreground tabular-nums">
+      <div className="text-xs text-muted-foreground tabular-nums">
         {result.rowCount} rows - {result.elapsedMs}ms
       </div>
-      <div className="overflow-x-auto rounded-xl border bg-card shadow-sm shadow-black/[0.03]">
+      <div className="overflow-x-auto rounded-lg border bg-card shadow-sm shadow-black/[0.03]">
         <table className="min-w-full text-xs">
-          <thead className="bg-muted/40 text-left text-[10px] uppercase tracking-wider text-muted-foreground">
+          <thead className="bg-muted/40 text-left text-micro uppercase tracking-wider text-muted-foreground">
             <tr>
               {result.columns.map((c) => (
                 <th key={c} className="whitespace-nowrap px-2.5 py-1.5 font-medium">
@@ -245,7 +245,7 @@ function ResultPanel({ result }: { result: SqlResult }) {
         </table>
       </div>
       {result.rows.length > 500 ? (
-        <div className="text-[11px] text-muted-foreground">
+        <div className="text-xs text-muted-foreground">
           Showing first 500 rows. Add a tighter <code>WHERE</code> /
           <code>LIMIT</code> to see the rest.
         </div>

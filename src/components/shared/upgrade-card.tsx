@@ -43,15 +43,15 @@ export function UpgradeCard({
     >
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="flex items-start gap-3.5">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-primary/15 to-violet-500/10 ring-1 ring-primary/20 text-primary">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-primary/15 to-violet-500/10 ring-1 ring-primary/20 text-primary">
             <Icon className="h-[18px] w-[18px]" />
           </div>
           <div className="min-w-0">
-            <span className="mb-1.5 inline-flex items-center gap-1 rounded-full border border-primary/20 bg-primary/8 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-primary">
+            <span className="mb-1.5 inline-flex items-center gap-1 rounded-full border border-primary/20 bg-primary/8 px-2 py-0.5 text-micro font-semibold uppercase tracking-wider text-primary">
               <Sparkles className="h-2.5 w-2.5" aria-hidden="true" />
               {requiredPlan}
             </span>
-            <p className="text-[14px] font-semibold">{title}</p>
+            <p className="text-sm font-semibold">{title}</p>
             <p className="mt-0.5 text-sm leading-relaxed text-muted-foreground">
               {description}
             </p>
@@ -81,7 +81,7 @@ export function UpgradeCard({
         <Button
           asChild
           size="sm"
-          className="btn-gradient shrink-0 self-start rounded-xl border-0 sm:self-center"
+          className="btn-gradient shrink-0 self-start rounded-lg border-0 sm:self-center"
         >
           <Link href={ctaHref}>
             {ctaLabel}

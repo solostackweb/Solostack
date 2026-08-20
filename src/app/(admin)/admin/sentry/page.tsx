@@ -156,15 +156,15 @@ export default async function AdminSentryPage({ searchParams }: Props) {
                 {/* Level indicator */}
                 <div className={cn(
                   "mt-0.5 h-2 w-2 shrink-0 rounded-full",
-                  issue.level === "fatal" ? "bg-red-500"
+                  issue.level === "fatal" ? "bg-destructive"
                   : issue.level === "error" ? "bg-orange-500"
-                  : issue.level === "warning" ? "bg-amber-400"
+                  : issue.level === "warning" ? "bg-warning"
                   : "bg-muted-foreground/40",
                 )} />
 
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-start gap-2">
-                    <span className="min-w-0 flex-1 truncate text-[13px] font-medium leading-snug">
+                    <span className="min-w-0 flex-1 truncate text-xs font-medium leading-snug">
                       {issue.title}
                     </span>
                     <a
@@ -178,30 +178,30 @@ export default async function AdminSentryPage({ searchParams }: Props) {
                   </div>
 
                   {issue.culprit && (
-                    <p className="mt-0.5 truncate font-mono text-[11px] text-muted-foreground">
+                    <p className="mt-0.5 truncate font-mono text-xs text-muted-foreground">
                       {issue.culprit}
                     </p>
                   )}
 
                   {issue.metadata?.value && (
-                    <p className="mt-0.5 truncate text-[11px] text-muted-foreground/70">
+                    <p className="mt-0.5 truncate text-xs text-muted-foreground/70">
                       {issue.metadata.value}
                     </p>
                   )}
 
-                  <div className="mt-1.5 flex flex-wrap items-center gap-3 text-[11px] text-muted-foreground">
+                  <div className="mt-1.5 flex flex-wrap items-center gap-3 text-micro text-muted-foreground">
                     <span className={cn(
-                      "rounded px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wider",
+                      "rounded px-1.5 py-0.5 text-micro font-medium uppercase tracking-wider",
                       issue.level === "fatal"
-                        ? "bg-red-500/10 text-red-700 dark:text-red-300"
+                        ? "bg-destructive-subtle text-destructive-strong"
                         : issue.level === "error"
                           ? "bg-orange-500/10 text-orange-700 dark:text-orange-300"
-                          : "bg-amber-500/10 text-amber-700 dark:text-amber-300",
+                          : "bg-warning-subtle text-warning-strong",
                     )}>
                       {issue.level}
                     </span>
                     {issue.isUnhandled && (
-                      <span className="rounded bg-red-500/10 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wider text-red-700 dark:text-red-300">
+                      <span className="rounded bg-destructive-subtle px-1.5 py-0.5 text-micro font-medium uppercase tracking-wider text-destructive-strong">
                         unhandled
                       </span>
                     )}

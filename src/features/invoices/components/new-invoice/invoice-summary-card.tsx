@@ -38,7 +38,7 @@ export function InvoiceSummaryCard({
     <Card>
       <CardContent className="space-y-5 p-5">
         <div>
-          <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+          <p className="text-micro font-semibold uppercase tracking-wider text-muted-foreground">
             Invoice summary
           </p>
           <p className="mt-2 text-3xl font-semibold tabular-nums tracking-tight">
@@ -54,7 +54,7 @@ export function InvoiceSummaryCard({
         />
 
         {dueDateLabel && (
-          <div className="flex items-center justify-center gap-2 rounded-md bg-success/10 px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-success">
+          <div className="flex items-center justify-center gap-2 rounded-lg bg-success/10 px-3 py-2 text-micro font-semibold uppercase tracking-wider text-success">
             <CalendarCheck className="h-3.5 w-3.5" />
             Due on {dueDateLabel}
           </div>

@@ -101,7 +101,7 @@ function SummaryCard({
     )}>
       <CardContent className="min-h-36 space-y-3 p-4 sm:p-5">
         <div className="flex items-center justify-between gap-2">
-          <p className="min-w-0 break-words text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
+          <p className="min-w-0 break-words text-micro font-semibold uppercase tracking-widest text-muted-foreground">
             {label}
           </p>
           <span
@@ -110,7 +110,7 @@ function SummaryCard({
               tone === "primary" &&
                 "bg-gradient-to-br from-primary/10 to-blue-500/10 text-primary ring-primary/15",
               tone === "success" &&
-                "bg-gradient-to-br from-emerald-500/10 to-teal-500/10 text-emerald-600 ring-emerald-500/15 dark:text-emerald-400",
+                "bg-gradient-to-br from-emerald-500/10 to-teal-500/10 text-success-strong ring-success-subtle",
               tone === "default" &&
                 "bg-gradient-to-br from-primary/10 to-blue-500/10 text-primary ring-primary/15",
             )}

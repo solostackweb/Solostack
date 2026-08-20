@@ -38,7 +38,7 @@ export function UpgradeBadge({
   const badge = (
     <span
       className={cn(
-        "inline-flex items-center gap-1 rounded-full border border-primary/20 bg-gradient-to-r from-primary/10 to-violet-500/8 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-primary",
+        "inline-flex items-center gap-1 rounded-full border border-primary/20 bg-gradient-to-r from-primary/10 to-violet-500/8 px-2 py-0.5 text-micro font-semibold uppercase tracking-wider text-primary",
         linkable && "transition-opacity hover:opacity-80",
         className,
       )}

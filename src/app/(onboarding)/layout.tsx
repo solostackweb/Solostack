@@ -32,7 +32,7 @@ export default function OnboardingLayout({
       >
         <Link
           href="/"
-          className="inline-flex items-center rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+          className="inline-flex items-center rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
           aria-label="Stackivo home"
         >
           <StackivoLogo className="[&>span:first-child]:h-9 [&>span:first-child]:w-9 [&>span:last-child]:text-base" />

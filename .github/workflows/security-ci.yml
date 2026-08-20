@@ -41,6 +41,9 @@ jobs:
       - name: Verify client env boundary
         run: npm run security:client-env
 
+      - name: Verify design tokens
+        run: npm run verify:design
+
       - name: Type-check
         run: npm run type-check
 

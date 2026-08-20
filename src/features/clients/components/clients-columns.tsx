@@ -80,7 +80,7 @@ export function buildClientColumns({
             className="flex items-center gap-3 group/name"
           >
             <Avatar className="h-8 w-8">
-              <AvatarFallback className="text-[10px] font-medium">
+              <AvatarFallback className="text-micro font-medium">
                 {getClientInitials(display)}
               </AvatarFallback>
             </Avatar>
@@ -117,7 +117,7 @@ export function buildClientColumns({
         const c = row.original;
         if (c.isForeign) {
           return (
-            <span className="inline-flex items-center rounded-full border border-sky-500/25 bg-sky-500/10 px-2 py-0.5 text-xs font-medium text-sky-700 dark:text-sky-300">
+            <span className="inline-flex items-center rounded-full border border-info-subtle bg-info-subtle px-2 py-0.5 text-xs font-medium text-info-strong">
               International
             </span>
           );

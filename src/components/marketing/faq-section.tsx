@@ -53,7 +53,7 @@ export function FaqSection({
                 type="button"
                 onClick={() => handleToggle(i)}
                 aria-expanded={isOpen}
-                className="flex w-full items-center justify-between gap-6 px-6 py-5 text-left text-[15px] font-medium transition-colors hover:bg-accent/40"
+                className="flex w-full items-center justify-between gap-6 px-6 py-5 text-left text-sm font-medium transition-colors hover:bg-accent/40"
               >
                 {f.q}
                 <ChevronDown

@@ -39,7 +39,7 @@ export function FieldProposalReview({
   const unchanged = isNoOpDiff(diff);
 
   return (
-    <div className={cn("rounded-md border bg-muted/30 p-3", className)}>
+    <div className={cn("rounded-lg border bg-muted/30 p-3", className)}>
       {unchanged ? (
         <div className="flex items-center justify-between gap-2">
           <p className="text-xs text-muted-foreground">
@@ -101,7 +101,7 @@ export function DiffView({ diff }: { diff: DiffSegment[] }) {
           return (
             <span
               key={index}
-              className="rounded-sm bg-emerald-500/15 text-emerald-700 dark:text-emerald-300"
+              className="rounded-sm bg-success-subtle text-success-strong"
             >
               {segment.text}
             </span>

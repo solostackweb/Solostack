@@ -51,9 +51,9 @@ export function PublicPaymentPanel({
 
   if (alreadyPaid) {
     return (
-      <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/5 p-5 text-center">
-        <ShieldCheck className="mx-auto mb-2 h-7 w-7 text-emerald-600" />
-        <p className="text-sm font-semibold text-emerald-700 dark:text-emerald-400">
+      <div className="rounded-lg border border-success-subtle bg-success-subtle p-5 text-center">
+        <ShieldCheck className="mx-auto mb-2 h-7 w-7 text-success-strong" />
+        <p className="text-sm font-semibold text-success-strong">
           This invoice has been paid.
         </p>
         <p className="mt-1 text-xs text-muted-foreground">
@@ -65,9 +65,9 @@ export function PublicPaymentPanel({
 
   if (success) {
     return (
-      <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/5 p-5 text-center">
-        <ShieldCheck className="mx-auto mb-2 h-7 w-7 text-emerald-600" />
-        <p className="text-sm font-semibold text-emerald-700 dark:text-emerald-400">
+      <div className="rounded-lg border border-success-subtle bg-success-subtle p-5 text-center">
+        <ShieldCheck className="mx-auto mb-2 h-7 w-7 text-success-strong" />
+        <p className="text-sm font-semibold text-success-strong">
           Payment received — thank you!
         </p>
         <p className="mt-1 text-xs text-muted-foreground">
@@ -189,11 +189,11 @@ export function PublicPaymentPanel({
           )}
         </Button>
         {error && (
-          <p className="mt-3 rounded-md bg-destructive/10 p-2.5 text-xs text-destructive">
+          <p className="mt-3 rounded-lg bg-destructive/10 p-2.5 text-xs text-destructive">
             {error}
           </p>
         )}
-        <p className="mt-3 text-center text-[11px] text-muted-foreground">
+        <p className="mt-3 text-center text-xs text-muted-foreground">
           Stackivo never sees your card details. Razorpay is PCI-DSS L1.
         </p>
       </div>

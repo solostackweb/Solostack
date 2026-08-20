@@ -103,7 +103,7 @@ export function LogoUploader({
 
   return (
     <div className={cn("space-y-2", className)}>
-      <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+      <p className="text-micro font-semibold uppercase tracking-wider text-muted-foreground">
         {label}
       </p>
 
@@ -112,7 +112,7 @@ export function LogoUploader({
         <div
           className={cn(
             "flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden border bg-muted",
-            shape === "circle" ? "rounded-full" : "rounded-md",
+            shape === "circle" ? "rounded-full" : "rounded-lg",
           )}
         >
           {preview ? (
@@ -154,7 +154,7 @@ export function LogoUploader({
           tabIndex={0}
           aria-label={`Upload ${label.toLowerCase()}`}
           className={cn(
-            "flex flex-1 cursor-pointer flex-col items-center justify-center rounded-md border border-dashed px-4 py-4 text-center transition-colors",
+            "flex flex-1 cursor-pointer flex-col items-center justify-center rounded-lg border border-dashed px-4 py-4 text-center transition-colors",
             isDragging
               ? "border-primary bg-primary/5"
               : "hover:border-primary/50 hover:bg-muted/50",
@@ -168,7 +168,7 @@ export function LogoUploader({
             </span>
             {!isUploading && " or drag & drop"}
           </p>
-          <p className="mt-0.5 text-[11px] text-muted-foreground">{hint}</p>
+          <p className="mt-0.5 text-xs text-muted-foreground">{hint}</p>
           <input
             ref={inputRef}
             type="file"

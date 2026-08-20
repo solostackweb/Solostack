@@ -571,7 +571,7 @@ export function ContractBuilderView({
       </div>
 
       {/* Mobile tab toggle */}
-      <div className="flex rounded-md bg-muted p-0.5 lg:hidden">
+      <div className="flex rounded-lg bg-muted p-0.5 lg:hidden">
         <MobileTab
           active={mobileTab === "edit"}
           onClick={() => setMobileTab("edit")}
@@ -586,7 +586,7 @@ export function ContractBuilderView({
       </div>
 
       {template && (
-        <div className="flex flex-wrap items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-amber-950 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-100">
+        <div className="flex flex-wrap items-start gap-3 rounded-lg border border-warning-subtle bg-warning-subtle px-4 py-3 text-warning-strong">
           <CircleAlert className="mt-0.5 h-4 w-4 shrink-0" />
           <div className="min-w-0 flex-1 space-y-1 text-sm">
             <p className="font-medium">
@@ -594,7 +594,7 @@ export function ContractBuilderView({
                 ? `${placeholderCount} placeholder${placeholderCount === 1 ? "" : "s"} left to replace`
                 : "All placeholders replaced"}
             </p>
-            <p className="text-xs leading-5 text-amber-900/80 dark:text-amber-100/80">
+            <p className="text-xs leading-5 text-warning-strong">
               Replace bracketed text like [date], [amount], or [client name], then
               check names, fees, scope, and revision limits. Save a draft anytime;
               sending is blocked while placeholders remain.
@@ -606,7 +606,7 @@ export function ContractBuilderView({
               size="sm"
               variant="outline"
               onClick={jumpToPlaceholder}
-              className="shrink-0 border-amber-300 bg-white/60 text-amber-900 hover:bg-white dark:border-amber-500/40 dark:bg-transparent dark:text-amber-100"
+              className="shrink-0 border-warning-subtle bg-white/60 text-warning-strong hover:bg-white dark:bg-transparent"
             >
               Jump to placeholder
             </Button>
@@ -625,7 +625,7 @@ export function ContractBuilderView({
         >
           <Card>
             <CardContent className="space-y-4 p-5">
-              <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+              <p className="text-micro font-semibold uppercase tracking-wider text-muted-foreground">
                 Details
               </p>
               <Field label="Title">
@@ -740,7 +740,7 @@ export function ContractBuilderView({
           <Card>
             <CardContent className="space-y-4 p-5">
               <div className="flex items-center justify-between">
-                <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                <p className="text-micro font-semibold uppercase tracking-wider text-muted-foreground">
                   Sections
                 </p>
                 <Button variant="ghost" size="sm" onClick={addSection}>
@@ -757,7 +757,7 @@ export function ContractBuilderView({
                   {sections.map((s, i) => (
                     <li
                       key={s.id}
-                      className="rounded-md border bg-background p-3"
+                      className="rounded-lg border bg-background p-3"
                     >
                       <div className="flex items-center gap-2">
                         <button
@@ -771,7 +771,7 @@ export function ContractBuilderView({
                         >
                           <GripVertical className="h-4 w-4" />
                         </button>
-                        <span className="font-mono text-[11px] tabular-nums text-muted-foreground">
+                        <span className="font-mono text-xs tabular-nums text-muted-foreground">
                           {String(i + 1).padStart(2, "0")}
                         </span>
                         <Input
@@ -877,7 +877,7 @@ function Field({
 }) {
   return (
     <div className="space-y-1.5">
-      <label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+      <label className="text-micro font-semibold uppercase tracking-wider text-muted-foreground">
         {label}
       </label>
       {children}
@@ -912,13 +912,13 @@ function ContractStartCard({
     <button
       type="button"
       onClick={onClick}
-      className="group flex h-full w-full flex-col rounded-xl border bg-card p-5 text-left transition hover:border-primary/40 hover:shadow-sm"
+      className="group flex h-full w-full flex-col rounded-lg border bg-card p-5 text-left transition hover:border-primary/40 hover:shadow-sm"
     >
       <div className="flex items-start justify-between gap-3">
         <div className="flex h-10 w-10 items-center justify-center rounded-lg border bg-background text-primary">
           <Icon className="h-5 w-5" />
         </div>
-        <span className="rounded-full border bg-background px-2 py-0.5 text-[11px] font-semibold text-muted-foreground">
+        <span className="rounded-full border bg-background px-2 py-0.5 text-micro font-semibold text-muted-foreground">
           {badge}
         </span>
       </div>
@@ -927,7 +927,7 @@ function ContractStartCard({
         {description}
       </p>
       {meta ? (
-        <p className="mt-3 border-t pt-3 text-[11px] text-muted-foreground">
+        <p className="mt-3 border-t pt-3 text-xs text-muted-foreground">
           {meta}
         </p>
       ) : null}

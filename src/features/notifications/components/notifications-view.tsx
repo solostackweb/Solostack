@@ -159,7 +159,7 @@ export function NotificationsView({ initial }: NotificationsViewProps) {
         <div className="space-y-6">
           {grouped.map((group) => (
             <section key={group.label} className="space-y-2">
-              <h2 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+              <h2 className="text-micro font-semibold uppercase tracking-wider text-muted-foreground">
                 {group.label}
               </h2>
               <Card>
@@ -186,7 +186,7 @@ export function NotificationsView({ initial }: NotificationsViewProps) {
 function Count({ value }: { value: number }) {
   if (value === 0) return null;
   return (
-    <span className="ml-1 rounded-full bg-muted px-1.5 py-0.5 text-[10px] font-medium tabular-nums text-muted-foreground">
+    <span className="ml-1 rounded-full bg-muted px-1.5 py-0.5 text-micro font-medium tabular-nums text-muted-foreground">
       {value}
     </span>
   );
@@ -217,7 +217,7 @@ function NotificationRow({
       >
         <span
           className={cn(
-            "mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-md",
+            "mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg",
             notificationToneClass(tone),
           )}
         >
@@ -235,7 +235,7 @@ function NotificationRow({
               {notification.message}
             </p>
           )}
-          <p className="mt-1 text-[11px] text-muted-foreground/80">
+          <p className="mt-1 text-xs text-muted-foreground/80">
             {formatRelativeTime(notification.createdAt)}
           </p>
         </div>

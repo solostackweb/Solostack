@@ -47,7 +47,7 @@ export default async function PublicProposalPage({ params }: Props) {
       logoUrl={data.logoUrl}
       accent={data.seller?.brand_color}
       statusBadge={
-        <Badge variant="secondary" className="h-5 px-1.5 text-[10px] capitalize">
+        <Badge variant="secondary" className="h-5 px-1.5 text-xs capitalize">
           {data.proposal.status}
         </Badge>
       }

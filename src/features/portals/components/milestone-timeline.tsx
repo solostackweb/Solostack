@@ -27,10 +27,10 @@ const TYPE_ICON: Record<PortalUpdateType, LucideIcon> = {
 };
 
 const TYPE_DOT: Record<PortalUpdateType, string> = {
-  progress: "text-sky-500",
+  progress: "text-info-strong",
   deliverable: "text-violet-500",
-  revision: "text-amber-500",
-  payment: "text-emerald-500",
+  revision: "text-warning-strong",
+  payment: "text-success-strong",
   milestone: "text-orange-500",
   meeting: "text-blue-500",
   general: "text-muted-foreground",
@@ -80,7 +80,7 @@ export function MilestoneTimeline({
               {/* Node */}
               <span className="relative z-10 mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center">
                 {approved ? (
-                  <CheckCircle2 className="h-5 w-5 text-emerald-500" />
+                  <CheckCircle2 className="h-5 w-5 text-success-strong" />
                 ) : (
                   <Icon className={`h-5 w-5 ${dot}`} />
                 )}
@@ -90,12 +90,12 @@ export function MilestoneTimeline({
                 <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
                   <p className="text-sm font-medium leading-snug">{u.title}</p>
                   {approved && (
-                    <span className="rounded-full bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">
+                    <span className="rounded-full bg-success-subtle px-1.5 py-0.5 text-micro font-semibold text-success-strong">
                       Approved
                     </span>
                   )}
                 </div>
-                <p className="mt-0.5 text-[11px] capitalize text-muted-foreground">
+                <p className="mt-0.5 text-micro capitalize text-muted-foreground">
                   {u.update_type} · {fmt(u.created_at)}
                 </p>
                 {u.body && (

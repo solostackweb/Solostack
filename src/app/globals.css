@@ -1,11 +1,19 @@
+/*
+ * Inter, self-hosted via @fontsource-variable/inter. Deliberately NOT
+ * next/font/google: the build must never depend on reaching Google. Inter is
+ * used for one concrete reason beyond looks — it ships true tabular figures,
+ * and an invoicing product aligns numbers in columns constantly.
+ */
+@import "@fontsource-variable/inter";
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   :root {
-    /* Build-safe system stacks. Avoid next/font/google so builds never depend on Google Fonts. */
-    --font-sans: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    /* Self-hosted; the system stack remains the fallback if the face fails. */
+    --font-sans: "Inter Variable", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
     --font-display: var(--font-sans);
 
@@ -52,6 +60,16 @@
     --sidebar-border: 240 18% 90%;
     --sidebar-accent: 221 30% 95%;
     --sidebar-accent-foreground: 222 47% 11%;
+
+    /* Status pills: tinted surface + readable text, per theme. */
+    --success-subtle: 142 60% 95%;
+    --success-strong: 142 72% 27%;
+    --warning-subtle: 38 92% 95%;
+    --warning-strong: 32 81% 30%;
+    --info-subtle: 199 89% 95%;
+    --info-strong: 201 90% 30%;
+    --destructive-subtle: 0 86% 96%;
+    --destructive-strong: 0 74% 39%;
 
     --radius: 0.625rem;
   }
@@ -113,6 +131,17 @@
     --sidebar-border: 238 14% 14%;
     --sidebar-accent: 238 14% 12%;
     --sidebar-accent-foreground: 215 20% 95%;
+
+    /* Dark uses desaturated tints, not inverted light values — a pair that
+       passes contrast on white usually fails on a dark surface. */
+    --success-subtle: 142 40% 16%;
+    --success-strong: 142 60% 70%;
+    --warning-subtle: 38 45% 17%;
+    --warning-strong: 38 85% 70%;
+    --info-subtle: 199 45% 17%;
+    --info-strong: 199 80% 72%;
+    --destructive-subtle: 0 40% 18%;
+    --destructive-strong: 0 80% 74%;
   }
 }
 

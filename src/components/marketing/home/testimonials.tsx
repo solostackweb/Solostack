@@ -43,11 +43,11 @@ export function Testimonials() {
       <StaggerReveal className="mt-10 grid gap-5 md:grid-cols-3 lg:mt-12">
         {TESTIMONIALS.map((t) => (
           <StaggerItem key={t.name} className="h-full">
-            <figure className="flex h-full flex-col rounded-3xl border border-border/80 bg-card p-7">
+            <figure className="flex h-full flex-col rounded-2xl border border-border/80 bg-card p-7">
               <div className="text-2xl font-serif leading-none text-primary/30" aria-hidden>
                 &ldquo;
               </div>
-              <blockquote className="mt-2 flex-1 text-[15px] leading-[1.7] text-foreground/90">
+              <blockquote className="mt-2 flex-1 text-sm leading-[1.7] text-foreground/90">
                 {t.quote}
               </blockquote>
               <figcaption className="mt-6 flex items-center gap-3 border-t border-border/60 pt-5">

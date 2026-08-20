@@ -62,7 +62,7 @@ export function QuestionnairesView({
                       </p>
                     </div>
                   </div>
-                  <p className="mt-3 text-[11px] text-muted-foreground">
+                  <p className="mt-3 text-xs text-muted-foreground">
                     {q.questions.length} question
                     {q.questions.length === 1 ? "" : "s"}
                   </p>
@@ -128,7 +128,7 @@ export function QuestionnairesView({
                 <p className="mt-1 line-clamp-2 flex-1 text-xs text-muted-foreground">
                   {starter.description}
                 </p>
-                <p className="mt-3 text-[11px] text-muted-foreground">
+                <p className="mt-3 text-xs text-muted-foreground">
                   {starter.questions.length} questions
                 </p>
                 <form action={createFromStarterAction} className="mt-3">

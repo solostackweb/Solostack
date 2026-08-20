@@ -143,7 +143,7 @@ export function ExitIntentModal() {
         />
 
         <div className="relative">
-          <span className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-3 py-1 text-[11px] font-semibold uppercase tracking-wider text-primary">
+          <span className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-3 py-1 text-micro font-semibold uppercase tracking-wider text-primary">
             <Sparkles className="h-3 w-3" />
             Wait — before you go
           </span>
@@ -172,7 +172,7 @@ export function ExitIntentModal() {
           <button
             type="button"
             onClick={onClose}
-            className="mt-4 text-[11px] font-medium text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+            className="mt-4 text-micro font-medium text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
           >
             No thanks — close
           </button>

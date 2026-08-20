@@ -146,7 +146,7 @@ export function ProjectsListView({ projects, clients, autoCreate }: ProjectsList
             </SelectContent>
           </Select>
 
-          <div className="ml-auto inline-flex shrink-0 rounded-md bg-muted p-0.5">
+          <div className="ml-auto inline-flex shrink-0 rounded-lg bg-muted p-0.5">
             <ViewToggleButton
               active={view === "grid"}
               onClick={() => setView("grid")}
@@ -333,10 +333,10 @@ function KanbanBoard({
             <div key={status} className="flex w-72 shrink-0 flex-col gap-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                  <span className="text-micro font-semibold uppercase tracking-wider text-muted-foreground">
                     {PROJECT_STATUS_LABEL[status]}
                   </span>
-                  <span className="rounded-full bg-muted px-1.5 py-0.5 text-[10px] font-medium tabular-nums text-muted-foreground">
+                  <span className="rounded-full bg-muted px-1.5 py-0.5 text-micro font-medium tabular-nums text-muted-foreground">
                     {items.length}
                   </span>
                 </div>
@@ -363,7 +363,7 @@ function KanbanBoard({
                 )}
               >
                 {items.length === 0 ? (
-                  <p className="py-6 text-center text-[11px] text-muted-foreground">
+                  <p className="py-6 text-center text-xs text-muted-foreground">
                     {isOver ? "Drop here" : "Nothing here"}
                   </p>
                 ) : (

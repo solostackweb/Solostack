@@ -159,7 +159,7 @@ export function SendQuestionnaireDialog({
                   setClientId(e.target.value);
                   requestKeyRef.current = null;
                 }}
-                className="h-11 w-full rounded-md border bg-background px-3 text-sm"
+                className="h-11 w-full rounded-lg border bg-background px-3 text-sm"
               >
                 <option value="">Choose a client</option>
                 {clients.map((c) => (

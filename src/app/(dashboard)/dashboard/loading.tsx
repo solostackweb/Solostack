@@ -15,13 +15,13 @@ export default function DashboardLoading() {
           <Skeleton className="h-7 w-52" />
           <Skeleton className="h-4 w-64" />
         </div>
-        <Skeleton className="h-9 w-28 rounded-md" />
+        <Skeleton className="h-9 w-28 rounded-lg" />
       </div>
 
       {/* KPI tiles */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {Array.from({ length: 4 }).map((_, i) => (
-          <div key={i} className="rounded-xl border bg-card p-5">
+          <div key={i} className="rounded-lg border bg-card p-5">
             <Skeleton className="mb-3 h-3.5 w-24" />
             <Skeleton className="h-7 w-28" />
           </div>
@@ -29,14 +29,14 @@ export default function DashboardLoading() {
       </div>
 
       {/* Revenue chart */}
-      <div className="rounded-xl border bg-card p-6">
+      <div className="rounded-lg border bg-card p-6">
         <Skeleton className="mb-4 h-4 w-36" />
         <Skeleton className="h-[180px] w-full rounded-lg" />
       </div>
 
       {/* Recent invoices + activity */}
       <div className="grid items-start gap-4 md:grid-cols-[1fr_280px] lg:grid-cols-3">
-        <div className="rounded-xl border bg-card p-5 lg:col-span-2">
+        <div className="rounded-lg border bg-card p-5 lg:col-span-2">
           <Skeleton className="mb-4 h-4 w-32" />
           <div className="space-y-3">
             {Array.from({ length: 4 }).map((_, i) => (
@@ -51,7 +51,7 @@ export default function DashboardLoading() {
             ))}
           </div>
         </div>
-        <div className="rounded-xl border bg-card p-5">
+        <div className="rounded-lg border bg-card p-5">
           <Skeleton className="mb-4 h-4 w-24" />
           <div className="space-y-4">
             {Array.from({ length: 4 }).map((_, i) => (

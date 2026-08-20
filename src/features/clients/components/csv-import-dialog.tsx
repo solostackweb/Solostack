@@ -223,7 +223,7 @@ export function CsvImportDialog({ open, onOpenChange }: CsvImportDialogProps) {
               onDragLeave={() => setDragging(false)}
               onDrop={onDrop}
               onClick={() => fileRef.current?.click()}
-              className={`flex cursor-pointer flex-col items-center gap-3 rounded-xl border-2 border-dashed p-10 text-center transition-colors ${
+              className={`flex cursor-pointer flex-col items-center gap-3 rounded-lg border-2 border-dashed p-10 text-center transition-colors ${
                 dragging
                   ? "border-primary bg-primary/5"
                   : "border-muted-foreground/25 hover:border-primary/40 hover:bg-muted/40"
@@ -272,6 +272,7 @@ export function CsvImportDialog({ open, onOpenChange }: CsvImportDialogProps) {
               </span>
               <button
                 onClick={() => { setStep("pick"); setRows([]); setFileName(""); }}
+                aria-label="Remove this file and choose another"
                 className="ml-1 rounded hover:opacity-70"
               >
                 <X className="h-4 w-4" />
@@ -314,7 +315,7 @@ export function CsvImportDialog({ open, onOpenChange }: CsvImportDialogProps) {
         {/* Step 3 — done */}
         {step === "done" && result && (
           <div className="flex flex-col items-center gap-4 py-6 text-center">
-            <span className="flex h-12 w-12 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-500">
+            <span className="flex h-12 w-12 items-center justify-center rounded-full bg-success-subtle text-success-strong">
               <CheckCircle2 className="h-6 w-6" />
             </span>
             <div>
@@ -327,7 +328,7 @@ export function CsvImportDialog({ open, onOpenChange }: CsvImportDialogProps) {
                 </p>
               )}
               {result.blocked && (
-                <p className="mt-2 text-sm text-amber-600 dark:text-amber-400">
+                <p className="mt-2 text-sm text-warning-strong">
                   Import stopped at your plan limit. Upgrade to add more clients.
                 </p>
               )}

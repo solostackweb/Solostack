@@ -65,7 +65,7 @@ export default async function BlogPostPage({
         title={post.title}
         eyebrow={
           <span className="inline-flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wider text-primary">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-2 py-0.5 text-micro font-semibold uppercase tracking-wider text-primary">
               <BookOpen className="h-3 w-3" />
               {post.category}
             </span>
@@ -148,7 +148,7 @@ export default async function BlogPostPage({
 
       <Section size="default" className="pb-16">
         <Reveal>
-          <div className="mx-auto max-w-xl rounded-xl border bg-muted/20 p-6 text-center">
+          <div className="mx-auto max-w-xl rounded-lg border bg-muted/20 p-6 text-center">
             <p className="text-sm font-medium">
               Get one practical tip a month.
             </p>
@@ -181,7 +181,7 @@ export default async function BlogPostPage({
               href={`/blog/${next.slug}`}
               className="group inline-flex max-w-md flex-col items-end rounded-lg border bg-card p-3 text-right shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
             >
-              <span className="text-[11px] uppercase tracking-wider text-muted-foreground">
+              <span className="text-micro uppercase tracking-wider text-muted-foreground">
                 Read next
               </span>
               <span className="mt-0.5 text-sm font-semibold transition group-hover:text-primary">

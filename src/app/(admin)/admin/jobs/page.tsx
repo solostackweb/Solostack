@@ -59,8 +59,8 @@ export default async function AdminJobsPage() {
               key={h.id}
               className={cn(
                 "rounded-lg border bg-card p-3.5",
-                tone === "alert" && "border-red-500/30",
-                tone === "warn" && "border-amber-500/30",
+                tone === "alert" && "border-destructive-subtle",
+                tone === "warn" && "border-warning-subtle",
               )}
             >
               <div className="flex items-center justify-between">
@@ -69,10 +69,10 @@ export default async function AdminJobsPage() {
                   className={cn(
                     "h-4 w-4",
                     tone === "alert"
-                      ? "text-red-500"
+                      ? "text-destructive-strong"
                       : tone === "warn"
-                        ? "text-amber-500"
-                        : "text-emerald-500",
+                        ? "text-warning-strong"
+                        : "text-success-strong",
                   )}
                 />
               </div>
@@ -81,11 +81,11 @@ export default async function AdminJobsPage() {
                   ? `Last run ${formatRelative(h.lastRun.finished_at)} - ${h.lastRun.duration_ms}ms`
                   : "Never run"}
               </p>
-              <p className="mt-0.5 text-[11px] font-mono text-muted-foreground/80">{h.id}</p>
+              <p className="mt-0.5 text-xs font-mono text-muted-foreground/80">{h.id}</p>
               {h.failing && h.lastRun?.error ? (
-                <p className="mt-1.5 truncate text-[11px] text-red-600/90">{h.lastRun.error}</p>
+                <p className="mt-1.5 truncate text-xs text-destructive-strong">{h.lastRun.error}</p>
               ) : h.stale ? (
-                <p className="mt-1.5 text-[11px] text-amber-600/90">Overdue - no recent successful run.</p>
+                <p className="mt-1.5 text-xs text-warning-strong">Overdue - no recent successful run.</p>
               ) : null}
             </div>
           );
@@ -108,7 +108,7 @@ export default async function AdminJobsPage() {
                 <span
                   className={cn(
                     "inline-flex h-2 w-2 shrink-0 rounded-full",
-                    r.status === "ok" ? "bg-emerald-500" : "bg-red-500",
+                    r.status === "ok" ? "bg-success" : "bg-destructive",
                   )}
                 />
                 <span className="w-48 truncate font-mono">{r.job}</span>

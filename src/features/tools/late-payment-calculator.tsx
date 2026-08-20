@@ -119,7 +119,7 @@ export function LatePaymentCalculator() {
                 step={1_000}
                 min={0}
                 onChange={(e) => setPrincipal(Number(e.target.value) || 0)}
-                className="h-9 w-full rounded-md border bg-background px-3 text-sm tabular-nums focus:outline-none focus:ring-2 focus:ring-primary/40"
+                className="h-9 w-full rounded-lg border bg-background px-3 text-sm tabular-nums focus:outline-none focus:ring-2 focus:ring-primary/40"
               />
             </div>
           </label>
@@ -130,7 +130,7 @@ export function LatePaymentCalculator() {
               type="date"
               value={dueDate}
               onChange={(e) => setDueDate(e.target.value)}
-              className="mt-1.5 h-9 w-full rounded-md border bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
+              className="mt-1.5 h-9 w-full rounded-lg border bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
             />
           </label>
 
@@ -140,7 +140,7 @@ export function LatePaymentCalculator() {
               type="date"
               value={asOfDate}
               onChange={(e) => setAsOfDate(e.target.value)}
-              className="mt-1.5 h-9 w-full rounded-md border bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
+              className="mt-1.5 h-9 w-full rounded-lg border bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
             />
           </label>
 
@@ -158,7 +158,7 @@ export function LatePaymentCalculator() {
               onChange={(e) => setRate(Number(e.target.value))}
               className="mt-2 w-full accent-primary"
             />
-            <p className="mt-1.5 text-[11px] text-muted-foreground">
+            <p className="mt-1.5 text-xs text-muted-foreground">
               18% p.a. is the MSMED Act default. Use your contract&rsquo;s rate if specified.
             </p>
           </div>
@@ -171,7 +171,7 @@ export function LatePaymentCalculator() {
                   key={m}
                   type="button"
                   onClick={() => setMode(m)}
-                  className={`h-9 rounded-md border text-sm font-medium capitalize transition ${
+                  className={`h-9 rounded-lg border text-sm font-medium capitalize transition ${
                     mode === m
                       ? "border-primary bg-primary text-primary-foreground"
                       : "bg-background hover:bg-muted"
@@ -181,7 +181,7 @@ export function LatePaymentCalculator() {
                 </button>
               ))}
             </div>
-            <p className="mt-1.5 text-[11px] text-muted-foreground">
+            <p className="mt-1.5 text-xs text-muted-foreground">
               MSMED Act mandates compound (monthly). Most B2B contracts default to simple.
             </p>
           </div>
@@ -194,7 +194,7 @@ export function LatePaymentCalculator() {
 
         <div className="mt-5">
           <p className="text-xs text-muted-foreground">Interest accrued</p>
-          <div className="mt-1 text-[40px] font-bold leading-none tracking-tight text-foreground sm:text-[48px]">
+          <div className="mt-1 text-5xl font-bold leading-none tracking-tight text-foreground sm:text-5xl">
             ₹{result.interest.toLocaleString("en-IN", { maximumFractionDigits: 0 })}
           </div>
         </div>
@@ -216,7 +216,7 @@ export function LatePaymentCalculator() {
           ctaText="send an overdue reminder invoice with this figure"
         />
 
-        <div className="mt-4 rounded-lg border bg-amber-500/5 p-4 text-xs leading-relaxed">
+        <div className="mt-4 rounded-lg border bg-warning-subtle p-4 text-xs leading-relaxed">
           <p className="font-medium text-foreground">How to actually claim this</p>
           <ol className="mt-1.5 list-decimal space-y-1 pl-4 text-muted-foreground">
             <li>

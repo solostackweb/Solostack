@@ -12,11 +12,11 @@ export function SignatureRequiredGate({
   ctaLabel: string;
 }) {
   return (
-    <Card className="border-amber-200 bg-amber-50/50">
+    <Card className="border-warning-subtle bg-warning-subtle">
       <CardContent className="space-y-4 p-6">
         <div className="space-y-1">
-          <p className="text-sm font-semibold text-amber-950">{title}</p>
-          <p className="text-sm text-amber-900/80">{description}</p>
+          <p className="text-sm font-semibold text-warning-strong">{title}</p>
+          <p className="text-sm text-warning-strong">{description}</p>
         </div>
         <div className="flex flex-wrap gap-3">
           <Button asChild>

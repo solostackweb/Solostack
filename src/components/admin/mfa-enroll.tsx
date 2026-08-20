@@ -46,8 +46,8 @@ export function MfaEnrollFlow({ status }: Props) {
 
   return (
     <div className="space-y-5">
-      <div className="rounded-md border border-amber-500/40 bg-amber-500/5 p-3 text-xs">
-        <div className="flex items-center gap-2 font-medium text-amber-700 dark:text-amber-300">
+      <div className="rounded-lg border border-warning-subtle bg-warning-subtle p-3 text-xs">
+        <div className="flex items-center gap-2 font-medium text-warning-strong">
           <ShieldAlert className="h-4 w-4" />
           Multi-factor authentication required
         </div>
@@ -66,11 +66,11 @@ export function MfaEnrollFlow({ status }: Props) {
 
       {verified.length > 0 ? (
         <section className="space-y-2">
-          <h2 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+          <h2 className="text-micro font-semibold uppercase tracking-wider text-muted-foreground">
             Existing verified factors
           </h2>
           <FactorList factors={verified} onChange={() => router.refresh()} />
-          <p className="text-[11px] text-muted-foreground">
+          <p className="text-micro text-muted-foreground">
             You already have a verified factor but the current session is
             still AAL1. Sign out and back in - Supabase will prompt for the
             6-digit code at login.
@@ -92,8 +92,8 @@ function AalSatisfied({
 }) {
   return (
     <div className="space-y-4">
-      <div className="rounded-md border border-emerald-500/40 bg-emerald-500/5 p-3 text-xs">
-        <div className="flex items-center gap-2 font-medium text-emerald-700 dark:text-emerald-300">
+      <div className="rounded-lg border border-success-subtle bg-success-subtle p-3 text-xs">
+        <div className="flex items-center gap-2 font-medium text-success-strong">
           <ShieldCheck className="h-4 w-4" />
           AAL2 satisfied for this session
         </div>
@@ -103,7 +103,7 @@ function AalSatisfied({
         </p>
       </div>
       <section className="space-y-2">
-        <h2 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+        <h2 className="text-micro font-semibold uppercase tracking-wider text-muted-foreground">
           Verified factors
         </h2>
         <FactorList factors={verified} onChange={onChange} />
@@ -144,7 +144,7 @@ function NewEnrollment({ router }: { router: ReturnType<typeof useRouter> }) {
             secret: res.secret,
           });
         }}
-        className="inline-flex h-9 items-center gap-2 rounded-md bg-foreground px-3 text-xs font-medium text-background hover:bg-foreground/90 disabled:opacity-50"
+        className="inline-flex h-9 items-center gap-2 rounded-lg bg-foreground px-3 text-xs font-medium text-background hover:bg-foreground/90 disabled:opacity-50"
       >
         {pending ? <Loader2 className="h-3 w-3 animate-spin" /> : null}
         Start TOTP enrollment
@@ -167,7 +167,7 @@ function ResumeEnrollment({
   // show a 6-digit-code-entry form directly and let the admin paste
   // the code from whatever app they were setting up.
   return (
-    <div className="space-y-3 rounded-xl border bg-card shadow-sm shadow-black/[0.03] p-3 text-xs">
+    <div className="space-y-3 rounded-lg border bg-card shadow-sm shadow-black/[0.03] p-3 text-xs">
       <div className="font-medium">Resume pending enrollment</div>
       <p className="text-muted-foreground">
         A TOTP enrollment was started but not verified. Open the
@@ -175,7 +175,7 @@ function ResumeEnrollment({
         the current 6-digit code below to complete enrollment.
       </p>
       <VerifyCodeForm factorId={factorId} router={router} />
-      <p className="text-[11px] text-muted-foreground">
+      <p className="text-xs text-muted-foreground">
         Lost access?{" "}
         <button
           type="button"
@@ -208,7 +208,7 @@ function VerifyStep({
     factor.uri,
   )}`;
   return (
-    <div className="space-y-3 rounded-xl border bg-card shadow-sm shadow-black/[0.03] p-3 text-xs">
+    <div className="space-y-3 rounded-lg border bg-card shadow-sm shadow-black/[0.03] p-3 text-xs">
       <div className="font-medium">Scan with your authenticator</div>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-[200px_1fr]">
         {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -226,7 +226,7 @@ function VerifyStep({
           <code className="block break-all rounded bg-muted/40 px-2 py-1.5 font-mono">
             {factor.secret}
           </code>
-          <p className="text-[11px] text-muted-foreground">
+          <p className="text-xs text-muted-foreground">
             Once added, enter the current 6-digit code to verify and lock
             this factor in.
           </p>
@@ -278,7 +278,7 @@ function VerifyCodeForm({
       <button
         type="submit"
         disabled={pending || code.length !== 6}
-        className="inline-flex h-8 items-center gap-1 rounded-md bg-foreground px-3 text-xs font-medium text-background hover:bg-foreground/90 disabled:opacity-50"
+        className="inline-flex h-8 items-center gap-1 rounded-lg bg-foreground px-3 text-xs font-medium text-background hover:bg-foreground/90 disabled:opacity-50"
       >
         {pending ? <Loader2 className="h-3 w-3 animate-spin" /> : null}
         Verify
@@ -299,14 +299,14 @@ function FactorList({
   const confirm = useConfirm();
   if (factors.length === 0) return null;
   return (
-    <ul className="overflow-hidden rounded-xl border bg-card shadow-sm shadow-black/[0.03] text-xs">
+    <ul className="overflow-hidden rounded-lg border bg-card shadow-sm shadow-black/[0.03] text-xs">
       {factors.map((f) => (
         <li
           key={f.id}
           className="flex items-center justify-between gap-3 border-b border-border/40 p-2.5 last:border-b-0"
         >
           <div className="flex items-center gap-2">
-            <ShieldCheck className="h-3.5 w-3.5 text-emerald-600" />
+            <ShieldCheck className="h-3.5 w-3.5 text-success-strong" />
             <span className="font-medium">
               {f.friendly_name ?? "TOTP factor"}
             </span>
@@ -344,7 +344,7 @@ function FactorList({
           >
             <button
               type="submit"
-              className="inline-flex h-6 items-center gap-1 rounded border border-red-500/30 px-2 text-red-700 hover:bg-red-500/10 dark:text-red-300"
+              className="inline-flex h-6 items-center gap-1 rounded border border-destructive-subtle px-2 text-destructive-strong hover:bg-destructive-subtle"
             >
               <Trash2 className="h-3 w-3" />
               Remove

@@ -73,8 +73,8 @@ export function CommandPaletteTrigger({ className }: { className?: string }) {
           <path d="m21 21-4.3-4.3" />
         </svg>
         <span className="flex-1 text-left">Search or jump to…</span>
-        <kbd className="pointer-events-none inline-flex h-5 select-none items-center gap-0.5 rounded-md border bg-background px-1.5 font-mono text-[10px] font-semibold text-muted-foreground shadow-sm">
-          <span className="text-[11px] leading-none">⌘</span>K
+        <kbd className="pointer-events-none inline-flex h-5 select-none items-center gap-0.5 rounded-lg border bg-background px-1.5 font-mono text-micro font-semibold text-muted-foreground shadow-sm">
+          <span className="text-micro leading-none">⌘</span>K
         </kbd>
       </button>
       {hasOpened ? (

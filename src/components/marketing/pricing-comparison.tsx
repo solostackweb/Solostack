@@ -59,7 +59,7 @@ export function PricingComparison() {
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b bg-muted/40 backdrop-blur">
-            <th className="px-5 py-4 text-left text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
+            <th className="px-5 py-4 text-left text-micro font-bold uppercase tracking-widest text-muted-foreground">
               Compare plans
             </th>
             <th className="px-5 py-4 text-center text-sm font-semibold">Free</th>
@@ -78,7 +78,7 @@ export function PricingComparison() {
               <tr className="border-b bg-muted/30">
                 <td
                   colSpan={4}
-                  className="px-5 py-2.5 text-[10px] font-bold uppercase tracking-widest text-muted-foreground"
+                  className="px-5 py-2.5 text-micro font-bold uppercase tracking-widest text-muted-foreground"
                 >
                   {group.heading}
                 </td>
@@ -103,7 +103,7 @@ export function PricingComparison() {
 }
 
 function renderCell(cell: Cell) {
-  if (cell === true) return <Check className="mx-auto h-4 w-4 text-emerald-500" />;
+  if (cell === true) return <Check className="mx-auto h-4 w-4 text-success-strong" />;
   if (cell === false)
     return <Minus className="mx-auto h-4 w-4 text-muted-foreground/40" />;
   return <span className="text-xs font-medium text-muted-foreground">{cell}</span>;

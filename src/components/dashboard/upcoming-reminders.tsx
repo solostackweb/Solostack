@@ -13,7 +13,7 @@ import { cn } from "@/lib/utils";
 
 const TONE_STYLES = {
   info: "bg-primary/10 text-primary ring-primary/20",
-  warning: "bg-amber-500/10 text-amber-600 ring-amber-500/20 dark:text-amber-400",
+  warning: "bg-warning-subtle text-warning-strong ring-warning-subtle",
   destructive: "bg-destructive/10 text-destructive ring-destructive/20",
   muted: "bg-muted text-muted-foreground ring-border",
 } as const;
@@ -89,8 +89,8 @@ export function UpcomingReminders({ items }: { items: ReminderItem[] }) {
                       </p>
                       <p
                         className={cn(
-                          "mt-1 text-[11px] font-semibold",
-                          r.tone === "warning" && "text-amber-600 dark:text-amber-400",
+                          "mt-1 text-micro font-semibold",
+                          r.tone === "warning" && "text-warning-strong",
                           r.tone === "destructive" && "text-destructive",
                           r.tone === "info" && "text-primary",
                           r.tone === "muted" && "text-muted-foreground",

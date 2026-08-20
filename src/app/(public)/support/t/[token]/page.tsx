@@ -35,10 +35,10 @@ export default async function GuestSupportPage({ params }: Props) {
         </Link>
         <span className="text-xs text-muted-foreground">Support</span>
       </div>
-      <div className="rounded-xl border bg-card p-4 sm:p-6">
+      <div className="rounded-lg border bg-card p-4 sm:p-6">
         <TicketThread ticket={thread.ticket} messages={thread.messages} mode="guest" />
       </div>
-      <p className="mt-4 text-center text-[11px] text-muted-foreground">
+      <p className="mt-4 text-center text-xs text-muted-foreground">
         Keep this link to return to your conversation. You can also reply to our emails directly.
       </p>
     </div>

@@ -134,11 +134,11 @@ export default async function AdminSubscriptionDetail({ params }: Props) {
                       className={cn(
                         "h-1.5 w-1.5 rounded-full",
                         p.status === "captured"
-                          ? "bg-emerald-500"
+                          ? "bg-success"
                           : p.status === "failed"
-                            ? "bg-red-500"
+                            ? "bg-destructive"
                             : p.status === "refunded"
-                              ? "bg-amber-500"
+                              ? "bg-warning"
                               : "bg-muted-foreground/50",
                       )}
                     />
@@ -151,7 +151,7 @@ export default async function AdminSubscriptionDetail({ params }: Props) {
                     ) : null}
                   </div>
                   <div className="flex items-center gap-3">
-                    <span className="font-mono text-[11px] text-muted-foreground">
+                    <span className="font-mono text-xs text-muted-foreground">
                       {p.razorpay_payment_id.slice(0, 18)}
                     </span>
                     <span className="font-mono tabular-nums text-muted-foreground">
@@ -186,21 +186,21 @@ export default async function AdminSubscriptionDetail({ params }: Props) {
                       className={cn(
                         "h-1.5 w-1.5 rounded-full",
                         e.error
-                          ? "bg-red-500"
+                          ? "bg-destructive"
                           : e.processed_at
-                            ? "bg-emerald-500"
-                            : "bg-amber-500",
+                            ? "bg-success"
+                            : "bg-warning",
                       )}
                     />
                     <span className="font-medium">{e.event_type}</span>
                     {e.error ? (
-                      <span className="text-red-600 dark:text-red-400">
+                      <span className="text-destructive-strong">
                         {e.error.slice(0, 60)}
                       </span>
                     ) : null}
                   </div>
                   <div className="flex items-center gap-3">
-                    <span className="font-mono text-[11px] text-muted-foreground">
+                    <span className="font-mono text-xs text-muted-foreground">
                       {e.event_id.slice(0, 18)}
                     </span>
                     <span

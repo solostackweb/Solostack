@@ -5,7 +5,7 @@ export default function Loading() {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center gap-3">
-        <Skeleton className="h-8 w-8 rounded-md" />
+        <Skeleton className="h-8 w-8 rounded-lg" />
         <div className="space-y-1.5">
           <Skeleton className="h-6 w-40" />
           <Skeleton className="h-4 w-24" />
@@ -40,7 +40,7 @@ export default function Loading() {
         <div className="space-y-2">
           <Skeleton className="h-3 w-24" />
           {Array.from({ length: 3 }).map((_, i) => (
-            <Skeleton key={i} className="h-12 w-full rounded-md" />
+            <Skeleton key={i} className="h-12 w-full rounded-lg" />
           ))}
           <Skeleton className="h-8 w-32" />
         </div>

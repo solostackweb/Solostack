@@ -31,7 +31,7 @@ function DataTableCards({ headers, rows }: { headers: string[]; rows: string[][]
   return (
     <div className="space-y-2">
       {rows.map((row, rowIndex) => (
-        <section key={`${row[0] ?? "row"}-${rowIndex}`} className="rounded-xl border border-border/70 bg-muted/[0.18] p-3">
+        <section key={`${row[0] ?? "row"}-${rowIndex}`} className="rounded-lg border border-border/70 bg-muted/[0.18] p-3">
           <h4 className="text-sm font-semibold leading-snug text-foreground">
             {inlineContent(row[0] || `Item ${rowIndex + 1}`)}
           </h4>
@@ -42,7 +42,7 @@ function DataTableCards({ headers, rows }: { headers: string[]; rows: string[][]
               const isLast = cellIndex === headers.length - 2;
               return (
                 <div key={`${header}-${cellIndex}`} className={cn("min-w-0", isLast && "sm:col-span-2")}>
-                  <dt className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">{header}</dt>
+                  <dt className="text-micro font-semibold uppercase tracking-wide text-muted-foreground">{header}</dt>
                   <dd className="mt-0.5 text-xs leading-relaxed text-foreground/85">{inlineContent(value)}</dd>
                 </div>
               );
@@ -71,7 +71,7 @@ export function AssistantRichText({ source }: { source: string }) {
             <ol key={blockIndex} className="space-y-2">
               {block.items.map((item, itemIndex) => (
                 <li key={itemIndex} className="flex items-start gap-2.5">
-                  <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[10px] font-semibold text-primary">{itemIndex + 1}</span>
+                  <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary/10 text-micro font-semibold text-primary">{itemIndex + 1}</span>
                   <span className="min-w-0 pt-px">{inlineContent(item)}</span>
                 </li>
               ))}

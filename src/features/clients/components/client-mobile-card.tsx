@@ -65,7 +65,7 @@ export function ClientMobileCard({
   ];
 
   return (
-    <SwipeRow actions={swipeActions} className="rounded-xl">
+    <SwipeRow actions={swipeActions} className="rounded-lg">
     <div
       role="button"
       tabIndex={0}
@@ -77,7 +77,7 @@ export function ClientMobileCard({
         }
       }}
       className={cn(
-        "tap-scale group relative flex w-full items-center gap-3 rounded-xl border bg-card p-3 text-left shadow-sm transition-colors active:bg-muted/40",
+        "tap-scale group relative flex w-full items-center gap-3 rounded-lg border bg-card p-3 text-left shadow-sm transition-colors active:bg-muted/40",
         isSelected && "border-primary/50 ring-1 ring-primary/30",
       )}
     >
@@ -92,39 +92,39 @@ export function ClientMobileCard({
       )}
 
       <Avatar className="h-10 w-10 shrink-0">
-        <AvatarFallback className="text-[11px] font-semibold">
+        <AvatarFallback className="text-micro font-semibold">
           {getClientInitials(display)}
         </AvatarFallback>
       </Avatar>
 
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
-          <p className="truncate text-[14px] font-semibold leading-tight">
+          <p className="truncate text-sm font-semibold leading-tight">
             {display}
           </p>
           {client.isForeign ? (
             <Badge
               variant="secondary"
-              className="h-4 shrink-0 bg-sky-500/10 px-1.5 text-[9px] font-semibold uppercase tracking-wider text-sky-700 dark:text-sky-300"
+              className="h-4 shrink-0 bg-info-subtle px-1.5 text-micro font-semibold uppercase tracking-wider text-info-strong"
             >
               Intl
             </Badge>
           ) : client.gstRegistered ? (
             <Badge
               variant="secondary"
-              className="h-4 shrink-0 px-1.5 text-[9px] font-semibold uppercase tracking-wider"
+              className="h-4 shrink-0 px-1.5 text-micro font-semibold uppercase tracking-wider"
             >
               GST
             </Badge>
           ) : null}
         </div>
         {contact ? (
-          <p className="mt-0.5 truncate text-[12px] text-muted-foreground">
+          <p className="mt-0.5 truncate text-xs text-muted-foreground">
             {contact}
           </p>
         ) : null}
         {stateName ? (
-          <p className="mt-0.5 truncate text-[11px] text-muted-foreground/80">
+          <p className="mt-0.5 truncate text-xs text-muted-foreground/80">
             {stateName}
           </p>
         ) : null}

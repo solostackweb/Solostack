@@ -27,7 +27,7 @@ export function AuthFormShell({
       <div className="space-y-2 text-left">
         <h1 className="text-2xl font-bold tracking-tight">{title}</h1>
         {description ? (
-          <p className="text-[15px] leading-relaxed text-muted-foreground">
+          <p className="text-sm leading-relaxed text-muted-foreground">
             {description}
           </p>
         ) : null}
@@ -123,7 +123,7 @@ export function AuthFormError({ message }: { message?: string | null }) {
   return (
     <div
       role="alert"
-      className="rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive"
+      className="rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive"
     >
       {safeMessage}
     </div>
@@ -138,7 +138,7 @@ export function AuthFormSuccess({ message }: { message?: string | null }) {
   return (
     <div
       role="status"
-      className="rounded-md border border-success/30 bg-success/5 px-3 py-2 text-sm text-success"
+      className="rounded-lg border border-success/30 bg-success/5 px-3 py-2 text-sm text-success"
     >
       {message}
     </div>
@@ -154,7 +154,7 @@ export function AuthOrSeparator() {
       <div className="absolute inset-0 flex items-center">
         <span className="w-full border-t" />
       </div>
-      <div className="relative flex justify-center text-[11px] uppercase tracking-wider">
+      <div className="relative flex justify-center text-micro uppercase tracking-wider">
         <span className="bg-card px-2 text-muted-foreground">
           or continue with email
         </span>

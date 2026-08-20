@@ -15,9 +15,9 @@ import {
 export function GuaranteeStrip() {
   return (
     <div className="mx-auto max-w-5xl">
-      <div className="grid grid-cols-1 gap-3 rounded-xl border bg-card p-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-3 rounded-lg border bg-card p-4 sm:grid-cols-2 lg:grid-cols-4">
         <Tile
-          icon={<ShieldCheck className="h-4 w-4 text-emerald-600" />}
+          icon={<ShieldCheck className="h-4 w-4 text-success-strong" />}
           title="30-day money-back"
           body="Email support@stackivo.me within 30 days for a no-questions refund."
         />

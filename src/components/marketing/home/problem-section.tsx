@@ -40,7 +40,7 @@ export function ProblemSection() {
         <StaggerReveal className="flex flex-wrap items-center justify-center gap-3 lg:justify-end">
           {SCATTERED.map((item) => (
             <StaggerItem key={item.label} className={item.rotate}>
-              <span className="inline-block rounded-xl border border-dashed border-border bg-muted/50 px-4 py-2.5 text-sm font-medium text-muted-foreground shadow-sm">
+              <span className="inline-block rounded-lg border border-dashed border-border bg-muted/50 px-4 py-2.5 text-sm font-medium text-muted-foreground shadow-sm">
                 {item.label}
               </span>
             </StaggerItem>
@@ -51,20 +51,20 @@ export function ProblemSection() {
         <Reveal delay={0.2} className="flex flex-col items-center gap-1 lg:px-2">
           <ArrowDown className="h-5 w-5 text-primary lg:hidden" />
           <ArrowRight className="hidden h-6 w-6 text-primary lg:block" />
-          <span className="text-[11px] font-semibold uppercase tracking-widest text-primary">
+          <span className="text-micro font-semibold uppercase tracking-widest text-primary">
             becomes
           </span>
         </Reveal>
 
         {/* Resolved card — right */}
         <Reveal delay={0.25}>
-          <div className="relative overflow-hidden rounded-3xl border border-primary/15 bg-card p-6 shadow-xl shadow-primary/[0.07] sm:p-8">
+          <div className="relative overflow-hidden rounded-2xl border border-primary/15 bg-card p-6 shadow-xl shadow-primary/[0.07] sm:p-8">
             <div
               aria-hidden
               className="pointer-events-none absolute -right-16 -top-16 h-48 w-48 rounded-full bg-primary/[0.07] blur-2xl"
             />
             <div className="flex items-center gap-3">
-              <StackivoMark className="h-10 w-10 rounded-xl" />
+              <StackivoMark className="h-10 w-10 rounded-lg" />
               <div>
                 <p className="font-display text-lg font-semibold tracking-tight text-foreground">
                   One workspace

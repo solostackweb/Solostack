@@ -180,7 +180,7 @@ export function ProposalsListView({
         <select
           value={statusFilter}
           onChange={(event) => setStatusFilter(event.target.value as ProposalStatusRow | "all")}
-          className="h-9 rounded-md border bg-background px-3 text-sm"
+          className="h-9 rounded-lg border bg-background px-3 text-sm"
         >
           <option value="all">All statuses</option>
           {PROPOSAL_STATUSES.map((status) => (
@@ -301,7 +301,7 @@ function Stat({ label, value, tone }: { label: string; value: string; tone?: "bl
           className={cn(
             "mt-2 text-2xl font-bold",
             tone === "blue" && "text-blue-600 dark:text-blue-300",
-            tone === "green" && "text-emerald-600 dark:text-emerald-300",
+            tone === "green" && "text-success-strong",
           )}
         >
           {value}

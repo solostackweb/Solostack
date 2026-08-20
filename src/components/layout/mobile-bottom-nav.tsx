@@ -78,15 +78,15 @@ const CREATE_ACTIONS: CreateAction[] = [
     title:     "New Client",
     href:      "/dashboard/clients?create=1",
     icon:      Users,
-    iconBg:    "bg-emerald-500/10",
-    iconColor: "text-emerald-500",
+    iconBg:    "bg-success-subtle",
+    iconColor: "text-success-strong",
   },
   {
     title:     "New Project",
     href:      "/dashboard/projects?create=1",
     icon:      FolderKanban,
-    iconBg:    "bg-amber-500/10",
-    iconColor: "text-amber-500",
+    iconBg:    "bg-warning-subtle",
+    iconColor: "text-warning-strong",
   },
 ];
 
@@ -180,10 +180,10 @@ export function MobileBottomNav() {
                   i > 0 && "border-t",
                 )}
               >
-                <span className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-xl", action.iconBg, action.iconColor)}>
+                <span className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-lg", action.iconBg, action.iconColor)}>
                   <Icon className="h-[18px] w-[18px]" />
                 </span>
-                <span className="flex-1 text-[15px] font-semibold">{action.title}</span>
+                <span className="flex-1 text-sm font-semibold">{action.title}</span>
                 <ChevronRight className="h-4 w-4 text-muted-foreground/50" />
               </Link>
             );
@@ -204,7 +204,7 @@ export function MobileBottomNav() {
       >
         <div className="overflow-hidden rounded-2xl border bg-card shadow-2xl ring-1 ring-black/5 dark:ring-white/5">
           <div className="border-b px-4 py-2.5">
-            <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
+            <p className="text-micro font-bold uppercase tracking-widest text-muted-foreground">
               More pages
             </p>
           </div>
@@ -227,7 +227,7 @@ export function MobileBottomNav() {
                   )}
                 >
                   <Icon className={cn("h-4 w-4 shrink-0", active ? "text-primary" : "text-muted-foreground")} />
-                  <span className={cn("text-[13px] font-medium truncate", active && "font-semibold")}>{item.title}</span>
+                  <span className={cn("text-xs font-medium truncate", active && "font-semibold")}>{item.title}</span>
                 </Link>
               );
             })}

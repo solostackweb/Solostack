@@ -92,12 +92,12 @@ function AuditRow({ row }: { row: AdminActionRow }) {
   const hasMeta = meta && Object.keys(meta).length > 0;
 
   return (
-    <li className="rounded-xl border bg-card shadow-sm shadow-black/[0.03] p-3 text-xs">
+    <li className="rounded-lg border bg-card shadow-sm shadow-black/[0.03] p-3 text-xs">
       <div className="flex flex-wrap items-center gap-2">
         <span
           className={cn(
             "inline-block h-1.5 w-1.5 shrink-0 rounded-full",
-            row.success ? "bg-emerald-500" : "bg-red-500",
+            row.success ? "bg-success" : "bg-destructive",
           )}
           aria-hidden
         />
@@ -111,14 +111,14 @@ function AuditRow({ row }: { row: AdminActionRow }) {
           <span title={row.created_at}>{formatRelative(row.created_at)}</span>
         </span>
       </div>
-      <div className="mt-1 flex flex-wrap items-center gap-3 text-[11px] text-muted-foreground">
+      <div className="mt-1 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
         <span>actor {row.actor_id ? shortenId(row.actor_id) : "deleted user"}</span>
         {row.request_id ? <span>req {shortenId(row.request_id)}</span> : null}
         <span className="font-mono">{formatIstStamp(row.created_at)} IST</span>
       </div>
       {hasMeta ? (
         <details className="mt-2">
-          <summary className="cursor-pointer text-[11px] text-muted-foreground hover:text-foreground">
+          <summary className="cursor-pointer text-xs text-muted-foreground hover:text-foreground">
             metadata
           </summary>
           <div className="mt-1">
