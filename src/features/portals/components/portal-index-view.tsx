@@ -6,14 +6,15 @@ import {
   ArrowUpRight,
   CheckCircle2,
   Clock3,
+  FileCheck2,
   LayoutDashboard,
+  MessageSquareText,
   Users,
   Workflow,
 } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { EmptyState } from "@/components/shared/empty-state";
 import { PageHeader } from "@/components/shared/page-header";
 import { cn } from "@/lib/utils";
 import { IvoContextActions } from "@/features/ai-workflows/components/ivo-context-actions";
@@ -57,43 +58,95 @@ export function PortalIndexView({
         title="Client portals"
         description="Branded shared workspaces for your clients."
         actions={
-          <CreatePortalButton
-            clients={clients}
-            activeClientIds={activeClientIds}
-            initialAiDraft={null}
-          />
+          ownedPortals.length > 0 ? (
+            <CreatePortalButton
+              clients={clients}
+              activeClientIds={activeClientIds}
+              initialAiDraft={null}
+            />
+          ) : null
         }
-      />
-
-      <IvoContextActions
-        title="Portal planning"
-        description="Let Ivo choose the right client handoff and shared assets."
-        actions={[
-          {
-            label: "Who needs a portal?",
-            prompt: `Compare my ${clients.length} clients with my ${ownedPortals.length} existing portals (${activePortals} active). Review each client's active projects and shared work, then recommend who should get a portal next and explain why.`,
-          },
-          {
-            label: "Portal checklist",
-            prompt: "Give me a professional checklist for setting up a client portal: invoices, contracts, welcome docs, files, meetings, and client access.",
-          },
-          {
-            label: "Create portal",
-            prompt: "Create a client portal for one of my clients. Let me choose the client, preview the live documents that will be shared, and confirm before you create it or email the invitation.",
-          },
-        ]}
       />
 
       <div className={cn("grid items-start gap-6", "grid-cols-1")}>
         <div className="min-w-0">
           {ownedPortals.length === 0 ? (
-            <EmptyState
-              icon={Workflow}
-              title="No portals yet"
-              description="Create a portal to share files, contracts, and invoices with a client in one branded space."
-            />
+            <div className="overflow-hidden rounded-2xl border bg-card">
+              <div className="grid gap-8 p-5 sm:p-7 lg:grid-cols-[minmax(0,0.85fr)_minmax(420px,1.15fr)] lg:items-center lg:p-9">
+                <div className="max-w-xl">
+                  <span className="inline-flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary ring-1 ring-primary/15">
+                    <Workflow className="h-5 w-5" />
+                  </span>
+                  <p className="mt-5 text-sm font-semibold text-primary">Your client handoff, in one place</p>
+                  <h2 className="mt-2 text-2xl font-semibold tracking-tight sm:text-3xl">
+                    Give every client a clear place to follow the work.
+                  </h2>
+                  <p className="mt-3 text-sm leading-6 text-muted-foreground sm:text-base">
+                    Choose a client, confirm what they can see, then share one branded workspace for documents, invoices, files, and updates.
+                  </p>
+                  <div className="mt-6">
+                    <CreatePortalButton
+                      clients={clients}
+                      activeClientIds={activeClientIds}
+                      initialAiDraft={null}
+                    />
+                  </div>
+                </div>
+
+                <ol className="relative grid gap-3 sm:grid-cols-3 lg:grid-cols-1">
+                  <PortalStep
+                    number="01"
+                    icon={Users}
+                    title="Choose the client"
+                    description="Start from an existing client so access stays connected to the right work."
+                  />
+                  <PortalStep
+                    number="02"
+                    icon={FileCheck2}
+                    title="Review what is shared"
+                    description="Confirm the documents, invoices, files, and meetings they should see."
+                  />
+                  <PortalStep
+                    number="03"
+                    icon={MessageSquareText}
+                    title="Invite and stay aligned"
+                    description="Send one link and keep the handoff, activity, and updates together."
+                  />
+                </ol>
+              </div>
+              <div className="border-t bg-muted/20 px-5 py-4 sm:px-7 lg:px-9">
+                <IvoContextActions
+                  title="Need help choosing the right handoff?"
+                  description="Ivo can review your clients or prepare a portal checklist."
+                  actions={[
+                    {
+                      label: "Who needs a portal?",
+                      prompt: `Compare my ${clients.length} clients with my ${ownedPortals.length} existing portals (${activePortals} active). Review each client's active projects and shared work, then recommend who should get a portal next and explain why.`,
+                    },
+                    {
+                      label: "Prepare a checklist",
+                      prompt: "Give me a professional checklist for setting up a client portal: invoices, contracts, welcome docs, files, meetings, and client access.",
+                    },
+                  ]}
+                />
+              </div>
+            </div>
           ) : (
             <div className="space-y-4">
+              <IvoContextActions
+                title="Portal planning"
+                description="Review the next client handoff or prepare a sharing checklist."
+                actions={[
+                  {
+                    label: "Who needs a portal?",
+                    prompt: `Compare my ${clients.length} clients with my ${ownedPortals.length} existing portals (${activePortals} active). Review each client's active projects and shared work, then recommend who should get a portal next and explain why.`,
+                  },
+                  {
+                    label: "Portal checklist",
+                    prompt: "Give me a professional checklist for setting up a client portal: invoices, contracts, welcome docs, files, meetings, and client access.",
+                  },
+                ]}
+              />
               <div className="grid gap-3 sm:grid-cols-3">
                 <PortalStat
                   icon={LayoutDashboard}
@@ -171,6 +224,33 @@ export function PortalIndexView({
 
       </div>
     </div>
+  );
+}
+
+function PortalStep({
+  number,
+  icon: Icon,
+  title,
+  description,
+}: {
+  number: string;
+  icon: React.ComponentType<{ className?: string }>;
+  title: string;
+  description: string;
+}) {
+  return (
+    <li className="flex gap-3 rounded-lg border bg-background/80 p-4">
+      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+        <Icon className="h-4 w-4" />
+      </span>
+      <div className="min-w-0">
+        <div className="flex items-baseline justify-between gap-3">
+          <p className="text-sm font-semibold">{title}</p>
+          <span className="font-mono text-xs text-muted-foreground">{number}</span>
+        </div>
+        <p className="mt-1 text-sm leading-5 text-muted-foreground">{description}</p>
+      </div>
+    </li>
   );
 }
 
