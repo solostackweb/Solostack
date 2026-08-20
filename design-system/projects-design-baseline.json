@@ -1,0 +1,34 @@
+{
+  "date": "2026-08-21",
+  "url": "http://localhost:3000/dashboard/projects",
+  "designScore": "B",
+  "aiSlopScore": "B",
+  "categoryGrades": {
+    "hierarchy": "B",
+    "typography": "B",
+    "spacing": "B",
+    "color": "A",
+    "interaction": "B",
+    "responsive": "B",
+    "content": "B",
+    "aiSlop": "B",
+    "motion": "B",
+    "performanceFeel": "C"
+  },
+  "findings": [
+    {
+      "id": "PROJECTS-001",
+      "title": "Empty projects state showed inactive workspace controls",
+      "impact": "high",
+      "category": "hierarchy",
+      "status": "verified"
+    },
+    {
+      "id": "PROJECTS-002",
+      "title": "Shared mobile shell contains undersized touch targets",
+      "impact": "medium",
+      "category": "interaction",
+      "status": "deferred"
+    }
+  ]
+}

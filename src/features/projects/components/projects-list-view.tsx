@@ -4,6 +4,9 @@ import * as React from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import {
+  BadgeIndianRupee,
+  ClipboardList,
+  FileText,
   Plus,
   Search,
   LayoutGrid,
@@ -21,7 +24,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { PageHeader } from "@/components/shared/page-header";
-import { EmptyState } from "@/components/shared/empty-state";
 import { IvoEntryPoint, openIvo } from "@/features/ai-workflows/components/ivo-entry-point";
 import { cn } from "@/lib/utils";
 import type { ProjectStatusRow } from "@/lib/supabase/types";
@@ -98,17 +100,22 @@ export function ProjectsListView({ projects, clients, autoCreate }: ProjectsList
     <div className="space-y-6">
       <PageHeader
         title="Projects"
-        description="Organize work, files, and billables by engagement."
+        description="Keep each job, its files, and its billing in one place."
+        className="border-b-0 pb-0 sm:pb-0"
         actions={
           <div className="flex items-center gap-2">
-            <IvoEntryPoint
-              prompt="Review my active projects and tell me what needs attention."
-              label="Ask Ivo"
-              variant="outline"
-            />
-            <Button size="sm" onClick={() => setCreateOpen(true)}>
-              <Plus /> New project
-            </Button>
+            {projects.length > 0 ? (
+              <>
+                <IvoEntryPoint
+                  prompt="Review my active projects and tell me what needs attention."
+                  label="Ask Ivo"
+                  variant="secondary"
+                />
+                <Button size="sm" onClick={() => setCreateOpen(true)}>
+                  <Plus /> New project
+                </Button>
+              </>
+            ) : null}
           </div>
         }
       />
@@ -116,7 +123,8 @@ export function ProjectsListView({ projects, clients, autoCreate }: ProjectsList
       {/* Two-row toolbar on mobile: search on its own line for full width,
           filter + view-toggle share a second line. Collapses back to a
           single inline row on sm+. */}
-      <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
+      {projects.length > 0 ? (
+        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
         <div className="relative w-full sm:max-w-md sm:flex-1">
           <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
           <Input
@@ -161,35 +169,20 @@ export function ProjectsListView({ projects, clients, autoCreate }: ProjectsList
             />
           </div>
         </div>
-      </div>
+        </div>
+      ) : null}
 
-      {filtered.length === 0 ? (
-        <EmptyState
-          icon={FolderKanban}
-          title={
-            projects.length === 0
-              ? "No projects yet"
-              : "No projects match your filters"
-          }
-          description={
-            projects.length === 0
-              ? "Create a project to group files, invoices, and contracts."
-              : "Try a different search term or status filter."
-          }
-          action={
-            projects.length === 0
-              ? { label: "Create project", onClick: () => setCreateOpen(true) }
-              : undefined
-          }
-          secondaryAction={
-            projects.length === 0
-              ? {
-                  label: "Ask Ivo",
-                  onClick: () => openIvo("Help me create my first project."),
-                }
-              : undefined
-          }
-        />
+      {projects.length === 0 ? (
+        <EmptyProjectsWorkspace onCreate={() => setCreateOpen(true)} />
+      ) : filtered.length === 0 ? (
+        <div className="rounded-2xl border border-dashed border-border-strong bg-card px-6 py-16 text-center">
+          <h2 className="text-base font-semibold">
+            No projects match these filters
+          </h2>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Change the search term or status to see more projects.
+          </p>
+        </div>
       ) : view === "grid" ? (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {filtered.map((p) => (
@@ -223,6 +216,75 @@ export function ProjectsListView({ projects, clients, autoCreate }: ProjectsList
         clients={clients}
       />
     </div>
+  );
+}
+
+const projectFlow = [
+  { label: "Brief", note: "Define the job", icon: ClipboardList },
+  { label: "Work", note: "Track progress", icon: FolderKanban },
+  { label: "Invoice", note: "Bill clearly", icon: FileText },
+  { label: "Paid", note: "Close the loop", icon: BadgeIndianRupee },
+];
+
+function EmptyProjectsWorkspace({ onCreate }: { onCreate: () => void }) {
+  return (
+    <section className="overflow-hidden rounded-2xl border border-border/70 bg-card">
+      <div className="grid lg:grid-cols-[minmax(0,0.88fr)_minmax(0,1.12fr)]">
+        <div className="border-b border-border/60 bg-primary/[0.025] p-6 sm:p-8 lg:border-b-0 lg:border-r lg:p-10">
+          <p className="text-micro font-semibold uppercase tracking-[0.16em] text-primary">
+            Project workspace
+          </p>
+          <h2 className="mt-3 max-w-md font-display text-2xl font-semibold tracking-tight sm:text-3xl">
+            Keep every job moving from brief to paid.
+          </h2>
+          <p className="mt-3 max-w-md text-sm leading-6 text-muted-foreground">
+            One project keeps the client, files, progress, and billing connected
+            from the first task to the final payment.
+          </p>
+          <div className="mt-6 flex flex-wrap gap-2">
+            <Button onClick={onCreate} className="min-h-11">
+              <Plus /> Create your first project
+            </Button>
+            <Button
+              variant="ghost"
+              className="min-h-11"
+              onClick={() => openIvo("Help me create my first project.")}
+            >
+              Ask Ivo
+            </Button>
+          </div>
+        </div>
+
+        <div className="flex min-h-64 items-center p-6 sm:p-10">
+          <div className="relative grid w-full grid-cols-4">
+            <div
+              aria-hidden
+              className="absolute left-[12.5%] right-[12.5%] top-5 h-px bg-primary/25"
+            />
+            {projectFlow.map(({ label, note, icon: Icon }, index) => (
+              <div
+                key={label}
+                className="relative z-10 flex flex-col items-center text-center"
+              >
+                <span
+                  className={
+                    index === 0
+                      ? "flex h-10 w-10 items-center justify-center rounded-lg bg-primary text-primary-foreground"
+                      : "flex h-10 w-10 items-center justify-center rounded-lg border border-primary/20 bg-background text-primary"
+                  }
+                >
+                  <Icon className="h-4 w-4" />
+                </span>
+                <span className="mt-3 text-xs font-semibold">{label}</span>
+                <span className="mt-1 hidden text-micro text-muted-foreground sm:block">
+                  {note}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </section>
   );
 }
 

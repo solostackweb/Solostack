@@ -75,6 +75,39 @@ Evidence:
 
 ### Next
 
-Carry the same hierarchy into projects and invoices: one dominant job per page,
-fewer bordered containers, financial values in mono type, restrained blue
-emphasis, and the Flowline motif only where it explains a real relationship.
+### Projects — completed
+
+The zero-project state no longer renders search, status filters, Grid/Kanban
+controls, or duplicate header actions before any project exists. It now gives
+the page one job: create the first project. The Flowline explains the real
+Brief → Work → Invoice → Paid lifecycle, and the populated Grid and Kanban
+states remain unchanged.
+
+Evidence:
+
+- `screenshots/projects-baseline.png` — pre-change desktop state.
+- `screenshots/projects-mobile-baseline.png` — pre-change mobile state.
+- `screenshots/projects-calm-command.png` — desktop result.
+- `screenshots/projects-mobile-calm-command.png` — mobile result.
+
+Quick wins completed:
+
+1. Hid controls with no data to control.
+2. Removed duplicate creation and Ivo actions.
+3. Replaced the generic centered icon state with a product-specific lifecycle.
+4. Raised the new mobile actions to the 44px touch-target floor.
+
+Projects design score: **C → B**.
+
+Projects AI slop score: **D → B**.
+
+The create-project dialog was opened and closed in the authenticated browser.
+A clean console reload produced no runtime errors. Existing sub-44px controls in
+the shared mobile shell remain a cross-product accessibility finding and were
+not changed in this feature-scoped slice.
+
+### Next
+
+Carry the hierarchy into invoices: one dominant job per page, financial values
+in mono type, restrained blue emphasis, and controls shown only when they can do
+useful work.
