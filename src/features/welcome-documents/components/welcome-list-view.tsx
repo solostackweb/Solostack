@@ -4,6 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
+  CheckCircle2,
   Plus,
   Search,
   BookOpen,
@@ -14,6 +15,7 @@ import {
   Archive,
   Trash2,
   Link2,
+  ListChecks,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -59,6 +61,101 @@ type StatusFilter = "all" | "draft" | "published" | "archived";
 interface Props {
   documents: WelcomeDocumentRecord[];
   clients: Array<{ id: string; name: string; email: string | null }>;
+}
+
+const onboardingFlow = [
+  { label: "Brief ready", icon: ListChecks },
+  { label: "Guide shared", icon: Send },
+  { label: "Work starts", icon: CheckCircle2 },
+];
+
+function EmptyWelcomeDesk() {
+  return (
+    <section className="overflow-hidden rounded-2xl border border-border/70 bg-card">
+      <div className="grid lg:grid-cols-[minmax(0,0.88fr)_minmax(0,1.12fr)]">
+        <div className="border-b border-border/60 bg-primary/[0.025] p-6 sm:p-8 lg:border-b-0 lg:border-r lg:p-10">
+          <p className="text-micro font-semibold uppercase tracking-[0.16em] text-primary">
+            Client alignment
+          </p>
+          <h2 className="mt-3 max-w-md font-display text-2xl font-semibold tracking-tight sm:text-3xl">
+            Set the working rhythm before kickoff.
+          </h2>
+          <p className="mt-3 max-w-md text-sm leading-6 text-muted-foreground">
+            Turn the client brief into one practical guide covering the plan,
+            communication, boundaries, and next step.
+          </p>
+          <div className="mt-6 flex flex-wrap gap-2">
+            <Button asChild className="min-h-11">
+              <Link href={WELCOME_DOCUMENT_NEW}>
+                <Plus /> New welcome doc
+              </Link>
+            </Button>
+            <Button
+              variant="ghost"
+              className="min-h-11"
+              onClick={() =>
+                openIvo("Help me prepare my first welcome document.")
+              }
+            >
+              Draft with Ivo
+            </Button>
+          </div>
+        </div>
+
+        <div className="p-6 sm:p-8 lg:p-10">
+          <div className="mx-auto max-w-lg rounded-lg border border-border/70 bg-background p-5 sm:p-6">
+            <div className="border-b border-border/60 pb-5">
+              <p className="text-micro font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                Onboarding handoff
+              </p>
+              <p className="mt-2 text-base font-semibold">
+                From client answers to a calm start
+              </p>
+            </div>
+
+            <div className="relative mt-6 grid grid-cols-3">
+              <div
+                aria-hidden
+                className="absolute left-[16.66%] right-[16.66%] top-4 h-px bg-primary/25"
+              />
+              {onboardingFlow.map(({ label, icon: Icon }, index) => (
+                <div
+                  key={label}
+                  className="relative z-10 flex flex-col items-center text-center"
+                >
+                  <span
+                    className={
+                      index === 0
+                        ? "flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground"
+                        : "flex h-8 w-8 items-center justify-center rounded-lg border border-primary/20 bg-background text-primary"
+                    }
+                  >
+                    <Icon className="h-3.5 w-3.5" />
+                  </span>
+                  <span className="mt-2 text-xs font-semibold">{label}</span>
+                </div>
+              ))}
+            </div>
+
+            <div className="mt-6 divide-y divide-border/60 border-t border-border/60">
+              {[
+                "Project plan and contacts",
+                "Feedback, boundaries, and payment",
+                "Kickoff date and next step",
+              ].map((label, index) => (
+                <div key={label} className="flex items-center gap-3 py-3 text-sm">
+                  <span className="font-mono text-micro text-primary">
+                    {String(index + 1).padStart(2, "0")}
+                  </span>
+                  <span className="text-muted-foreground">{label}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
 }
 
 /**
@@ -178,30 +275,33 @@ export function WelcomeListView({ documents }: Props) {
         title="Welcome documents"
         description="One personalised guide per client. Duplicate any document to reuse it for the next client."
         actions={
-          <div className="flex items-center gap-2">
-            <IvoEntryPoint
-              prompt="Review my welcome documents and tell me what needs attention."
-              label="Ask Ivo"
-              variant="outline"
-            />
-            <IvoEntryPoint
-              prompt="Draft a welcome document for a client"
-              label="Draft with AI"
-              variant="secondary"
-            />
-            <Button asChild size="sm">
-              <Link href={WELCOME_DOCUMENT_NEW}>
-                <Plus /> New welcome doc
-              </Link>
-            </Button>
-          </div>
+          documents.length > 0 ? (
+            <div className="flex flex-wrap items-center gap-2">
+              <IvoEntryPoint
+                prompt="Review my welcome documents and tell me what needs attention."
+                label="Ask Ivo"
+                variant="secondary"
+              />
+              <IvoEntryPoint
+                prompt="Draft a welcome document for a client"
+                label="Draft with Ivo"
+                variant="ghost"
+              />
+              <Button asChild size="sm">
+                <Link href={WELCOME_DOCUMENT_NEW}>
+                  <Plus /> New welcome doc
+                </Link>
+              </Button>
+            </div>
+          ) : null
         }
       />
 
-      <div
-        className={cn("grid items-start gap-6", "grid-cols-1")}
-      >
-        <div className="min-w-0 space-y-6">
+      {documents.length === 0 ? (
+        <EmptyWelcomeDesk />
+      ) : (
+        <div className={cn("grid items-start gap-6", "grid-cols-1")}>
+          <div className="min-w-0 space-y-6">
       <div className="grid gap-4 sm:grid-cols-3">
         <Stat label="Total documents" value={stats.total.toString()} />
         <Stat
@@ -243,11 +343,7 @@ export function WelcomeListView({ documents }: Props) {
       {filtered.length === 0 ? (
         <EmptyState
           icon={BookOpen}
-          title={
-            documents.length === 0
-              ? "Your first welcome document is one click away"
-              : "No documents match your filters"
-          }
+          title="No documents match your filters"
           description={
             documents.length === 0
               ? "Pick a template — Freelancer Onboarding, Agency Client Welcome, or Consultant Pack — and customise it in minutes."
@@ -286,9 +382,9 @@ export function WelcomeListView({ documents }: Props) {
           </CardContent>
         </Card>
       )}
+          </div>
         </div>
-
-      </div>
+      )}
     </div>
   );
 }

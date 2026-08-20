@@ -309,7 +309,44 @@ produced no application runtime errors. Starter creation was not submitted durin
 QA because it would create workspace data; its existing server action was
 preserved unchanged.
 
+### Welcome documents — completed
+
+The empty Welcome Documents workspace now starts with client alignment instead
+of three zero metrics, inactive filters, and repeated creation modes. Its
+onboarding handoff connects a ready brief to a shared working guide and kickoff,
+making the relationship with Questionnaires explicit without claiming that every
+document must originate there. Populated document filtering, publishing, sending,
+link copying, duplication, archiving, deletion, statuses, and view counts remain
+unchanged.
+
+Evidence:
+
+- `screenshots/welcome-baseline.png` — pre-change desktop state.
+- `screenshots/welcome-mobile-baseline.png` — pre-change mobile state.
+- `screenshots/welcome-calm-command.png` — desktop result.
+- `screenshots/welcome-mobile-calm-command.png` — mobile result.
+
+Quick wins completed:
+
+1. Hid zero-value metrics and inactive controls before the first document exists.
+2. Removed the overflowing three-action header from the empty mobile state.
+3. Replaced the generic dashed empty state with a client-alignment desk.
+4. Connected brief ready → guide shared → work starts with one Flowline.
+5. Kept document creation primary and Ivo drafting visibly secondary.
+
+Welcome documents design score: **C → B**.
+
+Welcome documents AI slop score: **D → B**.
+
+The primary action was verified in the authenticated browser. It opens
+`/dashboard/welcome/new`, where blank creation and the available onboarding and
+project-handoff templates render successfully. Desktop and mobile reloads
+produced no application runtime errors. Development logs contain only report-only
+analytics CSP notices and the known Next.js smooth-scroll warning. Populated
+document rows and actions are deferred for visual verification with real data;
+their implementation was not changed.
+
 ### Next
 
-Reframe Welcome documents around the client alignment handoff, then verify its
-creation route and relationship to the completed questionnaire step.
+Audit the remaining document surfaces, beginning with Lead Forms and Templates,
+then run a cross-flow consistency pass from proposal through client onboarding.
