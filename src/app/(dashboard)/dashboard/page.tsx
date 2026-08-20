@@ -240,7 +240,7 @@ export default async function DashboardPage() {
             <Button
               asChild
               size="sm"
-              className="rounded-md px-2 sm:px-3"
+              className="rounded-lg px-2 sm:px-3"
             >
               <Link href="/dashboard/invoices/new">
                 <FileText /> <span><span className="hidden sm:inline">New </span>invoice</span>

@@ -32,7 +32,7 @@ export function SidebarNav({ items, collapsed, onNavigate, isFreePlan = false }:
             data-tour={item.href}
             onClick={onNavigate}
             className={cn(
-              "group relative flex h-9 items-center gap-3 rounded-md px-2.5 text-xs font-medium",
+              "group relative flex h-9 items-center gap-3 rounded-lg px-2.5 text-xs font-medium",
               "transition-colors duration-150 ease-out",
               "text-sidebar-foreground/58 hover:bg-sidebar-accent/80 hover:text-sidebar-foreground",
               isActive && "bg-sidebar-accent text-sidebar-accent-foreground",
@@ -69,7 +69,7 @@ export function SidebarNav({ items, collapsed, onNavigate, isFreePlan = false }:
               </span>
             ) : null}
             {showProBadge && (
-              <span className="ml-auto text-[9px] font-semibold uppercase tracking-[0.12em] text-sidebar-foreground/35">
+              <span className="ml-auto text-micro font-semibold uppercase tracking-[0.12em] text-sidebar-foreground/35">
                 Pro
               </span>
             )}

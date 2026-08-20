@@ -452,7 +452,34 @@ creation and Ivo behaviors. Local console output contains the known Next.js
 smooth-scroll warning plus external analytics DNS failures in the restricted
 development browser, not application runtime errors.
 
+### Shared workspace shell — completed
+
+The remaining known token drift in the dashboard shell is removed. Sidebar
+navigation, the setup-checklist icon, and the dashboard invoice action now use
+the approved standard radius. Free-plan labels now respect the 12px type floor
+instead of shrinking to an unreadable 9px badge.
+
+Evidence:
+
+- `screenshots/shared-shell-token-cleanup.png` — verified desktop shell.
+- `screenshots/shared-shell-token-cleanup-mobile.png` — verified mobile dashboard.
+
+Quick wins completed:
+
+1. Replaced all three retired `rounded-md` uses with the standard card/control radius.
+2. Raised the sidebar Pro label from an arbitrary 9px value to `text-micro`.
+3. Cleared the design-token gate with no new drift.
+4. Verified the dashboard at desktop and 375px without horizontal overflow.
+
+Shared-shell design score: **B → B**.
+
+Shared-shell AI slop score: **B → B**.
+
+TypeScript, targeted ESLint, the design-token gate, and whitespace validation
+all pass. Browser output contains only the known smooth-scroll warning and
+restricted external analytics DNS failures.
+
 ### Next
 
-Remove the remaining retired radius and undersized-type tokens from the shared
-dashboard shell, then run the broader behavioral QA pass.
+Begin broader behavioral QA across authentication, document creation, and the
+client-facing handoff using non-destructive fixtures where possible.

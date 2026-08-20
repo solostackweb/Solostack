@@ -27,6 +27,13 @@
       "impact": "medium",
       "category": "responsive",
       "status": "verified"
+    },
+    {
+      "id": "SHELL-001",
+      "title": "The shared workspace shell retained retired radii and a Pro badge below the 12px type floor",
+      "impact": "medium",
+      "category": "typography",
+      "status": "verified"
     }
   ]
 }

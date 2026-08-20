@@ -102,7 +102,7 @@ export function DashboardSetupChecklist({ hasSignature }: Props) {
               className="flex flex-1 items-center gap-3 text-left"
               aria-expanded={false}
             >
-              <span className="relative flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
+              <span className="relative flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
                 <CheckCircle2 className="h-4 w-4" aria-hidden />
                 <span className="absolute -bottom-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-micro font-bold tabular-nums text-primary-foreground ring-2 ring-background">
                   {remaining}
