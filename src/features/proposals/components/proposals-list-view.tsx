@@ -264,15 +264,14 @@ export function ProposalsListView({
         <EmptyProposalDesk />
       ) : (
         <>
-          <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
-            <Stat label="Total proposals" value={stats.total.toString()} />
-            <Stat label="Open" value={stats.open.toString()} tone="blue" />
-            <Stat label="Accepted" value={stats.accepted.toString()} tone="green" />
-            <Stat
-              label="Open value"
-              value={formatMoney(stats.openValue, "INR")}
-            />
-          </div>
+          <Card>
+            <CardContent className="grid grid-cols-2 divide-x-0 divide-y p-0 sm:grid-cols-4 sm:divide-x sm:divide-y-0">
+              <Stat label="Total proposals" value={stats.total.toString()} />
+              <Stat label="Open" value={stats.open.toString()} tone="blue" />
+              <Stat label="Accepted" value={stats.accepted.toString()} tone="green" />
+              <Stat label="Open value" value={formatMoney(stats.openValue, "INR")} />
+            </CardContent>
+          </Card>
 
           <div className="grid gap-2 sm:flex sm:items-center">
             <div className="relative w-full sm:max-w-sm">
@@ -307,16 +306,27 @@ export function ProposalsListView({
               description="Try a different search term or status filter."
             />
           ) : (
-            <div className="grid gap-3">
+            <Card className="overflow-hidden">
+              <CardContent className="p-0">
+              <div className="hidden grid-cols-[minmax(220px,1fr)_110px_130px_120px_32px] items-center gap-3 border-b bg-muted/20 px-5 py-2.5 text-xs font-medium text-muted-foreground md:grid">
+                <span>Proposal</span>
+                <span>Status</span>
+                <span>Valid until</span>
+                <span className="text-right">Value</span>
+                <span className="sr-only">Actions</span>
+              </div>
+              <div className="divide-y">
               {filtered.map((proposal) => {
             const client = proposal.clientId ? clientById.get(proposal.clientId) : null;
             const project = proposal.projectId ? projectById.get(proposal.projectId) : null;
             return (
-              <Card key={proposal.id} className="overflow-hidden">
-                <CardContent className="grid gap-4 p-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
-                  <div className="min-w-0 space-y-2">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <h3 className="min-w-0 truncate text-base font-semibold">
+              <div
+                key={proposal.id}
+                className="grid gap-3 p-4 transition-colors hover:bg-muted/20 md:grid-cols-[minmax(220px,1fr)_110px_130px_120px_32px] md:items-center md:px-5 md:py-3.5"
+              >
+                  <div className="flex min-w-0 items-start justify-between gap-3 md:contents">
+                    <div className="min-w-0">
+                      <h3 className="truncate text-base font-semibold">
                         <Link
                           href={`/dashboard/proposals/${proposal.id}`}
                           className="hover:underline"
@@ -324,26 +334,25 @@ export function ProposalsListView({
                           {proposal.title}
                         </Link>
                       </h3>
-                      <ProposalStatusBadge status={proposal.status} />
+                      <div className="mt-1 flex flex-wrap items-center gap-x-2 text-sm text-muted-foreground">
+                        <span>{client?.name ?? "No client"}</span>
+                        {project ? <><span aria-hidden>·</span><span>{project.name}</span></> : null}
+                      </div>
                     </div>
-                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
-                      <span>{client?.name ?? "No client"}</span>
-                      {project ? <span>{project.name}</span> : null}
+                      <ProposalStatusBadge status={proposal.status} />
+                  </div>
+                  <div className="flex items-center justify-between gap-3 border-t pt-3 md:contents">
+                    <span className="text-sm text-muted-foreground">
                       {proposal.validUntil ? (
                         <span className="inline-flex items-center gap-1">
                           <CalendarDays className="h-3.5 w-3.5" />
-                          Valid until {formatDate(proposal.validUntil)}
+                          <span className="hidden sm:inline md:hidden">Valid until </span>{formatDate(proposal.validUntil)}
                         </span>
-                      ) : null}
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-between gap-3 sm:justify-end">
-                    <div className="text-right">
-                      <div className="text-lg font-bold">
+                      ) : "—"}
+                    </span>
+                    <div className="text-right md:contents">
+                      <div className="text-base font-semibold tabular-nums md:text-right">
                         {formatMoney(proposal.totalAmount, proposal.currency)}
-                      </div>
-                      <div className="text-xs text-muted-foreground">
-                        Updated {formatDate(proposal.updatedAt)}
                       </div>
                     </div>
                     <DropdownMenu>
@@ -371,11 +380,12 @@ export function ProposalsListView({
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </div>
-                </CardContent>
-              </Card>
+              </div>
             );
               })}
-            </div>
+              </div>
+              </CardContent>
+            </Card>
           )}
         </>
       )}
@@ -387,7 +397,7 @@ function ProposalStatusBadge({ status }: { status: ProposalStatusRow }) {
   return (
     <span
       className={cn(
-        "inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-semibold",
+        "inline-flex items-center justify-self-start rounded-full border px-2 py-0.5 text-xs font-semibold",
         PROPOSAL_STATUS_CLASS[status],
       )}
     >
@@ -398,8 +408,7 @@ function ProposalStatusBadge({ status }: { status: ProposalStatusRow }) {
 
 function Stat({ label, value, tone }: { label: string; value: string; tone?: "blue" | "green" }) {
   return (
-    <Card>
-      <CardContent className="p-4">
+      <div className="min-h-24 p-4 sm:p-5">
         <div className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
           {label}
         </div>
@@ -412,8 +421,7 @@ function Stat({ label, value, tone }: { label: string; value: string; tone?: "bl
         >
           {value}
         </div>
-      </CardContent>
-    </Card>
+      </div>
   );
 }
 
