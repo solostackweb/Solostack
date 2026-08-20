@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import {
   Area,
   AreaChart,
@@ -126,15 +127,17 @@ export function BusinessCommandCenter({
                 <state.Icon className="h-3.5 w-3.5" />
                 {state.label}
               </span>
-              <IvoEntryPoint
-                variant="secondary"
-                prompt="What should I focus on today?"
-                label="Ask Ivo"
-              />
+              <div className="hidden sm:block">
+                <IvoEntryPoint
+                  variant="secondary"
+                  prompt="What should I focus on today?"
+                  label="Ask Ivo"
+                />
+              </div>
             </div>
           </div>
 
-          <div className="mt-6 space-y-4">
+          <div className="mt-4 space-y-3 sm:mt-6 sm:space-y-4">
             <div>
               <div className="mb-2 flex items-center justify-between gap-3 text-xs">
                 <span className="font-medium text-muted-foreground">
@@ -194,8 +197,8 @@ export function BusinessCommandCenter({
           </div>
         </div>
 
-        <div className="p-5 sm:p-7">
-          <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
+        <div className="p-4 sm:p-7">
+          <div className="mb-2 flex flex-wrap items-start justify-between gap-3 sm:mb-5">
             <div>
               <p className="text-sm font-semibold tracking-tight">Revenue trend</p>
               <p className="mt-1 text-xs text-muted-foreground">
@@ -222,7 +225,7 @@ export function BusinessCommandCenter({
           </div>
 
           {bestMonth > 0 ? (
-            <div className="h-[260px] w-full sm:h-[310px]">
+            <div className="hidden h-[310px] w-full sm:block">
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart
                   data={revenueSeries}
@@ -294,7 +297,7 @@ export function BusinessCommandCenter({
               </ResponsiveContainer>
             </div>
           ) : (
-            <div className="flex h-[260px] flex-col items-center justify-center rounded-lg border border-dashed bg-muted/15 text-center sm:h-[310px]">
+            <div className="hidden h-[310px] flex-col items-center justify-center rounded-lg border border-dashed bg-muted/15 text-center sm:flex">
               <Wallet className="h-8 w-8 text-muted-foreground/60" />
               <p className="mt-3 text-sm font-semibold">No paid revenue yet</p>
               <p className="mt-1 max-w-xs text-xs text-muted-foreground">
@@ -302,6 +305,12 @@ export function BusinessCommandCenter({
               </p>
             </div>
           )}
+          <Link
+            href="/dashboard/pulse"
+            className="inline-flex min-h-11 items-center text-sm font-semibold text-primary sm:hidden"
+          >
+            Open full analysis →
+          </Link>
         </div>
       </div>
     </section>
@@ -318,7 +327,7 @@ interface MetricProps {
 
 function Metric({ icon: Icon, label, value, note, tone }: MetricProps) {
   return (
-    <div className="py-4">
+    <div className="py-3 sm:py-4">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="text-micro font-semibold uppercase tracking-wider text-muted-foreground">
@@ -330,7 +339,7 @@ function Metric({ icon: Icon, label, value, note, tone }: MetricProps) {
         </div>
         <span
           className={cn(
-            "flex h-7 w-7 shrink-0 items-center justify-center",
+            "hidden h-7 w-7 shrink-0 items-center justify-center sm:flex",
             tone === "default" && "text-primary",
             tone === "warning" && "text-warning-strong",
             tone === "danger" && "text-destructive",
@@ -340,7 +349,7 @@ function Metric({ icon: Icon, label, value, note, tone }: MetricProps) {
           <Icon className="h-4 w-4" />
         </span>
       </div>
-      <p className="mt-1.5 truncate text-xs text-muted-foreground">{note}</p>
+      <p className="mt-1.5 hidden truncate text-xs text-muted-foreground sm:block">{note}</p>
     </div>
   );
 }
