@@ -274,7 +274,42 @@ contain only report-only analytics CSP notices and the known Next.js smooth-scro
 warning. Populated contract rows and actions are deferred for visual verification
 with real data; their implementation was not changed.
 
+### Questionnaires — completed
+
+The first-use Questionnaires workspace now starts with the client brief journey,
+not a duplicate empty-state action followed by nine equal template cards. The
+Brief desk explains build → response → kickoff readiness, while the starter
+library is a compact, scan-friendly list that keeps every existing brief and its
+server action available. Populated questionnaire editing, responses, sending,
+and deletion remain unchanged.
+
+Evidence:
+
+- `screenshots/questionnaires-baseline.png` — pre-change desktop state.
+- `screenshots/questionnaires-mobile-baseline.png` — pre-change mobile state.
+- `screenshots/questionnaires-calm-command.png` — desktop result.
+- `screenshots/questionnaires-mobile-calm-command.png` — mobile result.
+
+Quick wins completed:
+
+1. Removed the duplicate first-questionnaire action from the empty page header.
+2. Replaced the generic empty card with a brief-specific preparation desk.
+3. Explained build → client response → kickoff readiness with one Flowline.
+4. Replaced nine oversized template cards with one compact starting-brief list.
+5. Raised blank and starter actions to the 44px touch floor.
+
+Questionnaires design score: **C → B**.
+
+Questionnaires AI slop score: **D → B**.
+
+The primary action was verified in the authenticated browser. It opens
+`/dashboard/questionnaires/new`, where the existing title, introduction, question
+builder, and save controls render successfully. Desktop and mobile reloads
+produced no application runtime errors. Starter creation was not submitted during
+QA because it would create workspace data; its existing server action was
+preserved unchanged.
+
 ### Next
 
-Continue the document journey with Questionnaires and Welcome documents, then
-verify the handoff from accepted proposal through signed agreement to onboarding.
+Reframe Welcome documents around the client alignment handoff, then verify its
+creation route and relationship to the completed questionnaire step.

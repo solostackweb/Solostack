@@ -1,0 +1,34 @@
+{
+  "date": "2026-08-21",
+  "url": "http://localhost:3000/dashboard/questionnaires",
+  "designScore": "B",
+  "aiSlopScore": "B",
+  "categoryGrades": {
+    "hierarchy": "B",
+    "typography": "B",
+    "spacing": "B",
+    "color": "A",
+    "interaction": "B",
+    "responsive": "B",
+    "content": "B",
+    "aiSlop": "B",
+    "motion": "B",
+    "performanceFeel": "C"
+  },
+  "findings": [
+    {
+      "id": "QUESTIONNAIRES-001",
+      "title": "The first-use workspace buried the client brief journey beneath duplicate actions and an oversized template grid",
+      "impact": "high",
+      "category": "hierarchy",
+      "status": "verified"
+    },
+    {
+      "id": "QUESTIONNAIRES-002",
+      "title": "Populated questionnaire cards and send-response actions still need visual verification with representative data",
+      "impact": "medium",
+      "category": "interaction",
+      "status": "deferred"
+    }
+  ]
+}

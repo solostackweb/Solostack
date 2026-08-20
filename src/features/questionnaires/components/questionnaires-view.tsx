@@ -1,5 +1,14 @@
 import Link from "next/link";
-import { FileQuestion, Inbox, Pencil, Plus, Send, Trash2, Wand2 } from "lucide-react";
+import {
+  CheckCircle2,
+  FileQuestion,
+  Inbox,
+  Pencil,
+  Plus,
+  Send,
+  Trash2,
+  Wand2,
+} from "lucide-react";
 
 import { PageHeader } from "@/components/shared/page-header";
 import { Button } from "@/components/ui/button";
@@ -16,6 +25,144 @@ import {
   type SendClientOption,
 } from "./send-questionnaire-dialog";
 
+const questionnaireFlow = [
+  { label: "Build brief", icon: FileQuestion },
+  { label: "Client response", icon: Send },
+  { label: "Ready to start", icon: CheckCircle2 },
+];
+
+function QuestionnaireStartDesk() {
+  return (
+    <section className="overflow-hidden rounded-2xl border border-border/70 bg-card">
+      <div className="grid lg:grid-cols-[minmax(0,0.88fr)_minmax(0,1.12fr)]">
+        <div className="border-b border-border/60 bg-primary/[0.025] p-6 sm:p-8 lg:border-b-0 lg:border-r lg:p-10">
+          <p className="text-micro font-semibold uppercase tracking-[0.16em] text-primary">
+            Brief desk
+          </p>
+          <h2 className="mt-3 max-w-md font-display text-2xl font-semibold tracking-tight sm:text-3xl">
+            Collect the context before work begins.
+          </h2>
+          <p className="mt-3 max-w-md text-sm leading-6 text-muted-foreground">
+            Start with a focused brief, tailor the questions, then send one
+            clear request to your client.
+          </p>
+          <div className="mt-6 flex flex-wrap gap-2">
+            <Button asChild className="min-h-11">
+              <Link href="/dashboard/questionnaires/new">
+                <Plus className="h-4 w-4" /> Start blank
+              </Link>
+            </Button>
+            <IvoEntryPoint
+              prompt="Help me prepare the right questions for my first client brief."
+              label="Ask Ivo"
+              variant="ghost"
+              className="min-h-11"
+            />
+          </div>
+        </div>
+
+        <div className="p-6 sm:p-8 lg:p-10">
+          <div className="mx-auto max-w-lg rounded-lg border border-border/70 bg-background p-5 sm:p-6">
+            <div className="border-b border-border/60 pb-5">
+              <p className="text-micro font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                Before kickoff
+              </p>
+              <p className="mt-2 text-base font-semibold">
+                One brief, fewer missing details
+              </p>
+            </div>
+
+            <div className="relative mt-6 grid grid-cols-3">
+              <div
+                aria-hidden
+                className="absolute left-[16.66%] right-[16.66%] top-4 h-px bg-primary/25"
+              />
+              {questionnaireFlow.map(({ label, icon: Icon }, index) => (
+                <div
+                  key={label}
+                  className="relative z-10 flex flex-col items-center text-center"
+                >
+                  <span
+                    className={
+                      index === 0
+                        ? "flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground"
+                        : "flex h-8 w-8 items-center justify-center rounded-lg border border-primary/20 bg-background text-primary"
+                    }
+                  >
+                    <Icon className="h-3.5 w-3.5" />
+                  </span>
+                  <span className="mt-2 text-xs font-semibold">{label}</span>
+                </div>
+              ))}
+            </div>
+
+            <div className="mt-6 divide-y divide-border/60 border-t border-border/60">
+              {["Scope and goals", "Inputs and constraints", "Kickoff readiness"].map(
+                (label, index) => (
+                  <div
+                    key={label}
+                    className="flex items-center gap-3 py-3 text-sm"
+                  >
+                    <span className="font-mono text-micro text-primary">
+                      {String(index + 1).padStart(2, "0")}
+                    </span>
+                    <span className="text-muted-foreground">{label}</span>
+                  </div>
+                ),
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function StarterLibrary() {
+  return (
+    <section className="overflow-hidden rounded-lg border border-border/70 bg-card">
+      <div className="border-b border-border/60 px-5 py-4 sm:px-6">
+        <p className="text-micro font-semibold uppercase tracking-[0.14em] text-primary">
+          Starting briefs
+        </p>
+        <h2 className="mt-1 text-base font-semibold">
+          Choose the closest client conversation
+        </h2>
+      </div>
+      <div className="divide-y divide-border/60">
+        {QUESTIONNAIRE_STARTERS.map((starter) => (
+          <div
+            key={starter.id}
+            className="grid gap-3 px-5 py-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:px-6"
+          >
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                <h3 className="text-sm font-semibold">{starter.title}</h3>
+                <span className="font-mono text-micro text-muted-foreground">
+                  {starter.questions.length} questions
+                </span>
+              </div>
+              <p className="mt-1 max-w-3xl text-sm leading-5 text-muted-foreground">
+                {starter.description}
+              </p>
+            </div>
+            <form action={createFromStarterAction}>
+              <input type="hidden" name="starterId" value={starter.id} />
+              <Button
+                type="submit"
+                variant="outline"
+                className="min-h-11 w-full sm:w-auto"
+              >
+                <Wand2 className="h-3.5 w-3.5" /> Use brief
+              </Button>
+            </form>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 export function QuestionnairesView({
   questionnaires,
   clients,
@@ -29,14 +176,19 @@ export function QuestionnairesView({
         title="Questionnaires"
         description="Build reusable intake forms and send them to clients to collect scope, brand, and project details."
         actions={
-          <div className="flex items-center gap-2">
-            <IvoEntryPoint prompt="What should I ask a new client before starting a project?" />
-            <Button asChild size="sm">
-              <Link href="/dashboard/questionnaires/new">
-                <Plus className="h-4 w-4" /> New questionnaire
-              </Link>
-            </Button>
-          </div>
+          questionnaires.length > 0 ? (
+            <div className="flex items-center gap-2">
+              <IvoEntryPoint
+                prompt="What should I ask a new client before starting a project?"
+                variant="secondary"
+              />
+              <Button asChild size="sm">
+                <Link href="/dashboard/questionnaires/new">
+                  <Plus className="h-4 w-4" /> New questionnaire
+                </Link>
+              </Button>
+            </div>
+          ) : null
         }
       />
 
@@ -99,54 +251,10 @@ export function QuestionnairesView({
           </div>
         </section>
       ) : (
-        <Card>
-          <CardContent className="flex flex-col items-center gap-3 p-10 text-center">
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted text-muted-foreground">
-              <FileQuestion className="h-6 w-6" />
-            </div>
-            <p className="text-sm text-muted-foreground">
-              No questionnaires yet. Start from scratch or fork a starter below.
-            </p>
-            <Button asChild size="sm">
-              <Link href="/dashboard/questionnaires/new">
-                <Plus className="h-4 w-4" /> New questionnaire
-              </Link>
-            </Button>
-          </CardContent>
-        </Card>
+        <QuestionnaireStartDesk />
       )}
 
-      <section className="space-y-3">
-        <h2 className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-          Starter templates
-        </h2>
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-          {QUESTIONNAIRE_STARTERS.map((starter) => (
-            <Card key={starter.id}>
-              <CardContent className="flex h-full flex-col p-5">
-                <h3 className="text-sm font-semibold">{starter.title}</h3>
-                <p className="mt-1 line-clamp-2 flex-1 text-xs text-muted-foreground">
-                  {starter.description}
-                </p>
-                <p className="mt-3 text-xs text-muted-foreground">
-                  {starter.questions.length} questions
-                </p>
-                <form action={createFromStarterAction} className="mt-3">
-                  <input type="hidden" name="starterId" value={starter.id} />
-                  <Button
-                    type="submit"
-                    size="sm"
-                    variant="outline"
-                    className="w-full"
-                  >
-                    <Wand2 className="h-3.5 w-3.5" /> Use as starting point
-                  </Button>
-                </form>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      </section>
+      <StarterLibrary />
     </div>
   );
 }
