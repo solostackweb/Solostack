@@ -1,5 +1,4 @@
 import * as React from "react";
-import { Clock, CircleDollarSign, Target, TrendingUp } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { formatINR } from "@/lib/format";
@@ -41,31 +40,29 @@ export function TimeSummaryCards({
   );
 
   return (
-    <div className="grid gap-3 sm:gap-4 [grid-template-columns:repeat(auto-fit,minmax(160px,1fr))]">
+    <Card>
+      <CardContent className="grid grid-cols-2 p-0 lg:grid-cols-4">
       <SummaryCard
-        icon={Clock}
-        label="Logged this week"
+        label="This week"
         value={formatDuration(stats.total, { compact: true }) || "0m"}
         helper={`${weeklyGoalHours}h weekly goal`}
         progress={weeklyProgress}
-        featured
+        className="border-b border-r lg:border-b-0"
       />
       <SummaryCard
-        icon={Target}
-        label="Billable hours"
+        label="Billable"
         value={formatDuration(stats.billable, { compact: true }) || "0m"}
         helper={`${stats.billablePct}% billable`}
-        tone="primary"
+        className="border-b lg:border-b-0 lg:border-r"
       />
       <SummaryCard
-        icon={CircleDollarSign}
         label="Earnings"
         value={formatINR(stats.earnings)}
         helper="This week"
-        tone="success"
+        className="border-r"
+        valueClassName="text-success-strong"
       />
       <SummaryCard
-        icon={TrendingUp}
         label="Avg / day"
         value={
           formatDuration(Math.round(stats.total / 7), { compact: true }) ||
@@ -73,52 +70,32 @@ export function TimeSummaryCards({
         }
         helper="Trailing 7 days"
       />
-    </div>
+      </CardContent>
+    </Card>
   );
 }
 
 function SummaryCard({
-  icon: Icon,
   label,
   value,
   helper,
-  tone = "default",
   progress,
-  featured,
+  className,
+  valueClassName,
 }: {
-  icon: typeof Clock;
   label: string;
   value: string;
   helper?: string;
-  tone?: "default" | "primary" | "success";
   progress?: number;
-  featured?: boolean;
+  className?: string;
+  valueClassName?: string;
 }) {
   return (
-    <Card className={cn(
-      "group transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/20 hover:shadow-lg hover:shadow-primary/[0.05]",
-      featured && "col-span-2 lg:col-span-1",
-    )}>
-      <CardContent className="min-h-36 space-y-3 p-4 sm:p-5">
-        <div className="flex items-center justify-between gap-2">
-          <p className="min-w-0 break-words text-micro font-semibold uppercase tracking-widest text-muted-foreground">
-            {label}
-          </p>
-          <span
-            className={cn(
-              "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ring-1",
-              tone === "primary" &&
-                "bg-gradient-to-br from-primary/10 to-blue-500/10 text-primary ring-primary/15",
-              tone === "success" &&
-                "bg-gradient-to-br from-emerald-500/10 to-teal-500/10 text-success-strong ring-success-subtle",
-              tone === "default" &&
-                "bg-gradient-to-br from-primary/10 to-blue-500/10 text-primary ring-primary/15",
-            )}
-          >
-            <Icon className="h-4 w-4" />
-          </span>
-        </div>
-        <p className="text-2xl font-bold tabular-nums tracking-tight">
+    <div className={cn("min-w-0 space-y-2 p-4 sm:p-5", className)}>
+        <p className="truncate text-micro font-semibold uppercase tracking-widest text-muted-foreground">
+          {label}
+        </p>
+        <p className={cn("text-2xl font-bold tabular-nums tracking-tight", valueClassName)}>
           {value}
         </p>
         {helper && (
@@ -127,12 +104,11 @@ function SummaryCard({
         {typeof progress === "number" && (
           <div className="h-1.5 overflow-hidden rounded-full bg-muted">
             <div
-              className="h-full rounded-full bg-gradient-to-r from-primary to-blue-600 transition-[width] duration-500"
+              className="h-full rounded-full bg-primary transition-[width] duration-500"
               style={{ width: `${progress}%` }}
             />
           </div>
         )}
-      </CardContent>
-    </Card>
+    </div>
   );
 }
