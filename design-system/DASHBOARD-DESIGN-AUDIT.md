@@ -479,7 +479,77 @@ TypeScript, targeted ESLint, the design-token gate, and whitespace validation
 all pass. Browser output contains only the known smooth-scroll warning and
 restricted external analytics DNS failures.
 
+### Pro workspaces — completed
+
+Portal, Time, and Pulse now reveal the job each Pro surface performs before they
+have data. Portal explains the client handoff, Time begins with the live timer,
+and Pulse stays intentionally quiet until commercial activity exists. Their
+populated behavior, server actions, exports, filters, reports, and entitlement
+checks remain unchanged.
+
+Evidence:
+
+- `screenshots/portal-baseline.png` and `screenshots/portal-mobile-baseline.png` — pre-change Portal.
+- `screenshots/portal-after.png` and `screenshots/portal-mobile-after.png` — client handoff result.
+- `screenshots/time-baseline.png` and `screenshots/time-mobile-baseline.png` — pre-change Time.
+- `screenshots/time-after.png` and `screenshots/time-mobile-after.png` — tracking-desk result.
+- `screenshots/pulse-baseline.png` and `screenshots/pulse-mobile-baseline.png` — pre-change Pulse.
+- `screenshots/pulse-after.png` and `screenshots/pulse-mobile-after.png` — data-led Pulse result.
+
+Quick wins completed:
+
+1. Removed the duplicated Portal creation route and made client → shared work → aligned activity explicit.
+2. Moved the Time timer above summaries and hid zero KPI, filter, and breakdown shells before first use.
+3. Reduced Time's three competing header actions to one primary logging action.
+4. Replaced Pulse's multi-screen wall of zero analytics with one honest activation path.
+5. Kept Ivo visibly secondary and connected to a specific planning job on all three surfaces.
+
+Portal design score: **C → B**.
+
+Time design score: **C → B**.
+
+Pulse design score: **D → B**.
+
+The authenticated QA user was granted a one-year Pro entitlement ending
+21 Aug 2027. The subscription remains a manual comp with no Razorpay
+subscription id, so no paid subscription was altered. All three routes were
+verified at 1440×1000 and 375×812.
+
+### Populated document lists — completed
+
+Contracts and Proposals now use an operational list grammar when data exists.
+Four independent KPI cards became one compact summary strip, desktop rows gained
+real columns, titles and metadata meet the readability floor, currency is
+tabular and aligned, and status tags are quiet sentence-case labels sized to
+their text. Mobile retains touch-safe record rows without shrinking content.
+
+Evidence:
+
+- `screenshots/contracts-populated-after.png` — populated Contracts desktop result.
+- `screenshots/contracts-populated-mobile-after.png` — populated Contracts mobile result.
+- `screenshots/proposals-populated-after.png` — populated Proposals desktop result.
+- `screenshots/proposals-populated-mobile-after.png` — populated Proposals mobile result.
+
+Quick wins completed:
+
+1. Removed the duplicated Contract AI drafting action from the populated header.
+2. Added Agreement, Status, Created, and Value semantics to desktop Contracts.
+3. Replaced animated uppercase Contract badges with compact sentence-case states.
+4. Added Proposal, Status, Valid until, and Value semantics to desktop Proposals.
+5. Preserved 16px record titles, 14px metadata, touch-safe actions, and responsive reflow.
+
+Contracts populated-state design score: **C → B**.
+
+Proposals populated-state design score: **C → B**.
+
+Four `QA -` Contracts and four `QA -` Proposals were added only to the dedicated
+Stackivo QA user to render these states. No customer records were read, copied,
+or changed. TypeScript, targeted ESLint, the design-token gate, and whitespace
+validation pass across all files in this review window.
+
 ### Next
 
-Begin broader behavioral QA across authentication, document creation, and the
-client-facing handoff using non-destructive fixtures where possible.
+Continue the populated-state audit with invoice, client, project, Welcome
+Document, and questionnaire lists. Reuse the summary-strip and aligned-row
+grammar only where it improves scan speed; do not force every surface into a
+table.
