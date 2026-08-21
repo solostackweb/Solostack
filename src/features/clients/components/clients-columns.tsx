@@ -79,16 +79,16 @@ export function buildClientColumns({
             onClick={(e) => e.stopPropagation()}
             className="flex items-center gap-3 group/name"
           >
-            <Avatar className="h-8 w-8">
-              <AvatarFallback className="text-micro font-medium">
+            <Avatar className="h-9 w-9">
+              <AvatarFallback className="text-xs font-medium">
                 {getClientInitials(display)}
               </AvatarFallback>
             </Avatar>
             <div className="min-w-0">
-              <div className="truncate text-sm font-medium group-hover/name:underline">
+              <div className="truncate text-base font-medium group-hover/name:underline">
                 {display}
               </div>
-              <div className="truncate text-xs text-muted-foreground">
+              <div className="truncate text-sm text-muted-foreground">
                 {c.email ?? c.phone ?? "—"}
               </div>
             </div>
@@ -117,16 +117,16 @@ export function buildClientColumns({
         const c = row.original;
         if (c.isForeign) {
           return (
-            <span className="inline-flex items-center rounded-full border border-info-subtle bg-info-subtle px-2 py-0.5 text-xs font-medium text-info-strong">
+            <span className="inline-flex items-center rounded-full border border-info-subtle bg-info-subtle px-2 py-0.5 text-sm font-medium text-info-strong">
               International
             </span>
           );
         }
         if (!c.gstRegistered) {
-          return <span className="text-xs text-muted-foreground">Unregistered</span>;
+          return <span className="text-sm text-muted-foreground">Unregistered</span>;
         }
         return (
-          <span className="font-mono text-xs">
+          <span className="font-mono text-sm">
             {c.gstin ?? "—"}
           </span>
         );
