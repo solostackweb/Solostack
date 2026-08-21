@@ -3742,7 +3742,7 @@ export function StackivoAiAssistant({ user }: StackivoAiAssistantProps) {
           {/* Header */}
           <div className="sticky top-0 z-30 flex h-14 items-center gap-2 border-b bg-background px-3">
             <div className="flex min-w-0 flex-1 items-center gap-2.5 font-semibold">
-              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-indigo-500 text-white shadow-sm shadow-primary/20">
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground">
                 {(() => {
                   const HeaderIcon =
                     mode === "general"
@@ -3753,7 +3753,7 @@ export function StackivoAiAssistant({ user }: StackivoAiAssistantProps) {
               </span>
               <button
                 type="button"
-                className="flex min-w-0 items-center gap-1 rounded-lg px-1 py-0.5 text-left hover:bg-muted"
+                className="flex min-w-0 flex-1 items-center gap-1 overflow-hidden rounded-lg px-1 py-0.5 text-left hover:bg-muted"
                 onClick={() => {
                   setActivityOpen(false);
                   setConversationMenuOpen((current) => !current);
@@ -3762,14 +3762,14 @@ export function StackivoAiAssistant({ user }: StackivoAiAssistantProps) {
                 aria-label="Open conversation history"
               >
                 <span className="flex min-w-0 flex-col leading-tight">
-                  <span className="max-w-[220px] truncate">
+                  <span className="block truncate text-sm font-semibold">
                     {conversationHistory.find((conversation) => conversation.id === conversationId)?.title ??
                       (mode === "general"
                         ? ASSISTANT_NAME
                         : QUICK_ACTIONS.find((action) => action.mode === mode)?.title ?? "New conversation")}
                   </span>
-                  <span className="text-micro font-medium text-success-strong">
-                    Connected to your workspace
+                  <span className="truncate text-micro font-medium text-success-strong">
+                    Ivo · Connected
                   </span>
                 </span>
                 <ChevronDown className={cn(
@@ -3894,7 +3894,7 @@ export function StackivoAiAssistant({ user }: StackivoAiAssistantProps) {
               {aiUsage && aiUsage.limit >= 0 ? (
                 <span
                   className={cn(
-                    "mr-1 hidden items-center rounded-full border px-2 py-1 text-micro font-semibold tabular-nums sm:inline-flex",
+                    "mr-1 hidden items-center rounded-full border px-1.5 py-1 text-micro font-semibold tabular-nums sm:inline-flex",
                     aiUsage.used >= aiUsage.limit
                       ? "border-warning-subtle bg-warning-subtle text-warning-strong"
                       : "border-primary/20 bg-primary/5 text-primary",
@@ -3902,7 +3902,6 @@ export function StackivoAiAssistant({ user }: StackivoAiAssistantProps) {
                   title={`${Math.min(aiUsage.used, aiUsage.limit)}/${aiUsage.limit} AI messages this month · ${aiUsage.plan} plan`}
                 >
                   {Math.min(aiUsage.used, aiUsage.limit)}/{aiUsage.limit}
-                  <span className="ml-1 text-muted-foreground">AI</span>
                 </span>
               ) : null}
               <Button
