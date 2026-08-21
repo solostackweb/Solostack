@@ -105,7 +105,7 @@ export function AppSidebar() {
         >
           <StackivoMark className="h-7 w-7" />
           {!collapsed && (
-            <span className="text-sm font-semibold tracking-tight">
+            <span className="text-base font-semibold tracking-tight">
               Stackivo
             </span>
           )}
@@ -133,7 +133,7 @@ export function AppSidebar() {
           {SIDEBAR_GROUPS.map((group) => (
             <div key={group.label}>
               {!collapsed && (
-                <p className="mb-1 px-3 text-micro font-semibold uppercase tracking-widest text-sidebar-foreground/30">
+                <p className="mb-1.5 px-3 text-xs font-semibold uppercase tracking-widest text-sidebar-foreground/55">
                   {group.label}
                 </p>
               )}
@@ -150,7 +150,7 @@ export function AppSidebar() {
       <div className="px-2 pb-3">
         <Separator className="mb-2 bg-sidebar-border/60" />
         {!collapsed && (
-          <p className="mb-1 px-3 text-micro font-semibold uppercase tracking-widest text-sidebar-foreground/30">
+          <p className="mb-1.5 px-3 text-xs font-semibold uppercase tracking-widest text-sidebar-foreground/55">
             Account
           </p>
         )}

@@ -32,9 +32,9 @@ export function SidebarNav({ items, collapsed, onNavigate, isFreePlan = false }:
             data-tour={item.href}
             onClick={onNavigate}
             className={cn(
-              "group relative flex h-9 items-center gap-3 rounded-lg px-2.5 text-xs font-medium",
+              "group relative flex h-10 items-center gap-2.5 rounded-lg px-2.5 text-sm font-medium",
               "transition-colors duration-150 ease-out",
-              "text-sidebar-foreground/58 hover:bg-sidebar-accent/80 hover:text-sidebar-foreground",
+              "text-sidebar-foreground/75 hover:bg-sidebar-accent/80 hover:text-sidebar-foreground",
               isActive && "bg-sidebar-accent text-sidebar-accent-foreground",
               collapsed && "justify-center px-0",
             )}
@@ -44,7 +44,7 @@ export function SidebarNav({ items, collapsed, onNavigate, isFreePlan = false }:
             {isActive && !collapsed && (
               <span
                 aria-hidden
-                className="absolute left-0 top-1/2 h-4 w-0.5 -translate-y-1/2 rounded-r-full bg-primary"
+                className="absolute left-0 top-1/2 h-5 w-0.5 -translate-y-1/2 rounded-r-full bg-primary"
               />
             )}
             {/* Active collapsed dot */}
@@ -56,7 +56,7 @@ export function SidebarNav({ items, collapsed, onNavigate, isFreePlan = false }:
             )}
             <Icon
               className={cn(
-                "h-4 w-4 shrink-0 transition-all duration-150",
+                "h-5 w-5 shrink-0 transition-all duration-150",
                 isActive
                   ? "text-primary"
                   : "text-sidebar-foreground/50 group-hover:text-sidebar-foreground/90",
