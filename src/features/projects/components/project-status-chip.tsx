@@ -85,8 +85,8 @@ export function ProjectStatusChip({
     return (
       <span
         className={cn(
-          "inline-flex items-center gap-1.5 rounded-full ring-1 ring-inset px-2 py-0.5 text-micro font-semibold uppercase tracking-wider",
-          size === "sm" ? "text-micro" : "text-micro py-1",
+          "inline-flex items-center gap-1 whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset",
+          size === "md" && "px-2.5",
           cfg.chipClass,
           className,
         )}
@@ -111,10 +111,10 @@ export function ProjectStatusChip({
           }}
           aria-label={`Change status. Currently ${cfg.label}.`}
           className={cn(
-            "group inline-flex items-center gap-1.5 rounded-full ring-1 ring-inset font-semibold uppercase tracking-wider transition-all hover:ring-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed",
+            "group inline-flex items-center gap-1 whitespace-nowrap rounded-full py-0.5 text-xs font-medium ring-1 ring-inset transition-all hover:ring-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed",
             size === "sm"
-              ? "px-2 py-0.5 text-micro"
-              : "px-2.5 py-1 text-xs",
+              ? "px-2"
+              : "px-2.5",
             cfg.chipClass,
             className,
           )}
