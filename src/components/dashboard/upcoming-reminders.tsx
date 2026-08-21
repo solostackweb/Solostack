@@ -43,13 +43,13 @@ export function UpcomingReminders({ items }: { items: ReminderItem[] }) {
       <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-3">
         <div>
           <CardTitle className="text-base font-bold tracking-tight">Upcoming reminders</CardTitle>
-          <CardDescription className="text-xs">
+          <CardDescription className="text-sm">
             Scheduled tasks & nudges
           </CardDescription>
         </div>
         <Link
           href="/dashboard/invoices"
-          className="text-xs font-semibold text-primary transition-colors hover:text-primary/80"
+          className="text-sm font-semibold text-primary transition-colors hover:text-primary/80"
         >
           Manage →
         </Link>
@@ -84,12 +84,12 @@ export function UpcomingReminders({ items }: { items: ReminderItem[] }) {
                     </span>
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-semibold">{r.title}</p>
-                      <p className="truncate text-xs text-muted-foreground">
+                      <p className="truncate text-sm text-muted-foreground">
                         {r.description}
                       </p>
                       <p
                         className={cn(
-                          "mt-1 text-micro font-semibold",
+                          "mt-1 text-xs font-medium",
                           r.tone === "warning" && "text-warning-strong",
                           r.tone === "destructive" && "text-destructive",
                           r.tone === "info" && "text-primary",

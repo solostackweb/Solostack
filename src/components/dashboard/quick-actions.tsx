@@ -60,8 +60,8 @@ export async function QuickActions() {
   return (
     <Card className="flex h-full flex-col border-border/60 shadow-sm shadow-primary/[0.03]">
       <CardHeader className="pb-3">
-        <CardTitle className="text-sm font-semibold tracking-tight">Quick actions</CardTitle>
-        <CardDescription className="text-xs">One-click shortcuts</CardDescription>
+        <CardTitle className="text-base font-semibold tracking-tight">Quick actions</CardTitle>
+        <CardDescription className="text-sm">One-click shortcuts</CardDescription>
       </CardHeader>
       <CardContent className="flex-1 px-2 pb-2">
         <ul className="space-y-0.5">
@@ -85,10 +85,10 @@ export async function QuickActions() {
                     <Icon className="h-4 w-4" />
                   </span>
                   <div className="min-w-0 flex-1">
-                    <p className={cn("text-xs font-semibold", isPrimary ? "text-foreground" : "")}>
+                    <p className={cn("text-sm font-semibold", isPrimary ? "text-foreground" : "")}>
                       {a.label}
                     </p>
-                    <p className="truncate text-micro text-muted-foreground">{a.description}</p>
+                    <p className="truncate text-sm text-muted-foreground">{a.description}</p>
                   </div>
                   <ArrowUpRight className="h-3.5 w-3.5 text-muted-foreground/40 transition-all duration-150 group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-primary" />
                 </Link>

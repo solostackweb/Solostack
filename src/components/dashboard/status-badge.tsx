@@ -47,26 +47,15 @@ export function StatusBadge({
   const tone = STATUS_STYLES[status] ?? STATUS_STYLES.draft;
   const dot = STATUS_DOT[status] ?? STATUS_DOT.draft;
   const label = STATUS_LABEL[status] ?? status;
-  const isLive = status === "sent" || status === "viewed" || status === "overdue";
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-micro font-semibold uppercase tracking-wider ring-1 ring-inset",
+        "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset",
         tone,
         className,
       )}
     >
-      <span className="relative flex h-1.5 w-1.5">
-        {isLive ? (
-          <span
-            className={cn(
-              "absolute inline-flex h-full w-full animate-ping rounded-full opacity-60",
-              dot,
-            )}
-          />
-        ) : null}
-        <span className={cn("relative inline-flex h-1.5 w-1.5 rounded-full", dot)} />
-      </span>
+      <span className={cn("h-1.5 w-1.5 rounded-full", dot)} />
       {label}
     </span>
   );
