@@ -57,13 +57,14 @@ export function IvoTranscriptRow({
       </div>
       {showSuggestions ? (
         <div className="mt-2 flex max-w-[88%] flex-wrap gap-1.5">
-          {(suggestions ?? []).map((s) => (
+          {(suggestions ?? []).map((s, i) => (
             <button
               key={s}
               type="button"
               disabled={pending}
               onClick={() => onSuggestion(s)}
-              className="inline-flex items-center gap-1.5 rounded-full border border-border/80 bg-background px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:border-primary/40 hover:bg-primary/5 hover:text-foreground disabled:opacity-50"
+              style={{ animationDelay: `${i * 35}ms` }}
+              className="animate-row inline-flex items-center gap-1.5 rounded-full border border-border/80 bg-background px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:border-primary/40 hover:bg-primary/5 hover:text-foreground disabled:opacity-50"
             >
               <Sparkles className="h-3 w-3 shrink-0 text-primary" />
               {s}

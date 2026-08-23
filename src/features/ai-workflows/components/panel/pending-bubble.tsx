@@ -36,7 +36,12 @@ export function IvoPendingBubble({
               ))}
             </span>
             {agentStatus ? (
-              <span className="text-xs text-muted-foreground">{agentStatus}</span>
+              <span
+                key={agentStatus}
+                className="motion-safe:animate-fade-in text-xs text-muted-foreground"
+              >
+                {agentStatus}
+              </span>
             ) : (
               <span className="text-xs text-muted-foreground">Thinking with your workspace context…</span>
             )}

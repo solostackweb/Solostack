@@ -3975,14 +3975,15 @@ export function StackivoAiAssistant({ user }: StackivoAiAssistantProps) {
                       </span>
                     </div>
                     <div className="space-y-2">
-                      {preparedActions.map((action) => {
+                      {preparedActions.map((action, i) => {
                         const expanded = expandedPreparedAction === action.id;
                         const busy = preparedActionBusy === action.id;
                         return (
                           <div
                             key={action.id}
+                            style={{ animationDelay: `${i * 40}ms` }}
                             className={cn(
-                              "overflow-hidden rounded-lg border bg-background/95",
+                              "animate-row overflow-hidden rounded-lg border bg-background/95",
                               action.tone === "danger" && "border-destructive/30",
                               action.tone === "warning" && "border-warning-subtle",
                             )}
@@ -4078,13 +4079,14 @@ export function StackivoAiAssistant({ user }: StackivoAiAssistantProps) {
                       For you today
                     </p>
                     <div className="space-y-1.5">
-                      {suggestions.map((s) => (
+                      {suggestions.map((s, i) => (
                         <button
                           key={s.id}
                           type="button"
                           onClick={() => handleSubmit(s.prompt)}
+                          style={{ animationDelay: `${i * 40}ms` }}
                           className={cn(
-                            "flex w-full items-center gap-2.5 rounded-lg border bg-background/95 p-2.5 text-left text-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/40 hover:bg-primary/5 hover:shadow-sm",
+                            "animate-row flex w-full items-center gap-2.5 rounded-lg border bg-background/95 p-2.5 text-left text-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/40 hover:bg-primary/5 hover:shadow-sm",
                             s.tone === "alert" && "border-warning-subtle bg-warning/[0.04]",
                           )}
                         >
