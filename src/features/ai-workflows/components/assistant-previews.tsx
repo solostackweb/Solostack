@@ -718,7 +718,7 @@ export function PreparedEmailBlock({
   onCopy: () => void;
 }) {
   return (
-    <div className="overflow-hidden rounded-lg border border-primary/20 bg-background">
+    <div className="overflow-hidden rounded-lg border border-primary/20 bg-card">
       <div className="border-b bg-primary/[0.04] px-3 py-2.5">
         <div className="flex items-center justify-between gap-2">
           <p className="text-xs font-semibold text-foreground">Email ready for review</p>
@@ -726,15 +726,21 @@ export function PreparedEmailBlock({
             {handled ? "Sent" : "Not sent"}
           </span>
         </div>
-        <p className="mt-1 text-micro text-muted-foreground">
-          To {action.recipientName || "recipient"}
-          {action.recipientEmail ? ` · ${action.recipientEmail}` : " · no email on file"}
-        </p>
       </div>
-      <div className="p-3">
-        <p className="text-micro font-semibold uppercase tracking-wide text-muted-foreground">Subject</p>
-        <p className="mt-1 text-sm font-semibold text-foreground">{action.subject}</p>
-        <div className="mt-3 whitespace-pre-wrap rounded-lg border bg-muted/20 p-3 text-xs leading-relaxed text-foreground/85">
+      {/* Document surface: header block with a hairline rule, then the body in
+          reading type. No nested boxes - the email IS the artifact. */}
+      <div className="px-4 pb-3.5 pt-3">
+        <p className="text-xs text-muted-foreground">
+          To{" "}
+          <span className="font-medium text-foreground">{action.recipientName || "recipient"}</span>
+          {action.recipientEmail ? (
+            <span className="font-mono text-micro leading-none"> · {action.recipientEmail}</span>
+          ) : (
+            " · no email on file"
+          )}
+        </p>
+        <p className="mt-1.5 text-sm font-semibold tracking-tight text-foreground">{action.subject}</p>
+        <div className="mt-2.5 whitespace-pre-wrap border-t border-border/60 pt-2.5 text-sm leading-relaxed text-foreground/90">
           {action.body}
         </div>
         {!action.recipientEmail ? (
