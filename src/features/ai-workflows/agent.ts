@@ -906,6 +906,61 @@ function normalizeListFilter(entityType: string, filter: string): string {
   return allowed.includes(filter) ? filter : allowed[0];
 }
 
+/**
+ * Executes one agent READ tool and wraps the result in its retrieval envelope.
+ * A read that throws becomes `unavailable` rather than an error: the model is
+ * instructed to treat unavailable as "could not read right now", never as an
+ * absence of records.
+ */
+async function executeReadTool(
+  name: string,
+  args: Record<string, unknown>,
+  input: IvoAgentInput,
+): Promise<IvoRetrieval> {
+  input.onStatus?.(statusLabel(name, args));
+  try {
+    let output: unknown;
+    if (name === "get_business_snapshot") {
+      output = await getBusinessFacts();
+    } else if (name === "assess_portal_candidates") {
+      output = await execAssessPortalCandidates(input.userId);
+    } else if (name === "list_records") {
+      output = await execListRecords(
+        input.userId,
+        String(args.entityType ?? ""),
+        normalizeListFilter(String(args.entityType ?? ""), String(args.filter ?? "all")),
+      );
+    } else if (name === "find_invoice") {
+      output = await execFindInvoice(input.userId, String(args.query ?? ""));
+    } else if (name === "list_leads") {
+      output = await execListLeads(input.userId, String(args.status ?? "open"));
+    } else if (name === "list_meetings") {
+      output = await execListMeetings(input.userId, String(args.scope ?? "all"));
+    } else if (name === "get_client_profile") {
+      output = await execClientProfile(
+        input.userId,
+        String(args.clientName ?? ""),
+        input.clients,
+      );
+    } else if (name === "remember") {
+      output = await execRemember(input.userId, String(args.fact ?? ""));
+    } else {
+      output = { error: `Unknown tool ${name}` };
+    }
+    return asRetrieval(name, retrievalScope(name, args), output);
+  } catch (error) {
+    log.warn("ivo.agent.tool_failed", {
+      tool: name,
+      error: error instanceof Error ? error.message : "unknown",
+    });
+    return retrievalUnavailable(
+      name,
+      retrievalScope(name, args),
+      "The data source could not be read.",
+    );
+  }
+}
+
 function decisionFromRouteCall(
   name: string,
   args: Record<string, unknown>,
@@ -1292,58 +1347,16 @@ export async function runIvoAgent(input: IvoAgentInput): Promise<IvoAgentResult 
         content: result.content,
         tool_calls: executed,
       });
-      for (const call of executed) {
+      // Reads are independent owner-scoped queries, so they run concurrently;
+      // a round that asks for snapshot + list + profile pays one read latency
+      // instead of three. Tool messages are appended afterwards in the
+      // original call order so each tool_call stays paired with its response.
+      const envelopes = await Promise.all(
+        executed.map((call) => executeReadTool(call.function.name, parseArgs(call), input)),
+      );
+      executed.forEach((call, index) => {
         const args = parseArgs(call);
-        input.onStatus?.(statusLabel(call.function.name, args));
-        let output: unknown;
-        let envelope: IvoRetrieval;
-        try {
-          if (call.function.name === "get_business_snapshot") {
-            output = await getBusinessFacts();
-          } else if (call.function.name === "assess_portal_candidates") {
-            output = await execAssessPortalCandidates(input.userId);
-          } else if (call.function.name === "list_records") {
-            output = await execListRecords(
-              input.userId,
-              String(args.entityType ?? ""),
-              normalizeListFilter(String(args.entityType ?? ""), String(args.filter ?? "all")),
-            );
-          } else if (call.function.name === "find_invoice") {
-            output = await execFindInvoice(input.userId, String(args.query ?? ""));
-          } else if (call.function.name === "list_leads") {
-            output = await execListLeads(input.userId, String(args.status ?? "open"));
-          } else if (call.function.name === "list_meetings") {
-            output = await execListMeetings(input.userId, String(args.scope ?? "all"));
-          } else if (call.function.name === "get_client_profile") {
-            output = await execClientProfile(
-              input.userId,
-              String(args.clientName ?? ""),
-              input.clients,
-            );
-          } else if (call.function.name === "remember") {
-            output = await execRemember(input.userId, String(args.fact ?? ""));
-          } else {
-            output = { error: `Unknown tool ${call.function.name}` };
-          }
-          // A read that succeeded is wrapped with its provenance; a read that
-          // threw becomes `unavailable`, which the model is instructed never to
-          // report as an absence of records.
-          envelope = asRetrieval(
-            call.function.name,
-            retrievalScope(call.function.name, args),
-            output,
-          );
-        } catch (error) {
-          log.warn("ivo.agent.tool_failed", {
-            tool: call.function.name,
-            error: error instanceof Error ? error.message : "unknown",
-          });
-          envelope = retrievalUnavailable(
-            call.function.name,
-            retrievalScope(call.function.name, args),
-            "The data source could not be read.",
-          );
-        }
+        const envelope = envelopes[index];
         messages.push({
           role: "tool",
           tool_call_id: call.id,
@@ -1356,7 +1369,7 @@ export async function runIvoAgent(input: IvoAgentInput): Promise<IvoAgentResult 
             status: envelope.status,
           });
         }
-      }
+      });
       continue;
     }
 
