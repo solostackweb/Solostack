@@ -1305,8 +1305,32 @@ export async function processIvoMessageAction(
       getProfile().catch(() => null),
       loadMemories(userId).catch(() => [] as string[]),
     ]);
+    // The active-draft ownership recheck depends only on the parsed input, so
+    // it overlaps with everything below too; its result is awaited just before
+    // routing (where activeDraft is first read).
+    const requestedDraft = parsed.data.activeDraft;
+    const draftPromise: Promise<z.infer<typeof processMessageSchema>["activeDraft"]> =
+      (async () => {
+        if (!requestedDraft) return undefined;
+        const table = requestedDraft.entityType === "invoice"
+          ? "invoices"
+          : requestedDraft.entityType === "contract"
+            ? "contracts"
+            : requestedDraft.entityType === "questionnaire"
+              ? "questionnaires"
+              : "welcome_documents";
+        let query = supabase
+          .from(table)
+          .select(requestedDraft.entityType === "questionnaire" ? "id, active" : "id, status")
+          .eq("id", requestedDraft.entityId)
+          .eq("user_id", userId);
+        if (requestedDraft.entityType !== "questionnaire") query = query.eq("status", "draft");
+        const { data: draft } = await query.maybeSingle();
+        return draft ? requestedDraft : undefined;
+      })();
     // Swallow late rejections if we bail out before awaiting (quota, dupes…).
     workspacePromise.catch(() => undefined);
+    draftPromise.catch(() => undefined);
 
     const { data: conversation } = await supabase
       .from("ivo_conversations")
@@ -1350,7 +1374,15 @@ export async function processIvoMessageAction(
     if (runError || !run) throw runError ?? new Error("Run was not created");
     runId = (run as { id: string }).id;
 
-    const usage = await getUsageSnapshot("ai_messages");
+    // Quota and rate limits are independent gates with no data dependency, so
+    // they are checked concurrently. Evaluation order preserves the existing
+    // precedence: quota exhaustion wins over rate limiting, and usage is
+    // consumed whenever the snapshot says there is headroom — even if the rate
+    // limiter then rejects (same net ledger effect as the sequential version).
+    const [usage, rate] = await Promise.all([
+      getUsageSnapshot("ai_messages"),
+      aiGenerateLimit(`aigen:${userId}`),
+    ]);
     if (usage && usage.limit !== Infinity && usage.used >= usage.limit) {
       const subscription = await getCurrentSubscription();
       const plan = effectivePlan(subscription);
@@ -1376,7 +1408,6 @@ export async function processIvoMessageAction(
       usageConsumed = true;
     }
 
-    const rate = await aiGenerateLimit(`aigen:${userId}`);
     if (!rate.ok) {
       await supabase
         .from("ivo_runs")
@@ -1396,25 +1427,7 @@ export async function processIvoMessageAction(
       };
     }
 
-    let activeDraft: z.infer<typeof processMessageSchema>["activeDraft"];
-    const requestedDraft = parsed.data.activeDraft;
-    if (requestedDraft) {
-      const table = requestedDraft.entityType === "invoice"
-        ? "invoices"
-        : requestedDraft.entityType === "contract"
-          ? "contracts"
-          : requestedDraft.entityType === "questionnaire"
-            ? "questionnaires"
-            : "welcome_documents";
-      let query = supabase
-        .from(table)
-        .select(requestedDraft.entityType === "questionnaire" ? "id, active" : "id, status")
-        .eq("id", requestedDraft.entityId)
-        .eq("user_id", userId);
-      if (requestedDraft.entityType !== "questionnaire") query = query.eq("status", "draft");
-      const { data: draft } = await query.maybeSingle();
-      if (draft) activeDraft = requestedDraft;
-    }
+    const activeDraft = await draftPromise;
 
     const [clients, projects, profile, memories] = await workspacePromise;
     const resources = await resolveSelectedResources(
