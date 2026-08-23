@@ -149,6 +149,7 @@ import { hasStructuredAssistantFormatting } from "@/features/ai-workflows/assist
 import { IvoPendingBubble } from "./panel/pending-bubble";
 import { IvoTranscriptRow } from "./panel/transcript-row";
 import { IvoEmptyState } from "./panel/empty-state";
+import { IvoHeaderPresence } from "./panel/header-presence";
 import { AssistantRichText } from "./assistant-rich-text";
 import type {
   IvoConversationListItem,
@@ -3740,43 +3741,25 @@ export function StackivoAiAssistant({ user }: StackivoAiAssistantProps) {
         >
           {/* Header */}
           <div className="sticky top-0 z-30 flex h-14 items-center gap-2 border-b bg-background px-3">
-            <div className="flex min-w-0 flex-1 items-center gap-2.5 font-semibold">
-              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-                {(() => {
-                  const HeaderIcon =
-                    mode === "general"
-                      ? Sparkles
-                      : QUICK_ACTIONS.find((a) => a.mode === mode)?.icon ?? Sparkles;
-                  return <HeaderIcon className="h-4 w-4" />;
-                })()}
-              </span>
-              <button
-                type="button"
-                className="flex min-w-0 flex-1 items-center gap-1 overflow-hidden rounded-lg px-1 py-0.5 text-left hover:bg-muted"
-                onClick={() => {
-                  setActivityOpen(false);
-                  setConversationMenuOpen((current) => !current);
-                }}
-                aria-expanded={conversationMenuOpen}
-                aria-label="Open conversation history"
-              >
-                <span className="flex min-w-0 flex-col leading-tight">
-                  <span className="block truncate text-sm font-semibold">
-                    {conversationHistory.find((conversation) => conversation.id === conversationId)?.title ??
-                      (mode === "general"
-                        ? ASSISTANT_NAME
-                        : QUICK_ACTIONS.find((action) => action.mode === mode)?.title ?? "New conversation")}
-                  </span>
-                  <span className="truncate text-micro font-medium text-success-strong">
-                    Ivo · Connected
-                  </span>
-                </span>
-                <ChevronDown className={cn(
-                  "h-3.5 w-3.5 shrink-0 text-muted-foreground transition-transform",
-                  conversationMenuOpen && "rotate-180",
-                )} />
-              </button>
-            </div>
+            <IvoHeaderPresence
+              icon={
+                mode === "general"
+                  ? Sparkles
+                  : QUICK_ACTIONS.find((a) => a.mode === mode)?.icon ?? Sparkles
+              }
+              title={
+                conversationHistory.find((conversation) => conversation.id === conversationId)?.title ??
+                (mode === "general"
+                  ? ASSISTANT_NAME
+                  : QUICK_ACTIONS.find((action) => action.mode === mode)?.title ?? "New conversation")
+              }
+              phase={!pending ? "idle" : liveReply ? "writing" : agentStatus ? "reading" : "thinking"}
+              menuOpen={conversationMenuOpen}
+              onToggleMenu={() => {
+                setActivityOpen(false);
+                setConversationMenuOpen((current) => !current);
+              }}
+            />
             {conversationMenuOpen ? (
               <div className="absolute left-3 right-3 top-[calc(100%+6px)] z-50 overflow-hidden rounded-lg border bg-popover shadow-xl">
                 <div className="flex items-center justify-between border-b px-3 py-2">
