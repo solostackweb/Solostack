@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import test from "node:test";
 
 const AGENT = readFileSync(new URL("../agent.ts", import.meta.url), "utf8");
+const PROMPT = readFileSync(new URL("../agent-prompt.ts", import.meta.url), "utf8");
 const TIME_PAGE = readFileSync(
   new URL("../../time/components/time-dashboard-view.tsx", import.meta.url),
   "utf8",
@@ -18,7 +19,7 @@ test("the Time-page Ask Ivo action requests analysis without creating a draft", 
 test("the Groq agent withholds the mutation tool for unbilled-time questions", () => {
   assert.match(AGENT, /!isUnbilledTimeInvoiceAction\(input\.message\)/);
   assert.match(AGENT, /tool\.function\.name === "invoice_unbilled_time"/);
-  assert.match(AGENT, /Treat 'What unbilled time should I invoice\?'.*READ-ONLY analysis/);
+  assert.match(PROMPT, /Treat 'What unbilled time should I invoice\?'.*READ-ONLY analysis/);
 });
 
 test("the business snapshot gives IVo invoice-ready client and project evidence", () => {

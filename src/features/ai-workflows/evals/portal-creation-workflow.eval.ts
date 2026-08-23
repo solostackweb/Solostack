@@ -4,6 +4,7 @@ import test from "node:test";
 
 const TYPES = readFileSync(new URL("../types.ts", import.meta.url), "utf8");
 const AGENT = readFileSync(new URL("../agent.ts", import.meta.url), "utf8");
+const PROMPT = readFileSync(new URL("../agent-prompt.ts", import.meta.url), "utf8");
 const NLU = readFileSync(new URL("../nlu.ts", import.meta.url), "utf8");
 const DOMAIN = readFileSync(new URL("../domain-operations.ts", import.meta.url), "utf8");
 const TOOLS = readFileSync(new URL("../tool-actions.ts", import.meta.url), "utf8");
@@ -16,7 +17,7 @@ test("client portal is a first-class workflow and cannot degrade into project cr
   assert.match(TYPES, /"portal",\s*"time_entry"/);
   assert.match(TYPES, /portal: \[\{ field: "clientId" \}\]/);
   assert.match(NLU, /return \{ intent: "portal", leads: \/\^portal/);
-  assert.match(AGENT, /A client portal is task='portal' — never create a project as a substitute/);
+  assert.match(PROMPT, /A client portal is task='portal' — never create a project as a substitute/);
   assert.match(AGENT, /A portal is its OWN task — never create a project named Client Portal/);
 });
 

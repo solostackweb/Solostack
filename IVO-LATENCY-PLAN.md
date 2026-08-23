@@ -129,8 +129,42 @@ Risk: trivial. Verification: manual SSE trace.
 | 23 Aug 2026 | Focus = latency + responsiveness | User-selected direction; quality/evals tracks queued behind it |
 | 23 Aug 2026 | Plan-first workflow per gstack | Slices ship independently, each with evals green |
 
-## Baseline capture (fill during Slice 4 Step A)
+## Baseline capture
 
-- [ ] p50/p95 `duration_ms` for agent-succeeded runs
-- [ ] p50/p95 `prompt_tokens` per operation
-- [ ] Round-count histogram (`metadata->>'rounds'`)
+### Static prompt cost (measured locally, `prompt-budget.eval.ts`)
+
+| Scenario | Chars | ~Tokens | Re-sent |
+|---|---:|---:|---|
+| Standing instructions only (empty workspace) | 6,077 | ~1,519 | every round |
+| Full index (120 clients + 120 projects) | 19,897 | ~4,974 | every round |
+
+At MAX_ROUNDS=4 a read-heavy turn can therefore ship ~20K prompt tokens per
+round; the id index alone is ~13.8KB (~3,450 tokens). Step B (cap reduction)
+is justified if prod shows median workspaces near the cap.
+
+### Prod distribution (run via /admin/query, then record here)
+
+- [ ] Duration by route:
+
+```sql
+select provider, outcome, count(*) as runs,
+       round(percentile_cont(0.5) within group (order by duration_ms)::numeric) as p50_ms,
+       round(percentile_cont(0.9) within group (order by duration_ms)::numeric) as p90_ms
+from ivo_runs
+where created_at > now() - interval '30 days'
+group by 1, 2 order by runs desc;
+```
+
+- [ ] Prompt tokens by round count:
+
+```sql
+select coalesce(metadata->>'rounds', '-') as rounds,
+       count(*) as runs,
+       round(avg(prompt_tokens)::numeric) as avg_prompt,
+       max(prompt_tokens) as max_prompt
+from ivo_runs
+where provider = 'groq' and created_at > now() - interval '30 days'
+group by 1 order by 1;
+```
+
+- [ ] Decision: keep IVO_INDEX_LIMIT=120 or reduce (60 is the candidate).
