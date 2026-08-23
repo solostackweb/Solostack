@@ -150,6 +150,7 @@ import { IvoPendingBubble } from "./panel/pending-bubble";
 import { IvoTranscriptRow } from "./panel/transcript-row";
 import { IvoEmptyState } from "./panel/empty-state";
 import { IvoHeaderPresence } from "./panel/header-presence";
+import { pagePromptsForPath } from "./panel/page-prompts";
 import { AssistantRichText } from "./assistant-rich-text";
 import type {
   IvoConversationListItem,
@@ -371,6 +372,11 @@ export function StackivoAiAssistant({ user }: StackivoAiAssistantProps) {
     if (h < 17) return "Good afternoon";
     return "Good evening";
   }, []);
+  // Section-aware opening prompts, resolved once from the route the panel was
+  // opened on. Pure lookup - no reads, no model call.
+  const [pagePrompts] = React.useState(() =>
+    pagePromptsForPath(typeof window !== "undefined" ? window.location.pathname : null),
+  );
   const scrollRef = React.useRef<HTMLDivElement>(null);
   const lastInvoicePreviewRef = React.useRef<AiInvoicePreview | null>(null);
   // Plain-text transcript of the conversation (string turns only) so the model
@@ -3962,6 +3968,8 @@ export function StackivoAiAssistant({ user }: StackivoAiAssistantProps) {
                   userFirstName={userFirstName}
                   activeMode={mode}
                   onSelectMode={selectMode}
+                  pagePrompts={pagePrompts}
+                  onPagePrompt={(prompt) => submitRef.current?.(prompt)}
                 />
 
                 {preparedActions.length > 0 ? (

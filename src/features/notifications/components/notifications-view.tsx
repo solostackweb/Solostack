@@ -11,6 +11,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PageHeader } from "@/components/shared/page-header";
 import { EmptyState } from "@/components/shared/empty-state";
+import { IvoEntryPoint } from "@/features/ai-workflows/components/ivo-entry-point";
 import { cn } from "@/lib/utils";
 import { formatRelativeTime } from "@/lib/format";
 
@@ -104,6 +105,11 @@ export function NotificationsView({ initial }: NotificationsViewProps) {
         }
         actions={
           <div className="flex items-center gap-2">
+            <IvoEntryPoint
+              prompt="Look at my recent notifications and tell me what actually needs my attention today."
+              label="Ask Ivo"
+              variant="ghost"
+            />
             <Button
               variant="outline"
               size="sm"

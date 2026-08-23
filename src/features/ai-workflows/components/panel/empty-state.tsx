@@ -1,5 +1,7 @@
 "use client";
 
+import { Sparkles } from "lucide-react";
+
 import { cn } from "@/lib/utils";
 import { StackivoMark } from "@/components/brand/stackivo-logo";
 import { ASSISTANT_NAME, QUICK_ACTIONS } from "../assistant-helpers";
@@ -16,11 +18,16 @@ export function IvoEmptyState({
   userFirstName,
   activeMode,
   onSelectMode,
+  pagePrompts,
+  onPagePrompt,
 }: {
   greeting: string;
   userFirstName?: string | null;
   activeMode: string;
   onSelectMode: (mode: (typeof QUICK_ACTIONS)[number]["mode"]) => void;
+  /** Prompts grounded in the section the panel was opened from. */
+  pagePrompts?: string[];
+  onPagePrompt?: (prompt: string) => void;
 }) {
   return (
     <div className="motion-safe:animate-page-enter">
@@ -42,6 +49,25 @@ export function IvoEmptyState({
           Tell me what you need in plain words. I&apos;ll help with the admin and keep the next step clear.
         </p>
       </div>
+
+      {/* Section-aware prompts: one tap sends the question this page answers.
+          Staggered 40ms, capped at three, same entrance grammar as chips. */}
+      {pagePrompts && pagePrompts.length > 0 && onPagePrompt ? (
+        <div className="mb-3 flex flex-wrap justify-center gap-1.5">
+          {pagePrompts.slice(0, 3).map((prompt, i) => (
+            <button
+              key={prompt}
+              type="button"
+              onClick={() => onPagePrompt(prompt)}
+              style={{ animationDelay: `${i * 40}ms` }}
+              className="animate-row inline-flex items-center gap-1.5 rounded-full border border-primary/25 bg-primary/[0.06] px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:border-primary/50 hover:bg-primary/10"
+            >
+              <Sparkles className="h-3 w-3 shrink-0 text-primary" />
+              {prompt}
+            </button>
+          ))}
+        </div>
+      ) : null}
 
       {/* Even 2-column grid of the six core workflows (the panel is portaled,
           so viewport `md:` breakpoints don't reflect its real width — a fixed
