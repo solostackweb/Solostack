@@ -87,8 +87,22 @@ export const MODE_PLACEHOLDERS: Partial<Record<AiMode, string>> = {
   support: "Ask anything — docs, privacy, terms, or raise a support ticket",
 };
 
+/**
+ * Client-side message/request ids. Must be UUIDs: the panel passes these as
+ * `requestId` into audited tool actions whose schemas gate idempotency keys
+ * on uuid shape (unbilled-time invoicing, refinements, support forward). A
+ * shorter id fails server validation before any work runs.
+ */
 export function newId() {
-  return Math.random().toString(36).slice(2, 10);
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return crypto.randomUUID();
+  }
+  // Secure-context fallback (crypto.randomUUID is unavailable over plain http
+  // on non-localhost hosts).
+  return "10000000-1000-4000-8000-100000000000".replace(/[08]/g, (c) => {
+    const random = crypto.getRandomValues(new Uint8Array(1))[0] & 0xf;
+    return (c === "8" ? (random & 0x3) | 0x8 : random).toString(16);
+  });
 }
 
 export function formatMoney(amount: number, currency = "INR") {
