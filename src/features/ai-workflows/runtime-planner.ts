@@ -387,8 +387,29 @@ export function planIvoRuntime(input: {
   };
 }
 
-function isSkipReply(text: string) {
+/**
+ * Whether a raw reply is a skip word. Shared by the fallback planner (where it
+ * drives the sentinel) and the agent-path field merge (where it normalises the
+ * model's literal "skip" passthroughs back into the sentinel), so a skip can
+ * never poison field state regardless of which brain handled the turn.
+ */
+export function isSkipReply(text: string) {
   return /^(skip|none|no|n\/a|na|nope|nah|leave it|not now|-|—)$/i.test(text.trim());
+}
+
+/**
+ * Field values exactly equal to a skip word become the sentinel. Without this,
+ * a model that passes "skip" through as a literal value (it is told to take
+ * field answers literally) poisons the collected state: the value reads as
+ * answered until a downstream check rejects it, and the workflow loops on a
+ * field the user already chose to skip.
+ */
+export function normalizeSkipFieldValues(fields: AiFields): AiFields {
+  const out: AiFields = {};
+  for (const [key, value] of Object.entries(fields)) {
+    out[key] = isSkipReply(value) ? AI_SKIP_SENTINEL : value;
+  }
+  return out;
 }
 
 function fieldValidationError(field: string, text: string): string | null {

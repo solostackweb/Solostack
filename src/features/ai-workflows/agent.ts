@@ -39,7 +39,7 @@ import {
   type GroqToolDefinition,
 } from "./groq";
 import { planIvoWorkflowNextAction } from "./workflow-progress";
-import { isUnbilledTimeInvoiceAction } from "./runtime-planner";
+import { isUnbilledTimeInvoiceAction, normalizeSkipFieldValues } from "./runtime-planner";
 import type { AiFields, AiWorkflow } from "./types";
 import { AI_WORKFLOWS, NO_CLIENT_SENTINEL, NO_PROJECT_SENTINEL } from "./types";
 import type { IvoMode, IvoRuntimeDecision } from "./conversation-types";
@@ -1013,7 +1013,9 @@ function decisionFromRouteCall(
     }
 
     const switching = input.currentMode !== workflow;
-    const merged = switching ? fields : { ...input.collected, ...fields };
+    const merged = normalizeSkipFieldValues(
+      switching ? fields : { ...input.collected, ...fields },
+    );
 
     // Safety net: the model sometimes flattens a "10%" discount to "10", which
     // then reads as a flat amount. If the user's current message literally
