@@ -31,6 +31,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { SmartField } from "@/features/ai-workflows/components/smart-field";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   DropdownMenu,
@@ -277,6 +278,11 @@ function QuestionCard({
               onChange={(e) => onChange({ label: e.target.value })}
               placeholder="Question"
               className="font-medium"
+            />
+            <SmartField
+              kind="questionnaire_question"
+              value={question.label}
+              onApply={(label) => onChange({ label })}
             />
             <Input
               value={question.help ?? ""}

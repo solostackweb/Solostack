@@ -47,6 +47,7 @@ export const FIELD_KINDS = [
   "payment_reminder",
   "meeting_summary",
   "client_note",
+  "questionnaire_question",
 ] as const;
 
 export type IvoFieldKind = (typeof FIELD_KINDS)[number];
@@ -113,6 +114,13 @@ const FIELD_PROFILES: Record<IvoFieldKind, FieldProfile> = {
     targetWords: 60,
     maxChars: 1500,
     guidance: "Short, factual, for the user's own reference.",
+  },
+  questionnaire_question: {
+    label: "questionnaire question",
+    targetWords: 22,
+    maxChars: 300,
+    guidance:
+      "One clear, answerable question in plain language. Never bundle several questions into one, never add options or formatting, and never invent project context the user has not given.",
   },
 };
 
