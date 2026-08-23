@@ -146,10 +146,8 @@ import {
   remindOverdueInvoicesIvoToolAction,
 } from "@/features/ai-workflows/tool-actions";
 import { prepareQuestionnaireRefinementAction } from "@/features/ai-workflows/questionnaire-refinement-actions";
-import {
-  formatAssistantMessageContent,
-  hasStructuredAssistantFormatting,
-} from "@/features/ai-workflows/assistant-text";
+import { hasStructuredAssistantFormatting } from "@/features/ai-workflows/assistant-text";
+import { IvoPendingBubble } from "./panel/pending-bubble";
 import { AssistantRichText } from "./assistant-rich-text";
 import type {
   IvoConversationListItem,
@@ -4247,35 +4245,7 @@ export function StackivoAiAssistant({ user }: StackivoAiAssistantProps) {
             })}
 
             {/* Typing indicator — live progress, then the reply streaming in */}
-            {pending && (
-              <div className="flex justify-start" role="status" aria-live="polite" aria-label="Ivo is responding">
-                <div className="max-w-[85%] rounded-2xl rounded-bl-lg border border-border/70 bg-background px-4 py-3 shadow-sm">
-                  {liveReply ? (
-                    <p className="whitespace-pre-wrap text-sm leading-relaxed">
-                      {formatAssistantMessageContent(liveReply.replace(/\n?\s*\[chips\][\s\S]*$/i, ""))}
-                      <span className="ml-0.5 inline-block h-3.5 w-[2px] animate-pulse rounded bg-primary/70 align-middle" />
-                    </p>
-                  ) : (
-                    <span className="flex items-center gap-2">
-                      <span className="flex items-center gap-1">
-                        {[0, 1, 2].map((item) => (
-                          <span
-                            key={item}
-                            className="h-1.5 w-1.5 animate-bounce rounded-full bg-primary/70"
-                            style={{ animationDelay: `${item * 120}ms` }}
-                          />
-                        ))}
-                      </span>
-                      {agentStatus ? (
-                        <span className="text-xs text-muted-foreground">{agentStatus}</span>
-                      ) : (
-                        <span className="text-xs text-muted-foreground">Thinking with your workspace context…</span>
-                      )}
-                    </span>
-                  )}
-                </div>
-              </div>
-            )}
+            {pending && <IvoPendingBubble liveReply={liveReply} agentStatus={agentStatus} />}
           </div>
 
           {/* Input area */}
