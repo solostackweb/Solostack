@@ -150,29 +150,40 @@ At MAX_ROUNDS=4 a read-heavy turn can therefore ship ~20K prompt tokens per
 round; the id index alone is ~13.8KB (~3,450 tokens). Step B (cap reduction)
 is justified if prod shows median workspaces near the cap.
 
-### Prod distribution (run via /admin/query, then record here)
+### Prod distribution (measured 23 Aug 2026, service-role readonly reads over `ivo_runs`, trailing 30 days)
 
-- [ ] Duration by route:
+Volume: 90 runs. Routes: 33 agent_succeeded (p50 6.2s), 5 model_succeeded
+(p50 9.8s), 47 local_fallback:http_error (p50 8.7s, p90 12.7s), 5 meeting_list
+(p50 3.9s).
 
-```sql
-select provider, outcome, count(*) as runs,
-       round(percentile_cont(0.5) within group (order by duration_ms)::numeric) as p50_ms,
-       round(percentile_cont(0.9) within group (order by duration_ms)::numeric) as p90_ms
-from ivo_runs
-where created_at > now() - interval '30 days'
-group by 1, 2 order by runs desc;
-```
+Tokens (groq runs): avg 3,542 / p50 3,524 / p90 4,013 / max 7,030. Zero runs
+at or above the full-index threshold. Round-1 average 3,641.
 
-- [ ] Prompt tokens by round count:
+Workspace scale: 17 clients and 24 projects in the entire database.
 
-```sql
-select coalesce(metadata->>'rounds', '-') as rounds,
-       count(*) as runs,
-       round(avg(prompt_tokens)::numeric) as avg_prompt,
-       max(prompt_tokens) as max_prompt
-from ivo_runs
-where provider = 'groq' and created_at > now() - interval '30 days'
-group by 1 order by 1;
-```
+### Decision 1 - IVO_INDEX_LIMIT stays at 120
 
-- [ ] Decision: keep IVO_INDEX_LIMIT=120 or reduce (60 is the candidate).
+The cap never binds: no workspace approaches 120 entries and no run approaches
+full-index token cost. Reducing it would save zero tokens while adding tool
+lookups for future larger workspaces. Revisit only when a real workspace
+crosses ~60 clients/projects.
+
+### Decision 2 - NEW primary finding: provider failure rate, not prompt size
+
+47 of 90 runs (52%) end in `local_fallback:http_error`, interleaved with
+successes on every active day - the signature of Groq rate limiting, not a
+broken key (a dead key fails 100%, and the local dev key was verified invalid
+separately; production keys live in Vercel env). Each bounced turn pays its
+retry budget (up to 2 attempts incl. honoured retry-after, GROQ_TIMEOUT_MS=12s
+ceiling) before degrading to the deterministic brain, which is why fallback
+turns (p50 8.7s) are SLOWER than successful agent turns (p50 6.2s).
+
+Ranked mitigations:
+1. Ops: raise Groq rate limits (paid tier) in the Vercel env. Removes the
+   dominant latency source without code changes.
+2. Code: on 429 with retry-after beyond a small threshold, skip the doomed
+   second structured-JSON attempt and route straight to the deterministic
+   planner. Saves roughly half the wasted time per failing turn. Needs a
+   slice of its own with eval coverage for the retry-skip rule.
+3. Note: Slice 3's list lane removes several of these model calls entirely
+   once deployed ("route":"list" appears repeatedly in the failure rows).
