@@ -144,20 +144,47 @@ const GROQ_FALLBACK_MODEL = "openai/gpt-oss-20b";
 /** Honour provider backoff without freezing an interactive turn indefinitely. */
 const GROQ_MAX_RETRY_DELAY_MS = 3_000;
 
+/**
+ * A rate-limit response whose Retry-Ask wait exceeds this threshold is not
+ * worth waiting out inside an interactive turn: prod data (IVO-LATENCY-PLAN)
+ * shows roughly half of all calls bounce off Groq's rate caps on busy days,
+ * and the honoured sleep + doomed second attempt was why fallback turns were
+ * SLOWER than successful ones. Below the threshold the quick inline retry
+ * still applies - that path genuinely recovers from momentary bursts.
+ */
+const RATE_LIMIT_BAIL_THRESHOLD_MS = 1_500;
+
+/** Parses a Retry-After header (delta-seconds or HTTP-date) to milliseconds,
+ *  or null when absent or unparseable. */
+export function parseRetryAfterMs(raw: string | null | undefined): number | null {
+  const trimmed = raw?.trim();
+  if (!trimmed) return null;
+  const seconds = Number(trimmed);
+  if (Number.isFinite(seconds) && seconds >= 0) return Math.ceil(seconds * 1000);
+  const at = Date.parse(trimmed);
+  if (Number.isFinite(at)) return Math.max(at - Date.now(), 0);
+  return null;
+}
+
+/**
+ * Whether a 429 should end the call immediately instead of honouring the wait.
+ * Pure so the eval suite can pin exactly when an interactive turn gives its
+ * time back to the deterministic fallback.
+ */
+export function shouldBailOnRateLimit(
+  status: number,
+  retryAfterHeader: string | null | undefined,
+): boolean {
+  if (status !== 429) return false;
+  const waitMs = parseRetryAfterMs(retryAfterHeader);
+  return waitMs != null && waitMs > RATE_LIMIT_BAIL_THRESHOLD_MS;
+}
+
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 function retryDelayMs(response: Response, attempt: number): number {
-  const raw = response.headers.get("retry-after")?.trim();
-  if (raw) {
-    const seconds = Number(raw);
-    if (Number.isFinite(seconds) && seconds >= 0) {
-      return Math.min(Math.ceil(seconds * 1000), GROQ_MAX_RETRY_DELAY_MS);
-    }
-    const at = Date.parse(raw);
-    if (Number.isFinite(at)) {
-      return Math.min(Math.max(at - Date.now(), 0), GROQ_MAX_RETRY_DELAY_MS);
-    }
-  }
+  const parsed = parseRetryAfterMs(response.headers.get("retry-after"));
+  if (parsed != null) return Math.min(parsed, GROQ_MAX_RETRY_DELAY_MS);
   return 300 * attempt;
 }
 
@@ -303,6 +330,15 @@ export async function generateStructuredJson({
           }
 
           lastOutcome = "http_error";
+          if (shouldBailOnRateLimit(res.status, res.headers.get("retry-after"))) {
+            // The provider asked for a longer wait than an interactive turn
+            // can spend. Give the turn back to the deterministic fallback now.
+            log.warn("ai.provider.rate_limited_backoff", {
+              provider: "groq", operation, model, status: res.status,
+              latencyMs: Date.now() - startedAt,
+            });
+            break;
+          }
           if (isRetryableGroqStatus(res.status, errorPayload) && attempt < GROQ_MAX_ATTEMPTS) {
             const delayMs = retryDelayMs(res, attempt);
             log.warn("ai.provider.retryable_http_error", {
@@ -593,6 +629,15 @@ export async function generateToolChat({
               latencyMs: Date.now() - startedAt,
             });
             modelRejected = true;
+            break;
+          }
+          if (shouldBailOnRateLimit(res.status, res.headers.get("retry-after"))) {
+            // Long provider backoff: end the turn now so the deterministic
+            // fallback takes over without burning the user's time.
+            log.warn("ai.provider.rate_limited_backoff", {
+              provider: "groq", operation, model, status: res.status,
+              latencyMs: Date.now() - startedAt,
+            });
             break;
           }
           if (isRetryableGroqStatus(res.status, errorPayload) && attempt < GROQ_MAX_ATTEMPTS) {
