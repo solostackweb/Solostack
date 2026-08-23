@@ -1277,50 +1277,67 @@ export async function planIvoWorkflowProgressAction(
  * tool invocation that the client is allowed to render/dispatch.
  */
 /**
+ * Deterministic variant picker: same seed always picks the same line, so a
+ * retried or replayed turn never changes its wording mid-conversation.
+ */
+function pickSayVariant(variants: readonly string[], seed: string): string {
+  let hash = 0;
+  for (let i = 0; i < seed.length; i++) hash = (hash * 31 + seed.charCodeAt(i)) | 0;
+  return variants[Math.abs(hash) % variants.length];
+}
+
+/**
  * Canned presentation for the deterministic list lane: one short factual line
- * plus at most two well-routed follow-up chips. The agent writes its own
- * replies everywhere else; these are the only fixed strings the runtime emits
- * as prose. Meetings are absent on purpose — they route through the earlier
- * meeting lane, and an unknown presentation simply falls through to the agent.
+ * plus at most two well-routed follow-up chips. Small variation pools keep
+ * repeat visits from feeling like a recording; every variant states the same
+ * fact at the same register. Meetings are absent on purpose — they route
+ * through the earlier meeting lane, and an unknown presentation simply falls
+ * through to the agent.
  */
 const LIST_LANE_PRESENTATIONS: Partial<
   Record<
     IvoListDecision["entityType"],
-    Partial<Record<string, { say: string; suggestions?: string[] }>>
+    Partial<Record<string, { say: string[]; suggestions?: string[] }>>
   >
 > = {
   invoice: {
     unpaid: {
-      say: "Here's where your open invoices stand.",
+      say: [
+        "Here's where your open invoices stand.",
+        "These invoices are still waiting on payment.",
+      ],
       suggestions: ["Send payment reminders", "How much am I owed?"],
     },
     overdue: {
-      say: "These invoices are past due.",
+      say: [
+        "These invoices are past due.",
+        "Here's what's overdue right now.",
+      ],
       suggestions: ["Send payment reminders", "How much am I owed?"],
     },
-    all: { say: "Your full invoice history." },
+    all: { say: ["Your full invoice history."] },
   },
   contract: {
-    pending: { say: "Contracts waiting on action." },
-    all: { say: "All your contracts." },
+    pending: { say: ["Contracts waiting on action.", "These contracts still need something from someone."] },
+    all: { say: ["All your contracts."] },
   },
   proposal: {
-    pending: { say: "Proposals still in play." },
-    all: { say: "All your proposals." },
+    pending: { say: ["Proposals still in play.", "These proposals haven't had a reply yet."] },
+    all: { say: ["All your proposals."] },
   },
   client: {
-    all: { say: "Your clients.", suggestions: ["Who needs a portal?"] },
+    all: { say: ["Your clients.", "Here's everyone you work with."], suggestions: ["Who needs a portal?"] },
   },
   project: {
     active: {
-      say: "Active projects.",
+      say: ["Active projects.", "Here's what's currently in flight."],
       suggestions: ["What unbilled time should I invoice?"],
     },
-    all: { say: "All your projects." },
+    all: { say: ["All your projects."] },
   },
   welcome_document: {
-    open: { say: "Welcome documents still open." },
-    all: { say: "All welcome documents." },
+    open: { say: ["Welcome documents still open.", "These welcome guides haven't been acknowledged yet."] },
+    all: { say: ["All welcome documents."] },
   },
 };
 
@@ -1675,7 +1692,10 @@ export async function processIvoMessageAction(
               provider: "local",
             } satisfies AiInterpretation,
             decision: list,
-            say: presentation.say,
+            say: pickSayVariant(
+              presentation.say,
+              `${list.entityType}:${list.filter}:${parsed.data.conversationId}`,
+            ),
             suggestions: presentation.suggestions,
             runId,
             usageConsumed,
