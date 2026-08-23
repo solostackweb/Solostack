@@ -181,9 +181,9 @@ turns (p50 8.7s) are SLOWER than successful agent turns (p50 6.2s).
 Ranked mitigations:
 1. Ops: raise Groq rate limits (paid tier) in the Vercel env. Removes the
    dominant latency source without code changes.
-2. Code: on 429 with retry-after beyond a small threshold, skip the doomed
-   second structured-JSON attempt and route straight to the deterministic
-   planner. Saves roughly half the wasted time per failing turn. Needs a
-   slice of its own with eval coverage for the retry-skip rule.
+2. Code: SHIPPED - on 429 whose Retry-After exceeds 1.5s, both provider calls
+   end immediately and route straight to the deterministic planner
+   (`shouldBailOnRateLimit`, pinned in groq.eval.ts). Short bursts keep the
+   quick inline retry.
 3. Note: Slice 3's list lane removes several of these model calls entirely
    once deployed ("route":"list" appears repeatedly in the failure rows).
