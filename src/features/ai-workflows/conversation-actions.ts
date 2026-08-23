@@ -21,10 +21,12 @@ import { loadMemories, runIvoAgent } from "./agent";
 import {
   isQuestionnaireCreationRequest,
   isProjectFollowupRequest,
+  listDecision,
   meetingListFilter,
   ivoRuntimeDecisionSchema,
   planIvoRuntime,
 } from "./runtime-planner";
+import type { IvoListDecision } from "./runtime-planner";
 import { planIvoWorkflowNextAction } from "./workflow-progress";
 import {
   ivoResourceReferenceSchema,
@@ -1274,6 +1276,54 @@ export async function planIvoWorkflowProgressAction(
  * then invokes NLU and returns the exact next field, support route, or typed
  * tool invocation that the client is allowed to render/dispatch.
  */
+/**
+ * Canned presentation for the deterministic list lane: one short factual line
+ * plus at most two well-routed follow-up chips. The agent writes its own
+ * replies everywhere else; these are the only fixed strings the runtime emits
+ * as prose. Meetings are absent on purpose — they route through the earlier
+ * meeting lane, and an unknown presentation simply falls through to the agent.
+ */
+const LIST_LANE_PRESENTATIONS: Partial<
+  Record<
+    IvoListDecision["entityType"],
+    Partial<Record<string, { say: string; suggestions?: string[] }>>
+  >
+> = {
+  invoice: {
+    unpaid: {
+      say: "Here's where your open invoices stand.",
+      suggestions: ["Send payment reminders", "How much am I owed?"],
+    },
+    overdue: {
+      say: "These invoices are past due.",
+      suggestions: ["Send payment reminders", "How much am I owed?"],
+    },
+    all: { say: "Your full invoice history." },
+  },
+  contract: {
+    pending: { say: "Contracts waiting on action." },
+    all: { say: "All your contracts." },
+  },
+  proposal: {
+    pending: { say: "Proposals still in play." },
+    all: { say: "All your proposals." },
+  },
+  client: {
+    all: { say: "Your clients.", suggestions: ["Who needs a portal?"] },
+  },
+  project: {
+    active: {
+      say: "Active projects.",
+      suggestions: ["What unbilled time should I invoice?"],
+    },
+    all: { say: "All your projects." },
+  },
+  welcome_document: {
+    open: { say: "Welcome documents still open." },
+    all: { say: "All welcome documents." },
+  },
+};
+
 export async function processIvoMessageAction(
   input: z.input<typeof processMessageSchema>,
   /**
@@ -1581,6 +1631,52 @@ export async function processIvoMessageAction(
             interpretation,
             decision,
             say: `I'll prepare a reviewable email to ${selectedClient.fullName || getClientDisplayName(selectedClient)}. Nothing will send until you approve it.`,
+            runId,
+            usageConsumed,
+          },
+        };
+      }
+    }
+
+    // ---- Deterministic list lane ----------------------------------------
+    // "Show my invoices" and friends do not need a model round. The same
+    // listDecision() the fallback planner uses recognises the request; the
+    // panel renders the identical list card it would render for the agent's
+    // show_records route. Guarded to quiet, unowned-draft, general-mode turns;
+    // anything ambiguous falls through to the agent unchanged.
+    if (
+      !parsed.data.pendingField &&
+      !activeDraft &&
+      (parsed.data.currentWorkflow ?? "general") === "general"
+    ) {
+      const list = listDecision(parsed.data.message);
+      const presentation = list ? LIST_LANE_PRESENTATIONS[list.entityType]?.[list.filter] : undefined;
+      if (list && presentation) {
+        await supabase
+          .from("ivo_runs")
+          .update({
+            provider: "deterministic",
+            model: null,
+            status: "succeeded",
+            outcome: `${list.entityType}_list`,
+            duration_ms: Date.now() - startedAt,
+            finished_at: new Date().toISOString(),
+            metadata: { route: "list", entityType: list.entityType, filter: list.filter },
+          } as never)
+          .eq("id", runId)
+          .eq("user_id", userId);
+        return {
+          ok: true as const,
+          data: {
+            interpretation: {
+              intent: "query",
+              confident: true,
+              fields: {},
+              provider: "local",
+            } satisfies AiInterpretation,
+            decision: list,
+            say: presentation.say,
+            suggestions: presentation.suggestions,
             runId,
             usageConsumed,
           },

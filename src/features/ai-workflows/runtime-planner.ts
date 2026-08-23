@@ -157,7 +157,16 @@ export function meetingListFilter(message: string): "upcoming" | "awaiting" | "a
   return "upcoming";
 }
 
-function listDecision(text: string): IvoRuntimeDecision | null {
+/** A list decision narrowed from the runtime union, for direct reuse. */
+export type IvoListDecision = Extract<IvoRuntimeDecision, { kind: "list" }>;
+
+/**
+ * Recognises pure list requests ("show my invoices") that need no model round.
+ * Deliberately conservative: anything ambiguous returns null and falls through
+ * to the agent. Shared by the fallback planner and the pre-model fast lane in
+ * conversation-actions.ts so both paths agree on what counts as a list request.
+ */
+export function listDecision(text: string): IvoListDecision | null {
   const normalized = text.trim().toLowerCase();
   const show = /\b(show|list|view|see|check|review)\b/.test(normalized);
   const portalPlanning =
