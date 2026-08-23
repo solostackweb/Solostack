@@ -148,6 +148,7 @@ import {
 import { prepareQuestionnaireRefinementAction } from "@/features/ai-workflows/questionnaire-refinement-actions";
 import { hasStructuredAssistantFormatting } from "@/features/ai-workflows/assistant-text";
 import { IvoPendingBubble } from "./panel/pending-bubble";
+import { IvoTranscriptRow } from "./panel/transcript-row";
 import { AssistantRichText } from "./assistant-rich-text";
 import type {
   IvoConversationListItem,
@@ -4189,58 +4190,26 @@ export function StackivoAiAssistant({ user }: StackivoAiAssistantProps) {
                 (Boolean(message.persistedBlock) ||
                   typeof message.content !== "string" ||
                   hasStructuredAssistantFormatting(message.content));
-              const showSuggestions =
-                isLast &&
-                !pending &&
-                message.role === "assistant" &&
-                !!message.suggestions?.length;
               return (
-                <div
+                <IvoTranscriptRow
                   key={message.id}
-                  className={cn(
-                    "flex flex-col motion-safe:animate-page-enter",
-                    message.role === "user" ? "items-end" : "items-start",
-                  )}
-                >
-                  <div
-                    className={cn(
-                      "whitespace-pre-line px-4 py-3 text-sm leading-relaxed",
-                      message.role === "user"
-                        ? "max-w-[88%] rounded-2xl rounded-br-lg bg-primary text-primary-foreground shadow-sm shadow-primary/20"
-                        : isStructuredAssistantMessage
-                          ? "mr-auto w-full max-w-[94%] rounded-2xl rounded-bl-lg border border-border/70 bg-background shadow-sm"
-                          : "mr-auto max-w-[88%] rounded-2xl rounded-bl-lg border border-border/70 bg-background shadow-sm",
-                    )}
-                  >
-                    {message.persistedBlock
+                  role={message.role}
+                  structured={isStructuredAssistantMessage}
+                  tip={message.role === "assistant" ? message.tip : undefined}
+                  suggestions={message.suggestions}
+                  showSuggestions={
+                    isLast && !pending && message.role === "assistant" && !!message.suggestions?.length
+                  }
+                  pending={pending}
+                  onSuggestion={handleSubmit}
+                  content={
+                    message.persistedBlock
                       ? renderPersistedBlock(message.persistedBlock)
                       : message.role === "assistant" && typeof message.content === "string"
-                      ? <AssistantRichText source={message.content} />
-                      : message.content}
-                    {message.role === "assistant" && message.tip ? (
-                      <span className="mt-2 flex items-start gap-1.5 rounded-lg border border-primary/15 bg-primary/[0.04] px-2.5 py-1.5 text-xs text-muted-foreground">
-                        <Lightbulb className="mt-0.5 h-3 w-3 shrink-0 text-primary/70" />
-                        <span>{message.tip}</span>
-                      </span>
-                    ) : null}
-                  </div>
-                  {showSuggestions ? (
-                    <div className="mt-2 flex max-w-[88%] flex-wrap gap-1.5">
-                      {message.suggestions!.map((s) => (
-                        <button
-                          key={s}
-                          type="button"
-                          disabled={pending}
-                          onClick={() => handleSubmit(s)}
-                          className="inline-flex items-center gap-1.5 rounded-full border border-border/80 bg-background px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:border-primary/40 hover:bg-primary/5 hover:text-foreground disabled:opacity-50"
-                        >
-                          <Sparkles className="h-3 w-3 shrink-0 text-primary" />
-                          {s}
-                        </button>
-                      ))}
-                    </div>
-                  ) : null}
-                </div>
+                        ? <AssistantRichText source={message.content} />
+                        : message.content
+                  }
+                />
               );
             })}
 
