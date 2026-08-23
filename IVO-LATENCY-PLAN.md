@@ -104,16 +104,24 @@ Expected win: proportional token cut on every agent round; faster TTFB and
 lower cost. Risk: medium-high (grounding quality). Gate: evals + staged
 rollout behind env flag if Step B numbers look risky.
 
-### SLICE 5 - Dead-air elimination
-Files: `agent.ts`, panel status wiring.
+### SLICE 5 - Dead-air elimination - VERIFIED, NO CHANGE NEEDED
+Files audited: `agent.ts` executeReadTool, `groq.ts` readGroqStream,
+`api/ivo/message/route.ts`, `stackivo-ai-assistant.tsx` (~4250-4278).
 
-- Emit a "Thinking..." status event immediately after gates pass, before the
-  first Groq call, so round-1 TTFB never renders as silence.
-- Verify final-answer deltas actually reach the panel for plain-text replies
-  (readGroqStream path) and that tool-round statuses render between rounds.
+Audit result: dead air is already structurally impossible.
 
-Expected win: perceived latency; users see motion within ~200ms.
-Risk: trivial. Verification: manual SSE trace.
+- The panel renders an animated pending bubble with "Thinking with your
+  workspace context…" the instant a request starts, before any server event
+  (assistant component, pending block).
+- Per-read statuses ("Reading your invoices…") stream from executeReadTool
+  through SSE `status` events and replace the generic label live.
+- Final-answer text streams token-by-token: readGroqStream forwards content
+  deltas -> route `delta` events -> panel `liveReply` with caret.
+- Non-streaming fallback still shows the pending bubble; only the live labels
+  are absent, which matches its degraded nature.
+
+Adding a server-side "Thinking…" status would duplicate what the client
+already shows. Closed without code changes.
 
 ## Explicitly out of scope
 
