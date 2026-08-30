@@ -11,7 +11,10 @@ const PANEL = readFileSync(
 test("entry-point workflows await the same picker-options request warmed on open", () => {
   assert.match(PANEL, /pickerOptionsPromiseRef = React\.useRef<Promise<PickerOptionsSnapshot> \| null>/);
   assert.match(PANEL, /const ensurePickerOptions = React\.useCallback/);
-  assert.match(PANEL, /if \(!pickerOptionsPromiseRef\.current\)[\s\S]*?listIvoPickerOptionsAction\(\)/);
+  // The read travels over a plain GET (the server-action transport could drop
+  // the dispatch / never resolve the caller promise), but it is still issued
+  // once inside the shared single-flight guard.
+  assert.match(PANEL, /if \(!pickerOptionsPromiseRef\.current\)[\s\S]*?\/api\/ivo\/picker-options/);
   assert.match(PANEL, /if \(!open\) return;[\s\S]*?ensurePickerOptions\(\)\.catch/);
   assert.match(
     PANEL,

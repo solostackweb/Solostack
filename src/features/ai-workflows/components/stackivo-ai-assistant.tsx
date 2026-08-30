@@ -36,7 +36,6 @@ import {
   listMeetingsForAiAction,
   listQuestionnairesForProjectAiAction,
   listWelcomeDocsForAiAction,
-  listIvoPickerOptionsAction,
 } from "@/features/ai-workflows/read-actions";
 import { clearIvoMemoriesAction } from "@/features/ai-workflows/memory-actions";
 import {
@@ -561,23 +560,59 @@ export function StackivoAiAssistant({ user }: StackivoAiAssistantProps) {
   const ensurePickerOptions = React.useCallback(async (): Promise<PickerOptionsSnapshot> => {
     if (pickerOptionsLoadedRef.current) return pickerOptionsRef.current;
     if (!pickerOptionsPromiseRef.current) {
-      pickerOptionsPromiseRef.current = listIvoPickerOptionsAction()
-        .then((options) => {
-          const snapshot: PickerOptionsSnapshot = {
-            clients: options.clients,
-            projects: options.projects,
-            resources: options.resources,
-          };
-          pickerOptionsRef.current = snapshot;
-          pickerOptionsLoadedRef.current = true;
-          setPickerOptions(snapshot);
-          return snapshot;
-        })
-        .catch((error: unknown) => {
-          pickerOptionsLoadedRef.current = false;
-          pickerOptionsPromiseRef.current = null;
-          throw error;
+      const loadOnce = () =>
+        new Promise<PickerOptionsSnapshot>((resolve, reject) => {
+          // Plain GET instead of the server-action channel: the action
+          // transport could silently fail to resolve its caller promise when
+          // the panel warms mid-navigation. A normal fetch settles exactly
+          // when the HTTP response does; the watchdog stays as a backstop.
+          const timer = window.setTimeout(() => reject(new Error("Ivo picker options timed out")), 6000);
+          fetch("/api/ivo/picker-options", { cache: "no-store" })
+            .then(async (response) => {
+              if (!response.ok) throw new Error(`picker options HTTP ${response.status}`);
+              return (await response.json()) as {
+                clients: PickerOptionsSnapshot["clients"];
+                projects: PickerOptionsSnapshot["projects"];
+                resources: PickerOptionsSnapshot["resources"];
+              };
+            })
+            .then(
+              (options) => {
+                window.clearTimeout(timer);
+                resolve({
+                  clients: options.clients,
+                  projects: options.projects,
+                  resources: options.resources,
+                });
+              },
+              (error: unknown) => {
+                window.clearTimeout(timer);
+                reject(error);
+              },
+            );
         });
+
+      pickerOptionsPromiseRef.current = (async () => {
+        // Up to 5 attempts (~30s worst case); a healthy dispatch returns in
+        // well under a second, so retries only burn against real breakage.
+        let lastError: unknown;
+        for (let attempt = 0; attempt < 5; attempt++) {
+          try {
+            const snapshot = await loadOnce();
+            pickerOptionsRef.current = snapshot;
+            pickerOptionsLoadedRef.current = true;
+            setPickerOptions(snapshot);
+            return snapshot;
+          } catch (error) {
+            lastError = error;
+          }
+        }
+        throw lastError;
+      })().catch((error: unknown) => {
+        pickerOptionsLoadedRef.current = false;
+        pickerOptionsPromiseRef.current = null;
+        throw error;
+      });
     }
     return pickerOptionsPromiseRef.current;
   }, []);
@@ -3343,6 +3378,14 @@ export function StackivoAiAssistant({ user }: StackivoAiAssistantProps) {
       })
       .slice(0, 8);
   }, [mentionQuery, pickerOptions.resources, selectedResources]);
+
+  // The warm-on-open fetch can be dropped when the panel opens mid-navigation,
+  // so the first "@" also acts as a load trigger. Cheap once loaded (refs).
+  const mentionOpen = mentionQuery !== null;
+  React.useEffect(() => {
+    if (!mentionOpen) return;
+    void ensurePickerOptions().catch(() => undefined);
+  }, [ensurePickerOptions, mentionOpen]);
 
   const selectMention = React.useCallback((resource: AiResourceOption) => {
     setSelectedResources((current) =>

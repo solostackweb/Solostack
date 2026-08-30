@@ -36,6 +36,36 @@ async function requireUserId(): Promise<string> {
   return user.id;
 }
 
+/**
+ * Locale follows the client's country so date/number formatting stays
+ * consistent everywhere the row is rendered. Callers that already know the
+ * locale (the add/edit dialog) send it explicitly; every other path — Ivo
+ * creation, imports, future API callers — falls back to this mapping instead
+ * of writing NULL into a NOT NULL column.
+ */
+function localeForCountry(code: string): string {
+  const locales: Record<string, string> = {
+    IN: "en-IN",
+    US: "en-US",
+    GB: "en-GB",
+    AE: "en-AE",
+    AU: "en-AU",
+    CA: "en-CA",
+    SG: "en-SG",
+    DE: "de-DE",
+    FR: "fr-FR",
+    NL: "en-NL",
+    ES: "es-ES",
+    IE: "en-IE",
+    CH: "de-CH",
+    JP: "ja-JP",
+    NZ: "en-NZ",
+    ZA: "en-ZA",
+    SA: "en-SA",
+  };
+  return locales[code] ?? "en-US";
+}
+
 function parseFromFormData(formData: FormData) {
   return clientCrudSchema.safeParse(
     coerceFormValues({
@@ -101,7 +131,7 @@ export async function createClientAction(
     phone: parsed.data.phone ?? null,
     country: parsed.data.country,
     currency: parsed.data.currency,
-    locale: parsed.data.locale ?? null,
+    locale: parsed.data.locale ?? localeForCountry(parsed.data.country),
     is_foreign: isForeign,
     gst_registered: parsed.data.gstRegistered,
     gst_number: parsed.data.gstRegistered
@@ -119,7 +149,8 @@ export async function createClientAction(
     .single();
 
   if (error || !data) {
-    return { ok: false, error: error?.message ?? "Could not save client." };
+    console.error("[clients] insert failed:", error?.message);
+    return { ok: false, error: "Could not save client. Please try again." };
   }
 
   revalidatePath("/dashboard/clients");
@@ -169,7 +200,7 @@ export async function updateClientAction(
     phone: parsed.data.phone ?? null,
     country: parsed.data.country,
     currency: parsed.data.currency,
-    locale: parsed.data.locale ?? null,
+    locale: parsed.data.locale ?? localeForCountry(parsed.data.country),
     is_foreign: isForeign,
     gst_registered: parsed.data.gstRegistered,
     gst_number: parsed.data.gstRegistered
@@ -185,7 +216,10 @@ export async function updateClientAction(
     .update(update as never)
     .eq("id", idParse.data);
 
-  if (error) return { ok: false, error: error.message };
+  if (error) {
+    console.error("[clients] update failed:", error.message);
+    return { ok: false, error: "Could not save changes. Please try again." };
+  }
 
   revalidatePath("/dashboard/clients");
   revalidatePath(`/dashboard/clients/${idParse.data}`);
