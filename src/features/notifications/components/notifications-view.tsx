@@ -104,7 +104,7 @@ export function NotificationsView({ initial }: NotificationsViewProps) {
             : "You're all caught up."
         }
         actions={
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <IvoEntryPoint
               prompt="Look at my recent notifications and tell me what actually needs my attention today."
               label="Ask Ivo"

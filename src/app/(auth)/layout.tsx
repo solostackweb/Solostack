@@ -1,4 +1,4 @@
-import { Check, IndianRupee, ShieldCheck, Zap } from "lucide-react";
+import { Check, IndianRupee, ReceiptText, ShieldCheck, Zap } from "lucide-react";
 import { MarketingHeader } from "@/components/marketing/marketing-header";
 import { MarketingFooter } from "@/components/marketing/marketing-footer";
 import { getMarketingAuthState } from "@/features/marketing/auth-state";
@@ -77,19 +77,19 @@ export default async function AuthLayout({
               ))}
             </ul>
 
-            {/* Testimonial */}
-            <figure className="mt-8 max-w-md rounded-2xl border border-border/80 bg-card/80 p-5 shadow-sm backdrop-blur">
+            {/* Product truth — no invented social proof (MASTER §12) */}
+            <figure className="mt-8 max-w-md rounded-2xl border border-border/80 bg-card/80 p-5 shadow-sm">
               <blockquote className="text-sm leading-relaxed text-foreground/90">
-                &ldquo;I had my first invoice out in 10 minutes. No learning
-                curve — clients, invoices, get paid.&rdquo;
+                Invoices, GST and payments share one ledger — what you sent,
+                what you&rsquo;re owed and what landed always show the same
+                numbers.
               </blockquote>
               <figcaption className="mt-3 flex items-center gap-2.5">
-                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
-                  D
+                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary">
+                  <ReceiptText className="h-4 w-4" />
                 </span>
-                <span className="text-xs text-muted-foreground">
-                  <span className="font-semibold text-foreground">Divya Krishnan</span>
-                  {" "}· Brand Strategist, Chennai
+                <span className="text-xs font-semibold text-foreground">
+                  How Stackivo works
                 </span>
               </figcaption>
             </figure>

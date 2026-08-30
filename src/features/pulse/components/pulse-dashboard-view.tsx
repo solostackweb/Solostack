@@ -663,7 +663,7 @@ function PaymentHealthCard({ analytics }: { analytics: PulseAnalytics }) {
   const avgDays = analytics.cashFlow.avgDaysToPay;
   const data = [{ name: "Collected", value: rate, fill: "hsl(var(--primary))" }];
   return (
-    <Card>
+    <Card className="min-w-0">
       <CardContent className="flex min-w-0 flex-wrap items-center gap-x-7 gap-y-5 overflow-hidden p-5">
         <div className="min-w-[220px] flex-1 basis-[240px]">
           <p className="text-micro font-bold uppercase tracking-widest text-muted-foreground">
@@ -726,7 +726,7 @@ function ProposalPerformanceCard({
   const rate = proposals.winRatePct === null ? null : Math.round(proposals.winRatePct);
 
   return (
-    <Card>
+    <Card className="min-w-0">
       <CardContent className="flex h-full min-h-[260px] flex-col p-5">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
@@ -773,7 +773,7 @@ function GlobalMixCard({
   const max = Math.max(1, ...rows.map((r) => r.paid));
 
   return (
-    <Card>
+    <Card className="min-w-0">
       <CardContent className="flex h-full min-h-[260px] flex-col overflow-hidden p-5">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
@@ -828,7 +828,7 @@ function CashForecastCard({
   forecast: PulseInsights["cashForecast"];
 }) {
   return (
-    <Card>
+    <Card className="min-w-0">
       <CardContent className="flex h-full min-h-[260px] flex-col p-5">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
@@ -929,7 +929,7 @@ function ClientMixCard({
   const colors = ["hsl(var(--primary))", "hsl(160 84% 39%)", "hsl(38 92% 50%)", "hsl(199 89% 48%)", "hsl(262 83% 58%)"];
 
   return (
-    <Card>
+    <Card className="min-w-0">
       <CardContent className="min-w-0 space-y-5 overflow-hidden p-5">
         <div className="min-w-0">
           <p className="text-micro font-bold uppercase tracking-widest text-muted-foreground">
@@ -1033,7 +1033,7 @@ function AgingCard({
   const hasAny = receivables.outstandingTotal > 0;
 
   return (
-    <Card>
+    <Card className="min-w-0">
       <CardContent className="space-y-4 p-5">
         <div className="flex items-center justify-between">
           <p className="text-micro font-bold uppercase tracking-widest text-muted-foreground">
@@ -1089,7 +1089,7 @@ function FunnelCard({ funnel }: { funnel: PulseAnalytics["funnel"] }) {
   const max = Math.max(1, funnel.issued);
 
   return (
-    <Card>
+    <Card className="min-w-0">
       <CardContent className="space-y-4 p-5">
         <p className="text-micro font-bold uppercase tracking-widest text-muted-foreground">
           Invoice funnel (this range)
@@ -1278,7 +1278,7 @@ function ProjectRevenueCard({ byProject }: { byProject: PulseInsights["byProject
   const rows = byProject.slice(0, 6);
   const max = Math.max(1, ...rows.map((r) => r.paid));
   return (
-    <Card>
+    <Card className="min-w-0">
       <CardContent className="space-y-4 p-5">
         <div className="flex items-center gap-2">
           <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-primary/10 to-indigo-500/10 text-primary ring-1 ring-primary/15">
@@ -1321,7 +1321,7 @@ function ProfitabilityCard({ p }: { p: PulseInsights["profitability"] }) {
   const billablePct =
     p.trackedSeconds > 0 ? Math.round((p.billableSeconds / p.trackedSeconds) * 100) : 0;
   return (
-    <Card>
+    <Card className="min-w-0">
       <CardContent className="space-y-4 p-5">
         <div className="flex items-center gap-2">
           <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-primary/10 to-indigo-500/10 text-primary ring-1 ring-primary/15">

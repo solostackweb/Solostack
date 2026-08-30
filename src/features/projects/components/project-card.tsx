@@ -52,7 +52,7 @@ export function ProjectCard({
   return (
     <Link
       href={`/dashboard/projects/${project.id}`}
-      className="group block focus:outline-none"
+      className="group block min-w-0 focus:outline-none"
       draggable={false}
     >
       <Card
