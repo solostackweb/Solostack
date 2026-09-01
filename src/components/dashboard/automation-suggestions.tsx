@@ -1,7 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowUpRight, Bot, Sparkles, Wand2 } from "lucide-react";
+import { useEffect, useState, useTransition } from "react";
+import { ArrowUpRight, Bot, Check, Sparkles, Wand2 } from "lucide-react";
+import { toast } from "sonner";
 
 import {
   Card,
@@ -14,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/shared/empty-state";
 import { cn } from "@/lib/utils";
 import { openIvo } from "@/features/ai-workflows/components/ivo-entry-point";
+import { executeAutomationRunAction } from "@/features/automation/automation-actions";
 import type { AutomationSuggestionRecord } from "@/features/automation/server";
 
 const TONE_STYLES = {
@@ -27,6 +30,12 @@ export function AutomationSuggestions({
 }: {
   suggestions: AutomationSuggestionRecord[];
 }) {
+  const [visibleSuggestions, setVisibleSuggestions] = useState(suggestions);
+
+  useEffect(() => {
+    setVisibleSuggestions(suggestions);
+  }, [suggestions]);
+
   return (
     <Card className="overflow-hidden border-border/70">
       <CardHeader className="flex flex-col gap-3 border-b bg-muted/20 sm:flex-row sm:items-start sm:justify-between">
@@ -45,7 +54,7 @@ export function AutomationSuggestions({
         </span>
       </CardHeader>
       <CardContent className="p-3 sm:p-4">
-        {suggestions.length === 0 ? (
+        {visibleSuggestions.length === 0 ? (
           <EmptyState
             icon={Sparkles}
             title="No automation needed right now"
@@ -54,41 +63,92 @@ export function AutomationSuggestions({
           />
         ) : (
           <div className="grid gap-3 lg:grid-cols-2">
-            {suggestions.map((suggestion) => (
-              <div
+            {visibleSuggestions.map((suggestion) => (
+              <SuggestionCard
                 key={suggestion.id}
-                className={cn(
-                  "flex min-w-0 flex-col gap-3 rounded-lg border p-3 sm:flex-row sm:items-center sm:justify-between",
-                  TONE_STYLES[suggestion.tone],
-                )}
-              >
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-semibold">{suggestion.title}</p>
-                  <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">
-                    {suggestion.description}
-                  </p>
-                </div>
-                <div className="flex shrink-0 items-center gap-2">
-                  <Button asChild variant="ghost" size="sm" className="h-8 px-2">
-                    <Link href={suggestion.href} aria-label={`Open ${suggestion.title}`}>
-                      <ArrowUpRight className="h-3.5 w-3.5" />
-                    </Link>
-                  </Button>
-                  <Button
-                    type="button"
-                    size="sm"
-                    className="h-8 gap-1.5"
-                    onClick={() => openIvo(suggestion.prompt)}
-                  >
-                    <Sparkles className="h-3.5 w-3.5" />
-                    Ask Ivo
-                  </Button>
-                </div>
-              </div>
+                suggestion={suggestion}
+                onCompleted={() =>
+                  setVisibleSuggestions((current) =>
+                    current.filter((item) => item.id !== suggestion.id),
+                  )
+                }
+              />
             ))}
           </div>
         )}
       </CardContent>
     </Card>
+  );
+}
+
+function SuggestionCard({
+  suggestion,
+  onCompleted,
+}: {
+  suggestion: AutomationSuggestionRecord;
+  onCompleted: () => void;
+}) {
+  const [isPending, startTransition] = useTransition();
+  const createsWorkspaceDraft = suggestion.triggerKey === "unbilled_time_invoice";
+
+  const run = () => {
+    startTransition(async () => {
+      const result = await executeAutomationRunAction({ suggestionId: suggestion.id });
+      if (!result.ok) {
+        toast.error(result.error);
+        return;
+      }
+      onCompleted();
+      toast.success("Automation completed.");
+    });
+  };
+
+  return (
+    <div
+      className={cn(
+        "flex min-w-0 flex-col gap-3 rounded-lg border p-3 sm:flex-row sm:items-center sm:justify-between",
+        TONE_STYLES[suggestion.tone],
+      )}
+    >
+      <div className="min-w-0">
+        <p className="truncate text-sm font-semibold">{suggestion.title}</p>
+        <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">
+          {suggestion.description}
+        </p>
+      </div>
+      <div className="flex shrink-0 items-center gap-2">
+        <Button asChild variant="ghost" size="sm" className="h-8 px-2">
+          <Link href={suggestion.href} aria-label={`Open ${suggestion.title}`}>
+            <ArrowUpRight className="h-3.5 w-3.5" />
+          </Link>
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="h-8 gap-1.5"
+          onClick={() => openIvo(suggestion.prompt)}
+        >
+          <Sparkles className="h-3.5 w-3.5" />
+          {createsWorkspaceDraft ? "Ask Ivo" : "Review with Ivo"}
+        </Button>
+        {createsWorkspaceDraft ? (
+          <Button
+            type="button"
+            size="sm"
+            className="h-8 gap-1.5"
+            onClick={run}
+            disabled={isPending}
+          >
+            {isPending ? (
+              <Sparkles className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <Check className="h-3.5 w-3.5" />
+            )}
+            {isPending ? "Creating…" : "Create draft"}
+          </Button>
+        ) : null}
+      </div>
+    </div>
   );
 }

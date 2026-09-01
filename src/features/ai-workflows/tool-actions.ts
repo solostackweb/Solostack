@@ -48,6 +48,7 @@ import { questionnaireRevisionHash, questionnaireRevisionSchema } from "./questi
 import {
   approveAndSendPreparedActionAction,
   resolveIvoPreparedActionAction,
+  updateIvoPreparedActionDraft,
 } from "./prepared-actions";
 
 type IvoCreateToolKey =
@@ -100,6 +101,11 @@ const preparedActionToolInputSchema = z.object({
   runId: z.string().uuid().optional(),
   requestId: z.string().uuid(),
   actionId: z.string().uuid(),
+});
+const preparedActionUpdateToolInputSchema = preparedActionToolInputSchema.extend({
+  subject: z.string().trim().min(1).max(200),
+  body: z.string().trim().min(20).max(2500),
+  expectedUpdatedAt: z.string().datetime(),
 });
 
 type ToolInput = z.input<typeof toolInputSchema>;
@@ -1346,6 +1352,143 @@ async function runPreparedActionTool(
     });
     return { ok: false as const, error: "Ivo couldn't complete that prepared action." };
   }
+}
+
+async function runPreparedActionUpdateTool(
+  toolKey: "prepared_action.update",
+  rawInput: z.input<typeof preparedActionUpdateToolInputSchema>,
+) {
+  assertIvoToolPath(toolKey, "draft");
+  const parsed = preparedActionUpdateToolInputSchema.safeParse(rawInput);
+  if (!parsed.success) return { ok: false as const, error: "The prepared draft revision is invalid." };
+  const context = await requireOwnedContext(parsed.data.conversationId, parsed.data.runId);
+  if (!context) return { ok: false as const, error: "This prepared draft is no longer available." };
+  const { supabase, userId } = context;
+  const attemptKey = `${toolKey}:${parsed.data.requestId}`;
+  const inputHash = createHash("sha256")
+    .update(JSON.stringify({
+      toolKey,
+      actionId: parsed.data.actionId,
+      subject: parsed.data.subject,
+      body: parsed.data.body,
+      expectedUpdatedAt: parsed.data.expectedUpdatedAt,
+    }))
+    .digest("hex");
+
+  const { data: existingRaw } = await supabase
+    .from("ivo_action_attempts")
+    .select("id, status, input_summary")
+    .eq("user_id", userId)
+    .eq("idempotency_key", attemptKey)
+    .maybeSingle();
+  const existing = existingRaw as { id: string; status: string; input_summary: Json } | null;
+  const existingHash =
+    existing?.input_summary &&
+    typeof existing.input_summary === "object" &&
+    !Array.isArray(existing.input_summary)
+      ? String(existing.input_summary.inputHash ?? "")
+      : "";
+  if (existing && existingHash !== inputHash) {
+    return { ok: false as const, error: "This save request conflicts with an earlier revision." };
+  }
+  if (existing?.status === "executing") {
+    return { ok: false as const, error: "This draft revision is already being saved." };
+  }
+  if (existing?.status === "succeeded") {
+    const { data } = await supabase
+      .from("ivo_prepared_actions")
+      .select("subject, body, updated_at, status")
+      .eq("id", parsed.data.actionId)
+      .eq("user_id", userId)
+      .maybeSingle();
+    const action = data as { subject?: string; body?: string; updated_at?: string; status?: string } | null;
+    return action?.status === "ready" &&
+      action.subject === parsed.data.subject &&
+      action.body === parsed.data.body &&
+      action.updated_at
+      ? {
+          ok: true as const,
+          data: { subject: action.subject, body: action.body, updatedAt: action.updated_at },
+        }
+      : { ok: false as const, error: "The saved draft no longer matches this revision." };
+  }
+
+  const { data: inserted, error: insertError } = await supabase
+    .from("ivo_action_attempts")
+    .insert({
+      conversation_id: parsed.data.conversationId,
+      run_id: parsed.data.runId ?? null,
+      user_id: userId,
+      tool_key: toolKey,
+      idempotency_key: attemptKey,
+      approval_state: ivoToolApprovalState(toolKey),
+      status: "executing",
+      input_summary: {
+        inputHash,
+        policy: ivoToolPolicy(toolKey),
+        subjectLength: parsed.data.subject.length,
+        bodyLength: parsed.data.body.length,
+      },
+      entity_type: "prepared_action",
+      entity_id: parsed.data.actionId,
+    } as never)
+    .select("id")
+    .maybeSingle();
+  if (insertError?.code === "23505") {
+    return { ok: false as const, error: "This draft revision is already being saved." };
+  }
+  if (insertError || !inserted) {
+    return { ok: false as const, error: "Ivo couldn't safely start that draft revision." };
+  }
+  const attemptId = (inserted as { id: string }).id;
+
+  const result = await updateIvoPreparedActionDraft({
+    id: parsed.data.actionId,
+    subject: parsed.data.subject,
+    body: parsed.data.body,
+    expectedUpdatedAt: parsed.data.expectedUpdatedAt,
+  });
+  const { data: verifiedRaw } = result.ok
+    ? await supabase
+        .from("ivo_prepared_actions")
+        .select("subject, body, updated_at, status")
+        .eq("id", parsed.data.actionId)
+        .eq("user_id", userId)
+        .maybeSingle()
+    : { data: null };
+  const verified = verifiedRaw as {
+    subject?: string;
+    body?: string;
+    updated_at?: string;
+    status?: string;
+  } | null;
+  const succeeded =
+    result.ok &&
+    verified?.status === "ready" &&
+    verified.subject === parsed.data.subject &&
+    verified.body === parsed.data.body &&
+    Boolean(verified.updated_at);
+
+  await supabase
+    .from("ivo_action_attempts")
+    .update({
+      status: succeeded ? "succeeded" : "failed",
+      error_code: succeeded ? null : result.ok ? "VERIFY_FAILED" : "ACTION_FAILED",
+      output_summary: succeeded ? { completed: true } : {},
+    } as never)
+    .eq("id", attemptId)
+    .eq("user_id", userId);
+
+  return succeeded
+    ? {
+        ok: true as const,
+        data: {
+          subject: verified!.subject!,
+          body: verified!.body!,
+          updatedAt: verified!.updated_at!,
+        },
+      }
+    : { ok: false as const, error: result.ok ? "Ivo couldn't verify that revision." : result.error };
 }
 
 async function runApprovedEmailTool(
@@ -3122,6 +3265,12 @@ export async function sendPreparedActionIvoToolAction(
     "approved",
     (actionId) => approveAndSendPreparedActionAction({ id: actionId }),
   );
+}
+
+export async function updatePreparedActionIvoToolAction(
+  input: z.input<typeof preparedActionUpdateToolInputSchema>,
+) {
+  return runPreparedActionUpdateTool("prepared_action.update", input);
 }
 
 export async function dismissPreparedActionIvoToolAction(

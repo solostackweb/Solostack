@@ -1,10 +1,11 @@
 "use client";
 
 import * as React from "react";
-import { Sparkles, Trash2 } from "lucide-react";
+import { ShieldCheck, Sparkles, Trash2, Wand2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
 import {
   SettingsPageHeader,
   SettingsSection,
@@ -14,10 +15,17 @@ import {
   listIvoMemoriesAction,
   type IvoMemoryItem,
 } from "@/features/ai-workflows/memory-actions";
+import {
+  getAutomationRecipesAction,
+  setRecipeEnabledAction,
+  type AutomationRecipeRecord,
+} from "@/features/automation/automation-actions";
 
 export default function IvoSettingsPage() {
   const [memories, setMemories] = React.useState<IvoMemoryItem[] | null>(null);
   const [busyId, setBusyId] = React.useState<string | null>(null);
+  const [recipes, setRecipes] = React.useState<AutomationRecipeRecord[] | null>(null);
+  const [busyRecipeId, setBusyRecipeId] = React.useState<string | null>(null);
 
   React.useEffect(() => {
     let cancelled = false;
@@ -27,6 +35,22 @@ export default function IvoSettingsPage() {
       if (res.ok) setMemories(res.data);
       else {
         setMemories([]);
+        toast.error(res.error);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  React.useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const res = await getAutomationRecipesAction();
+      if (cancelled) return;
+      if (res.ok) setRecipes(res.data);
+      else {
+        setRecipes([]);
         toast.error(res.error);
       }
     })();
@@ -47,12 +71,78 @@ export default function IvoSettingsPage() {
     toast.success("Forgotten.");
   }, []);
 
+  const handleRecipeToggle = React.useCallback(async (recipe: AutomationRecipeRecord) => {
+    const nextEnabled = !recipe.enabled;
+    setBusyRecipeId(recipe.id);
+    const res = await setRecipeEnabledAction({ recipeId: recipe.id, enabled: nextEnabled });
+    setBusyRecipeId(null);
+    if (!res.ok) {
+      toast.error(res.error);
+      return;
+    }
+    setRecipes((current) =>
+      (current ?? []).map((item) =>
+        item.id === recipe.id ? { ...item, enabled: nextEnabled } : item,
+      ),
+    );
+    toast.success(nextEnabled ? `${recipe.name} enabled.` : `${recipe.name} paused.`);
+  }, []);
+
   return (
     <>
       <SettingsPageHeader
         title="Ivo"
-        description="Review and manage what your assistant remembers between conversations."
+        description="Control what your assistant watches for and remembers between conversations."
       />
+
+      <SettingsSection
+        title="Automation"
+        description="Choose which workspace moments Ivo should watch for. Ivo prepares the next step, but contacting a client or changing financial records still requires your approval."
+      >
+        {recipes === null ? (
+          <p className="text-sm text-muted-foreground">Loading…</p>
+        ) : recipes.length === 0 ? (
+          <div className="flex items-start gap-3 rounded-lg border border-dashed p-4">
+            <Wand2 className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+            <div>
+              <p className="text-sm font-medium">Automation controls are unavailable</p>
+              <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
+                Refresh this page to try loading your recipes again.
+              </p>
+            </div>
+          </div>
+        ) : (
+          <div className="divide-y rounded-lg border">
+            {recipes.map((recipe) => (
+              <div
+                key={recipe.id}
+                className="flex min-h-14 items-center justify-between gap-4 px-4 py-3"
+              >
+                <label className="min-w-0 flex-1" htmlFor={`recipe-${recipe.id}`}>
+                  <span className="block text-sm font-medium">{recipe.name}</span>
+                  <span className="mt-0.5 block text-xs leading-relaxed text-muted-foreground">
+                    {recipe.description}
+                  </span>
+                </label>
+                <Switch
+                  id={`recipe-${recipe.id}`}
+                  checked={recipe.enabled}
+                  disabled={busyRecipeId !== null}
+                  onCheckedChange={() => void handleRecipeToggle(recipe)}
+                  aria-label={`${recipe.enabled ? "Pause" : "Enable"} ${recipe.name}`}
+                />
+              </div>
+            ))}
+          </div>
+        )}
+        <div className="mt-3 flex items-start gap-2 text-xs leading-relaxed text-muted-foreground">
+          <ShieldCheck className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
+          <p>
+            These controls stop future evaluations. Existing suggestions remain available until their
+            underlying moment passes or you handle them.
+          </p>
+        </div>
+      </SettingsSection>
 
       <SettingsSection
         title="Remembered preferences"

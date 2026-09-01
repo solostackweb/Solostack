@@ -315,6 +315,34 @@ export interface AutomationSuggestionRow {
   expires_at: string | null;
 }
 
+export interface AutomationRunRow {
+  id: string;
+  user_id: string;
+  recipe_id: string | null;
+  trigger_key: string;
+  dedupe_key: string | null;
+  status:
+    | "queued"
+    | "running"
+    | "waiting_for_approval"
+    | "succeeded"
+    | "failed"
+    | "cancelled";
+  entity_type: string | null;
+  entity_id: string | null;
+  reason: string;
+  inputs: Json;
+  results: Json;
+  error: string | null;
+  retry_count: number;
+  last_error: string | null;
+  started_at: string | null;
+  finished_at: string | null;
+  expires_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface IvoConversationRow {
   id: string;
   user_id: string;
@@ -1531,6 +1559,13 @@ export interface Database {
         Insert: Partial<AutomationSuggestionRow> &
           Pick<AutomationSuggestionRow, "user_id" | "trigger_key" | "title" | "prompt">;
         Update: Partial<AutomationSuggestionRow>;
+        Relationships: [];
+      };
+      automation_runs: {
+        Row: AutomationRunRow;
+        Insert: Partial<AutomationRunRow> &
+          Pick<AutomationRunRow, "user_id" | "trigger_key" | "status">;
+        Update: Partial<AutomationRunRow>;
         Relationships: [];
       };
       ivo_conversations: {

@@ -23,6 +23,7 @@ import {
   sendProjectQuestionnaireIvoToolAction,
   sendPreparedActionIvoToolAction,
   dismissPreparedActionIvoToolAction,
+  updatePreparedActionIvoToolAction,
 } from "@/features/ai-workflows/tool-actions";
 
 /**
@@ -358,6 +359,26 @@ export function useIvoTools({
     [base, conversation, withRequestKey],
   );
 
+  const updatePreparedAction = React.useCallback(
+    async (input: {
+      actionId: string;
+      subject: string;
+      body: string;
+      expectedUpdatedAt: string;
+    }) => {
+      const conversationId = await conversation();
+      if (!conversationId) return noConversation("prepared draft revision");
+      return withRequestKey(`prepared_action.update:${input.actionId}`, undefined, (requestId) =>
+        updatePreparedActionIvoToolAction({
+          ...base(conversationId),
+          ...input,
+          requestId,
+        }),
+      );
+    },
+    [base, conversation, withRequestKey],
+  );
+
   return React.useMemo(
     () => ({
       approveInvoice,
@@ -380,6 +401,7 @@ export function useIvoTools({
       saveWelcomeTemplate,
       sendPreparedAction,
       dismissPreparedAction,
+      updatePreparedAction,
     }),
     [
       approveInvoice,
@@ -402,6 +424,7 @@ export function useIvoTools({
       saveWelcomeTemplate,
       sendPreparedAction,
       dismissPreparedAction,
+      updatePreparedAction,
     ],
   );
 }

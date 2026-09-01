@@ -94,6 +94,7 @@ const TOOL_SUMMARIES: Record<IvoToolKey, string> = {
   "contract.refine": "Updated a contract draft",
   "questionnaire.refine": "Updated a questionnaire draft",
   "welcome_document.refine": "Updated a welcome document draft",
+  "prepared_action.update": "Updated a prepared email draft",
   "invoice.approve": "Approved an invoice",
   "invoice.mark_paid": "Marked an invoice paid",
   "welcome_document.publish": "Published a welcome document",

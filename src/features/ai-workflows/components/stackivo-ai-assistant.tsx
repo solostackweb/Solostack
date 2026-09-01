@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 
 import { useRouter } from "next/navigation";
 import {
+  ArrowUpRight,
   ArrowUp,
   CalendarClock,
   ChevronDown,
@@ -13,6 +14,8 @@ import {
   Lightbulb,
   ListChecks,
   MessageSquare,
+  MoreHorizontal,
+  Pencil,
   Send,
   Plus,
   Sparkles,
@@ -21,13 +24,24 @@ import {
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import {
   answerFromDocsAction,
   answerBusinessQuestionAction,
   getAiUsageAction,
-  getAssistantSuggestionsAction,
   listInvoicesForAiAction,
   listContractsForAiAction,
   listProposalsForAiAction,
@@ -40,15 +54,21 @@ import {
 import { clearIvoMemoriesAction } from "@/features/ai-workflows/memory-actions";
 import {
   prepareProjectFollowupAction,
-  refreshIvoPreparedActionsAction,
 } from "@/features/ai-workflows/prepared-action-actions";
 import type { IvoPreparedAction } from "@/features/ai-workflows/prepared-actions";
+import { getIvoTodayAction } from "@/features/ai-workflows/today-actions";
 import {
   listIvoActivityAction,
   type IvoActivityItem,
 } from "@/features/ai-workflows/receipt-actions";
 import { useIvoTools } from "@/features/ai-workflows/components/use-ivo-tools";
 import type { AssistantSuggestion } from "@/features/ai-workflows/suggestions";
+import type { AutomationSuggestionRecord } from "@/features/automation/server";
+import {
+  dismissAutomationSuggestionAction,
+  disableAutomationSuggestionRecipeAction,
+  snoozeAutomationSuggestionAction,
+} from "@/features/automation/automation-actions";
 import type {
   StackivoAiAssistantProps,
   AiMode,
@@ -293,8 +313,17 @@ export function StackivoAiAssistant({ user }: StackivoAiAssistantProps) {
   const [selectedResources, setSelectedResources] = React.useState<AiResourceOption[]>([]);
   const [suggestions, setSuggestions] = React.useState<AssistantSuggestion[]>([]);
   const [preparedActions, setPreparedActions] = React.useState<IvoPreparedAction[]>([]);
+  const [automationSuggestions, setAutomationSuggestions] = React.useState<
+    AutomationSuggestionRecord[]
+  >([]);
+  const [automationSuggestionBusy, setAutomationSuggestionBusy] = React.useState<string | null>(null);
   const [expandedPreparedAction, setExpandedPreparedAction] = React.useState<string | null>(null);
   const [preparedActionBusy, setPreparedActionBusy] = React.useState<string | null>(null);
+  const [preparedActionEdit, setPreparedActionEdit] = React.useState<{
+    id: string;
+    subject: string;
+    body: string;
+  } | null>(null);
   const [handledPreparedActionIds, setHandledPreparedActionIds] = React.useState<Set<string>>(
     () => new Set(),
   );
@@ -305,8 +334,7 @@ export function StackivoAiAssistant({ user }: StackivoAiAssistantProps) {
   const [activityItems, setActivityItems] = React.useState<IvoActivityItem[]>([]);
   const [activityOpen, setActivityOpen] = React.useState(false);
   const [activityUnavailable, setActivityUnavailable] = React.useState(false);
-  const suggestionsLoaded = React.useRef(false);
-  const preparedActionsLoaded = React.useRef(false);
+  const todayLoaded = React.useRef(false);
   const submitRef = React.useRef<((text?: string) => void) | null>(null);
   const pushMessageRef = React.useRef<((message: Omit<Message, "id">) => string) | null>(null);
   const userFirstName = React.useMemo(
@@ -314,23 +342,22 @@ export function StackivoAiAssistant({ user }: StackivoAiAssistantProps) {
     [user?.name],
   );
 
-  // Load proactive "Today" nudges once when the panel first opens.
-  React.useEffect(() => {
-    if (!open || suggestionsLoaded.current) return;
-    suggestionsLoaded.current = true;
-    void getAssistantSuggestionsAction().then((res) => {
-      if (res.ok) setSuggestions(res.data.suggestions);
-    });
-  }, [open]);
+  // Load one deduplicated Today inbox. Exact prepared drafts take precedence
+  // over generic automation moments for the same workspace record.
+  const loadToday = React.useCallback(async () => {
+    const result = await getIvoTodayAction();
+    setPreparedActions(result.data.preparedActions);
+    setAutomationSuggestions(result.data.automationSuggestions);
+    setSuggestions(result.data.insights);
+  }, []);
 
   React.useEffect(() => {
-    if (!open || preparedActionsLoaded.current) return;
-    preparedActionsLoaded.current = true;
-    void refreshIvoPreparedActionsAction().then((result) => {
-      if (result.ok) setPreparedActions(result.data);
-      else preparedActionsLoaded.current = false;
+    if (!open || todayLoaded.current) return;
+    todayLoaded.current = true;
+    void loadToday().catch(() => {
+      todayLoaded.current = false;
     });
-  }, [open]);
+  }, [loadToday, open]);
   const [collected, setCollected] = React.useState<AiFields>({});
   const [pendingField, setPendingField] = React.useState<AiMissingField | null>(null);
   const [clientId, setClientId] = React.useState("");
@@ -515,6 +542,7 @@ export function StackivoAiAssistant({ user }: StackivoAiAssistantProps) {
         return;
       }
       setPreparedActions((current) => current.filter((item) => item.id !== action.id));
+      setPreparedActionEdit((current) => current?.id === action.id ? null : current);
       setHandledPreparedActionIds((current) => new Set(current).add(action.id));
       if (pendingPreparedActionRef.current?.id === action.id) {
         pendingPreparedActionRef.current = null;
@@ -538,6 +566,7 @@ export function StackivoAiAssistant({ user }: StackivoAiAssistantProps) {
         return;
       }
       setPreparedActions((current) => current.filter((item) => item.id !== action.id));
+      setPreparedActionEdit((current) => current?.id === action.id ? null : current);
       setHandledPreparedActionIds((current) => new Set(current).add(action.id));
       if (pendingPreparedActionRef.current?.id === action.id) {
         pendingPreparedActionRef.current = null;
@@ -554,6 +583,81 @@ export function StackivoAiAssistant({ user }: StackivoAiAssistantProps) {
       toast.error("Couldn't copy the draft.");
     }
   }, []);
+
+  const handlePreparedActionSave = React.useCallback((action: IvoPreparedAction) => {
+    if (preparedActionBusy || preparedActionEdit?.id !== action.id) return;
+    const subject = preparedActionEdit.subject.trim();
+    const body = preparedActionEdit.body.trim();
+    if (!subject || body.length < 20) {
+      toast.error("Add a subject and at least 20 characters to the message.");
+      return;
+    }
+    setPreparedActionBusy(action.id);
+    startTransition(async () => {
+      const result = await tools.updatePreparedAction({
+        actionId: action.id,
+        subject,
+        body,
+        expectedUpdatedAt: action.updatedAt,
+      });
+      setPreparedActionBusy(null);
+      if (!result.ok) {
+        toast.error(result.error);
+        await loadToday().catch(() => undefined);
+        setPreparedActionEdit(null);
+        return;
+      }
+      setPreparedActions((current) =>
+        current.map((item) =>
+          item.id === action.id
+            ? {
+                ...item,
+                subject: result.data.subject,
+                body: result.data.body,
+                updatedAt: result.data.updatedAt,
+              }
+            : item,
+        ),
+      );
+      setPreparedActionEdit(null);
+      toast.success("Draft changes saved. Review it once more before sending.");
+    });
+  }, [loadToday, preparedActionBusy, preparedActionEdit, tools]);
+
+  const handleAutomationControl = React.useCallback(async (
+    suggestion: AutomationSuggestionRecord,
+    control: "dismiss" | "disable" | "snooze",
+    snoozeDays = 1,
+  ) => {
+    if (automationSuggestionBusy) return;
+    setAutomationSuggestionBusy(suggestion.id);
+    const result = control === "dismiss"
+      ? await dismissAutomationSuggestionAction({ suggestionId: suggestion.id })
+      : control === "disable"
+        ? await disableAutomationSuggestionRecipeAction({ suggestionId: suggestion.id })
+        : await snoozeAutomationSuggestionAction({
+            suggestionId: suggestion.id,
+            until: new Date(Date.now() + snoozeDays * 86_400_000).toISOString(),
+          });
+    setAutomationSuggestionBusy(null);
+    if (!result.ok) {
+      toast.error(result.error);
+      await loadToday().catch(() => undefined);
+      return;
+    }
+    setAutomationSuggestions((current) =>
+      control === "disable"
+        ? current.filter((item) => item.recipeId !== suggestion.recipeId)
+        : current.filter((item) => item.id !== suggestion.id),
+    );
+    toast.success(
+      control === "disable"
+        ? "Automation recipe disabled. You can re-enable it in Ivo settings."
+        : control === "dismiss"
+          ? "Dismissed for this moment."
+          : `Snoozed for ${snoozeDays === 1 ? "1 day" : `${snoozeDays} days`}.`,
+    );
+  }, [automationSuggestionBusy, loadToday]);
 
   React.useEffect(() => { setMounted(true); }, []);
 
@@ -4015,20 +4119,26 @@ export function StackivoAiAssistant({ user }: StackivoAiAssistantProps) {
                   onPagePrompt={(prompt) => submitRef.current?.(prompt)}
                 />
 
+                {preparedActions.length > 0 ||
+                automationSuggestions.length > 0 ||
+                suggestions.length > 0 ? (
+                  <div className="mb-2 mt-5 flex items-center justify-between gap-2">
+                    <p className="text-micro font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                      For you today
+                    </p>
+                    <span className="text-micro text-muted-foreground">
+                      Nothing sends without approval
+                    </span>
+                  </div>
+                ) : null}
+
                 {preparedActions.length > 0 ? (
-                  <div className="mt-5">
-                    <div className="mb-2 flex items-center justify-between gap-2">
-                      <p className="text-micro font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                        Prepared for you
-                      </p>
-                      <span className="text-micro text-muted-foreground">
-                        Nothing sends without approval
-                      </span>
-                    </div>
+                  <div>
                     <div className="space-y-2">
                       {preparedActions.map((action, i) => {
                         const expanded = expandedPreparedAction === action.id;
                         const busy = preparedActionBusy === action.id;
+                        const editing = preparedActionEdit?.id === action.id;
                         return (
                           <div
                             key={action.id}
@@ -4067,37 +4177,107 @@ export function StackivoAiAssistant({ user }: StackivoAiAssistantProps) {
                                   To {action.recipientName || "recipient"}
                                   {action.recipientEmail ? ` · ${action.recipientEmail}` : " · no email on file"}
                                 </p>
-                                <p className="mt-2 text-xs font-semibold">{action.subject}</p>
-                                <p className="mt-1.5 whitespace-pre-wrap text-xs leading-relaxed text-muted-foreground">
-                                  {action.body}
-                                </p>
-                                <div className="mt-3 flex flex-wrap items-center gap-1.5">
-                                  <Button
-                                    type="button"
-                                    size="sm"
-                                    className="h-7 gap-1.5 text-xs"
-                                    disabled={busy || !action.recipientEmail}
-                                    onClick={() => handlePreparedActionSend(action)}
-                                  >
-                                    <Send className="h-3 w-3" />
-                                    Approve &amp; send
-                                  </Button>
-                                  <Button
-                                    type="button"
-                                    size="sm"
-                                    variant="outline"
-                                    className="h-7 gap-1.5 text-xs"
-                                    disabled={busy}
-                                    onClick={() => void handlePreparedActionCopy(action)}
-                                  >
-                                    <Copy className="h-3 w-3" /> Copy
-                                  </Button>
-                                  {action.href ? (
+                                {editing ? (
+                                  <div className="mt-2 space-y-2">
+                                    <Input
+                                      value={preparedActionEdit.subject}
+                                      onChange={(event) =>
+                                        setPreparedActionEdit((current) =>
+                                          current?.id === action.id
+                                            ? { ...current, subject: event.target.value }
+                                            : current,
+                                        )
+                                      }
+                                      maxLength={200}
+                                      disabled={busy}
+                                      aria-label="Email subject"
+                                    />
+                                    <Textarea
+                                      value={preparedActionEdit.body}
+                                      onChange={(event) =>
+                                        setPreparedActionEdit((current) =>
+                                          current?.id === action.id
+                                            ? { ...current, body: event.target.value }
+                                            : current,
+                                        )
+                                      }
+                                      maxLength={2500}
+                                      rows={7}
+                                      disabled={busy}
+                                      aria-label="Email message"
+                                      className="min-h-32 resize-y text-xs leading-relaxed"
+                                    />
+                                    <div className="flex items-center gap-1.5">
+                                      <Button
+                                        type="button"
+                                        size="sm"
+                                        className="h-8 text-xs"
+                                        disabled={busy}
+                                        onClick={() => handlePreparedActionSave(action)}
+                                      >
+                                        {busy ? "Saving…" : "Save changes"}
+                                      </Button>
+                                      <Button
+                                        type="button"
+                                        size="sm"
+                                        variant="ghost"
+                                        className="h-8 text-xs"
+                                        disabled={busy}
+                                        onClick={() => setPreparedActionEdit(null)}
+                                      >
+                                        Cancel
+                                      </Button>
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <>
+                                    <p className="mt-2 text-xs font-semibold">{action.subject}</p>
+                                    <p className="mt-1.5 whitespace-pre-wrap text-xs leading-relaxed text-muted-foreground">
+                                      {action.body}
+                                    </p>
+                                    <div className="mt-3 flex flex-wrap items-center gap-1.5">
+                                      <Button
+                                        type="button"
+                                        size="sm"
+                                        className="h-8 gap-1.5 text-xs"
+                                        disabled={busy || !action.recipientEmail}
+                                        onClick={() => handlePreparedActionSend(action)}
+                                      >
+                                        <Send className="h-3 w-3" />
+                                        Approve &amp; send
+                                      </Button>
+                                      <Button
+                                        type="button"
+                                        size="sm"
+                                        variant="outline"
+                                        className="h-8 gap-1.5 text-xs"
+                                        disabled={busy}
+                                        onClick={() =>
+                                          setPreparedActionEdit({
+                                            id: action.id,
+                                            subject: action.subject,
+                                            body: action.body,
+                                          })
+                                        }
+                                      >
+                                        <Pencil className="h-3 w-3" /> Edit
+                                      </Button>
+                                      <Button
+                                        type="button"
+                                        size="sm"
+                                        variant="outline"
+                                        className="h-8 gap-1.5 text-xs"
+                                        disabled={busy}
+                                        onClick={() => void handlePreparedActionCopy(action)}
+                                      >
+                                        <Copy className="h-3 w-3" /> Copy
+                                      </Button>
+                                      {action.href ? (
                                     <Button
                                       type="button"
                                       size="sm"
                                       variant="ghost"
-                                      className="h-7 text-xs"
+                                      className="h-8 text-xs"
                                       disabled={busy}
                                       onClick={() => router.push(action.href!)}
                                     >
@@ -4108,13 +4288,15 @@ export function StackivoAiAssistant({ user }: StackivoAiAssistantProps) {
                                     type="button"
                                     size="sm"
                                     variant="ghost"
-                                    className="ml-auto h-7 text-xs text-muted-foreground"
+                                    className="ml-auto h-8 text-xs text-muted-foreground"
                                     disabled={busy}
                                     onClick={() => handlePreparedActionDismiss(action)}
                                   >
                                     Dismiss
                                   </Button>
-                                </div>
+                                    </div>
+                                  </>
+                                )}
                               </div>
                             ) : null}
                           </div>
@@ -4124,11 +4306,111 @@ export function StackivoAiAssistant({ user }: StackivoAiAssistantProps) {
                   </div>
                 ) : null}
 
+                {automationSuggestions.length > 0 ? (
+                  <div className={cn("space-y-2", preparedActions.length > 0 && "mt-2")}>
+                    {automationSuggestions.map((suggestion, i) => (
+                      <div
+                        key={suggestion.id}
+                        style={{ animationDelay: `${i * 40}ms` }}
+                        className={cn(
+                          "animate-row rounded-lg border bg-background/95 p-3",
+                          suggestion.tone === "danger" && "border-destructive/30 bg-destructive/[0.03]",
+                          suggestion.tone === "warning" && "border-warning-subtle bg-warning/[0.04]",
+                        )}
+                      >
+                        <div className="flex items-start gap-2.5">
+                          <span
+                            className={cn(
+                              "mt-1.5 h-2 w-2 shrink-0 rounded-full",
+                              suggestion.tone === "danger"
+                                ? "bg-destructive"
+                                : suggestion.tone === "warning"
+                                  ? "bg-warning"
+                                  : "bg-primary",
+                            )}
+                          />
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm font-medium">{suggestion.title}</p>
+                            <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
+                              {suggestion.description}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="mt-2.5 flex items-center gap-1.5 pl-4">
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            className="h-8 text-xs"
+                            onClick={() => handleSubmit(suggestion.prompt)}
+                          >
+                            Review with Ivo
+                          </Button>
+                          <Button
+                            type="button"
+                            size="icon"
+                            variant="ghost"
+                            className="h-8 w-8"
+                            onClick={() => router.push(suggestion.href)}
+                            aria-label={`Open ${suggestion.title}`}
+                          >
+                            <ArrowUpRight className="h-3.5 w-3.5" />
+                          </Button>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button
+                                type="button"
+                                size="icon"
+                                variant="ghost"
+                                className="ml-auto h-8 w-8"
+                                disabled={automationSuggestionBusy === suggestion.id}
+                                aria-label={`Manage ${suggestion.title}`}
+                              >
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-48">
+                              <DropdownMenuLabel>Remind me later</DropdownMenuLabel>
+                              <DropdownMenuSub>
+                                <DropdownMenuSubTrigger>Snooze</DropdownMenuSubTrigger>
+                                <DropdownMenuSubContent>
+                                  {[1, 3, 7].map((days) => (
+                                    <DropdownMenuItem
+                                      key={days}
+                                      onSelect={() => void handleAutomationControl(suggestion, "snooze", days)}
+                                    >
+                                      {days === 1 ? "Tomorrow" : `In ${days} days`}
+                                    </DropdownMenuItem>
+                                  ))}
+                                </DropdownMenuSubContent>
+                              </DropdownMenuSub>
+                              <DropdownMenuItem
+                                onSelect={() => void handleAutomationControl(suggestion, "dismiss")}
+                              >
+                                Dismiss this moment
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem
+                                className="text-destructive focus:text-destructive"
+                                onSelect={() => void handleAutomationControl(suggestion, "disable")}
+                              >
+                                Disable this automation
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : null}
+
                 {suggestions.length > 0 ? (
-                  <div className="mt-5">
-                    <p className="mb-2 text-micro font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                      For you today
-                    </p>
+                  <div
+                    className={cn(
+                      "space-y-1.5",
+                      (preparedActions.length > 0 || automationSuggestions.length > 0) && "mt-2",
+                    )}
+                  >
                     <div className="space-y-1.5">
                       {suggestions.map((s, i) => (
                         <button

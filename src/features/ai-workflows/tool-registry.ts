@@ -43,6 +43,7 @@ export const IVO_TOOL_KEYS = [
   "contract.refine",
   "questionnaire.refine",
   "welcome_document.refine",
+  "prepared_action.update",
   // State changes on an owned record.
   "invoice.approve",
   "invoice.mark_paid",
@@ -152,6 +153,7 @@ export const IVO_TOOL_REGISTRY: Record<IvoToolKey, IvoToolSpec> = {
   "contract.refine": spec("contract.refine", "contract", "draft_refinement", "internal_draft_refinement_review", DRAFT),
   "questionnaire.refine": spec("questionnaire.refine", "questionnaire", "draft_refinement", "internal_draft_refinement_review", DRAFT),
   "welcome_document.refine": spec("welcome_document.refine", "welcome_document", "draft_refinement", "internal_draft_refinement_review", DRAFT),
+  "prepared_action.update": spec("prepared_action.update", "prepared_action", "draft_refinement", "internal_draft_refinement_review", DRAFT),
 
   // Approving an invoice moves it to "sent" and makes it a receivable, so it is
   // classed financial rather than a plain status change.

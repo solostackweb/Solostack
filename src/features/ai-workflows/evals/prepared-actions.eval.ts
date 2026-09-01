@@ -33,6 +33,17 @@ test("prepared sends and dismissals enter through the audited tool runner", () =
   assert.match(TOOL_SOURCE, /status: succeeded \? "succeeded" : "failed"/);
 });
 
+test("prepared draft edits are audited, version-bound, and reread before success", () => {
+  assert.match(TOOL_SOURCE, /runPreparedActionUpdateTool/);
+  assert.match(TOOL_SOURCE, /"prepared_action\.update"/);
+  assert.match(TOOL_SOURCE, /expectedUpdatedAt/);
+  assert.match(TOOL_SOURCE, /subjectLength: parsed\.data\.subject\.length/);
+  assert.match(TOOL_SOURCE, /bodyLength: parsed\.data\.body\.length/);
+  assert.match(DOMAIN_SOURCE, /\.eq\("updated_at", parsed\.data\.expectedUpdatedAt\)/);
+  assert.match(DOMAIN_SOURCE, /\.eq\("status", "ready"\)/);
+  assert.match(PANEL_SOURCE, /Review it once more before sending/);
+});
+
 test("a named project reminder becomes a prepared email rather than plain advice", () => {
   const clientId = "4d08b55f-33b8-4416-b0d9-f87a458e9471";
   assert.equal(isProjectFollowupRequest("Send reminder to Priya"), true);

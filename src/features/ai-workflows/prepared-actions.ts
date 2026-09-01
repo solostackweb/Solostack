@@ -36,9 +36,12 @@ export interface IvoPreparedAction {
   body: string;
   recipientName: string | null;
   recipientEmail: string | null;
+  entityType: string | null;
+  entityId: string | null;
   href: string | null;
   tone: IvoPreparedActionRow["tone"];
   createdAt: string;
+  updatedAt: string;
 }
 
 interface DetectedMoment {
@@ -355,10 +358,57 @@ function mapRow(row: IvoPreparedActionRow): IvoPreparedAction {
     body: row.body,
     recipientName: row.recipient_name,
     recipientEmail: row.recipient_email,
+    entityType: row.entity_type,
+    entityId: row.entity_id,
     href: row.href,
     tone: row.tone,
     createdAt: row.created_at,
+    updatedAt: row.updated_at,
   };
+}
+
+const updatePreparedDraftSchema = z.object({
+  id: z.string().uuid(),
+  subject: z.string().trim().min(1).max(200),
+  body: z.string().trim().min(20).max(2500),
+  expectedUpdatedAt: z.string().datetime(),
+});
+
+/**
+ * Save a user-reviewed revision using optimistic concurrency. Only a ready,
+ * owned action at the exact version the user opened can be changed.
+ */
+export async function updateIvoPreparedActionDraft(
+  input: z.input<typeof updatePreparedDraftSchema>,
+): Promise<{ ok: true; data: IvoPreparedAction } | { ok: false; error: string }> {
+  const parsed = updatePreparedDraftSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: "That draft revision is invalid." };
+
+  try {
+    const { supabase, userId } = await requireUser();
+    const { data, error } = await supabase
+      .from("ivo_prepared_actions")
+      .update({ subject: parsed.data.subject, body: parsed.data.body } as never)
+      .eq("id", parsed.data.id)
+      .eq("user_id", userId)
+      .eq("status", "ready")
+      .eq("updated_at", parsed.data.expectedUpdatedAt)
+      .select("*")
+      .maybeSingle();
+    if (error) throw error;
+    if (!data) {
+      return {
+        ok: false,
+        error: "This draft changed after you opened it. Review the latest version before saving.",
+      };
+    }
+    return { ok: true, data: mapRow(data as unknown as IvoPreparedActionRow) };
+  } catch (error) {
+    log.warn("ivo.prepared_actions.update_failed", {
+      error: error instanceof Error ? error.message : "unknown",
+    });
+    return { ok: false, error: "Couldn't save that draft revision." };
+  }
 }
 
 /**

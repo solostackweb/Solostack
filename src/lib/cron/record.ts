@@ -21,10 +21,11 @@ export type CronJob =
   | "subscription-renewals"
   | "admin-export"
   | "monitor"
-  | "portal-digest"
-  | "retention"
-  | "ivo-retention"
-  | "account-purge";
+    | "portal-digest"
+    | "retention"
+    | "ivo-retention"
+    | "account-purge"
+    | "automation";
 
 export async function recordCronRun(input: {
   job: CronJob;
