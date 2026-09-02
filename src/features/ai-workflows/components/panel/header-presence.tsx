@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { ChevronDown } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
@@ -28,7 +29,7 @@ export function IvoHeaderPresence({
   menuOpen,
   onToggleMenu,
 }: {
-  icon: React.ComponentType<{ className?: string }>;
+  icon: LucideIcon;
   title: string;
   phase?: IvoPresencePhase;
   menuOpen: boolean;
