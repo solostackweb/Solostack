@@ -209,10 +209,9 @@ export default function DocsPage() {
               </li>
               <li>
                 <strong>Time</strong> — start/stop timer, log hours by project
-                (Pro+)
               </li>
               <li>
-                <strong>Portal</strong> — per-client collaboration spaces (Pro+)
+                <strong>Portal</strong> — per-client collaboration spaces
               </li>
               <li>
                 <strong>Pulse</strong> — your business analytics overview
@@ -223,24 +222,19 @@ export default function DocsPage() {
               </li>
             </UL>
 
-            <H3>Choosing a plan</H3>
+            <H3>Early access</H3>
             <P>
-              Stackivo has three plans. The <strong>Free plan</strong> lets you
-              add up to 5 clients and explore the core product before
-              committing. Upgrading to <strong>Pro</strong> (₹499/month or
-              ₹399/month billed annually) unlocks unlimited clients, contract
-              sending, e-signatures, time tracking, the client portal, custom branding, GST
-              reports, and project file sharing. The{" "}
-              <strong>Business plan</strong> (₹1,499/month) adds team
-              collaborators, API access, custom portal branding, and priority
-              support. See{" "}
+              Pricing and subscriptions are paused while Stackivo is being
+              tested with its early community. Every member can use the full
+              workspace, including contracts, time tracking, portals, branding,
+              GST reports, and Ivo. See{" "}
               <a
-                href="/pricing"
+                href="/community"
                 className="font-medium text-foreground underline underline-offset-4 hover:opacity-70"
               >
-                pricing
+                the community page
               </a>{" "}
-              for a full feature comparison.
+              to join or learn how early access works.
             </P>
           </DocSection>
 
@@ -282,12 +276,11 @@ export default function DocsPage() {
               place.
             </P>
 
-            <H3>Free plan limit</H3>
+            <H3>Early-access limits</H3>
             <Callout type="info">
-              The Free plan supports up to <strong>5 lifetime clients</strong>.
-              This is a lifetime counter — deleting a client does{" "}
-              <strong>not</strong> free up a slot. Upgrade to Pro for unlimited
-              clients.
+              Client plan limits are paused during early access. Community
+              members can add the clients they need while usage is still
+              recorded for product learning.
             </Callout>
 
             <H3>Editing and archiving</H3>

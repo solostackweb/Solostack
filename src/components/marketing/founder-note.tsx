@@ -32,9 +32,9 @@ export function FounderNote() {
                 changelog is honest about what is not finished yet.
               </p>
               <p>
-                Free is genuinely free: five clients, every workflow, nothing
-                locked behind an upgrade prompt. If Stackivo is useful you will
-                know before you are asked to pay for it.
+                Early members get every workflow with no upgrade prompts. Use
+                Stackivo on real client work, tell us where it falls short, and
+                help shape what the workspace becomes before pricing returns.
               </p>
             </div>
 

@@ -7,6 +7,7 @@ import {
   LayoutDashboard,
   Clock,
   Headphones,
+  CalendarPlus,
 } from "lucide-react";
 
 import type { AiMode } from "./assistant-types";
@@ -65,6 +66,12 @@ export const QUICK_ACTIONS: Array<{
     icon: Clock,
   },
   {
+    mode: "meeting",
+    title: "Schedule meeting",
+    description: "Create a meeting and send times for the client to choose.",
+    icon: CalendarPlus,
+  },
+  {
     mode: "support",
     title: "Support",
     description: "Ask a question or submit a support request.",
@@ -84,6 +91,7 @@ export const MODE_PLACEHOLDERS: Partial<Record<AiMode, string>> = {
   project: "Example: Website Redesign for Acme — landing page + CMS, starts Monday, due end of month",
   portal: "Example: Create a client portal for Acme",
   time_entry: "Example: Logged 2h 30m on wireframe revisions for Acme, billable",
+  meeting: "Example: Schedule a 30-minute kickoff with Acme next Tuesday afternoon",
   support: "Ask anything — docs, privacy, terms, or raise a support ticket",
 };
 

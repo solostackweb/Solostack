@@ -9,7 +9,7 @@ const PRODUCT_LINKS = [
   { label: "Stackivo AI", href: "/#ai" },
   { label: "How it works", href: "/#workflow" },
   { label: "GST invoicing", href: "/#gst" },
-  { label: "Pricing", href: "/pricing" },
+  { label: "Early community", href: "/community" },
   { label: "Changelog", href: "/changelog" },
 ];
 

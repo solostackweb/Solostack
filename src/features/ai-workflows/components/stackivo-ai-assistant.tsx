@@ -169,6 +169,7 @@ import { IvoPendingBubble } from "./panel/pending-bubble";
 import { IvoTranscriptRow } from "./panel/transcript-row";
 import { IvoEmptyState } from "./panel/empty-state";
 import { IvoHeaderPresence } from "./panel/header-presence";
+import { EARLY_ACCESS_MODE } from "@/config/product-mode";
 import { pagePromptsForPath } from "./panel/page-prompts";
 import { AssistantRichText } from "./assistant-rich-text";
 import type {
@@ -3964,7 +3965,7 @@ export function StackivoAiAssistant({ user }: StackivoAiAssistantProps) {
               <div className="absolute left-3 right-3 top-[calc(100%+6px)] z-50 overflow-hidden rounded-lg border bg-popover shadow-xl">
                 <div className="flex items-center justify-between border-b px-3 py-2">
                   <span className="text-xs font-semibold">Ivo activity</span>
-                  <span className="text-micro text-muted-foreground">Verified from the ledger</span>
+                  <span className="text-micro text-muted-foreground">Reads, actions, and automations</span>
                 </div>
                 <div className="max-h-80 overflow-y-auto p-2">
                   {activityUnavailable ? (
@@ -4019,14 +4020,14 @@ export function StackivoAiAssistant({ user }: StackivoAiAssistantProps) {
                     </div>
                   ) : (
                     <p className="px-3 py-5 text-center text-xs text-muted-foreground">
-                      No workspace reads or actions in this conversation yet.
+                      No workspace reads, actions, or automations yet.
                     </p>
                   )}
                 </div>
               </div>
             ) : null}
             <div className="flex shrink-0 items-center gap-0.5">
-              {aiUsage && aiUsage.limit >= 0 ? (
+              {!EARLY_ACCESS_MODE && aiUsage && aiUsage.limit >= 0 ? (
                 <span
                   className={cn(
                     "mr-1 hidden items-center rounded-full border px-1.5 py-1 text-micro font-semibold tabular-nums sm:inline-flex",

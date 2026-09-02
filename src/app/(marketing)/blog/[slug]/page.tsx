@@ -137,7 +137,7 @@ export default async function BlogPostPage({
                 </Link>
               </Button>
               <Button asChild size="lg" variant="outline" className="h-11">
-                <Link href="/pricing" data-cta={`blog_${post.slug}_pricing`}>
+                <Link href="/community" data-cta={`blog_${post.slug}_community`}>
                   See pricing
                 </Link>
               </Button>

@@ -2,14 +2,11 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { StackivoMark } from "@/components/brand/stackivo-logo";
 import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { primaryNav, secondaryNav, type NavItem } from "@/constants/navigation";
 import { SidebarNav } from "./sidebar-nav";
-import { useProfile } from "@/features/profile/context";
 
 const SIDEBAR_GROUPS: Array<{ label: string; items: NavItem[] }> = [
   {
@@ -37,14 +34,6 @@ export function AppSidebar() {
     return pref === "collapsed";
   });
 
-  const onToggle = React.useCallback(() => {
-    setCollapsed((value) => {
-      const next = !value;
-      localStorage.setItem("stackivo:sidebar-behaviour", next ? "collapsed" : "expanded");
-      return next;
-    });
-  }, []);
-
   const userCollapsedRef = React.useRef(collapsed);
   const aiForcedRef = React.useRef(false);
 
@@ -56,6 +45,19 @@ export function AppSidebar() {
     }
     window.addEventListener("storage", onStorage);
     return () => window.removeEventListener("storage", onStorage);
+  }, []);
+
+  React.useEffect(() => {
+    const onToggle = () => {
+      setCollapsed((value) => {
+        const next = !value;
+        localStorage.setItem("stackivo:sidebar-behaviour", next ? "collapsed" : "expanded");
+        window.dispatchEvent(new CustomEvent("stackivo:sidebar-state", { detail: { collapsed: next } }));
+        return next;
+      });
+    };
+    window.addEventListener("stackivo:toggle-sidebar", onToggle);
+    return () => window.removeEventListener("stackivo:toggle-sidebar", onToggle);
   }, []);
 
   React.useEffect(() => {
@@ -78,9 +80,6 @@ export function AppSidebar() {
     return () => observer.disconnect();
   }, [collapsed]);
 
-  const { subscription } = useProfile();
-  const plan = subscription?.plan ?? "free";
-
   return (
     <aside
       className={cn(
@@ -88,18 +87,12 @@ export function AppSidebar() {
         collapsed ? "w-[68px]" : "w-[264px]",
       )}
     >
-      <div
-        className={cn(
-          "relative flex h-14 items-center border-b border-sidebar-border/50 px-4",
-          collapsed ? "justify-center px-0" : "justify-between",
-        )}
-      >
+      <div className={cn("flex h-14 items-center border-b border-sidebar-border/50 px-4", collapsed && "justify-center px-0")}>
         <Link
           href="/dashboard"
           className={cn(
             "flex items-center gap-2.5 rounded-lg font-semibold transition-colors",
             !collapsed && "px-1 py-1 hover:bg-sidebar-accent/70",
-            collapsed && "pr-6",
           )}
           aria-label="Stackivo home"
         >
@@ -110,26 +103,10 @@ export function AppSidebar() {
             </span>
           )}
         </Link>
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={onToggle}
-          className={cn(
-            "h-8 w-8 text-sidebar-foreground/50 hover:bg-sidebar-accent hover:text-sidebar-foreground",
-            collapsed && "absolute right-1 top-3 h-7 w-7",
-          )}
-          aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-        >
-          {collapsed ? (
-            <PanelLeftOpen className="h-4 w-4" />
-          ) : (
-            <PanelLeftClose className="h-4 w-4" />
-          )}
-        </Button>
       </div>
 
-      <div className="flex-1 overflow-y-auto scrollbar-thin px-2 py-5">
-        <div className="space-y-5">
+      <div className="min-h-0 flex-1 overflow-hidden px-2 py-3 [@media(max-height:720px)]:overflow-y-auto">
+        <div className="space-y-3">
           {SIDEBAR_GROUPS.map((group) => (
             <div key={group.label}>
               {!collapsed && (
@@ -140,7 +117,7 @@ export function AppSidebar() {
               <SidebarNav
                 items={group.items}
                 collapsed={collapsed}
-                isFreePlan={plan === "free"}
+                isFreePlan={false}
               />
             </div>
           ))}

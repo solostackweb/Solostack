@@ -24,6 +24,7 @@ import {
 import { getBusinessProfile } from "@/features/onboarding/server";
 import { getCurrentSubscription } from "@/features/subscription/server";
 import { FreePlanBanner } from "@/components/dashboard/free-plan-banner";
+import { EARLY_ACCESS_MODE } from "@/config/product-mode";
 import { getAutomationLiteSnapshot } from "@/features/automation/server";
 
 export const metadata = { title: "Dashboard" };
@@ -266,7 +267,7 @@ export default async function DashboardPage() {
             )}
           />
         ) : null}
-        {(!sub || sub.plan === "free") && (
+        {!EARLY_ACCESS_MODE && (!sub || sub.plan === "free") && (
           <FreePlanBanner clientsUsed={profile?.lifetimeClientsCreated ?? 0} />
         )}
       </div>

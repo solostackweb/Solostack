@@ -12,6 +12,7 @@ import {
   Gift,
   Sparkles,
 } from "lucide-react";
+import { EARLY_ACCESS_MODE } from "@/config/product-mode";
 
 export interface SettingsNavItem {
   href: string;
@@ -29,7 +30,7 @@ export interface SettingsNavGroup {
  * The grouped navigation rail for the Settings module.
  * Each `href` maps 1:1 to a route under `src/app/(dashboard)/dashboard/settings/*`.
  */
-export const SETTINGS_NAV_GROUPS: SettingsNavGroup[] = [
+const SETTINGS_NAV_GROUPS_WITH_BILLING: SettingsNavGroup[] = [
   {
     label: "Account",
     items: [
@@ -107,6 +108,16 @@ export const SETTINGS_NAV_GROUPS: SettingsNavGroup[] = [
     ],
   },
 ];
+
+export const SETTINGS_NAV_GROUPS: SettingsNavGroup[] = EARLY_ACCESS_MODE
+  ? SETTINGS_NAV_GROUPS_WITH_BILLING.map((group) => ({
+      ...group,
+      items: group.items.filter((item) =>
+        item.href !== "/dashboard/settings/billing" &&
+        item.href !== "/dashboard/settings/referral",
+      ),
+    }))
+  : SETTINGS_NAV_GROUPS_WITH_BILLING;
 
 export const ALL_SETTINGS_ITEMS: SettingsNavItem[] =
   SETTINGS_NAV_GROUPS.flatMap((g) => g.items);

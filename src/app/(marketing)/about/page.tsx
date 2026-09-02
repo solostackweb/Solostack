@@ -47,12 +47,11 @@ export default function AboutPage() {
         ₹ everywhere, and pricing that respects Indian purchasing power.
       </p>
 
-      <h3>Free should be useful</h3>
+      <h3>Early access should be useful</h3>
       <p>
-        Our free plan isn&rsquo;t a 14-day trial in disguise. You get every
-        workflow — invoices, contracts, projects, time, Pulse — capped only
-        at 5 lifetime clients. That&rsquo;s a real business for a real
-        starting freelancer.
+        Early community members get every workflow — invoices, contracts,
+        projects, time, Pulse, and Ivo — without an upgrade prompt. That lets
+        us learn from real businesses before pricing returns.
       </p>
 
       <h3>Your data is yours</h3>
@@ -108,7 +107,7 @@ export default function AboutPage() {
       <h2>Get involved</h2>
       <p>
         The best way to shape Stackivo&rsquo;s next year is to{" "}
-        <Link href="/signup">try the free plan</Link> and tell us what
+        <Link href="/community">join the early community</Link> and tell us what
         worked and what didn&rsquo;t. We read every reply.
       </p>
     </ProsePage>

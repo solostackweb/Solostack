@@ -1,4 +1,5 @@
 import "server-only";
+import { EARLY_ACCESS_MODE } from "@/config/product-mode";
 
 /**
  * Global paywall kill-switch.
@@ -38,6 +39,7 @@ function readEnvFlag(): boolean {
 }
 
 export function paywallsDisabled(): boolean {
+  if (EARLY_ACCESS_MODE) return true;
   if (cached === null) cached = readEnvFlag();
   return cached;
 }

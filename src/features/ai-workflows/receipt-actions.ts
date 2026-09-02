@@ -12,11 +12,12 @@ import { z } from "zod";
 
 import { log } from "@/lib/logger";
 import { getServerSupabase } from "@/lib/supabase/server";
+import type { AutomationRunRow } from "@/lib/supabase/types";
 import { buildIvoReceipt, type IvoExecutionReceipt, type IvoLedgerRow } from "./receipts";
 
 export interface IvoActivityItem {
   id: string;
-  kind: "read" | "action";
+  kind: "read" | "action" | "automation";
   status: "succeeded" | "failed" | "cancelled" | "in_progress" | "empty" | "unavailable";
   title: string;
   detail: string | null;
@@ -87,6 +88,60 @@ const READ_LABELS: Record<string, string> = {
   get_client_profile: "Read a client profile",
 };
 
+const AUTOMATION_LABELS: Record<string, string> = {
+  invoice_overdue_followup: "Overdue invoice follow-up",
+  invoice_due_soon_review: "Due-soon invoice review",
+  proposal_followup: "Proposal follow-up",
+  unbilled_time_invoice: "Unbilled time invoice",
+  contract_expiry_followup: "Contract expiry follow-up",
+};
+
+function automationHref(run: AutomationRunRow): string | null {
+  if (!run.entity_id) return run.trigger_key === "unbilled_time_invoice" ? "/dashboard/time?status=unbilled" : null;
+  if (run.entity_type === "invoice") return `/dashboard/invoices/${run.entity_id}`;
+  if (run.entity_type === "proposal") return `/dashboard/proposals/${run.entity_id}`;
+  if (run.entity_type === "contract") return `/dashboard/contracts/${run.entity_id}`;
+  return null;
+}
+
+function automationActivity(run: AutomationRunRow): IvoActivityItem {
+  const requiresApproval = run.trigger_key !== "unbilled_time_invoice";
+  const status: IvoActivityItem["status"] =
+    run.status === "succeeded" || run.status === "failed" || run.status === "cancelled"
+      ? run.status
+      : "in_progress";
+  const attempts = run.retry_count;
+  const stateDetail =
+    run.status === "queued"
+      ? requiresApproval ? "Ready for your review" : "Ready to create a workspace draft"
+      : run.status === "waiting_for_approval"
+        ? "Waiting for your approval"
+        : run.status === "running"
+          ? `Running attempt ${Math.max(1, attempts)} of 3`
+          : run.status === "failed"
+            ? `Stopped after ${attempts} ${attempts === 1 ? "attempt" : "attempts"}`
+            : run.status === "cancelled"
+              ? "Dismissed or no longer needed"
+              : "Completed and verified";
+  return {
+    id: `automation:${run.id}`,
+    kind: "automation",
+    status,
+    title: AUTOMATION_LABELS[run.trigger_key] ?? "Automation run",
+    detail: run.reason ? `${stateDetail} · ${run.reason.slice(0, 140)}` : stateDetail,
+    occurredAt: run.finished_at ?? run.started_at ?? run.updated_at ?? run.created_at,
+    href: automationHref(run),
+    requiredApproval: requiresApproval,
+    approvalState: requiresApproval
+      ? run.status === "queued" || run.status === "waiting_for_approval"
+        ? "required"
+        : run.status === "cancelled"
+          ? "rejected"
+          : "approved"
+      : "not_required",
+  };
+}
+
 export async function listIvoActivityAction(
   input: z.input<typeof listSchema> = {},
 ): Promise<
@@ -112,13 +167,24 @@ export async function listIvoActivityAction(
       .eq("user_id", user.id)
       .order("created_at", { ascending: false })
       .limit(parsed.data.limit);
+    const automationRunsQuery = supabase
+      .from("automation_runs")
+      .select("*")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false })
+      .limit(parsed.data.limit);
     if (parsed.data.conversationId) {
       attemptsQuery = attemptsQuery.eq("conversation_id", parsed.data.conversationId);
       runsQuery = runsQuery.eq("conversation_id", parsed.data.conversationId);
     }
-    const [attemptsResult, runsResult] = await Promise.all([attemptsQuery, runsQuery]);
+    const [attemptsResult, runsResult, automationRunsResult] = await Promise.all([
+      attemptsQuery,
+      runsQuery,
+      automationRunsQuery,
+    ]);
     if (attemptsResult.error) throw attemptsResult.error;
     if (runsResult.error) throw runsResult.error;
+    if (automationRunsResult.error) throw automationRunsResult.error;
 
     const actionItems = ((attemptsResult.data as IvoLedgerRow[] | null) ?? [])
       .map(buildIvoReceipt)
@@ -174,7 +240,11 @@ export async function listIvoActivityAction(
         });
       });
 
-    const items = [...actionItems, ...readItems]
+    const automationItems = (
+      (automationRunsResult.data as unknown as AutomationRunRow[] | null) ?? []
+    ).map(automationActivity);
+
+    const items = [...actionItems, ...readItems, ...automationItems]
       .sort((left, right) => Date.parse(right.occurredAt) - Date.parse(left.occurredAt))
       .slice(0, parsed.data.limit);
     return { ok: true, data: { items, asOf: new Date().toISOString() } };

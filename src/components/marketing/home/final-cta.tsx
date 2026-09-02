@@ -8,8 +8,8 @@ import { Reveal } from "../motion";
  * Closing CTA: one clear decision and a quieter conversation path.
  */
 export function FinalCta({ authState }: { authState: MarketingAuthState }) {
-  const href = authState.isAuthenticated ? "/dashboard" : "/signup";
-  const label = authState.isAuthenticated ? "Go to dashboard" : "Start free";
+  const href = authState.isAuthenticated ? "/dashboard" : "/community";
+  const label = authState.isAuthenticated ? "Go to dashboard" : "Join early access";
 
   return (
     <section className="border-t border-border bg-accent/30">
@@ -19,7 +19,7 @@ export function FinalCta({ authState }: { authState: MarketingAuthState }) {
             Ready to connect the work to the payment?
           </h2>
           <p className="mt-1.5 text-sm text-muted-foreground">
-            Free for your first 5 clients · No card required · 2-minute setup
+            Every feature included during early access · No card required
           </p>
         </div>
         <div className="flex shrink-0 flex-col gap-3 sm:flex-row">

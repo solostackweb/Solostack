@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
+import { PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { StackivoMark } from "@/components/brand/stackivo-logo";
 import { UserNav } from "./user-nav";
 import { ThemeToggle } from "@/components/shared/theme-toggle";
@@ -10,6 +11,7 @@ import { CommandPaletteTrigger } from "@/components/shared/command-palette";
 import { NotificationsMenu } from "@/components/shared/notifications-menu";
 import { Separator } from "@/components/ui/separator";
 import { StackivoAiAssistant } from "@/features/ai-workflows/components/stackivo-ai-assistant";
+import { Button } from "@/components/ui/button";
 
 interface TopNavProps {
   aiUser?: {
@@ -19,6 +21,17 @@ interface TopNavProps {
 }
 
 export function TopNav({ aiUser }: TopNavProps) {
+  const [sidebarCollapsed, setSidebarCollapsed] = React.useState(false);
+
+  React.useEffect(() => {
+    setSidebarCollapsed(localStorage.getItem("stackivo:sidebar-behaviour") === "collapsed");
+    const onState = (event: Event) => {
+      setSidebarCollapsed(Boolean((event as CustomEvent<{ collapsed: boolean }>).detail?.collapsed));
+    };
+    window.addEventListener("stackivo:sidebar-state", onState);
+    return () => window.removeEventListener("stackivo:sidebar-state", onState);
+  }, []);
+
   return (
     <header
       className="sticky top-0 z-30 flex items-center gap-2 border-b border-border/70 bg-background/90 px-3 backdrop-blur-xl md:gap-3 md:px-7"
@@ -40,6 +53,17 @@ export function TopNav({ aiUser }: TopNavProps) {
 
       {/* Desktop breadcrumbs */}
       <div className="hidden min-w-0 items-center gap-3 md:flex">
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          className="h-8 w-8 shrink-0 text-muted-foreground"
+          onClick={() => window.dispatchEvent(new Event("stackivo:toggle-sidebar"))}
+          aria-label={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+          title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+        >
+          {sidebarCollapsed ? <PanelLeftOpen className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
+        </Button>
         <Breadcrumbs className="truncate" />
       </div>
 

@@ -150,12 +150,12 @@ const FAQ_SECTIONS = [
     label: "Billing & account",
     items: [
       {
-        q: "How many clients can I have on the free plan?",
-        a: "The free plan allows a lifetime total of 5 clients. Note that this is a lifetime counter — deleting a client does not reduce it. Once you hit 5, you'll need to upgrade to Pro or Business to add more.",
+        q: "Are there limits during early access?",
+        a: "Plan limits and upgrade gates are paused for the early Stackivo community. You can use the complete workspace while we test it together.",
       },
       {
         q: "What's the difference between Pro and Business?",
-        a: "Pro removes the client limit and unlocks recurring invoices, contracts, time tracking, and the client portal. Business adds team members, custom branding, priority support, and higher API limits. Full comparison at stackivo.me/pricing.",
+        a: "Every workspace feature is included during early access. Pricing and plan tiers will return later with advance notice to community members.",
       },
       {
         q: "How do I cancel my subscription?",

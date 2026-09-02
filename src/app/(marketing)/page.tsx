@@ -5,7 +5,6 @@ import { FounderNote } from "@/components/marketing/founder-note";
 import { ProductSection } from "@/components/marketing/home/product-section";
 import { ConnectedWorkflowSection } from "@/components/marketing/home/connected-workflow-section";
 import { AiSection } from "@/components/marketing/home/ai-section";
-import { PricingTeaser } from "@/components/marketing/home/pricing-teaser";
 import { FinalCta } from "@/components/marketing/home/final-cta";
 import { FaqSection } from "@/components/marketing/faq-section";
 import { DEFAULT_FAQS } from "@/components/marketing/faq-data";
@@ -73,7 +72,6 @@ export default async function LandingPage() {
       <TaxSection />
       <AiSection />
       <FounderNote />
-      <PricingTeaser />
       <FaqSection />
       <FinalCta authState={authState} />
     </>

@@ -84,7 +84,7 @@ export default function ContactPage() {
       <h2>Looking for something else?</h2>
       <ul>
         <li>
-          <Link href="/pricing">Pricing &amp; plans</Link>
+          <Link href="/community">Early community</Link>
         </li>
         <li>
           <Link href="/about">About Stackivo</Link>

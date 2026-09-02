@@ -71,7 +71,7 @@ export function ToolFooter({
                 </Link>
               </Button>
               <Button asChild size="lg" variant="outline" className="h-11">
-                <Link href="/pricing" data-cta={`tool_${toolSlug}_pricing`}>
+                <Link href="/community" data-cta={`tool_${toolSlug}_community`}>
                   See pricing
                 </Link>
               </Button>

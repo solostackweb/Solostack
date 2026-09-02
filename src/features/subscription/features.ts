@@ -9,6 +9,7 @@
  */
 
 import { getPlan } from "./plans";
+import { EARLY_ACCESS_MODE } from "@/config/product-mode";
 import type {
   CurrentSubscription,
   FeatureKey,
@@ -26,6 +27,7 @@ export function hasFeature(
   sub: CurrentSubscription | null,
   feature: FeatureKey,
 ): boolean {
+  if (EARLY_ACCESS_MODE) return true;
   const plan = getPlan(effectivePlan(sub));
   return plan.features[feature] === true;
 }
@@ -38,6 +40,7 @@ export function hasModule(
   sub: CurrentSubscription | null,
   module: ModuleKey,
 ): boolean {
+  if (EARLY_ACCESS_MODE) return true;
   const plan = getPlan(effectivePlan(sub));
   return plan.modules.includes(module);
 }
@@ -59,6 +62,7 @@ export function limitFor(
   sub: CurrentSubscription | null,
   metric: UsageMetric,
 ): number {
+  if (EARLY_ACCESS_MODE) return Infinity;
   const plan = getPlan(effectivePlan(sub));
   return plan.limits[metric];
 }

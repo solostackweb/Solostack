@@ -13,7 +13,7 @@ export interface FaqItem {
 export const DEFAULT_FAQS: FaqItem[] = [
   {
     q: "Is Stackivo really free?",
-    a: "Yes. The Free plan is free forever for your first 5 lifetime clients and includes clients, projects, GST-ready invoices, contracts, time tracking, basic Pulse, and notifications. No card required.",
+    a: "Yes. During early access, every workspace feature is included for community members and no card is required. We will communicate pricing well before it is introduced.",
   },
   {
     q: "Do I need to be GST-registered to use Stackivo?",

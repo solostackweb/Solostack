@@ -13,13 +13,17 @@ const AGENT_SOURCE = readFileSync(
   "utf8",
 );
 
-test("activity reads both runs and actions through explicit user ownership filters", () => {
+test("activity reads model runs, actions, and automations through explicit user ownership filters", () => {
   const start = ACTION_SOURCE.indexOf("export async function listIvoActivityAction");
   assert.ok(start >= 0);
   const source = ACTION_SOURCE.slice(start);
   assert.match(source, /from\("ivo_action_attempts"\)/);
   assert.match(source, /from\("ivo_runs"\)/);
-  assert.ok((source.match(/\.eq\("user_id", user\.id\)/g) ?? []).length >= 2);
+  assert.match(source, /from\("automation_runs"\)/);
+  assert.ok((source.match(/\.eq\("user_id", user\.id\)/g) ?? []).length >= 3);
+  assert.match(ACTION_SOURCE, /Running attempt/);
+  assert.match(ACTION_SOURCE, /Stopped after/);
+  assert.match(ACTION_SOURCE, /Dismissed or no longer needed/);
 });
 
 test("agent stores compact read provenance, not retrieved record payloads", () => {

@@ -38,8 +38,8 @@ export function IvoHeaderPresence({
   const active = phase !== "idle";
   return (
     <div className="flex min-w-0 flex-1 items-center gap-2.5 font-semibold">
-      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-        <Icon className="h-4 w-4" />
+      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-primary/20 bg-primary/[0.07] text-primary">
+        <Icon className="h-4 w-4" strokeWidth={1.8} />
       </span>
       <button
         type="button"

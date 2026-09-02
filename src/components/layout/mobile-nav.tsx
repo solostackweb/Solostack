@@ -40,14 +40,13 @@ export function MobileNavTrigger() {
  */
 export function MobileNav() {
   const { open, setOpen } = useMobileNav();
-  const { profile, subscription } = useProfile();
+  const { profile } = useProfile();
   const workspaceName =
     profile?.businessName?.trim() ||
     profile?.legalName?.trim() ||
     getDisplayName(profile) ||
     "Your workspace";
   const workspaceInitials = getInitials(workspaceName);
-  const plan = subscription?.plan ?? "free";
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
@@ -81,7 +80,7 @@ export function MobileNav() {
           <SidebarNav
             items={primaryNav}
             onNavigate={() => setOpen(false)}
-            isFreePlan={plan === "free"}
+            isFreePlan={false}
           />
 
           <Separator className="my-3" />
@@ -109,7 +108,7 @@ export function MobileNav() {
               {workspaceName}
             </p>
             <p className="truncate text-micro capitalize leading-tight text-muted-foreground">
-              {plan} plan
+              Early access workspace
             </p>
           </div>
         </Link>

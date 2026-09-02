@@ -25,7 +25,7 @@ const NAV_LINKS = [
   { href: "/#product", label: "Product" },
   { href: "/#workflow", label: "How it works" },
   { href: "/#ai", label: "Ivo AI" },
-  { href: "/pricing", label: "Pricing" },
+  { href: "/community", label: "Community" },
   { href: "/tools", label: "Free tools" },
   { href: "/docs", label: "Docs" },
 ];
@@ -124,14 +124,6 @@ function HeaderCtas({ authState }: { authState: MarketingAuthState }) {
   if (authState.isAuthenticated) {
     return (
       <div className="hidden items-center gap-3 lg:flex">
-        {authState.showUpgradeNudge ? (
-          <Link
-            href="/dashboard/settings/billing?upgrade=clients"
-            className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
-          >
-            Upgrade to Pro
-          </Link>
-        ) : null}
         <Button asChild size="sm" className="h-10 rounded-lg px-4 text-sm font-semibold shadow-[0_8px_20px_-12px_hsl(var(--primary)/0.8)]">
           <Link href="/dashboard" data-cta="header_dashboard">
             Open dashboard <ArrowRight className="ml-1 h-3.5 w-3.5" />
@@ -147,8 +139,8 @@ function HeaderCtas({ authState }: { authState: MarketingAuthState }) {
         <Link href="/login" data-cta="header_login">Log in</Link>
       </Button>
       <Button asChild size="sm" className="h-10 rounded-lg px-4 text-sm font-semibold shadow-[0_8px_20px_-12px_hsl(var(--primary)/0.8)]">
-        <Link href="/signup" data-cta="header_primary">
-          Start free <ArrowRight className="ml-1 h-3.5 w-3.5" />
+        <Link href="/community" data-cta="header_primary">
+          Join early access <ArrowRight className="ml-1 h-3.5 w-3.5" />
         </Link>
       </Button>
     </div>
@@ -159,15 +151,6 @@ function MobileCtas({ authState, onNavigate }: { authState: MarketingAuthState; 
   if (authState.isAuthenticated) {
     return (
       <div className="space-y-2">
-        {authState.showUpgradeNudge ? (
-          <Link
-            href="/dashboard/settings/billing?upgrade=clients"
-            onClick={onNavigate}
-            className="block rounded-lg px-3 py-2.5 text-sm font-medium text-muted-foreground hover:bg-accent hover:text-foreground"
-          >
-            Upgrade to Pro
-          </Link>
-        ) : null}
         <Button asChild className="h-11 w-full justify-center rounded-lg font-semibold">
           <Link href="/dashboard" onClick={onNavigate}>Open dashboard</Link>
         </Button>
@@ -178,7 +161,7 @@ function MobileCtas({ authState, onNavigate }: { authState: MarketingAuthState; 
   return (
     <div className="grid gap-2">
       <Button asChild className="h-11 w-full justify-center rounded-lg font-semibold">
-        <Link href="/signup" onClick={onNavigate} data-cta="mobile_menu_primary">Start free</Link>
+        <Link href="/community" onClick={onNavigate} data-cta="mobile_menu_primary">Join early access</Link>
       </Button>
       <Button asChild variant="outline" className="h-11 w-full justify-center rounded-lg">
         <Link href="/login" onClick={onNavigate} data-cta="mobile_menu_login">Log in</Link>
