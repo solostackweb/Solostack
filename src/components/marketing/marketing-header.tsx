@@ -44,15 +44,15 @@ export function MarketingHeader({ authState }: { authState: MarketingAuthState }
 
   return (
     <header
-      className="sticky top-3 z-40 w-full px-3 sm:px-5"
+      className={cn(
+        "sticky top-0 z-40 w-full border-b bg-card/95 backdrop-blur-xl transition-shadow duration-200",
+        scrolled
+          ? "border-border shadow-[0_10px_30px_-24px_hsl(224_45%_28%/0.4)]"
+          : "border-border/70",
+      )}
     >
       <div
-        className={cn(
-          "relative mx-auto flex h-16 w-full max-w-[1280px] items-center rounded-2xl border bg-card/90 px-4 backdrop-blur-xl transition-shadow duration-200 sm:px-5",
-          scrolled
-            ? "border-border shadow-[0_12px_38px_-24px_hsl(224_45%_28%/0.45)]"
-            : "border-border/70 shadow-[0_8px_24px_-22px_hsl(224_45%_28%/0.35)]",
-        )}
+        className="relative mx-auto flex h-20 w-full max-w-[1440px] items-center px-5 sm:px-8 lg:px-10"
       >
         <Link href="/" aria-label="Stackivo home" className="flex shrink-0 items-center gap-2">
           <StackivoLogo />

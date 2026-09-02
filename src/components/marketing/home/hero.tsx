@@ -18,7 +18,7 @@ export function Hero({ authState }: { authState: MarketingAuthState }) {
 
       <HeroConnections />
 
-      <div className="mx-auto w-full max-w-[1440px] px-5 sm:px-8 lg:px-10">
+      <div className="relative z-10 mx-auto w-full max-w-[1440px] px-5 sm:px-8 lg:px-10">
         <div className="mx-auto max-w-4xl text-center">
           <p className="font-mono text-micro font-medium uppercase tracking-[0.14em] text-primary">
             Your client work, connected
@@ -69,13 +69,13 @@ const HERO_NODES = [
 
 function HeroConnections() {
   return (
-    <div aria-hidden className="pointer-events-none absolute inset-0 hidden md:block">
+    <div aria-hidden className="pointer-events-none absolute inset-0 z-0 hidden md:block">
       <svg className="absolute inset-x-0 top-20 h-[390px] w-full text-primary/18" viewBox="0 0 1440 390" preserveAspectRatio="none">
         <path d="M110 80C310 90 350 190 720 210C1090 230 1130 90 1330 80" fill="none" stroke="currentColor" strokeDasharray="5 9" />
         <path d="M220 300C410 245 520 280 720 330C920 280 1030 245 1220 300" fill="none" stroke="currentColor" strokeDasharray="5 9" />
       </svg>
       {HERO_NODES.map(({ icon: Icon, className }, index) => (
-        <span key={index} className={`absolute ${className} flex h-11 w-11 items-center justify-center rounded-xl border border-primary/15 bg-card/80 text-primary/65 shadow-sm backdrop-blur-sm`}>
+        <span key={index} className={`absolute ${className} flex h-11 w-11 items-center justify-center rounded-lg border border-primary/15 bg-card/80 text-primary/65 shadow-sm backdrop-blur-sm`}>
           <Icon className="h-4 w-4" />
         </span>
       ))}
