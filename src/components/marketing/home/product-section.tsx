@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
-import { HeroMockup } from "./hero-mockup";
+import { ProjectWorkspaceMockup } from "./project-workspace-mockup";
 import { Section, SectionHeading } from "../section";
 import { Reveal } from "../motion";
 
@@ -41,9 +41,9 @@ export function ProductSection() {
             <span className="h-1.5 w-1.5 rounded-full bg-border" />
             <span className="h-1.5 w-1.5 rounded-full bg-border" />
             <span className="h-1.5 w-1.5 rounded-full bg-border" />
-            <span className="ml-2 font-mono text-micro text-muted-foreground">stackivo.me/dashboard</span>
+            <span className="ml-2 font-mono text-micro text-muted-foreground">stackivo.me/projects/nexa-website-launch</span>
           </div>
-          <HeroMockup />
+          <ProjectWorkspaceMockup />
         </div>
       </Reveal>
 

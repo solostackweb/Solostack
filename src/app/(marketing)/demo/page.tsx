@@ -22,16 +22,10 @@ export const metadata: Metadata = {
 export const dynamic = "force-static";
 
 /**
- * /demo — embedded Loom (or placeholder when unset).
- *
- * Loom share URLs come in two flavours:
- *   https://www.loom.com/share/<id>          → human view
- *   https://www.loom.com/embed/<id>          → iframe-friendly
- * We render whichever URL is set; recommend setting the embed URL
- * directly in NEXT_PUBLIC_LOOM_DEMO_URL.
+ * /demo — embedded YouTube or Loom walkthrough (or placeholder when unset).
  */
 export default function DemoPage() {
-  const loomUrl = env.loomDemoUrl;
+  const videoUrl = toVideoEmbedUrl(env.demoVideoUrl);
 
   return (
     <>
@@ -42,14 +36,16 @@ export default function DemoPage() {
       />
 
       <Section size="default" className="pb-14 sm:pb-16">
-        {loomUrl ? (
+        {videoUrl ? (
           <div className="mx-auto max-w-3xl">
             <div className="overflow-hidden rounded-lg border bg-card shadow-xl">
               <div className="relative aspect-video">
                 <iframe
-                  src={loomUrl}
+                  src={videoUrl}
                   title="Stackivo 90-second product demo"
                   loading="lazy"
+                  referrerPolicy="strict-origin-when-cross-origin"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                   allowFullScreen
                   className="absolute inset-0 h-full w-full"
                 />
@@ -95,4 +91,36 @@ export default function DemoPage() {
       </Section>
     </>
   );
+}
+
+function toVideoEmbedUrl(value: string): string {
+  if (!value) return "";
+
+  try {
+    const url = new URL(value);
+    const host = url.hostname.replace(/^www\./, "");
+
+    if (host === "youtu.be") {
+      const id = url.pathname.split("/").filter(Boolean)[0];
+      return id ? `https://www.youtube-nocookie.com/embed/${id}` : "";
+    }
+
+    if (host === "youtube.com" || host === "m.youtube.com") {
+      const id = url.pathname.startsWith("/shorts/")
+        ? url.pathname.split("/")[2]
+        : url.pathname.startsWith("/embed/")
+          ? url.pathname.split("/")[2]
+          : url.searchParams.get("v");
+      return id ? `https://www.youtube-nocookie.com/embed/${id}` : "";
+    }
+
+    if (host === "loom.com") {
+      const match = url.pathname.match(/\/(?:share|embed)\/([a-zA-Z0-9]+)/);
+      return match ? `https://www.loom.com/embed/${match[1]}` : "";
+    }
+  } catch {
+    return "";
+  }
+
+  return "";
 }

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, CalendarCheck, FileSignature, ReceiptText, Timer, Users } from "lucide-react";
+import { ArrowRight, CalendarCheck, FileSignature, ReceiptText, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { MarketingAuthState } from "@/features/marketing/types";
 import { HeroFlow } from "./hero-flow";
@@ -60,19 +60,20 @@ export function Hero({ authState }: { authState: MarketingAuthState }) {
 }
 
 const HERO_NODES = [
-  { icon: Users, className: "left-[7%] top-40 lg:left-[12%]" },
-  { icon: FileSignature, className: "left-[16%] top-[330px] lg:left-[20%]" },
-  { icon: CalendarCheck, className: "right-[8%] top-40 lg:right-[13%]" },
-  { icon: ReceiptText, className: "right-[16%] top-[330px] lg:right-[21%]" },
-  { icon: Timer, className: "left-1/2 top-[390px] -translate-x-1/2" },
+  { icon: Users, className: "left-[7%] top-40 lg:left-[11%]" },
+  { icon: FileSignature, className: "left-[16%] top-[330px] lg:left-[19%]" },
+  { icon: CalendarCheck, className: "right-[8%] top-40 lg:right-[12%]" },
+  { icon: ReceiptText, className: "right-[16%] top-[330px] lg:right-[20%]" },
 ];
 
 function HeroConnections() {
   return (
     <div aria-hidden className="pointer-events-none absolute inset-0 z-0 hidden md:block">
       <svg className="absolute inset-x-0 top-20 h-[390px] w-full text-primary/18" viewBox="0 0 1440 390" preserveAspectRatio="none">
-        <path d="M110 80C310 90 350 190 720 210C1090 230 1130 90 1330 80" fill="none" stroke="currentColor" strokeDasharray="5 9" />
-        <path d="M220 300C410 245 520 280 720 330C920 280 1030 245 1220 300" fill="none" stroke="currentColor" strokeDasharray="5 9" />
+        <path d="M80 80C250 82 310 128 470 176" fill="none" stroke="currentColor" strokeDasharray="5 9" />
+        <path d="M970 176C1130 128 1190 82 1360 80" fill="none" stroke="currentColor" strokeDasharray="5 9" />
+        <path d="M180 300C305 265 370 270 470 292" fill="none" stroke="currentColor" strokeDasharray="5 9" />
+        <path d="M970 292C1070 270 1135 265 1260 300" fill="none" stroke="currentColor" strokeDasharray="5 9" />
       </svg>
       {HERO_NODES.map(({ icon: Icon, className }, index) => (
         <span key={index} className={`absolute ${className} flex h-11 w-11 items-center justify-center rounded-lg border border-primary/15 bg-card/80 text-primary/65 shadow-sm backdrop-blur-sm`}>

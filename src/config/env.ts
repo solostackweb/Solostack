@@ -70,9 +70,13 @@ export const env = {
   // Unset → /talk renders an honest "coming soon" stub with the
   // contact form + email fallback.
   calComUrl: optional(process.env.NEXT_PUBLIC_CAL_COM_URL) ?? "",
-  // Loom demo video share URL. Embedded as an iframe at /demo. Unset
-  // → /demo renders a placeholder with a sign-up CTA.
-  loomDemoUrl: optional(process.env.NEXT_PUBLIC_LOOM_DEMO_URL) ?? "",
+  // YouTube or Loom demo URL. NEXT_PUBLIC_DEMO_VIDEO_URL is preferred;
+  // the former Loom-specific name remains as a deployment-safe fallback.
+  // Unset → /demo renders a placeholder with a sign-up CTA.
+  demoVideoUrl:
+    optional(process.env.NEXT_PUBLIC_DEMO_VIDEO_URL) ??
+    optional(process.env.NEXT_PUBLIC_LOOM_DEMO_URL) ??
+    "",
   // Web Push public VAPID key. Browser-safe (it is the *public* key).
   // Unset → the portal's "Enable notifications" affordance hides itself and
   // push silently no-ops, exactly like the other optional integrations.
