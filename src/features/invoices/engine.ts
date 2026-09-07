@@ -63,7 +63,7 @@ export interface CalculateInvoiceInput {
   lines: InvoiceLineInput[];
   discount?: number;
   seller: { gstRegistered: boolean; stateCode: string | null };
-  client: { gstRegistered: boolean; stateCode: string | null };
+  client: { gstRegistered: boolean; stateCode: string | null; currency: string; isForeign: boolean };
 }
 
 const round2 = (n: number): number => Math.round((n + Number.EPSILON) * 100) / 100;

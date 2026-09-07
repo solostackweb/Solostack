@@ -13,6 +13,8 @@ name: Cron jobs
 
 on:
   schedule:
+    # ── Recurring invoice generation (daily at 2:30 UTC = 8:00 AM IST) ──────
+    - cron: "30 2 * * *"
     # ── Daily invoice reminders ─────────────────────────────────────────
     # Due-soon: 3:00 UTC = 8:30 AM IST
     - cron: "0 3 * * *"
@@ -39,6 +41,7 @@ on:
         default: "invoices-overdue"
         type: choice
         options:
+          - recurring-invoices
           - invoices-overdue
           - invoices-due-soon
           - subscription-renewals
@@ -60,6 +63,28 @@ env:
   SECRET:   ${{ secrets.CRON_SECRET }}
 
 jobs:
+  # ── Recurring invoice generation (daily at 2:30 UTC) ────────────────────────
+  recurring-invoices:
+    name: Recurring invoice generation
+    runs-on: ubuntu-latest
+    if: >-
+      (github.event_name == 'workflow_dispatch' && github.event.inputs.job == 'recurring-invoices') ||
+      (github.event_name == 'schedule' && github.event.schedule == '30 2 * * *')
+    steps:
+      - name: Call /api/cron/recurring-invoices
+        run: |
+          echo "Calling: $BASE_URL/api/cron/recurring-invoices"
+          HTTP_CODE=$(curl -s -L --location-trusted -o /tmp/body.txt -w "%{http_code}" \
+            -H "Authorization: Bearer $SECRET" \
+            "$BASE_URL/api/cron/recurring-invoices")
+          BODY=$(cat /tmp/body.txt)
+          echo "HTTP status : $HTTP_CODE"
+          echo "Response    : $BODY"
+          if [ "$HTTP_CODE" -lt 200 ] || [ "$HTTP_CODE" -ge 300 ]; then
+            echo "::error::Endpoint returned HTTP $HTTP_CODE — $BODY"
+            exit 1
+          fi
+
   # ── Due-soon reminder (daily at 3:00 UTC) ────────────────────────────────
   invoices-due-soon:
     name: Invoice due-soon reminders

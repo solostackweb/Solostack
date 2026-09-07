@@ -85,6 +85,7 @@ function buildEditDefaults(
     hsnSac: invoice.hsnSac ?? "",
     notes: invoice.notes ?? "",
     terms: invoice.terms ?? "",
+    isRecurring: false,
   };
 }
 

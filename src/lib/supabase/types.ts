@@ -88,7 +88,8 @@ export type ActivityEntityType =
   | "welcome_document"
   | "time_entry"
   | "file"
-  | "system";
+  | "system"
+  | "recurring_invoice";
 
 export type SubscriptionStatusRow =
   | "trialing"
@@ -445,6 +446,42 @@ export interface IvoActionAttemptRow {
   entity_type: string | null;
   entity_id: string | null;
   error_code: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export type RecurringFrequency = "weekly" | "monthly" | "quarterly" | "yearly";
+export type RecurringInvoiceStatusOnCreate = "draft" | "sent";
+
+export interface RecurringInvoiceRow {
+  id: string;
+  user_id: string;
+  client_id: string | null;
+  project_id: string | null;
+  frequency: RecurringFrequency;
+  interval: number;
+  day_of_month: number | null;
+  day_of_week: number | null;
+  start_date: string;
+  end_date: string | null;
+  max_occurrences: number | null;
+  invoice_prefix: string | null;
+  invoice_number_padding: number | null;
+  currency: string;
+  issue_date_offset: number;
+  due_date_offset: number;
+  status_on_create: RecurringInvoiceStatusOnCreate;
+  discount: number;
+  notes: string | null;
+  terms: string | null;
+  hsn_sac: string | null;
+  gst_rate: number;
+  items: Json;
+  last_generated_at: string | null;
+  next_generation_at: string | null;
+  generation_count: number;
+  is_active: boolean;
+  paused_at: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -1961,42 +1998,59 @@ export interface Database {
           Pick<WelcomeDocumentTemplateRow, "title" | "content">;
         Update: Partial<WelcomeDocumentTemplateRow>;
       };
-      portal_welcome_documents: {
-        Row: PortalWelcomeDocumentRow;
-        Insert: Partial<PortalWelcomeDocumentRow> &
-          Pick<PortalWelcomeDocumentRow, "portal_id" | "document_id">;
-        Update: Partial<PortalWelcomeDocumentRow>;
-      };
-      referral_events: {
-        Row: ReferralEventRow;
-        Insert: Partial<ReferralEventRow> &
-          Pick<ReferralEventRow, "referrer_id" | "referred_id">;
-        Update: Partial<ReferralEventRow>;
-      };
-    };
-    Views: {
+portal_welcome_documents: {
+    Row: PortalWelcomeDocumentRow;
+    Insert: Partial<PortalWelcomeDocumentRow> &
+      Pick<PortalWelcomeDocumentRow, "portal_id" | "document_id">;
+    Update: Partial<PortalWelcomeDocumentRow>;
+  };
+  referral_events: {
+    Row: ReferralEventRow;
+    Insert: Partial<ReferralEventRow> &
+      Pick<ReferralEventRow, "referrer_id" | "referred_id">;
+    Update: Partial<ReferralEventRow>;
+  };
+recurring_invoices: {
+    Row: RecurringInvoiceRow;
+    Insert: Partial<RecurringInvoiceRow> &
+      Pick<RecurringInvoiceRow, "user_id" | "client_id" | "frequency" | "start_date" | "items">;
+    Update: Partial<RecurringInvoiceRow>;
+  };
+};
+Views: {
       admin_user_overview: {
         Row: AdminUserOverviewRow;
       };
     };
-    Functions: {
-      increment_usage: {
-        Args: {
-          p_user_id: string;
-          p_metric: string;
-          p_delta?: number;
-          p_now?: string;
-        };
-        Returns: number;
+Functions: {
+    increment_usage: {
+      Args: {
+        p_user_id: string;
+        p_metric: string;
+        p_delta?: number;
+        p_now?: string;
       };
-      increment_coupon_redemption: {
-        Args: {
-          p_coupon_id: string;
-        };
-        Returns: void;
-      };
+      Returns: number;
     };
-    Enums: Record<string, never>;
-    CompositeTypes: Record<string, never>;
+    increment_coupon_redemption: {
+      Args: {
+        p_coupon_id: string;
+      };
+      Returns: void;
+    };
+    compute_next_recurring_date: {
+      Args: {
+        p_frequency: string;
+        p_interval: number;
+        p_day_of_month: number | null;
+        p_day_of_week: number | null;
+        p_start_date: string;
+        p_after_date: string;
+      };
+      Returns: string;
+    };
   };
+  Enums: Record<string, never>;
+  CompositeTypes: Record<string, never>;
+};
 }

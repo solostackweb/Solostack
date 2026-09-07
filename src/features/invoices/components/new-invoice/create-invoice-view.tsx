@@ -41,6 +41,7 @@ import {
 import type { InvoiceFormValues } from "../../schema";
 import { createInvoiceAction } from "../../actions";
 import { sendInvoiceAction } from "../../delivery";
+import { createRecurringInvoiceAction } from "../../recurring-actions";
 import { InvoiceItemRow, InvoiceItemsHeader } from "./invoice-item-row";
 import { InvoiceSummaryCard } from "./invoice-summary-card";
 import { InvoicePreview } from "./invoice-preview";
@@ -83,6 +84,7 @@ function buildDefaults(
     hsnSac: profile?.invoiceDefaultHsnSac ?? "",
     notes: profile?.invoiceDefaultNotes ?? "",
     terms: profile?.invoiceDefaultTerms ?? "",
+    isRecurring: false,
   };
 }
 
@@ -177,6 +179,8 @@ export function CreateInvoiceView({
 
   // Live values for the preview + summary
   const watched = useWatch({ control }) as InvoiceFormValues;
+  const frequencyValue: "weekly" | "monthly" | "quarterly" | "yearly" = (watched.frequency as "weekly" | "monthly" | "quarterly" | "yearly" | undefined) ?? "monthly";
+  const statusOnCreateValue: "draft" | "sent" = (watched.statusOnCreate as "draft" | "sent" | undefined) ?? "draft";
   const selectedClient = React.useMemo(
     () => clients.find((c) => c.id === watched.clientId) ?? null,
     [clients, watched.clientId],
@@ -347,6 +351,46 @@ export function CreateInvoiceView({
         router.refresh();
         return;
       }
+
+      // If recurring is enabled, also create the recurring template
+      if (values.isRecurring) {
+        const recurringPayload = {
+          clientId: values.clientId || undefined,
+          projectId: values.projectId || undefined,
+          frequency: values.frequency,
+          interval: values.interval,
+          dayOfMonth: values.dayOfMonth,
+          dayOfWeek: values.dayOfWeek,
+          startDate: values.startDate,
+          endDate: values.endDate,
+          maxOccurrences: values.maxOccurrences,
+          currency: selectedCurrency,
+          issueDateOffset: values.issueDateOffset,
+          dueDateOffset: values.dueDateOffset,
+          statusOnCreate: values.statusOnCreate,
+          discount: Number(values.discount) || 0,
+          notes: values.notes || undefined,
+          terms: values.terms || undefined,
+          hsnSac: gstEnabled ? (values.hsnSac || "").trim() || undefined : undefined,
+          gstRate: gstEnabled ? Number(values.gstRate) || 0 : 0,
+          items: totalsForLines.map((l) => ({
+            id: l.description, // Use description as temp ID, server will assign real IDs
+            description: l.description,
+            quantity: l.quantity,
+            rate: l.unitPrice,
+            gstRate: gstEnabled ? Number(values.gstRate) || 0 : 0,
+          })),
+        };
+        const recurringFd = new FormData();
+        recurringFd.set("payload", JSON.stringify(recurringPayload));
+        const recurringRes = await createRecurringInvoiceAction(undefined, recurringFd);
+        if (!recurringRes.ok) {
+          toast.warning(`Invoice created, but recurring template failed: ${recurringRes.error}`);
+        } else {
+          toast.success(`Invoice ${values.invoiceNumber} created + recurring template saved`);
+        }
+      }
+
       if (!isSendMode) {
         toast.success(`Invoice ${values.invoiceNumber} saved as draft`);
         router.push(`/dashboard/invoices/${invoiceId}`);
@@ -712,6 +756,155 @@ export function CreateInvoiceView({
                   {ivoReviewFor("terms")}
                 </SectionCard>
               </div>
+
+              {/* Recurring invoice option */}
+              <SectionCard label="Recurring invoice" action={watched.isRecurring ? (
+                <span className="text-micro font-medium text-primary">Active</span>
+              ) : null}>
+                <div className="space-y-4">
+                  <label className="flex items-center gap-3">
+                    <input
+                      type="checkbox"
+                      {...register("isRecurring")}
+                      className="h-4 w-4 rounded border-input bg-background focus:ring-primary"
+                    />
+                    <span className="text-sm font-medium">Make this a recurring invoice</span>
+                  </label>
+
+                  {watched.isRecurring && (
+                    <div className="space-y-4 pl-7 border-l border-muted/30">
+                      <p className="text-xs text-muted-foreground">
+                        This will create a recurring template. Invoices will be generated automatically on the schedule.
+                        The first invoice uses the dates above; subsequent invoices follow the recurrence rule.
+                      </p>
+
+                      <div className="grid gap-4 sm:grid-cols-2">
+                        <Field label="Frequency" error={errors.frequency?.message}>
+                          <Select
+                            value={frequencyValue}
+                            onValueChange={((v: "weekly" | "monthly" | "quarterly" | "yearly" | undefined) => setValue("frequency", v, { shouldValidate: true })) as (value: string) => void}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select frequency" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="weekly">Weekly</SelectItem>
+                              <SelectItem value="monthly">Monthly</SelectItem>
+                              <SelectItem value="quarterly">Quarterly</SelectItem>
+                              <SelectItem value="yearly">Yearly</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </Field>
+
+                        <Field label="Every" error={errors.interval?.message}>
+                          <Input
+                            type="number"
+                            min="1"
+                            max="12"
+                            {...register("interval", { valueAsNumber: true })}
+                            className="w-full tabular-nums"
+                            placeholder="1"
+                          />
+                        </Field>
+
+                        {watched.frequency === "weekly" ? (
+                          <Field label="Day of week" error={errors.dayOfWeek?.message}>
+                            <Select
+                              value={watched.dayOfWeek !== undefined ? String(watched.dayOfWeek) : ""}
+                              onValueChange={(v) => setValue("dayOfWeek", v ? Number(v) : null, { shouldValidate: true })}
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select day" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="0">Sunday</SelectItem>
+                                <SelectItem value="1">Monday</SelectItem>
+                                <SelectItem value="2">Tuesday</SelectItem>
+                                <SelectItem value="3">Wednesday</SelectItem>
+                                <SelectItem value="4">Thursday</SelectItem>
+                                <SelectItem value="5">Friday</SelectItem>
+                                <SelectItem value="6">Saturday</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </Field>
+                        ) : (
+                          <Field label="Day of month" error={errors.dayOfMonth?.message}>
+                            <Input
+                              type="number"
+                              min="1"
+                              max="31"
+                              {...register("dayOfMonth", { valueAsNumber: true })}
+                              className="w-full tabular-nums"
+                              placeholder="1"
+                            />
+                            <p className="text-xs text-muted-foreground">
+                              Use 31 for &ldquo;last day of month&rdquo;
+                            </p>
+                          </Field>
+                        )}
+
+                        <Field label="Start date" error={errors.startDate?.message}>
+                          <Input type="date" {...register("startDate")} />
+                        </Field>
+
+                        <Field label="End date (optional)" error={errors.endDate?.message}>
+                          <Input type="date" {...register("endDate")} />
+                          <p className="text-xs text-muted-foreground">Leave empty for no end date</p>
+                        </Field>
+
+                        <Field label="Max occurrences (optional)" error={errors.maxOccurrences?.message}>
+                          <Input
+                            type="number"
+                            min="1"
+                            {...register("maxOccurrences", { valueAsNumber: true })}
+                            className="w-full tabular-nums"
+                            placeholder="Unlimited"
+                          />
+                        </Field>
+
+                        <Field label="Status on create" error={errors.statusOnCreate?.message}>
+                          <Select
+                            value={statusOnCreateValue}
+                            onValueChange={((v: "draft" | "sent" | undefined) => setValue("statusOnCreate", v, { shouldValidate: true })) as (value: string) => void}
+                          >
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="draft">Draft</SelectItem>
+                              <SelectItem value="sent">Sent</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </Field>
+
+                        <Field label="Issue date offset" error={errors.issueDateOffset?.message}>
+                          <Input
+                            type="number"
+                            min="0"
+                            max="30"
+                            {...register("issueDateOffset", { valueAsNumber: true })}
+                            className="w-full tabular-nums"
+                            placeholder="0"
+                          />
+                          <p className="text-xs text-muted-foreground">Days after period start</p>
+                        </Field>
+
+                        <Field label="Due date offset" error={errors.dueDateOffset?.message}>
+                          <Input
+                            type="number"
+                            min="0"
+                            max="90"
+                            {...register("dueDateOffset", { valueAsNumber: true })}
+                            className="w-full tabular-nums"
+                            placeholder="14"
+                          />
+                          <p className="text-xs text-muted-foreground">Days after issue date</p>
+                        </Field>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </SectionCard>
 
               {/* Bottom spacer so mobile fixed action bar never overlaps the
                   last field while scrolled to bottom. */}

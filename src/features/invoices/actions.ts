@@ -174,7 +174,7 @@ async function computeIntl(
  * Replace ALL invoice items for a given invoice id with the supplied set.
  * Simpler + safer than a partial diff for the MVP.
  */
-async function replaceInvoiceItems(
+export async function replaceInvoiceItems(
   invoiceId: string,
   lines: Array<{
     description: string;
