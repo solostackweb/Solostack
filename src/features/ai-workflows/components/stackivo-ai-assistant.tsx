@@ -399,9 +399,9 @@ export function StackivoAiAssistant({ user }: StackivoAiAssistantProps) {
     if (h < 17) return "Good afternoon";
     return "Good evening";
   }, []);
-  // Section-aware opening prompts, resolved once from the route the panel was
-  // opened on. Pure lookup - no reads, no model call.
-  const [pagePrompts] = React.useState(() =>
+  // Section-aware opening prompts, resolved from the current route.
+  // Updates when pathname changes so the welcome screen shows context-appropriate prompts.
+  const [pagePrompts, setPagePrompts] = React.useState(() =>
     pagePromptsForPath(typeof window !== "undefined" ? window.location.pathname : null),
   );
   const scrollRef = React.useRef<HTMLDivElement>(null);
@@ -3509,10 +3509,73 @@ export function StackivoAiAssistant({ user }: StackivoAiAssistantProps) {
   // can dispatch a follow-up prompt without depending on declaration order.
   submitRef.current = handleSubmit;
 
+  // Helper to reset all workflow-related state (used when starting fresh or switching context)
+  const resetWorkflowState = React.useCallback(() => {
+    setMode("general");
+    setCollected({});
+    setPendingField(null);
+    setClientId("");
+    setProjectId("");
+    setLastInvoicePreview(null);
+    setActiveContract(null);
+    setActiveInvoice(null);
+    setActiveWelcomeDoc(null);
+    setActiveQuestionnaire(null);
+    setPendingConfirm(null);
+    setPendingProposal(null);
+    setInput("");
+    setSelectedResources([]);
+    setPendingConfirm(null);
+    setPendingProposal(null);
+    activeRunIdRef.current = null;
+    pendingSupportForwardRef.current = null;
+    pendingUnbilledClientRef.current = null;
+    pendingPreparedActionRef.current = null;
+    transcriptRef.current = [];
+    setMessages([]);
+  }, []);
+
   React.useEffect(() => {
     const handleAskIvo = (event: Event) => {
       const detail = (event as CustomEvent<IvoAskDetail>).detail;
       const prompt = detail?.prompt?.trim();
+
+      // If there's an in-progress workflow that doesn't match the new prompt's intent,
+      // reset the workflow state so the new prompt starts fresh.
+      // We consider a workflow "in progress" if mode is not general, or there's a pending field/picker,
+      // or an active draft is being refined.
+      const inProgress =
+        mode !== "general" ||
+        !!pendingField ||
+        !!activeContract ||
+        !!activeInvoice ||
+        !!activeWelcomeDoc ||
+        !!activeQuestionnaire ||
+        !!pendingConfirm;
+
+      if (inProgress && prompt) {
+        // Check if the new prompt seems to be for a different task than the current mode
+        // If the user explicitly mentions a different task type, or if the current mode
+        // has a pending picker (waiting for client/project), we should reset.
+        const promptLower = prompt.toLowerCase();
+        const isDifferentTask =
+          (mode === "invoice" && !/invoice|bill|charge/.test(promptLower)) ||
+          (mode === "contract" && !/contract|agreement|nda|retainer/.test(promptLower)) ||
+          (mode === "proposal" && !/proposal|quote|estimate/.test(promptLower)) ||
+          (mode === "welcome_document" && !/welcome|onboard/.test(promptLower)) ||
+          (mode === "client" && !/client|customer/.test(promptLower)) ||
+          (mode === "project" && !/project|job|engagement/.test(promptLower)) ||
+          (mode === "time_entry" && !/time|hour|track/.test(promptLower)) ||
+          (mode === "meeting" && !/meet|call|schedule|calendar/.test(promptLower)) ||
+          (mode === "support" && !/help|support|issue|problem/.test(promptLower)) ||
+          // If there's a pending field (picker waiting), any new explicit task should reset
+          (!!pendingField && !/^(yes|no|ok|sure|skip|none)$/i.test(prompt.trim()));
+
+        if (isDifferentTask) {
+          resetWorkflowState();
+        }
+      }
+
       setOpen(true);
       if (detail?.resources?.length) {
         setSelectedResources(detail.resources.slice(0, 6));
@@ -3523,6 +3586,77 @@ export function StackivoAiAssistant({ user }: StackivoAiAssistantProps) {
     };
     window.addEventListener(IVO_ASK_EVENT, handleAskIvo);
     return () => window.removeEventListener(IVO_ASK_EVENT, handleAskIvo);
+  }, [mode, pendingField, activeContract, activeInvoice, activeWelcomeDoc, activeQuestionnaire, pendingConfirm, resetWorkflowState]);
+
+  // Listen for route changes and reset workflow state when user navigates to a different page
+  React.useEffect(() => {
+    const handleRouteChange = () => {
+      // If there's an in-progress workflow, reset it when the user navigates away
+      const inProgress =
+        mode !== "general" ||
+        !!pendingField ||
+        !!activeContract ||
+        !!activeInvoice ||
+        !!activeWelcomeDoc ||
+        !!activeQuestionnaire ||
+        !!pendingConfirm;
+
+      if (inProgress) {
+        resetWorkflowState();
+      }
+    };
+
+    // Listen for Next.js router events (pathname changes)
+    const originalPushState = window.history.pushState;
+    const originalReplaceState = window.history.replaceState;
+
+    window.history.pushState = function (...args) {
+      originalPushState.apply(window.history, args);
+      handleRouteChange();
+    };
+
+    window.history.replaceState = function (...args) {
+      originalReplaceState.apply(window.history, args);
+      handleRouteChange();
+    };
+
+    window.addEventListener("popstate", handleRouteChange);
+
+    return () => {
+      window.history.pushState = originalPushState;
+      window.history.replaceState = originalReplaceState;
+      window.removeEventListener("popstate", handleRouteChange);
+    };
+  }, [mode, pendingField, activeContract, activeInvoice, activeWelcomeDoc, activeQuestionnaire, pendingConfirm, resetWorkflowState]);
+
+  // Update pagePrompts when pathname changes
+  React.useEffect(() => {
+    // Listen for route changes to update pagePrompts
+    const handleRouteChangeForPrompts = () => {
+      const newPrompts = pagePromptsForPath(typeof window !== "undefined" ? window.location.pathname : null);
+      setPagePrompts(newPrompts);
+    };
+
+    const originalPushState = window.history.pushState;
+    const originalReplaceState = window.history.replaceState;
+
+    window.history.pushState = function (...args) {
+      originalPushState.apply(window.history, args);
+      handleRouteChangeForPrompts();
+    };
+
+    window.history.replaceState = function (...args) {
+      originalReplaceState.apply(window.history, args);
+      handleRouteChangeForPrompts();
+    };
+
+    window.addEventListener("popstate", handleRouteChangeForPrompts);
+
+    return () => {
+      window.history.pushState = originalPushState;
+      window.history.replaceState = originalReplaceState;
+      window.removeEventListener("popstate", handleRouteChangeForPrompts);
+    };
   }, []);
 
   // ----- Render -----
