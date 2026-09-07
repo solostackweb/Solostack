@@ -13,7 +13,19 @@ import {
   renderQuestionnaireInviteEmail,
 } from "@/features/email/templates";
 import { getPublicAppUrl } from "@/features/documents/urls";
-import { normalizeQuestions } from "./types";
+import { getClientIp, questionnaireSubmitLimit } from "@/lib/rate-limit";
+import {
+  followUpAnswerKey,
+  OTHER_OPTION_VALUE,
+  otherAnswerKey,
+  normalizeQuestions,
+  type Question,
+} from "./types";
+import { grantIncludesDriveFile } from "@/features/scheduling/google";
+import {
+  createQuestionnaireSpreadsheet,
+  syncQuestionnaireResponse,
+} from "./google-sheets";
 import { getStarter } from "./builtin";
 
 export type QResult<T = undefined> =
@@ -56,6 +68,12 @@ const questionSchema = z.object({
   help: z.string().max(300).optional(),
   options: z.array(z.string()).optional(),
   max: z.number().optional(),
+  allowOther: z.boolean().optional(),
+  conditionalFollowUp: z.object({
+    when: z.enum(["Yes", "No"]),
+    label: z.string().trim().min(1).max(300),
+    placeholder: z.string().trim().max(300).optional(),
+  }).optional(),
 });
 
 const upsertSchema = z.object({
@@ -149,6 +167,17 @@ export async function updateQuestionnaireAction(
     .eq("id", input.id)
     .eq("user_id", userId);
   if (error) return { ok: false, error: error.message };
+  // Collector links are reusable views of the current template. Responses
+  // retain their own snapshots, so updating these links cannot rewrite history.
+  await supabase
+    .from("questionnaire_sends")
+    .update({
+      title: parsed.data.title,
+      questions: normalizeQuestions(parsed.data.questions),
+      updated_at: new Date().toISOString(),
+    } as never)
+    .eq("questionnaire_id", input.id)
+    .eq("user_id", userId);
   revalidatePath("/dashboard/questionnaires");
   revalidatePath(`/dashboard/questionnaires/${input.id}`);
   return { ok: true, message: "Saved." };
@@ -323,8 +352,36 @@ export async function sendQuestionnaireAction(
 
 const submitSchema = z.object({
   token: z.string().trim().min(10).max(200),
-  responses: z.record(z.string(), z.any()),
+  submissionKey: z.string().uuid(),
+  responses: z.record(z.string(), z.union([
+    z.string().max(10_000),
+    z.array(z.string().max(1_000)).max(50),
+  ])).refine((value) => JSON.stringify(value).length <= 100_000, "Submission is too large."),
 });
+
+function sanitizeResponses(questions: Question[], raw: Record<string, string | string[]>): QResult<Record<string, string | string[]>> {
+  const clean: Record<string, string | string[]> = {};
+  for (const question of questions) {
+    const value = raw[question.id];
+    const empty = value === undefined || value === "" || (Array.isArray(value) && value.length === 0);
+    if (question.required && empty) return { ok: false, error: `Please answer: ${question.label}` };
+    if (!empty) clean[question.id] = value;
+    if (question.allowOther) {
+      const otherSelected = value === OTHER_OPTION_VALUE || (Array.isArray(value) && value.includes(OTHER_OPTION_VALUE));
+      const other = raw[otherAnswerKey(question.id)];
+      if (otherSelected && (typeof other !== "string" || !other.trim())) {
+        return { ok: false, error: `Please describe “Other” for: ${question.label}` };
+      }
+      if (otherSelected && typeof other === "string") clean[otherAnswerKey(question.id)] = other.trim();
+    }
+    const followUp = question.conditionalFollowUp;
+    if (followUp && value === followUp.when) {
+      const detail = raw[followUpAnswerKey(question.id)];
+      if (typeof detail === "string" && detail.trim()) clean[followUpAnswerKey(question.id)] = detail.trim();
+    }
+  }
+  return { ok: true, data: clean };
+}
 
 export async function submitQuestionnaireAction(
   input: z.infer<typeof submitSchema>,
@@ -332,30 +389,109 @@ export async function submitQuestionnaireAction(
   const parsed = submitSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: "Invalid submission." };
 
+  const rate = await questionnaireSubmitLimit(`${await getClientIp()}:${parsed.data.token.slice(0, 24)}`);
+  if (!rate.ok) return { ok: false, error: rate.message };
+
   const admin = getAdminSupabase();
   const { data: found } = await admin
     .from("questionnaire_sends")
-    .select("id, status")
+    .select("id, user_id, questionnaire_id, client_id, project_id, questions")
     .eq("public_token", parsed.data.token)
     .maybeSingle();
-  const send = found as { id: string; status: string } | null;
+  const send = found as {
+    id: string;
+    user_id: string;
+    questionnaire_id: string | null;
+    client_id: string | null;
+    project_id: string | null;
+    questions: unknown;
+  } | null;
   if (!send) return { ok: false, error: "This form link is no longer valid." };
-  if (send.status === "completed") {
-    return { ok: false, error: "This form was already submitted." };
+  let questions = normalizeQuestions(send.questions);
+  if (send.questionnaire_id) {
+    const { data: current } = await admin
+      .from("questionnaires")
+      .select("questions, active")
+      .eq("id", send.questionnaire_id)
+      .maybeSingle();
+    const live = current as { questions: unknown; active: boolean } | null;
+    if (live && !live.active) return { ok: false, error: "This questionnaire is not accepting responses." };
+    if (live) questions = normalizeQuestions(live.questions);
   }
-
-  const { error } = await admin
-    .from("questionnaire_sends")
-    .update({
-      responses: parsed.data.responses,
-      status: "completed",
-      submitted_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
+  const sanitized = sanitizeResponses(questions, parsed.data.responses);
+  if (!sanitized.ok) return { ok: false, error: sanitized.error };
+  if (!sanitized.data) return { ok: false, error: "Invalid submission." };
+  const { data, error } = await admin
+    .from("questionnaire_responses")
+    .insert({
+      user_id: send.user_id,
+      send_id: send.id,
+      questionnaire_id: send.questionnaire_id,
+      client_id: send.client_id,
+      project_id: send.project_id,
+      submission_key: parsed.data.submissionKey,
+      questions,
+      responses: sanitized.data,
     } as never)
-    .eq("public_token", parsed.data.token);
-  if (error) return { ok: false, error: error.message };
-
+    .select("id")
+    .single();
+  if (error?.code === "23505") return { ok: true, message: "This response was already received." };
+  if (error || !data) return { ok: false, error: error?.message ?? "Could not save the response." };
+  // Best effort only: the database response is authoritative and must succeed
+  // even while Google is unavailable.
+  await syncQuestionnaireResponse((data as { id: string }).id);
   return { ok: true, message: "Thanks! Your answers were submitted." };
+}
+
+export async function connectQuestionnaireSheetAction(
+  questionnaireId: string,
+): Promise<QResult<{ spreadsheetUrl?: string; reconnectUrl?: string }>> {
+  const userId = await requireUserId();
+  if (!userId) return { ok: false, error: "Please sign in." };
+  const parsedId = z.string().uuid().safeParse(questionnaireId);
+  if (!parsedId.success) return { ok: false, error: "Questionnaire not found." };
+  const supabase = await getServerSupabase();
+  const [{ data: qRaw }, { data: connectionRaw }] = await Promise.all([
+    supabase.from("questionnaires").select("title, questions").eq("id", questionnaireId).eq("user_id", userId).maybeSingle(),
+    supabase.from("calendar_connections").select("refresh_token, scope").eq("user_id", userId).maybeSingle(),
+  ]);
+  const questionnaire = qRaw as { title: string; questions: unknown } | null;
+  if (!questionnaire) return { ok: false, error: "Questionnaire not found." };
+  const connection = connectionRaw as { refresh_token: string | null; scope: string | null } | null;
+  const reconnectUrl = `/api/google/connect?feature=questionnaire-sheets&next=${encodeURIComponent(`/dashboard/questionnaires/${questionnaireId}/responses`)}`;
+  if (!connection?.refresh_token || !grantIncludesDriveFile(connection.scope)) {
+    return { ok: true, data: { reconnectUrl }, message: "Connect Google to grant access to a response sheet." };
+  }
+  try {
+    const integration = await createQuestionnaireSpreadsheet({
+      userId,
+      questionnaireId,
+      title: questionnaire.title,
+      questions: normalizeQuestions(questionnaire.questions),
+    });
+    const { data: existing } = await supabase
+      .from("questionnaire_responses")
+      .select("id")
+      .eq("questionnaire_id", questionnaireId)
+      .order("submitted_at", { ascending: true });
+    for (const row of (existing ?? []) as Array<{ id: string }>) await syncQuestionnaireResponse(row.id);
+    revalidatePath(`/dashboard/questionnaires/${questionnaireId}/responses`);
+    return { ok: true, data: { spreadsheetUrl: integration.spreadsheet_url }, message: "Google Sheet connected and existing responses synced." };
+  } catch (error) {
+    return { ok: false, error: error instanceof Error ? error.message : "Could not create the response sheet." };
+  }
+}
+
+export async function retryQuestionnaireSheetSyncAction(responseId: string): Promise<QResult> {
+  const userId = await requireUserId();
+  if (!userId) return { ok: false, error: "Please sign in." };
+  const supabase = await getServerSupabase();
+  const { data } = await supabase.from("questionnaire_responses").select("id, questionnaire_id").eq("id", responseId).eq("user_id", userId).maybeSingle();
+  const response = data as { id: string; questionnaire_id: string | null } | null;
+  if (!response) return { ok: false, error: "Response not found." };
+  const ok = await syncQuestionnaireResponse(response.id);
+  if (response.questionnaire_id) revalidatePath(`/dashboard/questionnaires/${response.questionnaire_id}/responses`);
+  return ok ? { ok: true, message: "Response synced." } : { ok: false, error: "Google Sheets sync failed. Reconnect Google and try again." };
 }
 
 // ---------------------------------------------------------------------------

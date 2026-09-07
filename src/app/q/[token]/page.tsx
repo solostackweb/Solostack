@@ -27,7 +27,7 @@ export default async function PublicQuestionnairePage({ params }: PageProps) {
       hostName={result.hostName}
       send={{
         title: result.send.title,
-        status: result.send.status,
+        description: result.description,
         questions: result.send.questions,
       }}
     />

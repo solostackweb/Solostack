@@ -1,395 +1,143 @@
 "use client";
 
 import * as React from "react";
-import { Check, CheckCircle2, ClipboardList, Star } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, CheckCircle2, ClipboardList, Star } from "lucide-react";
 import { toast } from "sonner";
 
 import { submitQuestionnaireAction } from "../actions";
-import type { Question } from "../types";
+import { followUpAnswerKey, OTHER_OPTION_VALUE, otherAnswerKey, type Question } from "../types";
 
-interface PublicSend {
-  title: string;
-  status: string;
-  questions: Question[];
-}
-
+interface PublicSend { title: string; description: string | null; questions: Question[] }
 type Answer = string | string[];
+const newSubmissionKey = () => crypto.randomUUID();
+const isEmpty = (value: Answer | undefined) => value === undefined || value === "" || (Array.isArray(value) && value.length === 0);
+const otherSelected = (question: Question, value: Answer | undefined) => value === OTHER_OPTION_VALUE || (Array.isArray(value) && value.includes(OTHER_OPTION_VALUE));
 
-function isEmpty(value: Answer | undefined): boolean {
-  return (
-    value === undefined ||
-    value === "" ||
-    (Array.isArray(value) && value.length === 0)
-  );
-}
-
-export function QuestionnaireFillView({
-  token,
-  hostName,
-  send,
-}: {
-  token: string;
-  hostName: string;
-  send: PublicSend;
-}) {
+export function QuestionnaireFillView({ token, hostName, send }: { token: string; hostName: string; send: PublicSend }) {
   const [answers, setAnswers] = React.useState<Record<string, Answer>>({});
+  const [step, setStep] = React.useState(0);
   const [submitting, setSubmitting] = React.useState(false);
-  const [done, setDone] = React.useState(send.status === "completed");
+  const [done, setDone] = React.useState(false);
+  const [submissionKey, setSubmissionKey] = React.useState(newSubmissionKey);
+  const current = send.questions[step];
+  const progress = send.questions.length ? Math.round(((step + 1) / send.questions.length) * 100) : 100;
+  const setAnswer = (id: string, value: Answer) => setAnswers((previous) => ({ ...previous, [id]: value }));
 
-  const setAnswer = (id: string, value: Answer) =>
-    setAnswers((prev) => ({ ...prev, [id]: value }));
-
-  const answered = send.questions.filter((q) => !isEmpty(answers[q.id])).length;
-  const progress = send.questions.length
-    ? Math.round((answered / send.questions.length) * 100)
-    : 0;
-
-  const submit = async () => {
-    for (const q of send.questions) {
-      if (q.required && isEmpty(answers[q.id])) {
-        toast.error(`Please answer: ${q.label}`);
-        return;
+  const validateQuestion = (question: Question) => {
+    const value = answers[question.id];
+    if (question.required && isEmpty(value)) {
+      toast.error(`Please answer: ${question.label}`);
+      return false;
+    }
+    if (question.allowOther && otherSelected(question, value)) {
+      const other = answers[otherAnswerKey(question.id)];
+      if (typeof other !== "string" || !other.trim()) {
+        toast.error("Please tell us what “Other” means.");
+        return false;
       }
     }
-    setSubmitting(true);
-    const res = await submitQuestionnaireAction({ token, responses: answers });
-    setSubmitting(false);
-    if (!res.ok) {
-      toast.error(res.error);
-      return;
-    }
-    setDone(true);
-    toast.success(res.message ?? "Submitted.");
+    return true;
   };
 
-  const lightVars = {
-    "--background": "0 0% 100%",
-    "--foreground": "222 47% 11%",
-    "--primary": "224 76% 40%",
-    "--primary-foreground": "0 0% 100%",
-    "--border": "214 32% 91%",
-    colorScheme: "light",
-  } as React.CSSProperties;
+  const next = () => {
+    if (!current || !validateQuestion(current)) return;
+    setStep((value) => Math.min(send.questions.length - 1, value + 1));
+  };
+  const submit = async () => {
+    for (const question of send.questions) if (!validateQuestion(question)) return;
+    setSubmitting(true);
+    const result = await submitQuestionnaireAction({ token, submissionKey, responses: answers });
+    setSubmitting(false);
+    if (!result.ok) return void toast.error(result.error);
+    setDone(true);
+    toast.success(result.message ?? "Submitted.");
+  };
+  const reset = () => {
+    setAnswers({});
+    setStep(0);
+    setSubmissionKey(newSubmissionKey());
+    setDone(false);
+  };
+  const lightVars = { "--background": "0 0% 100%", "--foreground": "222 47% 11%", "--primary": "221 83% 53%", "--primary-foreground": "0 0% 100%", "--border": "214 32% 91%", colorScheme: "light" } as React.CSSProperties;
 
-  return (
-    <div
-      className="relative min-h-screen bg-slate-50 text-slate-900"
-      style={lightVars}
-    >
-      {/* Soft brand wash at the top of the canvas */}
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-x-0 top-0 h-64"
-        style={{
-          background: "linear-gradient(to bottom, #2563EB14, transparent)",
-        }}
-      />
-
-      <main className="relative mx-auto max-w-2xl px-4 py-8 sm:px-6 sm:py-12">
-        <header className="mb-6">
-          <div className="inline-flex items-center gap-2 rounded-full border bg-white px-3 py-1 text-micro font-semibold uppercase tracking-[0.16em] text-slate-500 shadow-sm">
-            <ClipboardList className="h-3.5 w-3.5 text-primary" />
-            Questionnaire
-          </div>
-          <h1 className="mt-4 text-balance text-2xl font-bold leading-tight tracking-tight sm:text-3xl">
-            {send.title}
-          </h1>
-          <p className="mt-1.5 text-sm text-slate-500">
-            from <span className="font-medium text-slate-700">{hostName}</span>
-          </p>
-        </header>
-
-        <div className="overflow-hidden rounded-2xl border border-black/5 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.05),0_12px_32px_-12px_rgba(15,23,42,0.12)]">
-          <div className="h-1.5 w-full bg-primary" />
-          <div className="p-6 sm:p-8">
-          {done ? (
-            <div className="space-y-3 py-8 text-center">
-              <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-emerald-100 text-emerald-600">
-                <CheckCircle2 className="h-7 w-7" />
+  return <div className="relative min-h-screen overflow-hidden bg-slate-50 text-slate-950" style={lightVars}>
+    <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-80 bg-[radial-gradient(circle_at_top,#dbeafe_0,transparent_68%)]" />
+    <main className="relative mx-auto flex min-h-screen max-w-3xl flex-col px-4 py-6 sm:px-6 sm:py-10">
+      <header className="mb-5 flex items-center justify-between gap-4">
+        <div className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-600 text-white shadow-sm"><ClipboardList className="h-4 w-4" /></span>
+          {hostName}
+        </div>
+        {!done && send.questions.length > 0 ? <span className="text-xs font-medium tabular-nums text-slate-500">{step + 1} / {send.questions.length}</span> : null}
+      </header>
+      <section className="flex flex-1 items-center justify-center py-4">
+        <div className="w-full overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_18px_60px_-30px_rgba(15,23,42,0.35)]">
+          {!done ? <div className="h-1 bg-slate-100"><div className="h-full bg-blue-600 transition-[width] duration-300" style={{ width: `${progress}%` }} /></div> : null}
+          <div className="p-6 sm:p-10">
+            {done ? <div className="mx-auto max-w-md space-y-4 py-8 text-center">
+              <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-emerald-100 text-emerald-700"><CheckCircle2 className="h-7 w-7" /></div>
+              <h1 className="text-2xl font-semibold tracking-tight">Response received</h1>
+              <p className="text-sm leading-6 text-slate-600">Your answers were sent to {hostName}.</p>
+              <button type="button" onClick={reset} className="min-h-11 rounded-lg border border-slate-300 px-4 text-sm font-semibold text-slate-800 hover:bg-slate-50">Submit another response</button>
+            </div> : current ? <div className="mx-auto max-w-xl">
+              {step === 0 ? <div className="mb-8 border-b border-slate-100 pb-6">
+                <h1 className="text-balance text-2xl font-semibold tracking-tight sm:text-3xl">{send.title}</h1>
+                {send.description ? <p className="mt-2 text-sm leading-6 text-slate-600">{send.description}</p> : null}
+              </div> : null}
+              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-blue-600">Question {step + 1}</p>
+              <h2 className="mt-2 text-balance text-xl font-semibold leading-snug text-slate-950 sm:text-2xl">{current.label}{current.required ? <span className="ml-1 text-red-500">*</span> : null}</h2>
+              {current.help ? <p className="mt-2 text-sm leading-6 text-slate-500">{current.help}</p> : null}
+              <div className="mt-6"><QuestionField question={current} answers={answers} setAnswer={setAnswer} /></div>
+              <div className="mt-8 flex items-center justify-between gap-3 border-t border-slate-100 pt-5">
+                <button type="button" onClick={() => setStep((value) => Math.max(0, value - 1))} disabled={step === 0} className="inline-flex min-h-11 items-center gap-2 rounded-lg px-3 text-sm font-semibold text-slate-600 hover:bg-slate-50 disabled:invisible"><ArrowLeft className="h-4 w-4" /> Back</button>
+                {step === send.questions.length - 1 ? <button type="button" onClick={submit} disabled={submitting} className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-blue-600 px-5 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 disabled:opacity-60">{submitting ? "Submitting…" : "Submit response"} <Check className="h-4 w-4" /></button> : <button type="button" onClick={next} className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-blue-600 px-5 text-sm font-semibold text-white shadow-sm hover:bg-blue-700">Continue <ArrowRight className="h-4 w-4" /></button>}
               </div>
-              <p className="text-xl font-semibold">Thank you!</p>
-              <p className="mx-auto max-w-sm text-sm text-slate-500">
-                Your answers were submitted to {hostName}. You can close this tab.
-              </p>
-            </div>
-          ) : (
-            <>
-              {/* Progress */}
-              <div className="mb-7">
-                <div className="mb-2 flex items-center justify-between text-xs text-slate-500">
-                  <span>
-                    {answered} of {send.questions.length} answered
-                  </span>
-                  <span className="font-semibold tabular-nums text-slate-700">
-                    {progress}%
-                  </span>
-                </div>
-                <div className="h-2 w-full overflow-hidden rounded-full bg-slate-100">
-                  <div
-                    className="h-full rounded-full bg-primary transition-all duration-300"
-                    style={{ width: `${progress}%` }}
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-7">
-                {send.questions.map((q, index) => (
-                  <div key={q.id}>
-                    <label className="block text-sm font-semibold text-slate-800">
-                      {index + 1}. {q.label}
-                      {q.required ? (
-                        <span className="text-red-500"> *</span>
-                      ) : null}
-                    </label>
-                    {q.help ? (
-                      <p className="mt-0.5 text-xs text-slate-500">{q.help}</p>
-                    ) : null}
-                    <div className="mt-2">
-                      <QuestionField
-                        question={q}
-                        value={answers[q.id]}
-                        onChange={(value) => setAnswer(q.id, value)}
-                      />
-                    </div>
-                  </div>
-                ))}
-
-                <button
-                  type="button"
-                  onClick={submit}
-                  disabled={submitting}
-                  className="w-full rounded-lg bg-primary px-4 py-3.5 text-sm font-semibold text-primary-foreground shadow-sm transition hover:opacity-95 disabled:opacity-60"
-                >
-                  {submitting ? "Submitting…" : "Submit answers"}
-                </button>
-              </div>
-            </>
-          )}
+            </div> : <div className="py-10 text-center"><h1 className="text-xl font-semibold">This questionnaire has no questions yet.</h1></div>}
           </div>
         </div>
-
-        <p className="mt-6 text-center text-xs text-slate-400">
-          Powered by Stackivo · This page is private to you.
-        </p>
-      </main>
-    </div>
-  );
+      </section>
+      <p className="mt-4 text-center text-xs text-slate-400">Powered by Stackivo · Responses are shared privately.</p>
+    </main>
+  </div>;
 }
 
-const inputCls =
-  "w-full rounded-lg border bg-white px-3 py-2.5 text-sm text-slate-900 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/15";
+const inputCls = "min-h-12 w-full rounded-lg border border-slate-300 bg-white px-3 text-base text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-blue-600 focus:ring-4 focus:ring-blue-100";
 
-function QuestionField({
-  question,
-  value,
-  onChange,
-}: {
-  question: Question;
-  value: string | string[] | undefined;
-  onChange: (value: string | string[]) => void;
-}) {
+function QuestionField({ question, answers, setAnswer }: { question: Question; answers: Record<string, Answer>; setAnswer: (id: string, value: Answer) => void }) {
+  const value = answers[question.id];
   const strVal = typeof value === "string" ? value : "";
-
+  const change = (answer: Answer) => setAnswer(question.id, answer);
+  const conditionalVisible = Boolean(question.conditionalFollowUp && value === question.conditionalFollowUp.when);
+  const otherVisible = Boolean(question.allowOther && otherSelected(question, value));
+  let field: React.ReactNode;
   switch (question.type) {
-    case "long_text":
-      return (
-        <textarea
-          rows={4}
-          value={strVal}
-          onChange={(e) => onChange(e.target.value)}
-          className={inputCls}
-        />
-      );
-    case "email":
-      return (
-        <input
-          type="email"
-          placeholder="name@example.com"
-          value={strVal}
-          onChange={(e) => onChange(e.target.value)}
-          className={inputCls}
-        />
-      );
-    case "phone":
-      return (
-        <input
-          type="tel"
-          placeholder="+91 98765 43210"
-          value={strVal}
-          onChange={(e) => onChange(e.target.value)}
-          className={inputCls}
-        />
-      );
-    case "number":
-      return (
-        <input
-          type="number"
-          value={strVal}
-          onChange={(e) => onChange(e.target.value)}
-          className={inputCls}
-        />
-      );
-    case "dropdown":
-      return (
-        <select
-          value={strVal}
-          onChange={(e) => onChange(e.target.value)}
-          className={inputCls}
-        >
-          <option value="">Select…</option>
-          {(question.options ?? []).map((opt) => (
-            <option key={opt} value={opt}>
-              {opt}
-            </option>
-          ))}
-        </select>
-      );
-    case "single_choice":
-      return (
-        <div className="space-y-2">
-          {(question.options ?? []).map((opt) => (
-            <OptionRow
-              key={opt}
-              label={opt}
-              selected={value === opt}
-              type="radio"
-              onClick={() => onChange(opt)}
-            />
-          ))}
-        </div>
-      );
-    case "multi_choice": {
-      const selected = Array.isArray(value) ? value : [];
-      return (
-        <div className="space-y-2">
-          {(question.options ?? []).map((opt) => (
-            <OptionRow
-              key={opt}
-              label={opt}
-              selected={selected.includes(opt)}
-              type="checkbox"
-              onClick={() =>
-                onChange(
-                  selected.includes(opt)
-                    ? selected.filter((o) => o !== opt)
-                    : [...selected, opt],
-                )
-              }
-            />
-          ))}
-        </div>
-      );
-    }
-    case "yes_no":
-      return (
-        <div className="grid grid-cols-2 gap-2">
-          {["Yes", "No"].map((opt) => (
-            <button
-              key={opt}
-              type="button"
-              onClick={() => onChange(opt)}
-              className={
-                "rounded-lg border py-2.5 text-sm font-medium transition " +
-                (value === opt
-                  ? "border-primary bg-primary/5 text-primary"
-                  : "text-slate-700 hover:border-primary/40")
-              }
-            >
-              {opt}
-            </button>
-          ))}
-        </div>
-      );
+    case "long_text": field = <textarea rows={5} value={strVal} onChange={(event) => change(event.target.value)} className={`${inputCls} py-3`} />; break;
+    case "email": field = <input type="email" placeholder="name@example.com" value={strVal} onChange={(event) => change(event.target.value)} className={inputCls} />; break;
+    case "phone": field = <input type="tel" placeholder="+91 98765 43210" value={strVal} onChange={(event) => change(event.target.value)} className={inputCls} />; break;
+    case "number": field = <input type="number" value={strVal} onChange={(event) => change(event.target.value)} className={inputCls} />; break;
+    case "date": field = <input type="date" value={strVal} onChange={(event) => change(event.target.value)} className={inputCls} />; break;
+    case "file": field = <input type="url" placeholder="Paste a Drive, Dropbox, or file link" value={strVal} onChange={(event) => change(event.target.value)} className={inputCls} />; break;
+    case "dropdown": field = <select value={strVal} onChange={(event) => change(event.target.value)} className={inputCls}><option value="">Select an option…</option>{(question.options ?? []).map((option) => <option key={option} value={option}>{option}</option>)}{question.allowOther ? <option value={OTHER_OPTION_VALUE}>Other</option> : null}</select>; break;
+    case "single_choice": field = <ChoiceList options={[...(question.options ?? []), ...(question.allowOther ? [OTHER_OPTION_VALUE] : [])]} value={value} multiple={false} onChange={change} />; break;
+    case "multi_choice": field = <ChoiceList options={[...(question.options ?? []), ...(question.allowOther ? [OTHER_OPTION_VALUE] : [])]} value={value} multiple onChange={change} />; break;
+    case "yes_no": field = <ChoiceList options={["Yes", "No"]} value={value} multiple={false} onChange={change} />; break;
     case "rating": {
-      const max = question.max ?? 5;
       const current = Number(strVal) || 0;
-      return (
-        <div className="flex flex-wrap gap-1.5">
-          {Array.from({ length: max }, (_, i) => i + 1).map((n) => (
-            <button
-              key={n}
-              type="button"
-              onClick={() => onChange(String(n))}
-              aria-label={`${n}`}
-              className="p-0.5"
-            >
-              <Star
-                className={
-                  "h-7 w-7 " +
-                  (current >= n
-                    ? "fill-amber-400 text-amber-400"
-                    : "text-slate-300")
-                }
-              />
-            </button>
-          ))}
-        </div>
-      );
+      field = <div className="flex flex-wrap gap-2">{Array.from({ length: question.max ?? 5 }, (_, index) => index + 1).map((number) => <button key={number} type="button" onClick={() => change(String(number))} aria-label={`${number} out of ${question.max ?? 5}`} className="rounded-lg p-1 focus:outline-none focus:ring-2 focus:ring-blue-500"><Star className={`h-8 w-8 ${current >= number ? "fill-amber-400 text-amber-400" : "text-slate-300"}`} /></button>)}</div>;
+      break;
     }
-    case "date":
-      return (
-        <input
-          type="date"
-          value={strVal}
-          onChange={(e) => onChange(e.target.value)}
-          className={inputCls}
-        />
-      );
-    case "file":
-      return (
-        <input
-          type="url"
-          placeholder="Paste a link (Drive, Dropbox, etc.)"
-          value={strVal}
-          onChange={(e) => onChange(e.target.value)}
-          className={inputCls}
-        />
-      );
-    default:
-      return (
-        <input
-          type="text"
-          value={strVal}
-          onChange={(e) => onChange(e.target.value)}
-          className={inputCls}
-        />
-      );
+    default: field = <input type="text" value={strVal} onChange={(event) => change(event.target.value)} className={inputCls} />;
   }
+  return <div className="space-y-4">{field}
+    {otherVisible ? <div className="rounded-lg border border-blue-200 bg-blue-50/60 p-4"><label className="mb-2 block text-sm font-semibold text-slate-800">Please specify</label><input autoFocus type="text" value={typeof answers[otherAnswerKey(question.id)] === "string" ? answers[otherAnswerKey(question.id)] as string : ""} onChange={(event) => setAnswer(otherAnswerKey(question.id), event.target.value)} className={inputCls} /></div> : null}
+    {conditionalVisible && question.conditionalFollowUp ? <div className="rounded-lg border border-blue-200 bg-blue-50/60 p-4"><label className="mb-2 block text-sm font-semibold text-slate-900">{question.conditionalFollowUp.label}</label><textarea rows={4} placeholder={question.conditionalFollowUp.placeholder} value={typeof answers[followUpAnswerKey(question.id)] === "string" ? answers[followUpAnswerKey(question.id)] as string : ""} onChange={(event) => setAnswer(followUpAnswerKey(question.id), event.target.value)} className={`${inputCls} py-3`} /></div> : null}
+  </div>;
 }
 
-function OptionRow({
-  label,
-  selected,
-  type,
-  onClick,
-}: {
-  label: string;
-  selected: boolean;
-  type: "radio" | "checkbox";
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={
-        "flex w-full items-center gap-3 rounded-lg border px-3 py-2.5 text-left text-sm transition " +
-        (selected
-          ? "border-primary bg-primary/5 text-slate-900"
-          : "text-slate-700 hover:border-primary/40")
-      }
-    >
-      <span
-        className={
-          "flex h-5 w-5 shrink-0 items-center justify-center border " +
-          (type === "radio" ? "rounded-full" : "rounded") +
-          " " +
-          (selected ? "border-primary bg-primary text-white" : "border-slate-300")
-        }
-      >
-        {selected ? <Check className="h-3.5 w-3.5" /> : null}
-      </span>
-      {label}
-    </button>
-  );
+function ChoiceList({ options, value, multiple, onChange }: { options: string[]; value: Answer | undefined; multiple: boolean; onChange: (value: Answer) => void }) {
+  const selected = Array.isArray(value) ? value : [];
+  return <div className="space-y-2.5">{options.map((option) => {
+    const active = multiple ? selected.includes(option) : value === option;
+    return <button key={option} type="button" onClick={() => onChange(multiple ? (active ? selected.filter((item) => item !== option) : [...selected, option]) : option)} className={`flex min-h-12 w-full items-center gap-3 rounded-lg border px-4 text-left text-sm font-medium transition focus:outline-none focus:ring-2 focus:ring-blue-500 ${active ? "border-blue-600 bg-blue-50 text-slate-950" : "border-slate-200 bg-white text-slate-700 hover:border-blue-300 hover:bg-slate-50"}`}><span className={`flex h-5 w-5 shrink-0 items-center justify-center border ${multiple ? "rounded" : "rounded-full"} ${active ? "border-blue-600 bg-blue-600 text-white" : "border-slate-300"}`}>{active ? <Check className="h-3.5 w-3.5" /> : null}</span>{option === OTHER_OPTION_VALUE ? "Other" : option}</button>;
+  })}</div>;
 }

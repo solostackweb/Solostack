@@ -65,5 +65,9 @@ export async function GET(request: Request) {
   cookieStore.set("g_oauth_state", state, cookieOptions);
   cookieStore.set(GOOGLE_RETURN_COOKIE, returnPath, cookieOptions);
 
-  return NextResponse.redirect(buildGoogleAuthUrl(state));
+  return NextResponse.redirect(
+    buildGoogleAuthUrl(state, {
+      questionnaireSheets: url.searchParams.get("feature") === "questionnaire-sheets",
+    }),
+  );
 }

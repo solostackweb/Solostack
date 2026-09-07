@@ -326,6 +326,19 @@ export async function leadSubmitLimit(key: string): Promise<LimitResult> {
   );
 }
 
+/** Public questionnaire responses — reusable links still need flood control. */
+export async function questionnaireSubmitLimit(key: string): Promise<LimitResult> {
+  return runLimiter(
+    {
+      prefix: "questionnaire-submit",
+      limit: 20,
+      windowSeconds: 10 * 60,
+      blockedMessage: "You're submitting responses too quickly. Please wait a few minutes and try again.",
+    },
+    key,
+  );
+}
+
 /** Web-push subscribe/unsubscribe — cheap to call, easy to abuse. Per IP. */
 export async function pushSubscribeLimit(key: string): Promise<LimitResult> {
   return runLimiter(

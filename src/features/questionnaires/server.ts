@@ -4,13 +4,20 @@ import { getServerSupabase } from "@/lib/supabase/server";
 import { getAdminSupabase } from "@/lib/supabase/admin";
 import type {
   QuestionnaireRow,
+  QuestionnaireResponseRow,
   QuestionnaireSendRow,
+  QuestionnaireSheetIntegrationRow,
 } from "@/lib/supabase/types";
 import {
   mapQuestionnaireRow,
+  mapQuestionnaireResponseRow,
   mapQuestionnaireSendRow,
+  mapQuestionnaireSheetIntegrationRow,
+  normalizeQuestions,
   type Questionnaire,
+  type QuestionnaireResponse,
   type QuestionnaireSend,
+  type QuestionnaireSheetIntegration,
 } from "./types";
 
 async function currentUserId(): Promise<string | null> {
@@ -77,7 +84,7 @@ export async function listSendsForOwner(
 /** Public lookup by token — the client-facing fill page (no auth). */
 export async function getQuestionnaireSendByToken(
   token: string,
-): Promise<{ send: QuestionnaireSend; hostName: string } | null> {
+): Promise<{ send: QuestionnaireSend; hostName: string; description: string | null } | null> {
   if (!token) return null;
   const admin = getAdminSupabase();
   const { data } = await admin
@@ -108,7 +115,61 @@ export async function getQuestionnaireSendByToken(
     p?.full_name ||
     "Your freelancer";
 
-  return { send: mapQuestionnaireSendRow(row), hostName };
+  let send = mapQuestionnaireSendRow(row);
+  let description: string | null = null;
+  if (row.questionnaire_id) {
+    const { data: questionnaireRaw } = await admin
+      .from("questionnaires")
+      .select("title, description, questions, active")
+      .eq("id", row.questionnaire_id)
+      .maybeSingle();
+    const questionnaire = questionnaireRaw as {
+      title: string;
+      description: string | null;
+      questions: unknown;
+      active: boolean;
+    } | null;
+    if (questionnaire && !questionnaire.active) return null;
+    if (questionnaire?.active) {
+      send = {
+        ...send,
+        title: questionnaire.title,
+        questions: normalizeQuestions(questionnaire.questions),
+      };
+      description = questionnaire.description;
+    }
+  }
+
+  return { send, hostName, description };
+}
+
+export async function listResponsesForOwner(questionnaireId: string): Promise<QuestionnaireResponse[]> {
+  const userId = await currentUserId();
+  if (!userId) return [];
+  const supabase = await getServerSupabase();
+  const { data } = await supabase
+    .from("questionnaire_responses")
+    .select("*")
+    .eq("user_id", userId)
+    .eq("questionnaire_id", questionnaireId)
+    .order("submitted_at", { ascending: false });
+  return ((data ?? []) as QuestionnaireResponseRow[]).map(mapQuestionnaireResponseRow);
+}
+
+export async function getQuestionnaireSheetIntegration(
+  questionnaireId: string,
+): Promise<QuestionnaireSheetIntegration | null> {
+  const userId = await currentUserId();
+  if (!userId) return null;
+  const supabase = await getServerSupabase();
+  const { data } = await supabase
+    .from("questionnaire_sheet_integrations")
+    .select("*")
+    .eq("user_id", userId)
+    .eq("questionnaire_id", questionnaireId)
+    .maybeSingle();
+  const row = data as QuestionnaireSheetIntegrationRow | null;
+  return row ? mapQuestionnaireSheetIntegrationRow(row) : null;
 }
 
 /** Sends tied to a client — for the client 360 / portal (service-role). */

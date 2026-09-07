@@ -1,6 +1,8 @@
 import type {
+  QuestionnaireResponseRow,
   QuestionnaireRow,
   QuestionnaireSendRow,
+  QuestionnaireSheetIntegrationRow,
 } from "@/lib/supabase/types";
 
 export type QuestionType =
@@ -28,7 +30,19 @@ export interface Question {
   options?: string[];
   /** Rating scale max (default 5). */
   max?: number;
+  /** Let respondents provide a free-text choice. */
+  allowOther?: boolean;
+  /** Optional text prompt revealed by a Yes / No answer. */
+  conditionalFollowUp?: {
+    when: "Yes" | "No";
+    label: string;
+    placeholder?: string;
+  };
 }
+
+export const OTHER_OPTION_VALUE = "__stackivo_other__";
+export const otherAnswerKey = (questionId: string) => `${questionId}__other`;
+export const followUpAnswerKey = (questionId: string) => `${questionId}__followup`;
 
 export const QUESTION_TYPE_LABEL: Record<QuestionType, string> = {
   short_text: "Short text",
@@ -96,14 +110,83 @@ export function normalizeQuestions(raw: unknown): Question[] {
             (o): o is string => typeof o === "string" && o.trim().length > 0,
           )
         : [];
+      q.allowOther = Boolean(r.allowOther);
     }
     if (type === "rating") {
       const max = Number(r.max);
       q.max = Number.isFinite(max) && max >= 2 && max <= 10 ? Math.floor(max) : 5;
     }
+    if (type === "yes_no" && r.conditionalFollowUp && typeof r.conditionalFollowUp === "object") {
+      const followUp = r.conditionalFollowUp as Record<string, unknown>;
+      const followUpLabel = typeof followUp.label === "string" ? followUp.label.trim() : "";
+      if (followUpLabel) {
+        q.conditionalFollowUp = {
+          when: followUp.when === "No" ? "No" : "Yes",
+          label: followUpLabel,
+          ...(typeof followUp.placeholder === "string" && followUp.placeholder.trim()
+            ? { placeholder: followUp.placeholder.trim() }
+            : {}),
+        };
+      }
+    }
     out.push(q);
   }
   return out;
+}
+
+export interface QuestionnaireResponse {
+  id: string;
+  sendId: string;
+  questionnaireId: string | null;
+  clientId: string | null;
+  projectId: string | null;
+  questions: Question[];
+  responses: Record<string, unknown>;
+  sheetsSyncStatus: string;
+  sheetsSyncError: string | null;
+  sheetsSyncedAt: string | null;
+  submittedAt: string;
+}
+
+export function mapQuestionnaireResponseRow(row: QuestionnaireResponseRow): QuestionnaireResponse {
+  const responses = row.responses && typeof row.responses === "object" && !Array.isArray(row.responses)
+    ? (row.responses as Record<string, unknown>)
+    : {};
+  return {
+    id: row.id,
+    sendId: row.send_id,
+    questionnaireId: row.questionnaire_id,
+    clientId: row.client_id,
+    projectId: row.project_id,
+    questions: normalizeQuestions(row.questions),
+    responses,
+    sheetsSyncStatus: row.sheets_sync_status,
+    sheetsSyncError: row.sheets_sync_error,
+    sheetsSyncedAt: row.sheets_synced_at,
+    submittedAt: row.submitted_at,
+  };
+}
+
+export interface QuestionnaireSheetIntegration {
+  spreadsheetId: string;
+  spreadsheetUrl: string;
+  sheetTitle: string;
+  active: boolean;
+  lastSyncedAt: string | null;
+  lastError: string | null;
+}
+
+export function mapQuestionnaireSheetIntegrationRow(
+  row: QuestionnaireSheetIntegrationRow,
+): QuestionnaireSheetIntegration {
+  return {
+    spreadsheetId: row.spreadsheet_id,
+    spreadsheetUrl: row.spreadsheet_url,
+    sheetTitle: row.sheet_title,
+    active: row.active,
+    lastSyncedAt: row.last_synced_at,
+    lastError: row.last_error,
+  };
 }
 
 // ---------------------------------------------------------------------------

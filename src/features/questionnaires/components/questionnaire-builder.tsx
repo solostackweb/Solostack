@@ -125,6 +125,13 @@ export function QuestionnaireBuilder({
         ? questions.find((q) => q.id === id)?.options ?? ["Option 1", "Option 2"]
         : undefined,
       max: type === "rating" ? 5 : undefined,
+      allowOther: questionNeedsOptions(type)
+        ? questions.find((q) => q.id === id)?.allowOther ?? false
+        : undefined,
+      conditionalFollowUp:
+        type === "yes_no"
+          ? questions.find((q) => q.id === id)?.conditionalFollowUp
+          : undefined,
     });
 
   const save = async () => {
@@ -335,10 +342,25 @@ function QuestionCard({
             </div>
 
             {questionNeedsOptions(question.type) ? (
-              <OptionsEditor
-                options={question.options ?? []}
-                onChange={(options) => onChange({ options })}
-              />
+              <div className="space-y-3">
+                <OptionsEditor
+                  options={question.options ?? []}
+                  onChange={(options) => onChange({ options })}
+                />
+                <label className="flex min-h-11 items-center gap-2 rounded-lg border px-3 text-sm font-medium">
+                  <input
+                    type="checkbox"
+                    checked={Boolean(question.allowOther)}
+                    onChange={(event) => onChange({ allowOther: event.target.checked })}
+                    className="h-4 w-4"
+                  />
+                  Add an “Other” option with a text field
+                </label>
+              </div>
+            ) : null}
+
+            {question.type === "yes_no" ? (
+              <ConditionalFollowUpEditor question={question} onChange={onChange} />
             ) : null}
           </div>
 
@@ -379,6 +401,73 @@ function QuestionCard({
         </div>
       </CardContent>
     </Card>
+  );
+}
+
+function ConditionalFollowUpEditor({
+  question,
+  onChange,
+}: {
+  question: Question;
+  onChange: (patch: Partial<Question>) => void;
+}) {
+  const enabled = Boolean(question.conditionalFollowUp);
+  return (
+    <div className="space-y-3 rounded-lg border bg-muted/20 p-3">
+      <label className="flex min-h-11 items-center gap-2 text-sm font-medium">
+        <input
+          type="checkbox"
+          checked={enabled}
+          onChange={(event) =>
+            onChange({
+              conditionalFollowUp: event.target.checked
+                ? { when: "Yes", label: "Please tell us more" }
+                : undefined,
+            })
+          }
+          className="h-4 w-4"
+        />
+        Reveal a short paragraph follow-up
+      </label>
+      {question.conditionalFollowUp ? (
+        <div className="grid gap-3 sm:grid-cols-[9rem_1fr]">
+          <label className="space-y-1 text-xs font-medium text-muted-foreground">
+            Show when
+            <select
+              value={question.conditionalFollowUp.when}
+              onChange={(event) =>
+                onChange({
+                  conditionalFollowUp: {
+                    ...question.conditionalFollowUp!,
+                    when: event.target.value as "Yes" | "No",
+                  },
+                })
+              }
+              className="h-10 w-full rounded-lg border bg-background px-3 text-sm text-foreground"
+            >
+              <option value="Yes">Yes is chosen</option>
+              <option value="No">No is chosen</option>
+            </select>
+          </label>
+          <label className="space-y-1 text-xs font-medium text-muted-foreground">
+            Follow-up prompt
+            <Input
+              value={question.conditionalFollowUp.label}
+              onChange={(event) =>
+                onChange({
+                  conditionalFollowUp: {
+                    ...question.conditionalFollowUp!,
+                    label: event.target.value,
+                  },
+                })
+              }
+              placeholder="Please tell us more"
+              className="h-10"
+            />
+          </label>
+        </div>
+      ) : null}
+    </div>
   );
 }
 

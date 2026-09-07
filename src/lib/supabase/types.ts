@@ -870,6 +870,38 @@ export interface QuestionnaireSendRow {
   updated_at: string;
 }
 
+export interface QuestionnaireResponseRow {
+  id: string;
+  user_id: string;
+  send_id: string;
+  questionnaire_id: string | null;
+  client_id: string | null;
+  project_id: string | null;
+  submission_key: string;
+  questions: Json;
+  responses: Json;
+  sheets_sync_status: string;
+  sheets_sync_error: string | null;
+  sheets_synced_at: string | null;
+  submitted_at: string;
+  created_at: string;
+}
+
+export interface QuestionnaireSheetIntegrationRow {
+  id: string;
+  user_id: string;
+  questionnaire_id: string;
+  spreadsheet_id: string;
+  spreadsheet_url: string;
+  sheet_title: string;
+  columns: Json;
+  active: boolean;
+  last_synced_at: string | null;
+  last_error: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface CalendarConnectionRow {
   user_id: string;
   provider: string;
@@ -1699,6 +1731,20 @@ export interface Database {
         Insert: Partial<QuestionnaireSendRow> &
           Pick<QuestionnaireSendRow, "user_id" | "title" | "public_token">;
         Update: Partial<QuestionnaireSendRow>;
+        Relationships: [];
+      };
+      questionnaire_responses: {
+        Row: QuestionnaireResponseRow;
+        Insert: Partial<QuestionnaireResponseRow> &
+          Pick<QuestionnaireResponseRow, "user_id" | "send_id" | "submission_key">;
+        Update: Partial<QuestionnaireResponseRow>;
+        Relationships: [];
+      };
+      questionnaire_sheet_integrations: {
+        Row: QuestionnaireSheetIntegrationRow;
+        Insert: Partial<QuestionnaireSheetIntegrationRow> &
+          Pick<QuestionnaireSheetIntegrationRow, "user_id" | "questionnaire_id" | "spreadsheet_id" | "spreadsheet_url">;
+        Update: Partial<QuestionnaireSheetIntegrationRow>;
         Relationships: [];
       };
       proposal_items: {

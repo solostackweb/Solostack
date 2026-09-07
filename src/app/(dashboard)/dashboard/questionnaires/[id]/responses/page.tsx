@@ -2,6 +2,8 @@ import { notFound } from "next/navigation";
 
 import {
   getQuestionnaire,
+  getQuestionnaireSheetIntegration,
+  listResponsesForOwner,
   listSendsForOwner,
 } from "@/features/questionnaires/server";
 import { listClients } from "@/features/clients/server";
@@ -16,10 +18,12 @@ interface PageProps {
 
 export default async function ResponsesPage({ params }: PageProps) {
   const { id } = await params;
-  const [questionnaire, clients, sends] = await Promise.all([
+  const [questionnaire, clients, sends, responses, sheetIntegration] = await Promise.all([
     getQuestionnaire(id),
     listClients({ limit: 300 }),
     listSendsForOwner({ questionnaireId: id }),
+    listResponsesForOwner(id),
+    getQuestionnaireSheetIntegration(id),
   ]);
   if (!questionnaire) notFound();
 
@@ -33,6 +37,8 @@ export default async function ResponsesPage({ params }: PageProps) {
         phone: client.phone,
       }))}
       sends={sends}
+      responses={responses}
+      sheetIntegration={sheetIntegration}
     />
   );
 }

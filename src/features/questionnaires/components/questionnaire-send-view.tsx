@@ -10,7 +10,6 @@ import { PageHeader } from "@/components/shared/page-header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
-import { cn } from "@/lib/utils";
 import { sendQuestionnaireAction } from "../actions";
 import type { QuestionnaireSend } from "../types";
 
@@ -158,22 +157,13 @@ function SendCard({
     setTimeout(() => setCopied(false), 1500);
   };
 
-  const completed = send.status === "completed";
-
   return (
     <Card>
       <CardContent className="space-y-2 p-4">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <p className="text-sm font-semibold">{clientName}</p>
-          <span
-            className={cn(
-              "rounded-full px-2 py-0.5 text-micro font-semibold",
-              completed
-                ? "bg-success-subtle text-success-strong"
-                : "bg-warning-subtle text-warning-strong",
-            )}
-          >
-            {completed ? "Completed" : "Awaiting response"}
+          <span className="rounded-full bg-info-subtle px-2 py-0.5 text-micro font-semibold text-info-strong">
+            Active link
           </span>
         </div>
         <Button type="button" size="sm" variant="outline" onClick={copy}>
@@ -184,34 +174,6 @@ function SendCard({
           )}
           {copied ? "Copied" : "Copy link"}
         </Button>
-
-        {completed ? (
-          <details className="group mt-1">
-            <summary className="cursor-pointer text-xs font-medium text-primary hover:underline">
-              View responses
-            </summary>
-            <div className="mt-2 space-y-3 border-t pt-3">
-              {send.questions.map((q) => {
-                const raw = send.responses[q.id];
-                const answer = Array.isArray(raw)
-                  ? raw.join(", ")
-                  : raw === undefined || raw === ""
-                    ? "—"
-                    : String(raw);
-                return (
-                  <div key={q.id}>
-                    <p className="text-micro font-semibold uppercase tracking-wider text-muted-foreground">
-                      {q.label}
-                    </p>
-                    <p className="mt-0.5 whitespace-pre-line text-sm text-foreground/90">
-                      {answer}
-                    </p>
-                  </div>
-                );
-              })}
-            </div>
-          </details>
-        ) : null}
       </CardContent>
     </Card>
   );

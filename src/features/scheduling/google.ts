@@ -21,8 +21,10 @@ const GOOGLE_EVENTS =
  * Gmail until the user explicitly opts in — see `send_as_gmail`.
  */
 export const GMAIL_SEND_SCOPE = "https://www.googleapis.com/auth/gmail.send";
+/** Per-file Google Drive access used for spreadsheets Stackivo creates. */
+export const GOOGLE_DRIVE_FILE_SCOPE = "https://www.googleapis.com/auth/drive.file";
 
-const SCOPES = [
+const BASE_SCOPES = [
   "https://www.googleapis.com/auth/calendar.events",
   "https://www.googleapis.com/auth/calendar.freebusy",
   GMAIL_SEND_SCOPE,
@@ -39,6 +41,10 @@ export function grantIncludesGmailSend(scope: string | null | undefined): boolea
   return Boolean(scope && scope.split(/\s+/).includes(GMAIL_SEND_SCOPE));
 }
 
+export function grantIncludesDriveFile(scope: string | null | undefined): boolean {
+  return Boolean(scope && scope.split(/\s+/).includes(GOOGLE_DRIVE_FILE_SCOPE));
+}
+
 export function isGoogleConfigured(): boolean {
   return Boolean(
     process.env.GOOGLE_CLIENT_ID &&
@@ -47,7 +53,13 @@ export function isGoogleConfigured(): boolean {
   );
 }
 
-export function buildGoogleAuthUrl(state: string): string {
+export function buildGoogleAuthUrl(
+  state: string,
+  options: { questionnaireSheets?: boolean } = {},
+): string {
+  const scopes = options.questionnaireSheets
+    ? [...BASE_SCOPES, GOOGLE_DRIVE_FILE_SCOPE]
+    : BASE_SCOPES;
   const params = new URLSearchParams({
     client_id: process.env.GOOGLE_CLIENT_ID ?? "",
     redirect_uri: process.env.GOOGLE_OAUTH_REDIRECT ?? "",
@@ -55,7 +67,7 @@ export function buildGoogleAuthUrl(state: string): string {
     access_type: "offline",
     prompt: "consent",
     include_granted_scopes: "true",
-    scope: SCOPES.join(" "),
+    scope: scopes.join(" "),
     state,
   });
   return `${GOOGLE_AUTH}?${params.toString()}`;

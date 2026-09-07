@@ -3537,10 +3537,9 @@ export async function listIvoPickerOptionsAction() {
       .order("updated_at", { ascending: false })
       .limit(100),
     supabase
-      .from("questionnaire_sends")
-      .select("id, title, client_id, submitted_at")
+      .from("questionnaire_responses")
+      .select("id, client_id, submitted_at")
       .eq("user_id", userId)
-      .eq("status", "completed")
       .order("submitted_at", { ascending: false })
       .limit(50),
   ]);
@@ -3575,7 +3574,7 @@ export async function listIvoPickerOptionsAction() {
     ...((questionnaireResult.data ?? []) as Array<Record<string, unknown>>).map((send) => ({
       type: "questionnaire_response" as const,
       id: String(send.id),
-      label: `${String(send.title || "Questionnaire")} response`,
+      label: "Questionnaire response",
       subtitle: `${send.client_id ? clientNames.get(String(send.client_id)) ?? "Client" : "Client"}${send.submitted_at ? ` · answered ${String(send.submitted_at).slice(0, 10)}` : ""}`,
     })),
   ];

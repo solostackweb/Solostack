@@ -233,9 +233,9 @@ async function resolveSelectedResources(
       };
     }
     if (reference.type === "questionnaire_response") {
-      const { data } = await supabase.from("questionnaire_sends")
-        .select("id, title, questions, responses, status, client_id, project_id, submitted_at")
-        .eq("id", reference.id).eq("user_id", userId).eq("status", "completed").maybeSingle();
+      const { data } = await supabase.from("questionnaire_responses")
+        .select("id, questionnaire_id, questions, responses, client_id, project_id, submitted_at")
+        .eq("id", reference.id).eq("user_id", userId).maybeSingle();
       const row = data as Record<string, unknown> | null;
       if (!row) return null;
       const questions = Array.isArray(row.questions)
@@ -262,9 +262,9 @@ async function resolveSelectedResources(
       const client = clientRaw as Record<string, unknown> | null;
       return {
         ...reference,
-        label: `${String(row.title || "Questionnaire")} response`,
+        label: "Questionnaire response",
         details: {
-          title: String(row.title || "Questionnaire"),
+          title: "Questionnaire response",
           clientName: String(client?.business_name || client?.full_name || "Client"),
           status: "completed",
           submittedAt: compactText(row.submitted_at, 40),
