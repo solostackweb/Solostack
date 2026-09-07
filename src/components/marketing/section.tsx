@@ -1,4 +1,5 @@
 import * as React from "react";
+import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 /** Calm Command marketing rhythm and composition primitives. */
@@ -180,8 +181,8 @@ export function RuledColumn({
   children,
   className,
 }: {
-  /** Rendered as the mono ordinal above the title. Can be a string (number) or a Lucide icon. */
-  index?: string | React.ReactNode | React.ComponentType<React.SVGProps<SVGSVGElement>>;
+  /** Rendered as the mono ordinal above the title. Can be text, an element, or a Lucide icon component. */
+  index?: string | React.ReactElement | LucideIcon;
   title: React.ReactNode;
   children: React.ReactNode;
   className?: string;
@@ -195,7 +196,11 @@ export function RuledColumn({
     >
       {index ? (
         <p className="mb-4 font-mono text-micro uppercase tracking-[0.16em] text-primary">
-          {typeof index === "string" ? index : React.isValidElement(index) ? index : typeof index === "function" ? React.createElement(index, { className: "h-5 w-5" }) : index}
+          {typeof index === "string"
+            ? index
+            : React.isValidElement(index)
+              ? index
+              : React.createElement(index, { className: "h-5 w-5" })}
         </p>
       ) : null}
       <h3 className="font-display text-xl font-semibold leading-tight tracking-[-0.035em] text-foreground sm:text-2xl">

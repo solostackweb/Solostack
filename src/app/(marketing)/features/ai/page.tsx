@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Section, SectionHeading, SectionEyebrow, RuledColumns, RuledColumn } from "@/components/marketing/section";
 import { siteConfig } from "@/config/site";
-import { Bot, Sparkles, Zap, Shield, Brain, MessageSquare, Clock, ZapIcon } from "lucide-react";
+import { Sparkles, Zap, Shield, Brain, MessageSquare, Clock } from "lucide-react";
 
 export const metadata: Metadata = {
   title: "Ivo AI Assistant · Stackivo Feature",
