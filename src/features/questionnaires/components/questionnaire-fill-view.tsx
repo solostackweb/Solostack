@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import { submitQuestionnaireAction } from "../actions";
 import { followUpAnswerKey, OTHER_OPTION_VALUE, otherAnswerKey, type Question } from "../types";
 
-interface PublicSend { title: string; description: string | null; questions: Question[] }
+interface PublicSend { title: string; description: string | null; layout: "guided" | "classic"; questions: Question[] }
 type Answer = string | string[];
 const newSubmissionKey = () => crypto.randomUUID();
 const isEmpty = (value: Answer | undefined) => value === undefined || value === "" || (Array.isArray(value) && value.length === 0);
@@ -20,13 +20,17 @@ export function QuestionnaireFillView({ token, hostName, send }: { token: string
   const [done, setDone] = React.useState(false);
   const [submissionKey, setSubmissionKey] = React.useState(newSubmissionKey);
   const current = send.questions[step];
-  const progress = send.questions.length ? Math.round(((step + 1) / send.questions.length) * 100) : 100;
+  const answered = send.questions.filter((question) => !isEmpty(answers[question.id])).length;
+  const progress = send.questions.length
+    ? Math.round(((send.layout === "classic" ? answered : step + 1) / send.questions.length) * 100)
+    : 100;
   const setAnswer = (id: string, value: Answer) => setAnswers((previous) => ({ ...previous, [id]: value }));
 
   const validateQuestion = (question: Question) => {
     const value = answers[question.id];
     if (question.required && isEmpty(value)) {
       toast.error(`Please answer: ${question.label}`);
+      document.getElementById(`question-${question.id}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
       return false;
     }
     if (question.allowOther && otherSelected(question, value)) {
@@ -68,9 +72,9 @@ export function QuestionnaireFillView({ token, hostName, send }: { token: string
           <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-600 text-white shadow-sm"><ClipboardList className="h-4 w-4" /></span>
           {hostName}
         </div>
-        {!done && send.questions.length > 0 ? <span className="text-xs font-medium tabular-nums text-slate-500">{step + 1} / {send.questions.length}</span> : null}
+        {!done && send.questions.length > 0 ? <span className="text-xs font-medium tabular-nums text-slate-500">{send.layout === "classic" ? `${answered} of ${send.questions.length} answered` : `${step + 1} / ${send.questions.length}`}</span> : null}
       </header>
-      <section className="flex flex-1 items-center justify-center py-4">
+      <section className={`flex flex-1 justify-center py-4 ${send.layout === "classic" ? "items-start" : "items-center"}`}>
         <div className="w-full overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_18px_60px_-30px_rgba(15,23,42,0.35)]">
           {!done ? <div className="h-1 bg-slate-100"><div className="h-full bg-blue-600 transition-[width] duration-300" style={{ width: `${progress}%` }} /></div> : null}
           <div className="p-6 sm:p-10">
@@ -79,7 +83,7 @@ export function QuestionnaireFillView({ token, hostName, send }: { token: string
               <h1 className="text-2xl font-semibold tracking-tight">Response received</h1>
               <p className="text-sm leading-6 text-slate-600">Your answers were sent to {hostName}.</p>
               <button type="button" onClick={reset} className="min-h-11 rounded-lg border border-slate-300 px-4 text-sm font-semibold text-slate-800 hover:bg-slate-50">Submit another response</button>
-            </div> : current ? <div className="mx-auto max-w-xl">
+            </div> : send.layout === "classic" ? <ClassicForm send={send} answers={answers} setAnswer={setAnswer} submitting={submitting} onSubmit={submit} /> : current ? <div className="mx-auto max-w-xl">
               {step === 0 ? <div className="mb-8 border-b border-slate-100 pb-6">
                 <h1 className="text-balance text-2xl font-semibold tracking-tight sm:text-3xl">{send.title}</h1>
                 {send.description ? <p className="mt-2 text-sm leading-6 text-slate-600">{send.description}</p> : null}
@@ -99,6 +103,47 @@ export function QuestionnaireFillView({ token, hostName, send }: { token: string
       <p className="mt-4 text-center text-xs text-slate-400">Powered by Stackivo · Responses are shared privately.</p>
     </main>
   </div>;
+}
+
+function ClassicForm({
+  send,
+  answers,
+  setAnswer,
+  submitting,
+  onSubmit,
+}: {
+  send: PublicSend;
+  answers: Record<string, Answer>;
+  setAnswer: (id: string, value: Answer) => void;
+  submitting: boolean;
+  onSubmit: () => void;
+}) {
+  return (
+    <div className="mx-auto max-w-xl">
+      <div className="border-b border-slate-100 pb-6">
+        <h1 className="text-balance text-2xl font-semibold tracking-tight sm:text-3xl">{send.title}</h1>
+        {send.description ? <p className="mt-2 text-sm leading-6 text-slate-600">{send.description}</p> : null}
+        <p className="mt-3 text-xs text-slate-500"><span className="text-red-500">*</span> Required</p>
+      </div>
+      <div className="divide-y divide-slate-100">
+        {send.questions.map((question, index) => (
+          <div id={`question-${question.id}`} key={question.id} className="scroll-mt-6 py-7 first:pt-6">
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-blue-600">Question {index + 1}</p>
+            <h2 className="mt-2 text-base font-semibold leading-6 text-slate-950 sm:text-lg">
+              {question.label}{question.required ? <span className="ml-1 text-red-500">*</span> : null}
+            </h2>
+            {question.help ? <p className="mt-1 text-sm leading-6 text-slate-500">{question.help}</p> : null}
+            <div className="mt-4"><QuestionField question={question} answers={answers} setAnswer={setAnswer} /></div>
+          </div>
+        ))}
+      </div>
+      <div className="border-t border-slate-100 pt-6">
+        <button type="button" onClick={onSubmit} disabled={submitting || send.questions.length === 0} className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg bg-blue-600 px-5 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 disabled:opacity-60 sm:w-auto">
+          {submitting ? "Submitting…" : "Submit response"} <Check className="h-4 w-4" />
+        </button>
+      </div>
+    </div>
+  );
 }
 
 const inputCls = "min-h-12 w-full rounded-lg border border-slate-300 bg-white px-3 text-base text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-blue-600 focus:ring-4 focus:ring-blue-100";

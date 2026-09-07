@@ -19,6 +19,8 @@ export type QuestionType =
   | "date"
   | "file";
 
+export type QuestionnairePublicLayout = "guided" | "classic";
+
 export interface Question {
   id: string;
   type: QuestionType;
@@ -199,6 +201,7 @@ export interface Questionnaire {
   description: string | null;
   questions: Question[];
   active: boolean;
+  publicLayout: QuestionnairePublicLayout;
   updatedAt: string;
 }
 
@@ -209,6 +212,7 @@ export function mapQuestionnaireRow(row: QuestionnaireRow): Questionnaire {
     description: row.description,
     questions: normalizeQuestions(row.questions),
     active: row.active,
+    publicLayout: row.public_layout ?? "guided",
     updatedAt: row.updated_at,
   };
 }
@@ -219,6 +223,7 @@ export interface QuestionnaireSend {
   questions: Question[];
   responses: Record<string, unknown>;
   status: string;
+  publicLayout: QuestionnairePublicLayout;
   publicToken: string;
   clientId: string | null;
   projectId: string | null;
@@ -241,6 +246,7 @@ export function mapQuestionnaireSendRow(
     questions: normalizeQuestions(row.questions),
     responses,
     status: row.status,
+    publicLayout: row.public_layout ?? "guided",
     publicToken: row.public_token,
     clientId: row.client_id,
     projectId: row.project_id,

@@ -79,6 +79,7 @@ const questionSchema = z.object({
 const upsertSchema = z.object({
   title: z.string().trim().min(1).max(200),
   description: z.string().trim().max(1000).optional(),
+  publicLayout: z.enum(["guided", "classic"]).optional(),
   questions: z.array(questionSchema).max(60),
   idempotencyKey: z.string().trim().min(8).max(200).optional(),
 });
@@ -114,6 +115,7 @@ export async function createQuestionnaireAction(
       user_id: userId,
       title: parsed.data.title,
       description: parsed.data.description ?? null,
+      public_layout: parsed.data.publicLayout ?? "guided",
       questions: normalizeQuestions(parsed.data.questions),
       idempotency_key: parsed.data.idempotencyKey ?? null,
       updated_at: new Date().toISOString(),
@@ -161,6 +163,7 @@ export async function updateQuestionnaireAction(
     .update({
       title: parsed.data.title,
       description: parsed.data.description ?? null,
+      public_layout: parsed.data.publicLayout ?? "guided",
       questions: normalizeQuestions(parsed.data.questions),
       updated_at: new Date().toISOString(),
     } as never)
@@ -173,6 +176,7 @@ export async function updateQuestionnaireAction(
     .from("questionnaire_sends")
     .update({
       title: parsed.data.title,
+      public_layout: parsed.data.publicLayout ?? "guided",
       questions: normalizeQuestions(parsed.data.questions),
       updated_at: new Date().toISOString(),
     } as never)
@@ -249,12 +253,12 @@ export async function sendQuestionnaireAction(
   const supabase = await getServerSupabase();
   const { data: qData } = await supabase
     .from("questionnaires")
-    .select("id, title, questions")
+    .select("id, title, questions, public_layout")
     .eq("id", parsed.data.questionnaireId)
     .eq("user_id", userId)
     .maybeSingle();
   const questionnaire = qData as
-    | { id: string; title: string; questions: unknown }
+    | { id: string; title: string; questions: unknown; public_layout: "guided" | "classic" }
     | null;
   if (!questionnaire) return { ok: false, error: "Questionnaire not found." };
 
@@ -320,6 +324,7 @@ export async function sendQuestionnaireAction(
       project_id: parsed.data.projectId ?? null,
       title: questionnaire.title,
       questions: normalizeQuestions(questionnaire.questions),
+      public_layout: questionnaire.public_layout,
       responses: {},
       status: "sent",
       public_token: token,

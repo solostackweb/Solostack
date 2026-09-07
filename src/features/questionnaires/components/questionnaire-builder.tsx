@@ -16,6 +16,7 @@ import {
   List,
   Mail,
   Phone,
+  PanelTop,
   Plus,
   Save,
   Star,
@@ -47,6 +48,7 @@ import {
   type Question,
   type QuestionType,
   type Questionnaire,
+  type QuestionnairePublicLayout,
 } from "../types";
 import {
   createQuestionnaireAction,
@@ -82,6 +84,9 @@ export function QuestionnaireBuilder({
   );
   const [questions, setQuestions] = React.useState<Question[]>(
     initial?.questions ?? [],
+  );
+  const [publicLayout, setPublicLayout] = React.useState<QuestionnairePublicLayout>(
+    initial?.publicLayout ?? "guided",
   );
   const [saving, setSaving] = React.useState(false);
 
@@ -148,6 +153,7 @@ export function QuestionnaireBuilder({
     const payload = {
       title: title.trim(),
       description: description.trim() || undefined,
+      publicLayout,
       questions: cleaned.map((q) => ({
         ...q,
         options: questionNeedsOptions(q.type)
@@ -203,6 +209,30 @@ export function QuestionnaireBuilder({
             rows={2}
             placeholder="A short intro shown at the top of the form (optional)."
           />
+          <div className="border-t pt-4">
+            <div className="mb-3">
+              <p className="text-sm font-semibold">Public form layout</p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Choose how respondents move through this questionnaire.
+              </p>
+            </div>
+            <div className="grid gap-2 sm:grid-cols-2" role="radiogroup" aria-label="Public form layout">
+              <LayoutChoice
+                selected={publicLayout === "guided"}
+                icon={PanelTop}
+                title="One at a time"
+                description="Focused steps with progress and Back / Continue controls."
+                onSelect={() => setPublicLayout("guided")}
+              />
+              <LayoutChoice
+                selected={publicLayout === "classic"}
+                icon={List}
+                title="One page"
+                description="A familiar scrolling form with every question visible."
+                onSelect={() => setPublicLayout("classic")}
+              />
+            </div>
+          </div>
         </CardContent>
       </Card>
 
@@ -248,6 +278,43 @@ export function QuestionnaireBuilder({
         </DropdownMenu>
       </div>
     </div>
+  );
+}
+
+function LayoutChoice({
+  selected,
+  icon: Icon,
+  title,
+  description,
+  onSelect,
+}: {
+  selected: boolean;
+  icon: LucideIcon;
+  title: string;
+  description: string;
+  onSelect: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      role="radio"
+      aria-checked={selected}
+      onClick={onSelect}
+      className={
+        "flex min-h-20 items-start gap-3 rounded-lg border p-3 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring " +
+        (selected
+          ? "border-primary bg-primary/5"
+          : "border-border bg-background hover:border-primary/40")
+      }
+    >
+      <span className={"mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-md " + (selected ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground")}>
+        <Icon className="h-4 w-4" />
+      </span>
+      <span>
+        <span className="block text-sm font-semibold">{title}</span>
+        <span className="mt-1 block text-xs leading-5 text-muted-foreground">{description}</span>
+      </span>
+    </button>
   );
 }
 

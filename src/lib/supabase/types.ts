@@ -848,6 +848,7 @@ export interface QuestionnaireRow {
   description: string | null;
   questions: Json;
   active: boolean;
+  public_layout: "guided" | "classic";
   idempotency_key: string | null;
   created_at: string;
   updated_at: string;
@@ -863,6 +864,7 @@ export interface QuestionnaireSendRow {
   questions: Json;
   responses: Json;
   status: string;
+  public_layout: "guided" | "classic";
   public_token: string;
   idempotency_key: string | null;
   submitted_at: string | null;

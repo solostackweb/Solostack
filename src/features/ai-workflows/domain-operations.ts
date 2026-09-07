@@ -2057,7 +2057,7 @@ export async function listQuestionnairesForProjectAiAction(input: {
   const [{ data: questionnaireRows }, { data: clientRaw }] = await Promise.all([
     supabase
       .from("questionnaires")
-      .select("id, title, description, questions")
+      .select("id, title, description, questions, public_layout")
       .eq("user_id", userId)
       .eq("active", true)
       .order("updated_at", { ascending: false })
@@ -2310,6 +2310,7 @@ export async function applyQuestionnaireRefinementFromAiAction(input: {
     title: proposal.title,
     description: proposal.description ?? undefined,
     questions: proposal.questions,
+    publicLayout: questionnaire.public_layout === "classic" ? "classic" : "guided",
   });
   if (!updated.ok) return updated;
   const { data: clientRaw } = project.client_id

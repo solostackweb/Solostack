@@ -120,7 +120,7 @@ export async function getQuestionnaireSendByToken(
   if (row.questionnaire_id) {
     const { data: questionnaireRaw } = await admin
       .from("questionnaires")
-      .select("title, description, questions, active")
+      .select("title, description, questions, active, public_layout")
       .eq("id", row.questionnaire_id)
       .maybeSingle();
     const questionnaire = questionnaireRaw as {
@@ -128,6 +128,7 @@ export async function getQuestionnaireSendByToken(
       description: string | null;
       questions: unknown;
       active: boolean;
+      public_layout: "guided" | "classic";
     } | null;
     if (questionnaire && !questionnaire.active) return null;
     if (questionnaire?.active) {
@@ -135,6 +136,7 @@ export async function getQuestionnaireSendByToken(
         ...send,
         title: questionnaire.title,
         questions: normalizeQuestions(questionnaire.questions),
+        publicLayout: questionnaire.public_layout ?? "guided",
       };
       description = questionnaire.description;
     }
