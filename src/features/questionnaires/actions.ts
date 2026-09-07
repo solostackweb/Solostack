@@ -7,12 +7,6 @@ import { z } from "zod";
 
 import { getServerSupabase } from "@/lib/supabase/server";
 import { getAdminSupabase } from "@/lib/supabase/admin";
-import { dispatchDelivery } from "@/features/email/send";
-import {
-  buildEmailBrand,
-  renderQuestionnaireInviteEmail,
-} from "@/features/email/templates";
-import { getPublicAppUrl } from "@/features/documents/urls";
 import { getClientIp, questionnaireSubmitLimit } from "@/lib/rate-limit";
 import {
   followUpAnswerKey,
@@ -230,12 +224,14 @@ export async function createFromStarterAction(
 }
 
 // ---------------------------------------------------------------------------
-// SEND — snapshot the questions to a per-client link + email
+// SHARE — create a reusable, audience-neutral collection link
 // ---------------------------------------------------------------------------
 
 const sendSchema = z.object({
   questionnaireId: z.string().uuid(),
-  clientId: z.string().uuid(),
+  // Accepted temporarily for compatibility with older clients. New links are
+  // always audience-neutral and these values are intentionally not persisted.
+  clientId: z.string().uuid().optional(),
   projectId: z.string().uuid().optional().nullable(),
   idempotencyKey: z.string().trim().min(8).max(200).optional(),
 });
@@ -247,7 +243,7 @@ export async function sendQuestionnaireAction(
   if (!userId) return { ok: false, error: "Please sign in." };
   const parsed = sendSchema.safeParse(input);
   if (!parsed.success) {
-    return { ok: false, error: "Pick a questionnaire and a client." };
+    return { ok: false, error: "Choose a questionnaire." };
   }
 
   const supabase = await getServerSupabase();
@@ -262,46 +258,11 @@ export async function sendQuestionnaireAction(
     | null;
   if (!questionnaire) return { ok: false, error: "Questionnaire not found." };
 
-  const { data: clientData } = await supabase
-    .from("clients")
-    .select("id")
-    .eq("id", parsed.data.clientId)
-    .eq("user_id", userId)
-    .maybeSingle();
-  if (!clientData) return { ok: false, error: "Client not found." };
-
-  if (parsed.data.projectId) {
-    const { data: projectData } = await supabase
-      .from("projects")
-      .select("id, client_id")
-      .eq("id", parsed.data.projectId)
-      .eq("user_id", userId)
-      .maybeSingle();
-    const project = projectData as { client_id?: string | null } | null;
-    if (!project || project.client_id !== parsed.data.clientId) {
-      return { ok: false, error: "That project does not belong to the selected client." };
-    }
-  }
-
-  const notify = async (sendId: string, publicToken: string) => {
-    const emailSent = await notifyClientOfQuestionnaire({
-      userId,
-      clientId: parsed.data.clientId,
-      questionnaireId: questionnaire.id,
-      sendId,
-      title: questionnaire.title,
-      questionCount: normalizeQuestions(questionnaire.questions).length,
-      token: publicToken,
-      idempotencyKey: parsed.data.idempotencyKey,
-    });
-    return {
-      ok: true as const,
-      data: { id: sendId, publicToken, emailSent },
-      message: emailSent
-        ? "Questionnaire emailed to the client."
-        : "Questionnaire link created, but email delivery was not completed.",
-    };
-  };
+  const linked = (sendId: string, publicToken: string) => ({
+    ok: true as const,
+    data: { id: sendId, publicToken, emailSent: false },
+    message: "Public questionnaire link is ready.",
+  });
 
   if (parsed.data.idempotencyKey) {
     const { data: existingRaw } = await supabase
@@ -311,8 +272,21 @@ export async function sendQuestionnaireAction(
       .eq("idempotency_key", parsed.data.idempotencyKey)
       .maybeSingle();
     const existing = existingRaw as { id: string; public_token: string } | null;
-    if (existing) return notify(existing.id, existing.public_token);
+    if (existing) return linked(existing.id, existing.public_token);
   }
+
+  const { data: reusableRaw } = await supabase
+    .from("questionnaire_sends")
+    .select("id, public_token")
+    .eq("user_id", userId)
+    .eq("questionnaire_id", questionnaire.id)
+    .is("client_id", null)
+    .is("project_id", null)
+    .order("created_at", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+  const reusable = reusableRaw as { id: string; public_token: string } | null;
+  if (reusable) return linked(reusable.id, reusable.public_token);
 
   const token = makeToken();
   const { data, error } = await supabase
@@ -320,8 +294,8 @@ export async function sendQuestionnaireAction(
     .insert({
       user_id: userId,
       questionnaire_id: questionnaire.id,
-      client_id: parsed.data.clientId,
-      project_id: parsed.data.projectId ?? null,
+      client_id: null,
+      project_id: null,
       title: questionnaire.title,
       questions: normalizeQuestions(questionnaire.questions),
       public_layout: questionnaire.public_layout,
@@ -341,14 +315,14 @@ export async function sendQuestionnaireAction(
         .eq("idempotency_key", parsed.data.idempotencyKey)
         .maybeSingle();
       const existing = existingRaw as { id: string; public_token: string } | null;
-      if (existing) return notify(existing.id, existing.public_token);
+      if (existing) return linked(existing.id, existing.public_token);
     }
     return { ok: false, error: error?.message ?? "Could not send." };
   }
   const created = data as { id: string; public_token: string };
 
   revalidatePath("/dashboard/questionnaires");
-  return notify(created.id, created.public_token);
+  return linked(created.id, created.public_token);
 }
 
 // ---------------------------------------------------------------------------
@@ -358,6 +332,8 @@ export async function sendQuestionnaireAction(
 const submitSchema = z.object({
   token: z.string().trim().min(10).max(200),
   submissionKey: z.string().uuid(),
+  respondentName: z.string().trim().min(1).max(200),
+  respondentEmail: z.string().trim().email().max(320),
   responses: z.record(z.string(), z.union([
     z.string().max(10_000),
     z.array(z.string().max(1_000)).max(50),
@@ -426,6 +402,15 @@ export async function submitQuestionnaireAction(
   const sanitized = sanitizeResponses(questions, parsed.data.responses);
   if (!sanitized.ok) return { ok: false, error: sanitized.error };
   if (!sanitized.data) return { ok: false, error: "Invalid submission." };
+  const respondentQuestions: Question[] = [
+    { id: "__respondent_name", type: "short_text", label: "Name", required: true },
+    { id: "__respondent_email", type: "email", label: "Email", required: true },
+  ];
+  const respondentResponses = {
+    __respondent_name: parsed.data.respondentName.trim(),
+    __respondent_email: parsed.data.respondentEmail.trim().toLowerCase(),
+    ...sanitized.data,
+  };
   const { data, error } = await admin
     .from("questionnaire_responses")
     .insert({
@@ -435,8 +420,8 @@ export async function submitQuestionnaireAction(
       client_id: send.client_id,
       project_id: send.project_id,
       submission_key: parsed.data.submissionKey,
-      questions,
-      responses: sanitized.data,
+      questions: [...respondentQuestions, ...questions],
+      responses: respondentResponses,
     } as never)
     .select("id")
     .single();
@@ -497,87 +482,4 @@ export async function retryQuestionnaireSheetSyncAction(responseId: string): Pro
   const ok = await syncQuestionnaireResponse(response.id);
   if (response.questionnaire_id) revalidatePath(`/dashboard/questionnaires/${response.questionnaire_id}/responses`);
   return ok ? { ok: true, message: "Response synced." } : { ok: false, error: "Google Sheets sync failed. Reconnect Google and try again." };
-}
-
-// ---------------------------------------------------------------------------
-// helpers
-// ---------------------------------------------------------------------------
-
-async function notifyClientOfQuestionnaire(args: {
-  userId: string;
-  clientId: string;
-  questionnaireId: string;
-  sendId: string;
-  title: string;
-  questionCount?: number;
-  token: string;
-  idempotencyKey?: string;
-}): Promise<boolean> {
-  const admin = getAdminSupabase();
-  const { data: clientData } = await admin
-    .from("clients")
-    .select("email, full_name, business_name")
-    .eq("id", args.clientId)
-    .maybeSingle();
-  const client = clientData as
-    | { email: string | null; full_name: string; business_name: string | null }
-    | null;
-  if (!client?.email) return false;
-
-  const { data: profile } = await admin
-    .from("user_profiles")
-    .select("business_name, full_name, email, brand_color, business_email, business_phone, website")
-    .eq("id", args.userId)
-    .maybeSingle();
-  const p = profile as
-    | {
-        business_name: string | null;
-        full_name: string | null;
-        email: string | null;
-        brand_color: string | null;
-        business_email: string | null;
-        business_phone: string | null;
-        website: string | null;
-      }
-    | null;
-  const hostName = p?.business_name || p?.full_name || "Your freelancer";
-  const hostEmail = p?.business_email || p?.email || null;
-  const clientName = client.business_name || client.full_name || "there";
-  const url = `${getPublicAppUrl()}/q/${args.token}`;
-
-  const rendered = renderQuestionnaireInviteEmail({
-    title: args.title,
-    clientName,
-    hostName,
-    questionCount: args.questionCount,
-    publicUrl: url,
-    brand: buildEmailBrand({
-      businessName: p?.business_name ?? null,
-      fullName: p?.full_name ?? null,
-      brandColor: p?.brand_color ?? null,
-      businessEmail: p?.business_email ?? null,
-      email: p?.email ?? null,
-      businessPhone: p?.business_phone ?? null,
-      website: p?.website ?? null,
-    }),
-  });
-
-  const delivery = await dispatchDelivery({
-    userId: args.userId,
-    kind: "questionnaire_sent",
-    entityType: "questionnaire",
-    entityId: args.questionnaireId,
-    senderType: "share",
-    to: { email: client.email, name: clientName },
-    ...(hostEmail ? { replyTo: { email: hostEmail, name: hostName } } : {}),
-    subject: rendered.subject,
-    html: rendered.html,
-    text: rendered.text,
-    tags: ["questionnaire"],
-    metadata: { questionnaireSendId: args.sendId },
-    idempotencyKey: args.idempotencyKey
-      ? `questionnaire-email:${args.userId}:${args.idempotencyKey}`
-      : null,
-  });
-  return delivery.ok;
 }

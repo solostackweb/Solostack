@@ -25,7 +25,7 @@ export interface SendClientOption {
 
 export function buildWhatsappHref(
   link: string,
-  clientName: string,
+  clientName = "there",
   phone?: string | null,
 ): string {
   const message = `Hi ${clientName}, please fill out this quick questionnaire: ${link}`;
@@ -37,40 +37,30 @@ export function buildWhatsappHref(
 
 export function SendQuestionnaireDialog({
   questionnaireId,
-  clients,
   trigger,
 }: {
   questionnaireId: string;
-  clients: SendClientOption[];
+  clients?: SendClientOption[];
   trigger?: React.ReactNode;
 }) {
   const router = useRouter();
   const [open, setOpen] = React.useState(false);
-  const [clientId, setClientId] = React.useState("");
   const [sending, setSending] = React.useState(false);
   const [link, setLink] = React.useState<string | null>(null);
   const [copied, setCopied] = React.useState(false);
   const requestKeyRef = React.useRef<string | null>(null);
 
-  const client = clients.find((c) => c.id === clientId);
-
   const reset = () => {
     setLink(null);
-    setClientId("");
     setCopied(false);
     requestKeyRef.current = null;
   };
 
   const send = async () => {
-    if (!clientId) {
-      toast.error("Pick a client to send to.");
-      return;
-    }
     setSending(true);
     requestKeyRef.current ??= crypto.randomUUID();
     const res = await sendQuestionnaireAction({
       questionnaireId,
-      clientId,
       idempotencyKey: requestKeyRef.current,
     });
     setSending(false);
@@ -78,7 +68,7 @@ export function SendQuestionnaireDialog({
       toast.error(res.error);
       return;
     }
-    toast.success(res.message ?? "Sent.");
+    toast.success(res.message ?? "Link ready.");
     setLink(`${window.location.origin}/q/${res.data?.publicToken ?? ""}`);
     router.refresh();
   };
@@ -113,7 +103,7 @@ export function SendQuestionnaireDialog({
         {link ? (
           <div className="space-y-4">
             <p className="text-sm text-muted-foreground">
-              Sent to {client?.name ?? "your client"}. Share this private link:
+              Anyone with this link can submit a response. Name and email are required.
             </p>
             <div className="flex items-center gap-2">
               <Input readOnly value={link} className="font-mono text-xs" />
@@ -133,8 +123,7 @@ export function SendQuestionnaireDialog({
                 <a
                   href={buildWhatsappHref(
                     link,
-                    client?.name ?? "there",
-                    client?.phone,
+                    "there",
                   )}
                   target="_blank"
                   rel="noreferrer"
@@ -149,29 +138,12 @@ export function SendQuestionnaireDialog({
           </div>
         ) : (
           <div className="space-y-4">
-            <label className="block space-y-1.5">
-              <span className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-                Client
-              </span>
-              <select
-                value={clientId}
-                onChange={(e) => {
-                  setClientId(e.target.value);
-                  requestKeyRef.current = null;
-                }}
-                className="h-11 w-full rounded-lg border bg-background px-3 text-sm"
-              >
-                <option value="">Choose a client</option>
-                {clients.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}
-                  </option>
-                ))}
-              </select>
-            </label>
+            <p className="text-sm leading-6 text-muted-foreground">
+              Create one reusable public link for this questionnaire. Responses stay separate and identify the respondent by name and email.
+            </p>
             <DialogFooter>
               <Button type="button" onClick={send} disabled={sending}>
-                <Send className="h-4 w-4" /> {sending ? "Sending…" : "Send"}
+                <Send className="h-4 w-4" /> {sending ? "Creating…" : "Create link"}
               </Button>
             </DialogFooter>
           </div>

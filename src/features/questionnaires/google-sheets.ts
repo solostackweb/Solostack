@@ -13,8 +13,10 @@ import {
 const SHEETS_API = "https://sheets.googleapis.com/v4/spreadsheets";
 const BASE_COLUMNS = [
   { key: "submitted_at", label: "Submitted at" },
-  { key: "client", label: "Client" },
-  { key: "project", label: "Project" },
+] as const;
+const RESPONDENT_COLUMNS = [
+  { key: "__respondent_name", label: "Name" },
+  { key: "__respondent_email", label: "Email" },
 ] as const;
 
 export interface SheetColumn {
@@ -109,10 +111,14 @@ export async function createQuestionnaireSpreadsheet(args: {
     method: "POST",
     body: JSON.stringify({
       properties: { title: `Stackivo — ${args.title} responses` },
-      sheets: [{ properties: { title: sheetTitle, frozenRowCount: 1 } }],
+      sheets: [{ properties: { title: sheetTitle, gridProperties: { frozenRowCount: 1 } } }],
     }),
   });
-  const columns: SheetColumn[] = [...BASE_COLUMNS, ...questionColumns(args.questions)];
+  const columns: SheetColumn[] = [
+    ...BASE_COLUMNS,
+    ...RESPONDENT_COLUMNS,
+    ...questionColumns(args.questions),
+  ];
   const last = columnName(columns.length);
   await sheetsRequest(accessToken, `${SHEETS_API}/${created.spreadsheetId}/values/${encodeURIComponent(`${sheetTitle}!A1:${last}1`)}?valueInputOption=RAW`, {
     method: "PUT",
@@ -185,23 +191,11 @@ export async function syncQuestionnaireResponse(responseId: string): Promise<boo
       });
       await admin.from("questionnaire_sheet_integrations").update({ columns, updated_at: new Date().toISOString() } as never).eq("id", integration.id);
     }
-    const [clientResult, projectResult] = await Promise.all([
-      response.client_id
-        ? admin.from("clients").select("full_name, business_name").eq("id", response.client_id).maybeSingle()
-        : Promise.resolve({ data: null }),
-      response.project_id
-        ? admin.from("projects").select("name").eq("id", response.project_id).maybeSingle()
-        : Promise.resolve({ data: null }),
-    ]);
-    const client = clientResult.data as { full_name?: string; business_name?: string | null } | null;
-    const project = projectResult.data as { name?: string } | null;
     const answerMap = response.responses && typeof response.responses === "object"
       ? (response.responses as Record<string, unknown>)
       : {};
     const meta: Record<string, unknown> = {
       submitted_at: response.submitted_at,
-      client: client?.business_name || client?.full_name || "",
-      project: project?.name || "",
     };
     const row = columns.map((column) => printable(column.key in meta ? meta[column.key] : answerMap[column.key]));
     await sheetsRequest(accessToken, `${SHEETS_API}/${integration.spreadsheet_id}/values/${encodeURIComponent(`${integration.sheet_title}!A:${columnName(columns.length)}`)}:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`, {

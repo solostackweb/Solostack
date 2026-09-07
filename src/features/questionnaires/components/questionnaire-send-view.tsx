@@ -30,25 +30,19 @@ export function QuestionnaireSendView({
   sends: QuestionnaireSend[];
 }) {
   const router = useRouter();
-  const [clientId, setClientId] = React.useState("");
   const [sending, setSending] = React.useState(false);
   const [lastLink, setLastLink] = React.useState<string | null>(null);
   const [copied, setCopied] = React.useState(false);
   const requestKeyRef = React.useRef<string | null>(null);
 
   const nameFor = (id: string | null) =>
-    clients.find((c) => c.id === id)?.name ?? "Client";
+    clients.find((c) => c.id === id)?.name ?? "Public collection link";
 
   const send = async () => {
-    if (!clientId) {
-      toast.error("Pick a client to send to.");
-      return;
-    }
     setSending(true);
     requestKeyRef.current ??= crypto.randomUUID();
     const res = await sendQuestionnaireAction({
       questionnaireId,
-      clientId,
       idempotencyKey: requestKeyRef.current,
     });
     setSending(false);
@@ -56,7 +50,7 @@ export function QuestionnaireSendView({
       toast.error(res.error);
       return;
     }
-    toast.success(res.message ?? "Sent.");
+    toast.success(res.message ?? "Link ready.");
     setLastLink(`${window.location.origin}/q/${res.data?.publicToken ?? ""}`);
     router.refresh();
   };
@@ -84,29 +78,12 @@ export function QuestionnaireSendView({
 
       <Card>
         <CardContent className="space-y-4 p-6">
-          <label className="block space-y-1.5">
-            <span className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-              Client
-            </span>
-            <select
-              value={clientId}
-              onChange={(e) => {
-                setClientId(e.target.value);
-                requestKeyRef.current = null;
-              }}
-              className="h-11 w-full rounded-lg border bg-background px-3 text-sm"
-            >
-              <option value="">Choose a client</option>
-              {clients.map((client) => (
-                <option key={client.id} value={client.id}>
-                  {client.name}
-                </option>
-              ))}
-            </select>
-          </label>
+          <p className="text-sm leading-6 text-muted-foreground">
+            Create one reusable public link. Every response records the respondent&apos;s required name and email.
+          </p>
           <Button type="button" onClick={send} disabled={sending}>
             <Send className="h-4 w-4" />
-            {sending ? "Sending…" : "Send questionnaire"}
+            {sending ? "Creating…" : "Create public link"}
           </Button>
           {lastLink ? (
             <div className="flex items-center gap-2">

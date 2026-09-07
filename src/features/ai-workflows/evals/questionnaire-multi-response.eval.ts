@@ -7,6 +7,8 @@ const ROOT = path.resolve(process.cwd(), "src/features/questionnaires");
 const ACTIONS = readFileSync(path.join(ROOT, "actions.ts"), "utf8");
 const TYPES = readFileSync(path.join(ROOT, "types.ts"), "utf8");
 const FILL = readFileSync(path.join(ROOT, "components/questionnaire-fill-view.tsx"), "utf8");
+const SHARE_DIALOG = readFileSync(path.join(ROOT, "components/send-questionnaire-dialog.tsx"), "utf8");
+const SHEETS = readFileSync(path.join(ROOT, "google-sheets.ts"), "utf8");
 const MIGRATION = readFileSync(path.resolve(process.cwd(), "supabase/migrations/0087_questionnaire_response_collections.sql"), "utf8");
 
 describe("questionnaire response collections", () => {
@@ -32,5 +34,23 @@ describe("questionnaire response collections", () => {
     const insertAt = ACTIONS.indexOf('.from("questionnaire_responses")');
     const syncAt = ACTIONS.indexOf("await syncQuestionnaireResponse");
     assert.ok(insertAt >= 0 && syncAt > insertAt);
+  });
+
+  it("creates a valid Sheets document with a frozen header row", () => {
+    assert.match(SHEETS, /gridProperties:\s*\{\s*frozenRowCount:\s*1\s*\}/);
+    assert.doesNotMatch(SHEETS, /title:\s*sheetTitle,\s*frozenRowCount/);
+  });
+
+  it("creates audience-neutral links without requiring a client", () => {
+    assert.match(ACTIONS, /client_id:\s*null/);
+    assert.match(ACTIONS, /project_id:\s*null/);
+    assert.doesNotMatch(SHARE_DIALOG, /Choose a client/);
+  });
+
+  it("requires respondent identity and enables browser autofill", () => {
+    assert.match(ACTIONS, /respondentName:\s*z\.string\(\)\.trim\(\)\.min\(1\)/);
+    assert.match(ACTIONS, /respondentEmail:\s*z\.string\(\)\.trim\(\)\.email\(\)/);
+    assert.match(FILL, /autoComplete="name"/);
+    assert.match(FILL, /autoComplete="email"/);
   });
 });
