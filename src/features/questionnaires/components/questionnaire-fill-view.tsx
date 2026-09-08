@@ -96,7 +96,7 @@ export function QuestionnaireFillView({ token, hostName, send }: { token: string
   };
   const lightVars = { "--background": "0 0% 100%", "--foreground": "222 47% 11%", "--primary": "221 83% 53%", "--primary-foreground": "0 0% 100%", "--border": "214 32% 91%", colorScheme: "light" } as React.CSSProperties;
 
-  return <div className="relative min-h-screen overflow-hidden bg-slate-50 text-slate-950" style={lightVars}>
+  return <div className="relative min-h-screen cursor-default select-none overflow-hidden bg-slate-50 text-slate-950" style={lightVars}>
     <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-80 bg-[radial-gradient(circle_at_top,#dbeafe_0,transparent_68%)]" />
     <main className="relative mx-auto flex min-h-screen max-w-3xl flex-col px-4 py-6 sm:px-6 sm:py-10">
       <header className="mb-5 flex items-center justify-between gap-4">
@@ -256,7 +256,9 @@ function IdentityFields({
   );
 }
 
-const inputCls = "min-h-12 w-full rounded-lg border border-slate-300 bg-white px-3 text-base text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-blue-600 focus:ring-4 focus:ring-blue-100";
+const controlCls = "min-h-12 w-full rounded-lg border border-slate-300 bg-white px-3 text-base text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-blue-600 focus:ring-4 focus:ring-blue-100";
+const inputCls = `${controlCls} cursor-text select-text`;
+const selectCls = `${controlCls} cursor-pointer select-none`;
 
 function QuestionField({ question, answers, setAnswer }: { question: Question; answers: Record<string, Answer>; setAnswer: (id: string, value: Answer) => void }) {
   const value = answers[question.id];
@@ -272,7 +274,7 @@ function QuestionField({ question, answers, setAnswer }: { question: Question; a
     case "number": field = <input type="number" value={strVal} onChange={(event) => change(event.target.value)} className={inputCls} />; break;
     case "date": field = <input type="date" value={strVal} onChange={(event) => change(event.target.value)} className={inputCls} />; break;
     case "file": field = <input type="url" placeholder="Paste a Drive, Dropbox, or file link" value={strVal} onChange={(event) => change(event.target.value)} className={inputCls} />; break;
-    case "dropdown": field = <select value={strVal} onChange={(event) => change(event.target.value)} className={inputCls}><option value="">Select an option…</option>{(question.options ?? []).map((option) => <option key={option} value={option}>{option}</option>)}{question.allowOther ? <option value={OTHER_OPTION_VALUE}>Other</option> : null}</select>; break;
+    case "dropdown": field = <select value={strVal} onChange={(event) => change(event.target.value)} className={selectCls}><option value="">Select an option…</option>{(question.options ?? []).map((option) => <option key={option} value={option}>{option}</option>)}{question.allowOther ? <option value={OTHER_OPTION_VALUE}>Other</option> : null}</select>; break;
     case "single_choice": field = <ChoiceList options={[...(question.options ?? []), ...(question.allowOther ? [OTHER_OPTION_VALUE] : [])]} value={value} multiple={false} onChange={change} />; break;
     case "multi_choice": field = <ChoiceList options={[...(question.options ?? []), ...(question.allowOther ? [OTHER_OPTION_VALUE] : [])]} value={value} multiple onChange={change} />; break;
     case "yes_no": field = <ChoiceList options={["Yes", "No"]} value={value} multiple={false} onChange={change} />; break;

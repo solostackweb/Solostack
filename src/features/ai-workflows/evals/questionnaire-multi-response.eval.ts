@@ -62,4 +62,10 @@ describe("questionnaire response collections", () => {
   it("shows the questionnaire introduction only before the guided questions", () => {
     assert.doesNotMatch(FILL, /step === 0 \? <div[\s\S]{0,250}\{send\.title\}/);
   });
+
+  it("uses interaction-appropriate cursors on the public form", () => {
+    assert.match(FILL, /min-h-screen cursor-default select-none/);
+    assert.match(FILL, /inputCls = `\$\{controlCls\} cursor-text select-text`/);
+    assert.match(FILL, /selectCls = `\$\{controlCls\} cursor-pointer select-none`/);
+  });
 });
