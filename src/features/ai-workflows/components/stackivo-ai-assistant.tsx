@@ -3581,7 +3581,8 @@ export function StackivoAiAssistant({ user }: StackivoAiAssistantProps) {
         setSelectedResources(detail.resources.slice(0, 6));
       }
       if (prompt) {
-        window.setTimeout(() => submitRef.current?.(prompt), 80);
+        setInput(prompt);
+        window.setTimeout(() => submitRef.current?.(), 80);
       }
     };
     window.addEventListener(IVO_ASK_EVENT, handleAskIvo);
