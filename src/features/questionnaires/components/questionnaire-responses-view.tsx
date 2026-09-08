@@ -2,14 +2,14 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { ArrowLeft, Check, Copy, ExternalLink, FileSpreadsheet, MessageCircle, RefreshCw } from "lucide-react";
+import { ArrowLeft, Check, Copy, ExternalLink, FileSpreadsheet, MessageCircle, RefreshCw, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { PageHeader } from "@/components/shared/page-header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { IvoEntryPoint } from "@/features/ai-workflows/components/ivo-entry-point";
-import { connectQuestionnaireSheetAction, retryQuestionnaireSheetSyncAction } from "../actions";
+import { connectQuestionnaireSheetAction, retryQuestionnaireSheetSyncAction, revokeQuestionnaireLinkAction } from "../actions";
 import { followUpAnswerKey, OTHER_OPTION_VALUE, otherAnswerKey, type QuestionnaireResponse, type QuestionnaireSend, type QuestionnaireSheetIntegration } from "../types";
 import { SendQuestionnaireDialog, buildWhatsappHref, type SendClientOption } from "./send-questionnaire-dialog";
 
@@ -70,9 +70,18 @@ function SheetsPanel({ questionnaireId, integration }: { questionnaireId: string
 
 function CollectorCard({ send, client, responseCount }: { send: QuestionnaireSend; client?: SendClientOption; responseCount: number }) {
   const [copied, setCopied] = React.useState(false);
+  const [deleting, setDeleting] = React.useState(false);
   const shareUrl = typeof window !== "undefined" ? `${window.location.origin}/q/${send.publicToken}` : `/q/${send.publicToken}`;
   const copy = async () => { await navigator.clipboard.writeText(shareUrl); setCopied(true); setTimeout(() => setCopied(false), 1500); };
-  return <Card><CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between"><div><p className="text-sm font-semibold">{client?.name ?? "Public collection link"}</p><p className="mt-1 text-xs text-muted-foreground">Created {fmtDate(send.createdAt)} · {responseCount} {responseCount === 1 ? "response" : "responses"}</p></div><div className="flex flex-wrap gap-2"><Button type="button" size="sm" variant="outline" onClick={copy}>{copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}{copied ? "Copied" : "Copy link"}</Button><Button asChild size="sm" className="bg-[#25D366] text-white hover:bg-[#1ebe5d]"><a href={buildWhatsappHref(shareUrl, client?.name ?? "there", client?.phone)} target="_blank" rel="noreferrer"><MessageCircle className="h-3.5 w-3.5" /> WhatsApp</a></Button></div></CardContent></Card>;
+  const revoke = async () => {
+    if (!window.confirm("Delete this public link? Existing responses will be kept.")) return;
+    setDeleting(true);
+    const result = await revokeQuestionnaireLinkAction(send.id);
+    setDeleting(false);
+    if (result.ok) { toast.success(result.message); window.location.reload(); }
+    else toast.error(result.error);
+  };
+  return <Card><CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between"><div><p className="text-sm font-semibold">{client?.name ?? "Public collection link"}</p><p className="mt-1 text-xs text-muted-foreground">Created {fmtDate(send.createdAt)} · {responseCount} {responseCount === 1 ? "response" : "responses"}</p></div><div className="flex flex-wrap gap-2"><Button type="button" size="sm" variant="outline" onClick={copy}>{copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}{copied ? "Copied" : "Copy link"}</Button><Button asChild size="sm" className="bg-[#25D366] text-white hover:bg-[#1ebe5d]"><a href={buildWhatsappHref(shareUrl, client?.name ?? "there", client?.phone)} target="_blank" rel="noreferrer"><MessageCircle className="h-3.5 w-3.5" /> WhatsApp</a></Button><Button type="button" size="sm" variant="ghost" className="text-muted-foreground hover:text-destructive" onClick={revoke} disabled={deleting}><Trash2 className="h-3.5 w-3.5" /> {deleting ? "Deleting…" : "Delete link"}</Button></div></CardContent></Card>;
 }
 
 function displayAnswer(response: QuestionnaireResponse, questionId: string): string {

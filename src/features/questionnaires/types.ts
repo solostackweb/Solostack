@@ -3,6 +3,7 @@ import type {
   QuestionnaireRow,
   QuestionnaireSendRow,
   QuestionnaireSheetIntegrationRow,
+  QuestionnaireTemplateRow,
 } from "@/lib/supabase/types";
 
 export type QuestionType =
@@ -40,6 +41,8 @@ export interface Question {
     label: string;
     placeholder?: string;
   };
+  /** Finish and submit the questionnaire when this Yes / No answer is chosen. */
+  endFormOn?: "Yes" | "No";
 }
 
 export const OTHER_OPTION_VALUE = "__stackivo_other__";
@@ -131,6 +134,9 @@ export function normalizeQuestions(raw: unknown): Question[] {
         };
       }
     }
+    if (type === "yes_no" && (r.endFormOn === "Yes" || r.endFormOn === "No")) {
+      q.endFormOn = r.endFormOn;
+    }
     out.push(q);
   }
   return out;
@@ -173,6 +179,7 @@ export interface QuestionnaireSheetIntegration {
   spreadsheetId: string;
   spreadsheetUrl: string;
   sheetTitle: string;
+  sheetId: number;
   active: boolean;
   lastSyncedAt: string | null;
   lastError: string | null;
@@ -185,6 +192,7 @@ export function mapQuestionnaireSheetIntegrationRow(
     spreadsheetId: row.spreadsheet_id,
     spreadsheetUrl: row.spreadsheet_url,
     sheetTitle: row.sheet_title,
+    sheetId: row.sheet_id,
     active: row.active,
     lastSyncedAt: row.last_synced_at,
     lastError: row.last_error,
@@ -229,6 +237,7 @@ export interface QuestionnaireSend {
   projectId: string | null;
   submittedAt: string | null;
   createdAt: string;
+  revokedAt: string | null;
 }
 
 export function mapQuestionnaireSendRow(
@@ -252,5 +261,24 @@ export function mapQuestionnaireSendRow(
     projectId: row.project_id,
     submittedAt: row.submitted_at,
     createdAt: row.created_at,
+    revokedAt: row.revoked_at,
+  };
+}
+
+export interface QuestionnaireTemplate {
+  id: string;
+  title: string;
+  description: string | null;
+  questions: Question[];
+  updatedAt: string;
+}
+
+export function mapQuestionnaireTemplateRow(row: QuestionnaireTemplateRow): QuestionnaireTemplate {
+  return {
+    id: row.id,
+    title: row.title,
+    description: row.description,
+    questions: normalizeQuestions(row.questions),
+    updatedAt: row.updated_at,
   };
 }

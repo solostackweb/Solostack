@@ -7,17 +7,20 @@ import type {
   QuestionnaireResponseRow,
   QuestionnaireSendRow,
   QuestionnaireSheetIntegrationRow,
+  QuestionnaireTemplateRow,
 } from "@/lib/supabase/types";
 import {
   mapQuestionnaireRow,
   mapQuestionnaireResponseRow,
   mapQuestionnaireSendRow,
   mapQuestionnaireSheetIntegrationRow,
+  mapQuestionnaireTemplateRow,
   normalizeQuestions,
   type Questionnaire,
   type QuestionnaireResponse,
   type QuestionnaireSend,
   type QuestionnaireSheetIntegration,
+  type QuestionnaireTemplate,
 } from "./types";
 
 async function currentUserId(): Promise<string | null> {
@@ -38,6 +41,15 @@ export async function listQuestionnaires(): Promise<Questionnaire[]> {
     .eq("user_id", userId)
     .order("created_at", { ascending: false });
   return ((data ?? []) as QuestionnaireRow[]).map(mapQuestionnaireRow);
+}
+
+export async function listQuestionnaireTemplates(): Promise<QuestionnaireTemplate[]> {
+  const userId = await currentUserId();
+  if (!userId) return [];
+  const supabase = await getServerSupabase();
+  const { data } = await supabase.from("questionnaire_templates").select("*")
+    .eq("user_id", userId).order("updated_at", { ascending: false });
+  return ((data ?? []) as QuestionnaireTemplateRow[]).map(mapQuestionnaireTemplateRow);
 }
 
 export async function getQuestionnaire(
@@ -72,6 +84,7 @@ export async function listSendsForOwner(
     .from("questionnaire_sends")
     .select("*")
     .eq("user_id", userId)
+    .is("revoked_at", null)
     .order("created_at", { ascending: false });
   if (filter.clientId) query = query.eq("client_id", filter.clientId);
   if (filter.projectId) query = query.eq("project_id", filter.projectId);
@@ -91,6 +104,7 @@ export async function getQuestionnaireSendByToken(
     .from("questionnaire_sends")
     .select("*")
     .eq("public_token", token)
+    .is("revoked_at", null)
     .maybeSingle();
   const row = data as QuestionnaireSendRow | null;
   if (!row) return null;

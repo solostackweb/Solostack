@@ -24,6 +24,76 @@ export interface SheetColumn {
   label: string;
 }
 
+async function formatResponseSheet(
+  accessToken: string,
+  spreadsheetId: string,
+  sheetId: number,
+  columnCount: number,
+): Promise<void> {
+  await sheetsRequest(accessToken, `${SHEETS_API}/${spreadsheetId}:batchUpdate`, {
+    method: "POST",
+    body: JSON.stringify({
+      requests: [
+        {
+          repeatCell: {
+            range: { sheetId, startRowIndex: 0, endRowIndex: 1, startColumnIndex: 0, endColumnIndex: columnCount },
+            cell: {
+              userEnteredFormat: {
+                backgroundColor: { red: 0.145, green: 0.388, blue: 0.922 },
+                textFormat: { foregroundColor: { red: 1, green: 1, blue: 1 }, bold: true },
+                horizontalAlignment: "LEFT",
+                verticalAlignment: "MIDDLE",
+                wrapStrategy: "WRAP",
+              },
+            },
+            fields: "userEnteredFormat(backgroundColor,textFormat,horizontalAlignment,verticalAlignment,wrapStrategy)",
+          },
+        },
+        {
+          repeatCell: {
+            range: { sheetId, startRowIndex: 1, startColumnIndex: 0, endColumnIndex: columnCount },
+            cell: { userEnteredFormat: { verticalAlignment: "TOP", wrapStrategy: "WRAP" } },
+            fields: "userEnteredFormat(verticalAlignment,wrapStrategy)",
+          },
+        },
+        {
+          updateDimensionProperties: {
+            range: { sheetId, dimension: "ROWS", startIndex: 0, endIndex: 1 },
+            properties: { pixelSize: 42 },
+            fields: "pixelSize",
+          },
+        },
+        {
+          updateDimensionProperties: {
+            range: { sheetId, dimension: "COLUMNS", startIndex: 0, endIndex: 1 },
+            properties: { pixelSize: 180 },
+            fields: "pixelSize",
+          },
+        },
+        {
+          updateDimensionProperties: {
+            range: { sheetId, dimension: "COLUMNS", startIndex: 1, endIndex: Math.min(3, columnCount) },
+            properties: { pixelSize: 220 },
+            fields: "pixelSize",
+          },
+        },
+        ...(columnCount > 3 ? [{
+          updateDimensionProperties: {
+            range: { sheetId, dimension: "COLUMNS", startIndex: 3, endIndex: columnCount },
+            properties: { pixelSize: 280 },
+            fields: "pixelSize",
+          },
+        }] : []),
+        {
+          setBasicFilter: {
+            filter: { range: { sheetId, startRowIndex: 0, startColumnIndex: 0, endColumnIndex: columnCount } },
+          },
+        },
+      ],
+    }),
+  });
+}
+
 function questionColumns(questions: Question[]): SheetColumn[] {
   return questions.flatMap((question) => {
     const columns: SheetColumn[] = [{ key: question.id, label: question.label }];
@@ -107,6 +177,7 @@ export async function createQuestionnaireSpreadsheet(args: {
   const created = await sheetsRequest<{
     spreadsheetId: string;
     spreadsheetUrl: string;
+    sheets?: Array<{ properties?: { sheetId?: number } }>;
   }>(accessToken, SHEETS_API, {
     method: "POST",
     body: JSON.stringify({
@@ -124,6 +195,8 @@ export async function createQuestionnaireSpreadsheet(args: {
     method: "PUT",
     body: JSON.stringify({ values: [columns.map((column) => column.label)] }),
   });
+  const sheetId = created.sheets?.[0]?.properties?.sheetId ?? 0;
+  await formatResponseSheet(accessToken, created.spreadsheetId, sheetId, columns.length);
   const admin = getAdminSupabase();
   const { data, error } = await admin
     .from("questionnaire_sheet_integrations")
@@ -133,6 +206,8 @@ export async function createQuestionnaireSpreadsheet(args: {
       spreadsheet_id: created.spreadsheetId,
       spreadsheet_url: created.spreadsheetUrl,
       sheet_title: sheetTitle,
+      sheet_id: sheetId,
+      format_version: 1,
       columns,
       active: true,
       last_error: null,
@@ -189,7 +264,14 @@ export async function syncQuestionnaireResponse(responseId: string): Promise<boo
         method: "PUT",
         body: JSON.stringify({ values: [columns.map((column) => column.label)] }),
       });
-      await admin.from("questionnaire_sheet_integrations").update({ columns, updated_at: new Date().toISOString() } as never).eq("id", integration.id);
+    }
+    if (headersChanged || (integration.format_version ?? 0) < 1) {
+      await formatResponseSheet(accessToken, integration.spreadsheet_id, integration.sheet_id ?? 0, columns.length);
+      await admin.from("questionnaire_sheet_integrations").update({
+        columns,
+        format_version: 1,
+        updated_at: new Date().toISOString(),
+      } as never).eq("id", integration.id);
     }
     const answerMap = response.responses && typeof response.responses === "object"
       ? (response.responses as Record<string, unknown>)

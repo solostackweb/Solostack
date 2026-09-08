@@ -19,6 +19,7 @@ import {
   PanelTop,
   Plus,
   Save,
+  BookmarkPlus,
   Star,
   ToggleLeft,
   Trash2,
@@ -52,6 +53,7 @@ import {
 } from "../types";
 import {
   createQuestionnaireAction,
+  saveQuestionnaireAsTemplateAction,
   updateQuestionnaireAction,
 } from "../actions";
 
@@ -89,6 +91,7 @@ export function QuestionnaireBuilder({
     initial?.publicLayout ?? "guided",
   );
   const [saving, setSaving] = React.useState(false);
+  const [savingTemplate, setSavingTemplate] = React.useState(false);
 
   const addQuestion = (type: QuestionType) =>
     setQuestions((prev) => [
@@ -137,7 +140,37 @@ export function QuestionnaireBuilder({
         type === "yes_no"
           ? questions.find((q) => q.id === id)?.conditionalFollowUp
           : undefined,
+      endFormOn:
+        type === "yes_no" ? questions.find((q) => q.id === id)?.endFormOn : undefined,
     });
+
+  const saveAsTemplate = async () => {
+    if (!initial) return;
+    if (!title.trim()) return void toast.error("Give your questionnaire a title.");
+    const cleaned = questions.filter((question) => question.label.trim().length > 0);
+    if (cleaned.length === 0) return void toast.error("Add at least one question.");
+    setSavingTemplate(true);
+    const saved = await updateQuestionnaireAction({
+      id: initial.id,
+      title: title.trim(),
+      description: description.trim() || undefined,
+      publicLayout,
+      questions: cleaned.map((question) => ({
+        ...question,
+        options: questionNeedsOptions(question.type)
+          ? (question.options ?? []).filter((option) => option.trim().length > 0)
+          : undefined,
+      })),
+    });
+    if (!saved.ok) {
+      setSavingTemplate(false);
+      return void toast.error(saved.error);
+    }
+    const result = await saveQuestionnaireAsTemplateAction(initial.id);
+    setSavingTemplate(false);
+    if (result.ok) toast.success(result.message);
+    else toast.error(result.error);
+  };
 
   const save = async () => {
     if (!title.trim()) {
@@ -191,6 +224,11 @@ export function QuestionnaireBuilder({
             <Button size="sm" onClick={save} disabled={saving}>
               <Save className="h-4 w-4" /> {saving ? "Saving…" : "Save"}
             </Button>
+            {mode === "edit" ? (
+              <Button variant="outline" size="sm" onClick={saveAsTemplate} disabled={savingTemplate}>
+                <BookmarkPlus className="h-4 w-4" /> {savingTemplate ? "Saving…" : "Save as template"}
+              </Button>
+            ) : null}
           </div>
         }
       />
@@ -481,6 +519,19 @@ function ConditionalFollowUpEditor({
   const enabled = Boolean(question.conditionalFollowUp);
   return (
     <div className="space-y-3 rounded-lg border bg-muted/20 p-3">
+      <label className="grid gap-1 text-xs font-medium text-muted-foreground sm:max-w-sm">
+        End this form early
+        <select
+          value={question.endFormOn ?? ""}
+          onChange={(event) => onChange({ endFormOn: (event.target.value || undefined) as "Yes" | "No" | undefined })}
+          className="h-10 rounded-lg border bg-background px-3 text-sm text-foreground"
+        >
+          <option value="">Never — continue to the next question</option>
+          <option value="No">When No is chosen</option>
+          <option value="Yes">When Yes is chosen</option>
+        </select>
+        <span className="font-normal leading-5">The response is submitted at this point and later questions are skipped.</span>
+      </label>
       <label className="flex min-h-11 items-center gap-2 text-sm font-medium">
         <input
           type="checkbox"

@@ -68,6 +68,7 @@ const questionSchema = z.object({
     label: z.string().trim().min(1).max(300),
     placeholder: z.string().trim().max(300).optional(),
   }).optional(),
+  endFormOn: z.enum(["Yes", "No"]).optional(),
 });
 
 const upsertSchema = z.object({
@@ -223,6 +224,66 @@ export async function createFromStarterAction(
   );
 }
 
+export async function saveQuestionnaireAsTemplateAction(
+  questionnaireId: string,
+): Promise<QResult> {
+  const userId = await requireUserId();
+  if (!userId) return { ok: false, error: "Please sign in." };
+  const supabase = await getServerSupabase();
+  const { data: source } = await supabase
+    .from("questionnaires")
+    .select("title, description, questions")
+    .eq("id", questionnaireId)
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (!source) return { ok: false, error: "Questionnaire not found." };
+  const row = source as { title: string; description: string | null; questions: unknown };
+  const { error } = await supabase.from("questionnaire_templates").insert({
+    user_id: userId,
+    title: row.title,
+    description: row.description,
+    questions: normalizeQuestions(row.questions),
+  } as never);
+  if (error) return { ok: false, error: error.message };
+  revalidatePath("/dashboard/questionnaires");
+  return { ok: true, message: "Saved to your questionnaire templates." };
+}
+
+export async function createFromSavedTemplateAction(formData: FormData): Promise<void> {
+  const userId = await requireUserId();
+  if (!userId) redirect("/dashboard/questionnaires");
+  const templateId = String(formData.get("templateId") ?? "");
+  const supabase = await getServerSupabase();
+  const { data: source } = await supabase
+    .from("questionnaire_templates")
+    .select("title, description, questions")
+    .eq("id", templateId)
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (!source) redirect("/dashboard/questionnaires");
+  const row = source as { title: string; description: string | null; questions: unknown };
+  const { data } = await supabase.from("questionnaires").insert({
+    user_id: userId,
+    title: row.title,
+    description: row.description,
+    questions: normalizeQuestions(row.questions),
+    updated_at: new Date().toISOString(),
+  } as never).select("id").single();
+  const id = (data as { id: string } | null)?.id;
+  revalidatePath("/dashboard/questionnaires");
+  redirect(id ? `/dashboard/questionnaires/${id}` : "/dashboard/questionnaires");
+}
+
+export async function deleteQuestionnaireTemplateAction(formData: FormData): Promise<void> {
+  const userId = await requireUserId();
+  if (!userId) return;
+  const id = String(formData.get("id") ?? "");
+  if (!id) return;
+  const supabase = await getServerSupabase();
+  await supabase.from("questionnaire_templates").delete().eq("id", id).eq("user_id", userId);
+  revalidatePath("/dashboard/questionnaires");
+}
+
 // ---------------------------------------------------------------------------
 // SHARE — create a reusable, audience-neutral collection link
 // ---------------------------------------------------------------------------
@@ -270,6 +331,7 @@ export async function sendQuestionnaireAction(
       .select("id, public_token")
       .eq("user_id", userId)
       .eq("idempotency_key", parsed.data.idempotencyKey)
+      .is("revoked_at", null)
       .maybeSingle();
     const existing = existingRaw as { id: string; public_token: string } | null;
     if (existing) return linked(existing.id, existing.public_token);
@@ -282,6 +344,7 @@ export async function sendQuestionnaireAction(
     .eq("questionnaire_id", questionnaire.id)
     .is("client_id", null)
     .is("project_id", null)
+    .is("revoked_at", null)
     .order("created_at", { ascending: true })
     .limit(1)
     .maybeSingle();
@@ -313,6 +376,7 @@ export async function sendQuestionnaireAction(
         .select("id, public_token")
         .eq("user_id", userId)
         .eq("idempotency_key", parsed.data.idempotencyKey)
+        .is("revoked_at", null)
         .maybeSingle();
       const existing = existingRaw as { id: string; public_token: string } | null;
       if (existing) return linked(existing.id, existing.public_token);
@@ -323,6 +387,21 @@ export async function sendQuestionnaireAction(
 
   revalidatePath("/dashboard/questionnaires");
   return linked(created.id, created.public_token);
+}
+
+export async function revokeQuestionnaireLinkAction(sendId: string): Promise<QResult> {
+  const userId = await requireUserId();
+  if (!userId) return { ok: false, error: "Please sign in." };
+  const parsed = z.string().uuid().safeParse(sendId);
+  if (!parsed.success) return { ok: false, error: "Collection link not found." };
+  const supabase = await getServerSupabase();
+  const { error } = await supabase.from("questionnaire_sends").update({
+    revoked_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  } as never).eq("id", parsed.data).eq("user_id", userId);
+  if (error) return { ok: false, error: error.message };
+  revalidatePath("/dashboard/questionnaires");
+  return { ok: true, message: "Collection link deleted. Existing responses were preserved." };
 }
 
 // ---------------------------------------------------------------------------
@@ -340,9 +419,11 @@ const submitSchema = z.object({
   ])).refine((value) => JSON.stringify(value).length <= 100_000, "Submission is too large."),
 });
 
-function sanitizeResponses(questions: Question[], raw: Record<string, string | string[]>): QResult<Record<string, string | string[]>> {
+function sanitizeResponses(questions: Question[], raw: Record<string, string | string[]>): QResult<{ responses: Record<string, string | string[]>; questions: Question[] }> {
   const clean: Record<string, string | string[]> = {};
+  const reachable: Question[] = [];
   for (const question of questions) {
+    reachable.push(question);
     const value = raw[question.id];
     const empty = value === undefined || value === "" || (Array.isArray(value) && value.length === 0);
     if (question.required && empty) return { ok: false, error: `Please answer: ${question.label}` };
@@ -360,8 +441,9 @@ function sanitizeResponses(questions: Question[], raw: Record<string, string | s
       const detail = raw[followUpAnswerKey(question.id)];
       if (typeof detail === "string" && detail.trim()) clean[followUpAnswerKey(question.id)] = detail.trim();
     }
+    if (question.type === "yes_no" && question.endFormOn === value) break;
   }
-  return { ok: true, data: clean };
+  return { ok: true, data: { responses: clean, questions: reachable } };
 }
 
 export async function submitQuestionnaireAction(
@@ -378,6 +460,7 @@ export async function submitQuestionnaireAction(
     .from("questionnaire_sends")
     .select("id, user_id, questionnaire_id, client_id, project_id, questions")
     .eq("public_token", parsed.data.token)
+    .is("revoked_at", null)
     .maybeSingle();
   const send = found as {
     id: string;
@@ -409,7 +492,7 @@ export async function submitQuestionnaireAction(
   const respondentResponses = {
     __respondent_name: parsed.data.respondentName.trim(),
     __respondent_email: parsed.data.respondentEmail.trim().toLowerCase(),
-    ...sanitized.data,
+    ...sanitized.data.responses,
   };
   const { data, error } = await admin
     .from("questionnaire_responses")
@@ -420,7 +503,7 @@ export async function submitQuestionnaireAction(
       client_id: send.client_id,
       project_id: send.project_id,
       submission_key: parsed.data.submissionKey,
-      questions: [...respondentQuestions, ...questions],
+      questions: [...respondentQuestions, ...sanitized.data.questions],
       responses: respondentResponses,
     } as never)
     .select("id")

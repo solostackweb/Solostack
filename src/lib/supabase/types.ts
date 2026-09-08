@@ -870,6 +870,17 @@ export interface QuestionnaireSendRow {
   submitted_at: string | null;
   created_at: string;
   updated_at: string;
+  revoked_at: string | null;
+}
+
+export interface QuestionnaireTemplateRow {
+  id: string;
+  user_id: string;
+  title: string;
+  description: string | null;
+  questions: Json;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface QuestionnaireResponseRow {
@@ -896,6 +907,8 @@ export interface QuestionnaireSheetIntegrationRow {
   spreadsheet_id: string;
   spreadsheet_url: string;
   sheet_title: string;
+  sheet_id: number;
+  format_version: number;
   columns: Json;
   active: boolean;
   last_synced_at: string | null;
@@ -1733,6 +1746,13 @@ export interface Database {
         Insert: Partial<QuestionnaireSendRow> &
           Pick<QuestionnaireSendRow, "user_id" | "title" | "public_token">;
         Update: Partial<QuestionnaireSendRow>;
+        Relationships: [];
+      };
+      questionnaire_templates: {
+        Row: QuestionnaireTemplateRow;
+        Insert: Partial<QuestionnaireTemplateRow> &
+          Pick<QuestionnaireTemplateRow, "user_id" | "title">;
+        Update: Partial<QuestionnaireTemplateRow>;
         Relationships: [];
       };
       questionnaire_responses: {

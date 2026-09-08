@@ -14,10 +14,12 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { IvoEntryPoint } from "@/features/ai-workflows/components/ivo-entry-point";
 import { QUESTIONNAIRE_STARTERS } from "../builtin";
-import type { Questionnaire } from "../types";
+import type { Questionnaire, QuestionnaireTemplate } from "../types";
 import {
+  createFromSavedTemplateAction,
   createFromStarterAction,
   deleteQuestionnaireAction,
+  deleteQuestionnaireTemplateAction,
 } from "../actions";
 import {
   SendQuestionnaireDialog,
@@ -162,11 +164,45 @@ function StarterLibrary() {
   );
 }
 
+function SavedTemplateLibrary({ templates }: { templates: QuestionnaireTemplate[] }) {
+  if (templates.length === 0) return null;
+  return (
+    <section className="overflow-hidden rounded-lg border border-border/70 bg-card">
+      <div className="border-b border-border/60 px-5 py-4 sm:px-6">
+        <p className="text-micro font-semibold uppercase tracking-[0.14em] text-primary">Your templates</p>
+        <h2 className="mt-1 text-base font-semibold">Reusable questionnaires saved by you</h2>
+      </div>
+      <div className="divide-y divide-border/60">
+        {templates.map((template) => (
+          <div key={template.id} className="grid gap-3 px-5 py-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:px-6">
+            <div className="min-w-0">
+              <h3 className="text-sm font-semibold">{template.title}</h3>
+              <p className="mt-1 text-sm text-muted-foreground">{template.questions.length} questions{template.description ? ` · ${template.description}` : ""}</p>
+            </div>
+            <div className="flex gap-2">
+              <form action={createFromSavedTemplateAction}>
+                <input type="hidden" name="templateId" value={template.id} />
+                <Button type="submit" variant="outline" className="min-h-11"><Wand2 className="h-3.5 w-3.5" /> Use template</Button>
+              </form>
+              <form action={deleteQuestionnaireTemplateAction}>
+                <input type="hidden" name="id" value={template.id} />
+                <Button type="submit" size="icon" variant="ghost" className="h-11 w-11 text-muted-foreground hover:text-destructive" aria-label={`Delete template ${template.title}`}><Trash2 className="h-4 w-4" /></Button>
+              </form>
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 export function QuestionnairesView({
   questionnaires,
+  templates,
   clients,
 }: {
   questionnaires: Questionnaire[];
+  templates: QuestionnaireTemplate[];
   clients: SendClientOption[];
 }) {
   return (
@@ -256,6 +292,7 @@ export function QuestionnairesView({
         <QuestionnaireStartDesk />
       )}
 
+      <SavedTemplateLibrary templates={templates} />
       <StarterLibrary />
     </div>
   );

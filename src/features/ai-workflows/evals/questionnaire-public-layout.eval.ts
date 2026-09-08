@@ -23,6 +23,6 @@ describe("questionnaire public layouts", () => {
   it("renders every question together only in classic mode", () => {
     assert.match(FILL, /send\.layout === "classic"/);
     assert.match(FILL, /function ClassicForm/);
-    assert.match(FILL, /send\.questions\.map/);
+    assert.match(FILL, /questions\.map/);
   });
 });
