@@ -893,6 +893,8 @@ export interface QuestionnaireResponseRow {
   submission_key: string;
   questions: Json;
   responses: Json;
+  respondent_name: string | null;
+  respondent_email: string | null;
   sheets_sync_status: string;
   sheets_sync_error: string | null;
   sheets_synced_at: string | null;

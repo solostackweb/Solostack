@@ -14,15 +14,19 @@ export const dynamic = "force-dynamic";
 
 interface PageProps {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ page?: string; q?: string }>;
 }
 
-export default async function ResponsesPage({ params }: PageProps) {
+export default async function ResponsesPage({ params, searchParams }: PageProps) {
   const { id } = await params;
-  const [questionnaire, clients, sends, responses, sheetIntegration] = await Promise.all([
+  const query = await searchParams;
+  const page = Number.parseInt(query.page ?? "1", 10);
+  const search = (query.q ?? "").trim();
+  const [questionnaire, clients, sends, responsePage, sheetIntegration] = await Promise.all([
     getQuestionnaire(id),
     listClients({ limit: 300 }),
     listSendsForOwner({ questionnaireId: id }),
-    listResponsesForOwner(id),
+    listResponsesForOwner(id, { page: Number.isFinite(page) ? page : 1, pageSize: 25, search }),
     getQuestionnaireSheetIntegration(id),
   ]);
   if (!questionnaire) notFound();
@@ -37,7 +41,11 @@ export default async function ResponsesPage({ params }: PageProps) {
         phone: client.phone,
       }))}
       sends={sends}
-      responses={responses}
+      responses={responsePage.items}
+      responseTotal={responsePage.total}
+      responsePage={responsePage.page}
+      responsePageSize={responsePage.pageSize}
+      responseSearch={search}
       sheetIntegration={sheetIntegration}
     />
   );

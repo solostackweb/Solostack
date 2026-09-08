@@ -159,17 +159,43 @@ export async function getQuestionnaireSendByToken(
   return { send, hostName, description };
 }
 
-export async function listResponsesForOwner(questionnaireId: string): Promise<QuestionnaireResponse[]> {
+export interface QuestionnaireResponsePage {
+  items: QuestionnaireResponse[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
+
+export async function listResponsesForOwner(
+  questionnaireId: string,
+  options: { page?: number; pageSize?: number; search?: string } = {},
+): Promise<QuestionnaireResponsePage> {
   const userId = await currentUserId();
-  if (!userId) return [];
+  const page = Math.max(1, Math.floor(options.page ?? 1));
+  const pageSize = Math.min(100, Math.max(10, Math.floor(options.pageSize ?? 25)));
+  if (!userId) return { items: [], total: 0, page, pageSize };
   const supabase = await getServerSupabase();
-  const { data } = await supabase
+  let query = supabase
     .from("questionnaire_responses")
-    .select("*")
+    .select("*", { count: "exact" })
     .eq("user_id", userId)
     .eq("questionnaire_id", questionnaireId)
     .order("submitted_at", { ascending: false });
-  return ((data ?? []) as QuestionnaireResponseRow[]).map(mapQuestionnaireResponseRow);
+  const search = (options.search ?? "")
+    .replace(/[^\p{L}\p{N}@._+\-\s]/gu, "")
+    .trim()
+    .slice(0, 100);
+  if (search) {
+    query = query.or(`respondent_name.ilike.%${search}%,respondent_email.ilike.%${search}%`);
+  }
+  const from = (page - 1) * pageSize;
+  const { data, count } = await query.range(from, from + pageSize - 1);
+  return {
+    items: ((data ?? []) as QuestionnaireResponseRow[]).map(mapQuestionnaireResponseRow),
+    total: count ?? 0,
+    page,
+    pageSize,
+  };
 }
 
 export async function getQuestionnaireSheetIntegration(
