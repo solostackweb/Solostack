@@ -3,7 +3,7 @@
 import * as React from "react";
 import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
-import { CheckCircle2, Lock, Send, Sparkles } from "lucide-react";
+import { CheckCircle2, FileInput, Lock, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -36,65 +36,27 @@ export function PublicLeadFormView({ form }: { form: LeadFormRecord }) {
   const fullPhone = normalizeLeadPhone(phone, country);
 
   return (
-    <main
-      className="relative min-h-screen overflow-hidden bg-muted/40 px-4 py-6 text-foreground sm:px-6 lg:px-8"
-    >
-      {/* Soft brand wash at the top of the canvas */}
+    <main className="relative min-h-screen cursor-default select-none overflow-hidden bg-slate-50 px-4 py-6 text-slate-950 sm:px-6 sm:py-10">
       <div
         aria-hidden
         className="pointer-events-none absolute inset-x-0 top-0 h-80"
         style={{
-          background: `linear-gradient(to bottom, ${form.brand_color}14, transparent)`,
+          background: `radial-gradient(circle at top, ${form.brand_color}1f 0, transparent 68%)`,
         }}
       />
-
-      <div className="relative mx-auto grid min-h-[calc(100vh-3rem)] max-w-6xl gap-8 lg:grid-cols-[0.88fr_1.12fr] lg:items-center">
-        <section className="py-6 lg:py-10">
-          <div className="inline-flex items-center gap-2 rounded-full border bg-background px-3 py-1 text-micro font-semibold uppercase tracking-[0.14em] text-muted-foreground shadow-sm">
-            <Sparkles className="h-3.5 w-3.5" style={{ color: form.brand_color }} />
-            Project inquiry
+      <div className="relative mx-auto flex min-h-[calc(100vh-3rem)] max-w-3xl flex-col">
+        <header className="mb-5 flex items-center justify-between gap-4">
+          <div className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+            <span className="flex h-8 w-8 items-center justify-center rounded-lg text-white shadow-sm" style={{ background: form.brand_color }}><FileInput className="h-4 w-4" /></span>
+            {form.name}
           </div>
-          <div
-            className="mt-8 flex h-14 w-14 items-center justify-center rounded-2xl text-lg font-bold text-white shadow-lg"
-            style={{ background: form.brand_color }}
-          >
-            {initials(form.name)}
-          </div>
-          <h1 className="mt-6 max-w-2xl text-balance text-4xl font-bold tracking-tight sm:text-5xl">
-            {form.title}
-          </h1>
-          <p className="mt-4 max-w-xl text-lg leading-relaxed text-muted-foreground">
-            {form.description ||
-              "Share the essentials and the freelancer will respond with the right next step."}
-          </p>
-
-          <div className="mt-8 grid max-w-xl gap-3 sm:grid-cols-3">
-            {[
-              ["1", "Tell us what you need"],
-              ["2", "Get a direct response"],
-              ["3", "Move into proposal or discovery"],
-            ].map(([step, text]) => (
-              <div
-                key={step}
-                className="rounded-lg border border-black/5 bg-card p-3.5 shadow-sm"
-              >
-                <span
-                  className="flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold text-white"
-                  style={{ background: form.brand_color }}
-                >
-                  {step}
-                </span>
-                <p className="mt-2.5 text-sm font-medium leading-snug">{text}</p>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        <section className="overflow-hidden rounded-2xl border border-black/5 bg-card shadow-[0_1px_2px_rgba(15,23,42,0.05),0_16px_40px_-16px_rgba(15,23,42,0.18)]">
+          <span className="text-xs text-slate-500">Project inquiry</span>
+        </header>
+        <section className="my-auto overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_18px_60px_-30px_rgba(15,23,42,0.35)]">
           <div className="h-1.5 w-full" style={{ background: form.brand_color }} />
-          <div className="p-5 sm:p-7">
+          <div className="p-6 sm:p-10">
           {state?.ok ? (
-            <div className="flex min-h-[34rem] flex-col items-center justify-center text-center">
+            <div className="flex min-h-[28rem] flex-col items-center justify-center text-center">
               <div className="flex h-16 w-16 items-center justify-center rounded-full bg-success-subtle">
                 <CheckCircle2 className="h-8 w-8 text-success-strong" />
               </div>
@@ -105,7 +67,7 @@ export function PublicLeadFormView({ form }: { form: LeadFormRecord }) {
               </p>
             </div>
           ) : (
-            <form action={action} className="space-y-5">
+            <form action={action} className="mx-auto max-w-xl space-y-7">
               <input type="hidden" name="formId" value={form.id} />
               <input type="hidden" name="phone" value={fullPhone} />
               <input type="hidden" name="currency" value={selectedCountry.currency} />
@@ -119,14 +81,16 @@ export function PublicLeadFormView({ form }: { form: LeadFormRecord }) {
                 className="absolute left-[-9999px] h-0 w-0 opacity-0"
               />
 
-              <div>
-                <p className="text-sm font-semibold">Your details</p>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  Required fields are marked. Keep it short; details can be refined later.
-                </p>
+              {!fields.some((field) => field.name === "country") ? <input type="hidden" name="country" value={country} /> : null}
+
+              <div className="border-b border-slate-100 pb-6">
+                <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: form.brand_color }}>Project inquiry</p>
+                <h1 className="mt-2 text-balance text-2xl font-semibold tracking-tight sm:text-3xl">{form.title}</h1>
+                {form.description ? <p className="mt-2 text-sm leading-6 text-slate-600">{form.description}</p> : null}
+                <p className="mt-3 text-xs text-slate-500"><span className="text-red-500">*</span> Required</p>
               </div>
 
-              <div className="grid gap-4 sm:grid-cols-2">
+              <div className="grid gap-5">
                 {fields.map((field) => (
                   <FieldControl
                     key={field.name}
@@ -149,7 +113,7 @@ export function PublicLeadFormView({ form }: { form: LeadFormRecord }) {
               ) : null}
 
               <SubmitButton brandColor={form.brand_color} />
-              <p className="flex items-center justify-center gap-1.5 text-center text-xs text-muted-foreground">
+              <p className="flex items-center justify-center gap-1.5 text-center text-xs text-slate-500">
                 <Lock className="h-3 w-3" />
                 Your details stay private · Powered by Stackivo
               </p>
@@ -157,6 +121,7 @@ export function PublicLeadFormView({ form }: { form: LeadFormRecord }) {
           )}
           </div>
         </section>
+        <p className="mt-4 text-center text-xs text-slate-400">Powered by Stackivo · Your details are shared privately.</p>
       </div>
     </main>
   );
@@ -183,7 +148,6 @@ function FieldControl({
 }) {
   const error = fieldError(state, field.name);
   const inputName = field.custom ? `${CUSTOM_FIELD_PREFIX}${field.name}` : field.name;
-  const spanFull = field.type === "textarea";
 
   // Country — special select that also drives currency + phone prefix.
   if (field.name === "country") {
@@ -236,7 +200,7 @@ function FieldControl({
   // Textarea (project + custom textarea questions) — full width.
   if (field.type === "textarea") {
     return (
-      <Field label={field.label} required={field.required} error={error} className={spanFull ? "sm:col-span-2" : undefined}>
+      <Field label={field.label} required={field.required} error={error}>
         <Textarea
           name={inputName}
           rows={field.name === "project" ? 7 : 4}
@@ -259,6 +223,7 @@ function FieldControl({
         type={field.type === "email" ? "email" : "text"}
         autoComplete={autoCompleteFor(field.name)}
         required={field.required}
+        className="cursor-text select-text"
       />
     </Field>
   );
@@ -298,7 +263,7 @@ function SubmitButton({ brandColor }: { brandColor: string }) {
       style={{ background: brandColor }}
     >
       <Send className="h-4 w-4" />
-      {pending ? "Sending..." : "Send inquiry"}
+      {pending ? "Sending…" : "Send inquiry"}
     </Button>
   );
 }
@@ -315,9 +280,4 @@ function autoCompleteFor(name: string): string | undefined {
   if (name === "email") return "email";
   if (name === "company") return "organization";
   return undefined;
-}
-
-function initials(name: string): string {
-  const parts = name.trim().split(/\s+/).filter(Boolean);
-  return `${parts[0]?.[0] ?? "S"}${parts.at(-1)?.[0] ?? ""}`.toUpperCase();
 }

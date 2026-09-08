@@ -22,21 +22,56 @@ export async function listLeadForms(): Promise<LeadFormRecord[]> {
   return data as LeadFormRecord[];
 }
 
-export async function listLeadSubmissions(): Promise<LeadSubmissionRecord[]> {
-  const supabase = await getServerSupabase();
-  const { data, error } = await supabase
-    .from("lead_submissions")
-    .select("*, lead_forms(id,name,slug,title)")
-    .order("created_at", { ascending: false })
-    .limit(100);
+export interface LeadSubmissionPage {
+  items: LeadSubmissionRecord[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
 
-  if (error || !data) return [];
-  return (data as Array<LeadSubmissionRow & { lead_forms?: LeadSubmissionRecord["form"] }>).map(
-    (row) => ({
-      ...row,
-      form: row.lead_forms ?? null,
-    }),
-  );
+export async function countLeadSubmissions(): Promise<number> {
+  const supabase = await getServerSupabase();
+  const { count } = await supabase
+    .from("lead_submissions")
+    .select("id", { count: "exact", head: true });
+  return count ?? 0;
+}
+
+export async function listLeadSubmissions(options: {
+  page?: number;
+  pageSize?: number;
+  search?: string;
+} = {}): Promise<LeadSubmissionPage> {
+  const page = Math.max(1, Math.floor(options.page ?? 1));
+  const pageSize = Math.min(100, Math.max(10, Math.floor(options.pageSize ?? 25)));
+  const search = (options.search ?? "")
+    .replace(/[^\p{L}\p{N}@._+\-\s]/gu, "")
+    .trim()
+    .slice(0, 100);
+  const supabase = await getServerSupabase();
+  let query = supabase
+    .from("lead_submissions")
+    .select("*, lead_forms(id,name,slug,title)", { count: "exact" })
+    .order("created_at", { ascending: false });
+
+  if (search) {
+    query = query.or(
+      `name.ilike.%${search}%,email.ilike.%${search}%,company.ilike.%${search}%`,
+    );
+  }
+
+  const from = (page - 1) * pageSize;
+  const { data, error, count } = await query.range(from, from + pageSize - 1);
+
+  if (error || !data) return { items: [], total: 0, page, pageSize };
+  return {
+    items: (data as Array<LeadSubmissionRow & { lead_forms?: LeadSubmissionRecord["form"] }>).map(
+      (row) => ({ ...row, form: row.lead_forms ?? null }),
+    ),
+    total: count ?? 0,
+    page,
+    pageSize,
+  };
 }
 
 export async function getLeadForm(id: string): Promise<LeadFormRecord | null> {

@@ -200,6 +200,54 @@ export async function toggleLeadFormAction(formData: FormData): Promise<void> {
   revalidatePath("/dashboard/lead-forms");
 }
 
+export async function deleteLeadFormAction(formData: FormData): Promise<void> {
+  const userId = await requireUserId();
+  const id = z.string().uuid().parse(formData.get("id"));
+  const supabase = await getServerSupabase();
+  await supabase.from("lead_forms").delete().eq("id", id).eq("user_id", userId);
+  revalidatePath("/dashboard/lead-forms");
+}
+
+export async function updateLeadSubmissionStatusAction(
+  submissionId: string,
+  status: "new" | "reviewed" | "converted" | "archived",
+): Promise<LeadFormActionResult> {
+  const userId = await requireUserId();
+  const id = z.string().uuid().safeParse(submissionId);
+  if (!id.success) return { ok: false, error: "Submission not found." };
+  const parsedStatus = z.enum(["new", "reviewed", "converted", "archived"]).safeParse(status);
+  if (!parsedStatus.success) return { ok: false, error: "Choose a valid lead status." };
+  const supabase = await getServerSupabase();
+  const { error } = await supabase
+    .from("lead_submissions")
+    .update({ status: parsedStatus.data } as never)
+    .eq("id", id.data)
+    .eq("user_id", userId);
+  if (error) return { ok: false, error: error.message };
+  revalidatePath("/dashboard/lead-forms");
+  return { ok: true, message: "Lead status updated." };
+}
+
+export async function deleteLeadSubmissionAction(
+  submissionId: string,
+): Promise<LeadFormActionResult> {
+  const userId = await requireUserId();
+  const id = z.string().uuid().safeParse(submissionId);
+  if (!id.success) return { ok: false, error: "Submission not found." };
+  const admin = getAdminSupabase();
+  const { data } = await admin
+    .from("lead_submissions")
+    .select("id")
+    .eq("id", id.data)
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (!data) return { ok: false, error: "Submission not found." };
+  const { error } = await admin.from("lead_submissions").delete().eq("id", id.data);
+  if (error) return { ok: false, error: error.message };
+  revalidatePath("/dashboard/lead-forms");
+  return { ok: true, message: "Lead submission deleted. Its client and project records were kept." };
+}
+
 export async function submitPublicLeadAction(
   _prev: LeadFormActionResult<{ projectId: string }> | undefined,
   formData: FormData,
@@ -224,7 +272,7 @@ export async function submitPublicLeadAction(
       email: formData.get("email"),
       company: formData.get("company"),
       phone: formData.get("phone"),
-      country: formData.get("country"),
+      country: formData.get("country") || "IN",
       currency: formData.get("currency"),
       project: formData.get("project"),
       budget: formData.get("budget"),
@@ -265,6 +313,13 @@ export async function submitPublicLeadAction(
     const value = String(
       formData.get(`${CUSTOM_FIELD_PREFIX}${field.name}`) ?? "",
     ).trim();
+    if (field.required && !value) {
+      return {
+        ok: false,
+        error: "Please answer every required question.",
+        fieldErrors: { [field.name]: [`${field.label} is required.`] },
+      };
+    }
     if (value) customAnswers[field.label] = value.slice(0, 2000);
   }
 

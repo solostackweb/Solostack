@@ -19,6 +19,7 @@ const SIMPLE_ICON_SLUGS: Record<string, { slug: string; label: string }> = {
   google_calendar: { slug: "googlecalendar", label: "Google Calendar" },
   google_drive: { slug: "googledrive", label: "Google Drive" },
   google_meet: { slug: "googlemeet", label: "Google Meet" },
+  google_sheets: { slug: "googlesheets", label: "Google Sheets" },
   gmail: { slug: "gmail", label: "Gmail" },
   outlook: { slug: "microsoftoutlook", label: "Outlook" },
   paypal: { slug: "paypal", label: "PayPal" },

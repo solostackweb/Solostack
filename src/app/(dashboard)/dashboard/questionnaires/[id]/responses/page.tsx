@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import {
   getQuestionnaire,
   getQuestionnaireSheetIntegration,
+  getQuestionnaireSheetsConnection,
   listResponsesForOwner,
   listSendsForOwner,
 } from "@/features/questionnaires/server";
@@ -22,12 +23,13 @@ export default async function ResponsesPage({ params, searchParams }: PageProps)
   const query = await searchParams;
   const page = Number.parseInt(query.page ?? "1", 10);
   const search = (query.q ?? "").trim();
-  const [questionnaire, clients, sends, responsePage, sheetIntegration] = await Promise.all([
+  const [questionnaire, clients, sends, responsePage, sheetIntegration, sheetsConnection] = await Promise.all([
     getQuestionnaire(id),
     listClients({ limit: 300 }),
     listSendsForOwner({ questionnaireId: id }),
     listResponsesForOwner(id, { page: Number.isFinite(page) ? page : 1, pageSize: 25, search }),
     getQuestionnaireSheetIntegration(id),
+    getQuestionnaireSheetsConnection(),
   ]);
   if (!questionnaire) notFound();
 
@@ -47,6 +49,7 @@ export default async function ResponsesPage({ params, searchParams }: PageProps)
       responsePageSize={responsePage.pageSize}
       responseSearch={search}
       sheetIntegration={sheetIntegration}
+      sheetsConnection={sheetsConnection}
     />
   );
 }

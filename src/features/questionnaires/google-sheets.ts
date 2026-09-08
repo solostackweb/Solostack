@@ -271,8 +271,43 @@ export async function syncQuestionnaireResponse(responseId: string): Promise<boo
     .eq("questionnaire_id", response.questionnaire_id)
     .eq("active", true)
     .maybeSingle();
-  const integration = integrationRaw as QuestionnaireSheetIntegrationRow | null;
-  if (!integration) return false;
+  let integration = integrationRaw as QuestionnaireSheetIntegrationRow | null;
+  if (!integration) {
+    const [{ data: connectionRaw }, { data: questionnaireRaw }] = await Promise.all([
+      admin
+        .from("calendar_connections")
+        .select("refresh_token, scope")
+        .eq("user_id", response.user_id)
+        .maybeSingle(),
+      admin
+        .from("questionnaires")
+        .select("title, questions")
+        .eq("id", response.questionnaire_id)
+        .eq("user_id", response.user_id)
+        .maybeSingle(),
+    ]);
+    const connection = connectionRaw as { refresh_token: string | null; scope: string | null } | null;
+    const questionnaire = questionnaireRaw as { title: string; questions: unknown } | null;
+    const driveScope = "https://www.googleapis.com/auth/drive.file";
+    const canCreateSheet = Boolean(
+      connection?.refresh_token &&
+      connection.scope?.split(/\s+/).includes(driveScope) &&
+      questionnaire,
+    );
+    if (!canCreateSheet || !questionnaire) return false;
+    try {
+      integration = await createQuestionnaireSpreadsheet({
+        userId: response.user_id,
+        questionnaireId: response.questionnaire_id,
+        title: questionnaire.title,
+        questions: Array.isArray(questionnaire.questions)
+          ? (questionnaire.questions as Question[])
+          : [],
+      });
+    } catch {
+      return false;
+    }
+  }
 
   await admin.from("questionnaire_responses").update({ sheets_sync_status: "pending", sheets_sync_error: null } as never).eq("id", response.id);
   try {

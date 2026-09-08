@@ -1,352 +1,78 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
-import Link from "next/link";
-import {
-  ArrowRight,
-  Copy,
-  ExternalLink,
-  FolderKanban,
-  Inbox,
-  Pencil,
-  Plus,
-  UserRound,
-} from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { IvoContextActions } from "@/features/ai-workflows/components/ivo-context-actions";
-import {
-  createLeadFormAction,
-  toggleLeadFormAction,
-  type LeadFormActionResult,
-} from "../actions";
-import type { LeadFormRecord, LeadSubmissionRecord } from "../server";
+import { ArrowRight, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Copy, ExternalLink, FileInput, Inbox, Pencil, Plus, Search, Trash2, X } from "lucide-react";
+import { toast } from "sonner";
 
-export function LeadFormsView({
-  forms,
-  submissions,
-  publicBaseUrl,
-}: {
+import { PageHeader } from "@/components/shared/page-header";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Textarea } from "@/components/ui/textarea";
+import { IvoEntryPoint } from "@/features/ai-workflows/components/ivo-entry-point";
+import { createLeadFormAction, deleteLeadFormAction, deleteLeadSubmissionAction, toggleLeadFormAction, updateLeadSubmissionStatusAction, type LeadFormActionResult } from "../actions";
+import type { LeadFormRecord, LeadSubmissionPage, LeadSubmissionRecord } from "../server";
+
+export function LeadFormsView({ forms, submissions, submissionSearch, totalCaptured, publicBaseUrl }: {
   forms: LeadFormRecord[];
-  submissions: LeadSubmissionRecord[];
+  submissions: LeadSubmissionPage;
+  submissionSearch: string;
+  totalCaptured: number;
   publicBaseUrl: string;
 }) {
-  const [state, action] = useActionState<
-    LeadFormActionResult<{ id: string; url: string }> | undefined,
-    FormData
-  >(
-    createLeadFormAction,
-    undefined,
-  );
+  const [creating, setCreating] = React.useState(forms.length === 0);
+  return <div className="space-y-6">
+    <PageHeader title="Lead forms" description="Collect qualified inquiries and turn each response into a client and lead-stage project." actions={<Button type="button" size="sm" onClick={() => setCreating((value) => !value)}>{creating ? <X className="h-4 w-4" /> : <Plus className="h-4 w-4" />}{creating ? "Close" : "New lead form"}</Button>} />
+    <div className="grid gap-3 sm:grid-cols-3"><Stat label="Forms" value={forms.length} /><Stat label="Accepting responses" value={forms.filter((form) => form.active).length} /><Stat label="Leads captured" value={totalCaptured} /></div>
+    {creating ? <CreateLeadForm onCreated={() => setCreating(false)} /> : null}
+    {forms.length === 0 ? <LeadFormStartDesk onCreate={() => setCreating(true)} /> : <FormDirectory forms={forms} publicBaseUrl={publicBaseUrl} />}
+    {forms.length > 0 ? <SubmissionDirectory submissions={submissions} search={submissionSearch} /> : null}
+  </div>;
+}
+
+function Stat({ label, value }: { label: string; value: number }) {
+  return <Card><CardContent className="p-5"><p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{label}</p><p className="mt-1 text-3xl font-bold tabular-nums">{value.toLocaleString()}</p></CardContent></Card>;
+}
+
+function CreateLeadForm({ onCreated }: { onCreated: () => void }) {
+  const router = useRouter();
+  const [state, action] = useActionState<LeadFormActionResult<{ id: string; url: string }> | undefined, FormData>(createLeadFormAction, undefined);
   const [brandColor, setBrandColor] = React.useState("#2563EB");
-
-  return (
-    <div className="space-y-6">
-      <header className="flex flex-col gap-4 border-b pb-6 lg:flex-row lg:items-end lg:justify-between">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">
-            Lead capture
-          </p>
-          <h1 className="mt-2 text-3xl font-bold tracking-tight">Lead forms</h1>
-          <p className="mt-1 max-w-2xl text-muted-foreground">
-            Capture new inquiries, create a client automatically, and drop the work
-            straight into Projects as a lead.
-          </p>
-        </div>
-        <Button asChild variant="outline">
-          <Link href="/dashboard/projects">
-            <FolderKanban className="h-4 w-4" />
-            View projects
-          </Link>
-        </Button>
-      </header>
-
-      <section className={`grid gap-4 ${forms.length === 0 ? "lg:grid-cols-[1.05fr_0.95fr]" : "lg:grid-cols-[0.9fr_1.1fr]"}`}>
-        <form action={action} className="rounded-lg border bg-card p-5 shadow-sm">
-          <div className="flex items-center gap-2">
-            <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
-              <Plus className="h-4 w-4" />
-            </span>
-            <div>
-              <h2 className="text-sm font-semibold">Create intake form</h2>
-              <p className="text-xs text-muted-foreground">
-                Share the public link with prospects or place it on your website.
-              </p>
-            </div>
-          </div>
-          <div className="mt-5 grid gap-3">
-            <label className="space-y-1.5">
-              <span className="text-xs font-medium text-muted-foreground">Internal name</span>
-              <Input name="name" placeholder="Website project inquiries" required />
-            </label>
-            <label className="space-y-1.5">
-              <span className="text-xs font-medium text-muted-foreground">Public title</span>
-              <Input name="title" placeholder="Tell me about your project" required />
-            </label>
-            <label className="space-y-1.5">
-              <span className="text-xs font-medium text-muted-foreground">Description</span>
-              <Textarea
-                name="description"
-                rows={3}
-                placeholder="Share what kind of work you are accepting."
-              />
-            </label>
-            <label className="space-y-1.5">
-              <span className="text-xs font-medium text-muted-foreground">Brand colour</span>
-              <div className="flex gap-2">
-                <Input
-                  name="brandColor"
-                  type="color"
-                  value={brandColor}
-                  onChange={(event) => setBrandColor(event.target.value)}
-                  className="w-16 p-1"
-                />
-                <Input
-                  value={brandColor}
-                  onChange={(event) => setBrandColor(event.target.value)}
-                  aria-label="Brand colour hex"
-                />
-              </div>
-            </label>
-          </div>
-          {state && !state.ok ? (
-            <p className="mt-3 rounded-lg border border-destructive/25 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-              {state.error}
-            </p>
-          ) : null}
-          {state?.ok ? (
-            <p className="mt-3 rounded-lg border border-success-subtle bg-success-subtle px-3 py-2 text-sm text-success-strong">
-              {state.message}
-            </p>
-          ) : null}
-          <SubmitButton label="Create form" className="mt-4 w-full" />
-        </form>
-
-        {forms.length === 0 ? (
-          <AcquisitionPath />
-        ) : (
-          <section className="rounded-lg border bg-card p-5 shadow-sm">
-            <h2 className="text-sm font-semibold">Active forms</h2>
-            <p className="mt-1 text-xs text-muted-foreground">
-              Toggle forms off when you are not accepting new inquiries.
-            </p>
-            <div className="mt-4 space-y-3">
-              {forms.map((form) => {
-                const url = `${publicBaseUrl}/lead/${form.slug}`;
-                return (
-                  <article key={form.id} className="rounded-lg border bg-background p-4">
-                    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                      <div className="min-w-0">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <h3 className="truncate text-sm font-semibold">{form.name}</h3>
-                          <span className={`rounded-full px-2 py-0.5 text-micro font-semibold ${
-                            form.active
-                              ? "bg-success-subtle text-success-strong"
-                              : "bg-muted text-muted-foreground"
-                          }`}>
-                            {form.active ? "Active" : "Paused"}
-                          </span>
-                        </div>
-                        <p className="mt-1 text-xs text-muted-foreground">{form.title}</p>
-                        <p className="mt-2 truncate rounded-lg bg-muted px-2.5 py-1.5 font-mono text-xs text-muted-foreground">
-                          {url}
-                        </p>
-                      </div>
-                      <div className="flex shrink-0 flex-wrap gap-2">
-                        <Button asChild variant="outline" size="sm">
-                          <Link href={`/dashboard/lead-forms/${form.id}`}>
-                            <Pencil className="h-3.5 w-3.5" />
-                            Customize
-                          </Link>
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={() => void navigator.clipboard?.writeText(url)}
-                        >
-                          <Copy className="h-3.5 w-3.5" />
-                          Copy
-                        </Button>
-                        <Button asChild variant="outline" size="sm">
-                          <Link href={`/lead/${form.slug}`} target="_blank">
-                            <ExternalLink className="h-3.5 w-3.5" />
-                            Open
-                          </Link>
-                        </Button>
-                        <form action={toggleLeadFormAction}>
-                          <input type="hidden" name="id" value={form.id} />
-                          <input type="hidden" name="active" value={String(!form.active)} />
-                          <Button variant="secondary" size="sm">
-                            {form.active ? "Pause" : "Activate"}
-                          </Button>
-                        </form>
-                      </div>
-                    </div>
-                  </article>
-                );
-              })}
-            </div>
-          </section>
-        )}
-      </section>
-
-      {forms.length > 0 ? (
-        <section className="rounded-lg border bg-card p-5 shadow-sm">
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h2 className="text-sm font-semibold">Recent submissions</h2>
-            <p className="text-xs text-muted-foreground">
-              Each submission creates a client and a lead-stage project.
-            </p>
-          </div>
-          <span className="rounded-full bg-muted px-2.5 py-1 text-xs text-muted-foreground">
-            {submissions.length} captured
-          </span>
-        </div>
-        <div className="mt-4 space-y-3">
-          {submissions.length === 0 ? (
-            <EmptyState icon={Inbox} title="No submissions yet" text="New inquiries will appear here as soon as prospects submit your form." />
-          ) : (
-            submissions.map((submission) => (
-              <article key={submission.id} className="rounded-lg border bg-background p-4">
-                <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-                  <div className="min-w-0">
-                    <p className="text-sm font-semibold">
-                      {submission.name}
-                      {submission.company ? ` · ${submission.company}` : ""}
-                    </p>
-                    <p className="mt-0.5 text-xs text-muted-foreground">
-                      {submission.email}
-                      {submission.phone ? ` · ${submission.phone}` : ""}
-                    </p>
-                    <p className="mt-2 line-clamp-2 text-sm text-muted-foreground">
-                      {submission.project_summary}
-                    </p>
-                    <p className="mt-2 text-xs text-muted-foreground">
-                      {submission.form?.name ?? "Lead form"} · {new Date(submission.created_at).toLocaleDateString()}
-                    </p>
-                  </div>
-                  <div className="flex shrink-0 flex-wrap gap-2">
-                    {submission.project_id ? (
-                      <Button asChild size="sm" variant="outline">
-                        <Link href={`/dashboard/projects/${submission.project_id}`}>
-                          Open lead
-                        </Link>
-                      </Button>
-                    ) : null}
-                    <IvoContextActions
-                      title="Lead response"
-                      actions={[
-                        {
-                          label: "Draft reply",
-                          prompt: submission.ivo_prompt,
-                        },
-                      ]}
-                      className="border-0 bg-transparent p-0 shadow-none"
-                    />
-                  </div>
-                </div>
-              </article>
-            ))
-          )}
-        </div>
-        </section>
-      ) : null}
-    </div>
-  );
+  React.useEffect(() => { if (state?.ok) { toast.success(state.message ?? "Lead form created."); onCreated(); if (state.data?.id) router.push(`/dashboard/lead-forms/${state.data.id}`); } }, [state, onCreated, router]);
+  return <Card><CardContent className="p-5 sm:p-6"><div className="mb-5"><p className="text-micro font-semibold uppercase tracking-[0.14em] text-primary">New form</p><h2 className="mt-1 text-lg font-semibold">Set the public introduction</h2><p className="mt-1 text-sm text-muted-foreground">Choose fields and add custom questions after creation.</p></div><form action={action} className="grid gap-4 lg:grid-cols-2"><Field label="Internal name"><Input name="name" placeholder="Website project inquiries" required /></Field><Field label="Public title"><Input name="title" placeholder="Tell us about your project" required /></Field><Field label="Description" className="lg:col-span-2"><Textarea name="description" rows={3} placeholder="What should a prospective client know before they respond?" /></Field><Field label="Accent colour"><div className="flex gap-2"><Input name="brandColor" type="color" value={brandColor} onChange={(event) => setBrandColor(event.target.value)} className="w-14 p-1" /><Input value={brandColor} onChange={(event) => setBrandColor(event.target.value)} aria-label="Accent colour hex" /></div></Field><div className="flex items-end justify-end"><SubmitButton label="Create and customize" /></div>{state && !state.ok ? <p className="text-sm text-destructive lg:col-span-2">{state.error}</p> : null}</form></CardContent></Card>;
 }
 
-function AcquisitionPath() {
-  const steps = [
-    {
-      icon: ExternalLink,
-      label: "Share the form",
-      text: "Publish one link wherever prospects discover your work.",
-    },
-    {
-      icon: UserRound,
-      label: "Capture the client",
-      text: "Each complete inquiry becomes a client automatically.",
-    },
-    {
-      icon: FolderKanban,
-      label: "Qualify the lead",
-      text: "The opportunity arrives in Projects, ready for follow-up.",
-    },
-  ];
-
-  return (
-    <aside className="rounded-lg border bg-card p-5 shadow-sm lg:p-6">
-      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">
-        Acquisition path
-      </p>
-      <h2 className="mt-2 text-xl font-semibold tracking-tight">
-        One form, then a lead ready to work.
-      </h2>
-      <p className="mt-2 max-w-lg text-sm leading-relaxed text-muted-foreground">
-        Set the promise prospects see. Stackivo handles the handoff into your
-        client and project records after they submit.
-      </p>
-      <div className="mt-6 grid gap-2 sm:grid-cols-3 lg:grid-cols-1">
-        {steps.map((step, index) => {
-          const Icon = step.icon;
-          return (
-            <div key={step.label} className="flex items-start gap-3 rounded-lg border bg-background p-3.5">
-              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                <Icon className="h-4 w-4" />
-              </span>
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2">
-                  <p className="text-sm font-semibold">{step.label}</p>
-                  {index < steps.length - 1 ? (
-                    <ArrowRight className="hidden h-3.5 w-3.5 text-muted-foreground sm:block lg:hidden" />
-                  ) : null}
-                </div>
-                <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
-                  {step.text}
-                </p>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-      <p className="mt-4 border-t pt-4 text-xs text-muted-foreground">
-        Active forms and submission history will appear here after your first
-        form is created.
-      </p>
-    </aside>
-  );
+function FormDirectory({ forms, publicBaseUrl }: { forms: LeadFormRecord[]; publicBaseUrl: string }) {
+  return <section className="space-y-3"><div><h2 className="text-base font-semibold">Your lead forms</h2><p className="mt-1 text-sm text-muted-foreground">Manage the form, public link, and response availability from one place.</p></div><Card><CardContent className="divide-y p-0">{forms.map((form) => { const url = `${publicBaseUrl}/lead/${form.slug}`; return <article key={form.id} className="flex min-w-0 flex-col gap-4 p-4 sm:flex-row sm:items-center sm:px-5"><span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border bg-background text-primary"><FileInput className="h-5 w-5" /></span><div className="min-w-0 flex-1"><div className="flex flex-wrap items-center gap-2"><Link href={`/dashboard/lead-forms/${form.id}`} className="truncate text-sm font-semibold hover:text-primary">{form.name}</Link><StatusBadge active={form.active} /></div><p className="mt-0.5 line-clamp-1 text-sm text-muted-foreground">{form.title}</p><p className="mt-1 truncate font-mono text-micro text-muted-foreground">{url}</p></div><div className="flex shrink-0 flex-wrap items-center gap-1"><Button asChild variant="ghost" size="sm"><Link href={`/dashboard/lead-forms/${form.id}`}><Pencil className="h-3.5 w-3.5" /> Edit</Link></Button><Button type="button" variant="ghost" size="sm" onClick={async () => { await navigator.clipboard.writeText(url); toast.success("Public link copied."); }}><Copy className="h-3.5 w-3.5" /> Copy</Button><Button asChild variant="ghost" size="icon" className="h-10 w-10"><Link href={`/lead/${form.slug}`} target="_blank" aria-label={`Open ${form.name}`}><ExternalLink className="h-4 w-4" /></Link></Button><form action={toggleLeadFormAction}><input type="hidden" name="id" value={form.id} /><input type="hidden" name="active" value={String(!form.active)} /><Button variant="ghost" size="sm">{form.active ? "Pause" : "Activate"}</Button></form><form action={deleteLeadFormAction} onSubmit={(event) => { if (!window.confirm(`Delete “${form.name}”? Its captured submission records will also be deleted.`)) event.preventDefault(); }}><input type="hidden" name="id" value={form.id} /><Button variant="ghost" size="icon" className="h-10 w-10 text-muted-foreground hover:text-destructive" aria-label={`Delete ${form.name}`}><Trash2 className="h-4 w-4" /></Button></form></div></article>; })}</CardContent></Card></section>;
 }
 
-function SubmitButton({ label, className }: { label: string; className?: string }) {
-  const { pending } = useFormStatus();
-  return (
-    <Button className={className} disabled={pending}>
-      {pending ? "Working..." : label}
-    </Button>
-  );
+function SubmissionDirectory({ submissions, search }: { submissions: LeadSubmissionPage; search: string }) {
+  const [expandedId, setExpandedId] = React.useState<string | null>(null);
+  const totalPages = Math.max(1, Math.ceil(submissions.total / submissions.pageSize));
+  const start = submissions.total === 0 ? 0 : (submissions.page - 1) * submissions.pageSize + 1;
+  const end = Math.min(submissions.page * submissions.pageSize, submissions.total);
+  const hrefFor = (page: number) => { const params = new URLSearchParams(); if (search) params.set("q", search); if (page > 1) params.set("page", String(page)); const query = params.toString(); return `/dashboard/lead-forms${query ? `?${query}` : ""}`; };
+  return <section className="space-y-3" data-density="compact"><div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between"><div><h2 className="text-base font-semibold">Captured leads</h2><p className="mt-1 text-sm text-muted-foreground">Search, qualify, and follow up without loading the complete collection.</p></div><form method="get" className="flex w-full gap-2 sm:max-w-sm"><label className="relative min-w-0 flex-1"><span className="sr-only">Search leads by name, email, or company</span><Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" /><Input name="q" defaultValue={search} placeholder="Search leads" className="h-11 pl-9" /></label><Button type="submit" variant="outline" className="min-h-11">Search</Button>{search ? <Button asChild variant="ghost" className="min-h-11 px-3"><Link href="/dashboard/lead-forms">Clear</Link></Button> : null}</form></div><Card className="overflow-hidden">{submissions.items.length === 0 ? <CardContent className="p-10 text-center"><Inbox className="mx-auto h-7 w-7 text-muted-foreground/40" /><p className="mt-3 text-sm font-semibold">{search ? "No matching leads" : "No leads captured yet"}</p><p className="mt-1 text-sm text-muted-foreground">{search ? "Try another name, email, or company." : "New inquiries will appear here after a public form is submitted."}</p></CardContent> : <Table className="min-w-[900px]"><TableHeader className="bg-muted/30"><TableRow><TableHead className="w-[34%]">Lead</TableHead><TableHead>Form</TableHead><TableHead>Received</TableHead><TableHead>Status</TableHead><TableHead className="text-right">Actions</TableHead></TableRow></TableHeader><TableBody>{submissions.items.map((submission) => <SubmissionRow key={submission.id} submission={submission} expanded={expandedId === submission.id} onToggle={() => setExpandedId((value) => value === submission.id ? null : submission.id)} />)}</TableBody></Table>}<div className="flex min-h-14 flex-col gap-3 border-t px-4 py-3 sm:flex-row sm:items-center sm:justify-between"><p className="text-xs tabular-nums text-muted-foreground">Showing {start}–{end} of {submissions.total.toLocaleString()} leads</p><div className="flex items-center gap-2"><Button asChild={submissions.page > 1} variant="outline" size="sm" disabled={submissions.page <= 1} className="min-h-10">{submissions.page > 1 ? <Link href={hrefFor(submissions.page - 1)}><ChevronLeft className="h-4 w-4" /> Previous</Link> : <span><ChevronLeft className="h-4 w-4" /> Previous</span>}</Button><span className="min-w-20 text-center text-xs font-medium tabular-nums">Page {Math.min(submissions.page, totalPages)} of {totalPages}</span><Button asChild={submissions.page < totalPages} variant="outline" size="sm" disabled={submissions.page >= totalPages} className="min-h-10">{submissions.page < totalPages ? <Link href={hrefFor(submissions.page + 1)}>Next <ChevronRight className="h-4 w-4" /></Link> : <span>Next <ChevronRight className="h-4 w-4" /></span>}</Button></div></div></Card></section>;
 }
 
-function EmptyState({
-  icon: Icon,
-  title,
-  text,
-}: {
-  icon: React.ComponentType<{ className?: string }>;
-  title: string;
-  text: string;
-}) {
-  return (
-    <div className="rounded-lg border border-dashed p-6 text-center">
-      <Icon className="mx-auto h-8 w-8 text-muted-foreground/35" />
-      <p className="mt-2 text-sm font-semibold">{title}</p>
-      <p className="mx-auto mt-1 max-w-sm text-xs leading-relaxed text-muted-foreground">
-        {text}
-      </p>
-    </div>
-  );
+function SubmissionRow({ submission, expanded, onToggle }: { submission: LeadSubmissionRecord; expanded: boolean; onToggle: () => void }) {
+  const router = useRouter(); const [working, setWorking] = React.useState(false);
+  const updateStatus = async (status: LeadSubmissionRecord["status"]) => { setWorking(true); const result = await updateLeadSubmissionStatusAction(submission.id, status); setWorking(false); if (!result.ok) return void toast.error(result.error); toast.success(result.message); router.refresh(); };
+  const remove = async () => { if (!window.confirm(`Delete the captured response from ${submission.name}? The client and project records will be kept.`)) return; setWorking(true); const result = await deleteLeadSubmissionAction(submission.id); setWorking(false); if (!result.ok) return void toast.error(result.error); toast.success(result.message); router.refresh(); };
+  const customAnswers = readCustomAnswers(submission.answers);
+  return <React.Fragment><TableRow className={expanded ? "bg-muted/30" : undefined}><TableCell className="py-3"><p className="truncate font-semibold">{submission.name}{submission.company ? ` · ${submission.company}` : ""}</p><p className="mt-0.5 truncate text-xs text-muted-foreground">{submission.email}{submission.phone ? ` · ${submission.phone}` : ""}</p></TableCell><TableCell className="py-3 text-xs text-muted-foreground">{submission.form?.name ?? "Deleted form"}</TableCell><TableCell className="whitespace-nowrap py-3 text-xs text-muted-foreground">{formatDate(submission.created_at)}</TableCell><TableCell className="py-3"><select value={submission.status} disabled={working} onChange={(event) => void updateStatus(event.target.value as LeadSubmissionRecord["status"])} className="h-9 rounded-md border border-input bg-background px-2 text-xs font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><option value="new">New</option><option value="reviewed">Reviewed</option><option value="converted">Converted</option><option value="archived">Archived</option></select></TableCell><TableCell className="py-3"><div className="flex items-center justify-end gap-1"><Button type="button" variant="ghost" size="sm" onClick={onToggle} aria-expanded={expanded}>{expanded ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />} Details</Button>{submission.project_id ? <Button asChild variant="ghost" size="sm"><Link href={`/dashboard/projects/${submission.project_id}`}>Open lead <ArrowRight className="h-3.5 w-3.5" /></Link></Button> : null}<IvoEntryPoint label="Analyze" prompt={`Analyze this captured lead. Summarize the need, budget, timing, fit, risks, and best next action. Lead: ${submission.name} <${submission.email}>. Project brief: ${submission.project_summary}`} resources={submission.project_id ? [{ type: "project", id: submission.project_id, label: "Lead project", subtitle: submission.name }] : undefined} /><Button type="button" variant="ghost" size="icon" className="h-10 w-10 text-muted-foreground hover:text-destructive" onClick={remove} disabled={working} aria-label={`Delete response from ${submission.name}`}><Trash2 className="h-4 w-4" /></Button></div></TableCell></TableRow>{expanded ? <TableRow className="hover:bg-transparent"><TableCell colSpan={5} className="bg-muted/10 p-5"><div className="grid gap-x-8 gap-y-5 md:grid-cols-2"><Detail label="Project brief" value={submission.project_summary} /><Detail label="Budget" value={submission.budget} /><Detail label="Timeline" value={submission.timeline} />{Object.entries(customAnswers).map(([label, value]) => <Detail key={label} label={label} value={value} />)}</div></TableCell></TableRow> : null}</React.Fragment>;
 }
+
+function Detail({ label, value }: { label: string; value: string | null | undefined }) { return <div className="min-w-0"><p className="text-micro font-semibold uppercase tracking-wider text-muted-foreground">{label}</p><p className="mt-1 whitespace-pre-line break-words text-sm">{value || "—"}</p></div>; }
+function readCustomAnswers(value: unknown): Record<string, string> { if (!value || typeof value !== "object" || Array.isArray(value)) return {}; const custom = (value as Record<string, unknown>).custom; if (!custom || typeof custom !== "object" || Array.isArray(custom)) return {}; return Object.fromEntries(Object.entries(custom).flatMap(([key, answer]) => typeof answer === "string" ? [[key, answer]] : [])); }
+function LeadFormStartDesk({ onCreate }: { onCreate: () => void }) { return <section className="overflow-hidden rounded-2xl border border-border/70 bg-card"><div className="grid lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]"><div className="border-b border-border/60 bg-primary/[0.025] p-6 sm:p-8 lg:border-b-0 lg:border-r"><p className="text-micro font-semibold uppercase tracking-[0.16em] text-primary">Lead desk</p><h2 className="mt-3 max-w-md font-display text-2xl font-semibold tracking-tight">Turn a clear inquiry into work you can qualify.</h2><p className="mt-3 max-w-md text-sm leading-6 text-muted-foreground">Publish one focused form. Stackivo creates the client and lead project while keeping billing details marked for review.</p><Button type="button" className="mt-6 min-h-11" onClick={onCreate}><Plus className="h-4 w-4" /> Create your first form</Button></div><div className="p-6 sm:p-8"><div className="mx-auto max-w-lg divide-y rounded-lg border bg-background"><FlowStep number="01" title="Collect the brief" text="Ask only what you need to decide fit and next steps." /><FlowStep number="02" title="Create the lead" text="Client and project records arrive together in your workspace." /><FlowStep number="03" title="Qualify and respond" text="Review the context, open the project, or ask Ivo for a grounded reply." /></div></div></div></section>; }
+function FlowStep({ number, title, text }: { number: string; title: string; text: string }) { return <div className="flex gap-4 p-5"><span className="font-mono text-micro text-primary">{number}</span><div><p className="text-sm font-semibold">{title}</p><p className="mt-1 text-sm text-muted-foreground">{text}</p></div></div>; }
+function StatusBadge({ active }: { active: boolean }) { return <span className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-micro font-semibold ${active ? "bg-success-subtle text-success-strong" : "bg-muted text-muted-foreground"}`}><span className="h-1.5 w-1.5 rounded-full bg-current" />{active ? "Active" : "Paused"}</span>; }
+function Field({ label, className, children }: { label: string; className?: string; children: React.ReactNode }) { return <label className={["space-y-1.5", className].filter(Boolean).join(" ")}><span className="text-xs font-medium text-muted-foreground">{label}</span>{children}</label>; }
+function SubmitButton({ label }: { label: string }) { const { pending } = useFormStatus(); return <Button className="min-h-11" disabled={pending}>{pending ? "Creating…" : label}</Button>; }
+function formatDate(value: string): string { const date = new Date(value); return Number.isNaN(date.getTime()) ? "" : new Intl.DateTimeFormat(undefined, { day: "numeric", month: "short", year: "numeric", hour: "numeric", minute: "2-digit" }).format(date); }

@@ -11,6 +11,7 @@ import {
   Wallet,
   Gift,
   Sparkles,
+  Plug,
 } from "lucide-react";
 import { EARLY_ACCESS_MODE } from "@/config/product-mode";
 
@@ -63,6 +64,12 @@ const SETTINGS_NAV_GROUPS_WITH_BILLING: SettingsNavGroup[] = [
   {
     label: "Workspace",
     items: [
+      {
+        href: "/dashboard/settings/integrations",
+        label: "Integrations",
+        description: "Connected apps and automations",
+        icon: Plug,
+      },
       {
         href: "/dashboard/settings/notifications",
         label: "Notifications",

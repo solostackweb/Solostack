@@ -3,7 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Check, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Copy, ExternalLink, FileSpreadsheet, MessageCircle, RefreshCw, Search, Trash2 } from "lucide-react";
+import { ArrowLeft, Check, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Copy, ExternalLink, MessageCircle, RefreshCw, Search, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { PageHeader } from "@/components/shared/page-header";
@@ -12,6 +12,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { IvoEntryPoint } from "@/features/ai-workflows/components/ivo-entry-point";
+import { IntegrationLogoTile } from "@/components/integrations/integration-logo";
 import { connectQuestionnaireSheetAction, deleteQuestionnaireResponseAction, repairQuestionnaireSheetAction, retryQuestionnaireSheetSyncAction, revokeQuestionnaireLinkAction } from "../actions";
 import { followUpAnswerKey, OTHER_OPTION_VALUE, otherAnswerKey, type QuestionnaireResponse, type QuestionnaireSend, type QuestionnaireSheetIntegration } from "../types";
 import { SendQuestionnaireDialog, buildWhatsappHref, type SendClientOption } from "./send-questionnaire-dialog";
@@ -21,7 +22,7 @@ function fmtDate(iso: string): string {
   return Number.isNaN(date.getTime()) ? "" : new Intl.DateTimeFormat(undefined, { day: "numeric", month: "short", year: "numeric", hour: "numeric", minute: "2-digit" }).format(date);
 }
 
-export function QuestionnaireResponsesView({ questionnaireId, questionnaireTitle, clients, sends, responses, responseTotal, responsePage, responsePageSize, responseSearch, sheetIntegration }: {
+export function QuestionnaireResponsesView({ questionnaireId, questionnaireTitle, clients, sends, responses, responseTotal, responsePage, responsePageSize, responseSearch, sheetIntegration, sheetsConnection }: {
   questionnaireId: string;
   questionnaireTitle: string;
   clients: SendClientOption[];
@@ -32,12 +33,13 @@ export function QuestionnaireResponsesView({ questionnaireId, questionnaireTitle
   responsePageSize: number;
   responseSearch: string;
   sheetIntegration: QuestionnaireSheetIntegration | null;
+  sheetsConnection: { ready: boolean; email: string | null };
 }) {
   const clientFor = (id: string | null) => clients.find((client) => client.id === id);
   return <div className="space-y-6">
     <PageHeader title="Responses" description={questionnaireTitle} actions={<div className="flex items-center gap-2"><Button asChild variant="outline" size="sm"><Link href="/dashboard/questionnaires"><ArrowLeft className="h-4 w-4" /> Questionnaires</Link></Button><SendQuestionnaireDialog questionnaireId={questionnaireId} clients={clients} /></div>} />
     <div className="grid gap-3 sm:grid-cols-2"><Stat label="Active links" value={sends.length} /><Stat label="Responses" value={responseTotal} /></div>
-    <SheetsPanel questionnaireId={questionnaireId} integration={sheetIntegration} />
+    <SheetsPanel questionnaireId={questionnaireId} integration={sheetIntegration} connection={sheetsConnection} responseTotal={responseTotal} />
 
     <section className="space-y-3">
       <div><h2 className="text-base font-semibold">Collection links</h2><p className="mt-1 text-sm text-muted-foreground">Each link can collect any number of responses.</p></div>
@@ -52,7 +54,7 @@ function Stat({ label, value }: { label: string; value: number }) {
   return <Card><CardContent className="p-5"><p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{label}</p><p className="mt-1 text-3xl font-bold tabular-nums">{value}</p></CardContent></Card>;
 }
 
-function SheetsPanel({ questionnaireId, integration }: { questionnaireId: string; integration: QuestionnaireSheetIntegration | null }) {
+function SheetsPanel({ questionnaireId, integration, connection, responseTotal }: { questionnaireId: string; integration: QuestionnaireSheetIntegration | null; connection: { ready: boolean; email: string | null }; responseTotal: number }) {
   const router = useRouter();
   const [working, setWorking] = React.useState(false);
   const connect = async () => {
@@ -66,6 +68,7 @@ function SheetsPanel({ questionnaireId, integration }: { questionnaireId: string
     }
     toast.success(result.message ?? "Google Sheet connected.");
     if (result.data?.spreadsheetUrl) window.open(result.data.spreadsheetUrl, "_blank", "noopener,noreferrer");
+    router.refresh();
   };
   const repair = async () => {
     setWorking(true);
@@ -75,9 +78,15 @@ function SheetsPanel({ questionnaireId, integration }: { questionnaireId: string
     toast.success(result.message);
     router.refresh();
   };
+  React.useEffect(() => {
+    if (integration || !connection.ready || responseTotal === 0 || working) return;
+    void connect();
+    // Provision an existing response collection once when this page is opened.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [integration, connection.ready, responseTotal]);
   return <Card><CardContent className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between">
-    <div className="flex gap-3"><span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-emerald-50 text-emerald-700"><FileSpreadsheet className="h-5 w-5" /></span><div><p className="text-sm font-semibold">Google Sheets</p><p className="mt-1 max-w-xl text-sm text-muted-foreground">{integration ? "New responses are appended automatically. Stackivo remains the source of truth." : "Create a private response sheet in your Google account and sync existing and future responses."}</p>{integration?.lastError ? <p className="mt-1 text-xs text-destructive">Last sync needs attention: {integration.lastError}</p> : null}</div></div>
-    {integration ? <div className="flex flex-wrap gap-2"><Button type="button" variant={integration.lastError ? "default" : "outline"} size="sm" onClick={repair} disabled={working}><RefreshCw className={`h-4 w-4 ${working ? "animate-spin" : ""}`} /> {working ? "Repairing…" : "Repair sync"}</Button><Button asChild variant="outline" size="sm"><a href={integration.spreadsheetUrl} target="_blank" rel="noreferrer">Open sheet <ExternalLink className="h-4 w-4" /></a></Button></div> : <Button type="button" size="sm" onClick={connect} disabled={working}>{working ? "Connecting…" : "Connect Google Sheets"}</Button>}
+    <div className="flex gap-3"><IntegrationLogoTile id="google_sheets" /><div><p className="text-sm font-semibold">Google Sheets</p><p className="mt-1 max-w-xl text-sm text-muted-foreground">{integration ? "New responses are appended automatically. Stackivo remains the source of truth." : connection.ready ? responseTotal > 0 ? "Preparing a response sheet and syncing this collection…" : "Connected. A response sheet will be created automatically with the first response." : "Automatic response sync is not enabled for this workspace."}</p>{integration?.lastError ? <p className="mt-1 text-xs text-destructive">Last sync needs attention: {integration.lastError}</p> : null}</div></div>
+    {integration ? <div className="flex flex-wrap gap-2"><Button type="button" variant={integration.lastError ? "default" : "outline"} size="sm" onClick={repair} disabled={working}><RefreshCw className={`h-4 w-4 ${working ? "animate-spin" : ""}`} /> {working ? "Repairing…" : "Repair sync"}</Button><Button asChild variant="outline" size="sm"><a href={integration.spreadsheetUrl} target="_blank" rel="noreferrer">Open sheet <ExternalLink className="h-4 w-4" /></a></Button></div> : connection.ready ? null : <Button asChild type="button" variant="outline" size="sm"><Link href="/dashboard/settings/integrations">Manage integration</Link></Button>}
   </CardContent></Card>;
 }
 

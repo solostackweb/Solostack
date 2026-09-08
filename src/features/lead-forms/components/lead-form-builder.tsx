@@ -6,9 +6,10 @@ import { useFormStatus } from "react-dom";
 import Link from "next/link";
 import {
   ArrowLeft,
+  ChevronDown,
+  ChevronUp,
   Copy,
   ExternalLink,
-  GripVertical,
   Plus,
   Save,
   Trash2,
@@ -16,6 +17,7 @@ import {
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
+import { PageHeader } from "@/components/shared/page-header";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -140,35 +142,36 @@ export function LeadFormBuilder({
     ]);
   };
 
+  const moveCustom = (index: number, direction: -1 | 1) => {
+    const target = index + direction;
+    if (target < 0 || target >= customFields.length) return;
+    setCustomFields((previous) => {
+      const next = [...previous];
+      [next[index], next[target]] = [next[target], next[index]];
+      return next;
+    });
+  };
+
   return (
     <form action={formAction} className="space-y-5">
       <input type="hidden" name="id" value={form.id} />
       <input type="hidden" name="fields" value={JSON.stringify(orderedFields)} />
 
-      <div className="flex flex-col gap-4 border-b pb-5 lg:flex-row lg:items-center lg:justify-between">
-        <div className="min-w-0">
-          <Button asChild variant="ghost" size="sm" className="-ml-2 mb-2">
-            <Link href="/dashboard/lead-forms">
-              <ArrowLeft className="h-4 w-4" /> Lead forms
-            </Link>
+      <PageHeader
+        title="Edit lead form"
+        description="Choose the public introduction, required details, and questions prospects will answer."
+        actions={<>
+          <Button asChild variant="outline" size="sm">
+            <Link href="/dashboard/lead-forms"><ArrowLeft className="h-4 w-4" /> Back</Link>
           </Button>
-          <h1 className="truncate text-3xl font-bold tracking-tight">
-            Customize form
-          </h1>
-          <p className="mt-1 text-muted-foreground">
-            Choose which questions to ask and add your own. Changes apply to the
-            public form when you save.
-          </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
           <Button asChild variant="outline" size="sm">
             <Link href={`/lead/${form.slug}`} target="_blank">
               <ExternalLink className="h-4 w-4" /> Preview
             </Link>
           </Button>
           <SaveButton />
-        </div>
-      </div>
+        </>}
+      />
 
       <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_360px]">
         <div className="min-w-0 space-y-5">
@@ -303,9 +306,12 @@ export function LeadFormBuilder({
                   {customFields.map((f, index) => (
                     <div
                       key={f.name}
-                      className="grid gap-2 rounded-lg border bg-background/50 p-3 sm:grid-cols-[16px_minmax(0,1fr)_150px_auto_auto] sm:items-center"
+                      className="grid gap-2 rounded-lg border bg-background/50 p-3 sm:grid-cols-[56px_minmax(0,1fr)_150px_auto_auto] sm:items-center"
                     >
-                      <GripVertical className="hidden h-4 w-4 text-muted-foreground/40 sm:block" />
+                      <div className="hidden items-center sm:flex">
+                        <Button type="button" variant="ghost" size="icon" className="h-8 w-7" disabled={index === 0} onClick={() => moveCustom(index, -1)} aria-label={`Move ${f.label || "question"} up`}><ChevronUp className="h-3.5 w-3.5" /></Button>
+                        <Button type="button" variant="ghost" size="icon" className="h-8 w-7" disabled={index === customFields.length - 1} onClick={() => moveCustom(index, 1)} aria-label={`Move ${f.label || "question"} down`}><ChevronDown className="h-3.5 w-3.5" /></Button>
+                      </div>
                       <Input
                         value={f.label}
                         placeholder="Your question"
@@ -374,12 +380,8 @@ export function LeadFormBuilder({
         {/* Preview + share */}
         <aside className="min-w-0 xl:sticky xl:top-24 xl:self-start">
           <div className="overflow-hidden rounded-lg border bg-card shadow-sm">
-            <div
-              className="border-b p-4"
-              style={{
-                background: `linear-gradient(135deg, ${brandColor}14, transparent)`,
-              }}
-            >
+            <div className="border-b p-4">
+              <div className="mb-3 h-1 w-12 rounded-full" style={{ background: brandColor }} />
               <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
                 Live preview
               </p>
@@ -445,7 +447,7 @@ function SaveButton() {
   return (
     <Button type="submit" size="sm" disabled={pending}>
       {pending ? (
-        "Saving..."
+        "Saving…"
       ) : (
         <>
           <Save className="h-4 w-4" /> Save form

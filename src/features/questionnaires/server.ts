@@ -2,6 +2,7 @@ import "server-only";
 
 import { getServerSupabase } from "@/lib/supabase/server";
 import { getAdminSupabase } from "@/lib/supabase/admin";
+import { grantIncludesDriveFile } from "@/features/scheduling/google";
 import type {
   QuestionnaireRow,
   QuestionnaireResponseRow,
@@ -212,6 +213,29 @@ export async function getQuestionnaireSheetIntegration(
     .maybeSingle();
   const row = data as QuestionnaireSheetIntegrationRow | null;
   return row ? mapQuestionnaireSheetIntegrationRow(row) : null;
+}
+
+export async function getQuestionnaireSheetsConnection(): Promise<{
+  ready: boolean;
+  email: string | null;
+}> {
+  const userId = await currentUserId();
+  if (!userId) return { ready: false, email: null };
+  const supabase = await getServerSupabase();
+  const { data } = await supabase
+    .from("calendar_connections")
+    .select("google_email, refresh_token, scope")
+    .eq("user_id", userId)
+    .maybeSingle();
+  const row = data as {
+    google_email: string | null;
+    refresh_token: string | null;
+    scope: string | null;
+  } | null;
+  return {
+    ready: Boolean(row?.refresh_token && grantIncludesDriveFile(row.scope)),
+    email: row?.google_email ?? null,
+  };
 }
 
 /** Sends tied to a client — for the client 360 / portal (service-role). */
