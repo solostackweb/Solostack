@@ -18,6 +18,7 @@ import {
 import { grantIncludesDriveFile } from "@/features/scheduling/google";
 import {
   createQuestionnaireSpreadsheet,
+  rebuildQuestionnaireSheet,
   syncQuestionnaireResponse,
 } from "./google-sheets";
 import { getStarter } from "./builtin";
@@ -542,17 +543,64 @@ export async function connectQuestionnaireSheetAction(
       title: questionnaire.title,
       questions: normalizeQuestions(questionnaire.questions),
     });
-    const { data: existing } = await supabase
-      .from("questionnaire_responses")
-      .select("id")
-      .eq("questionnaire_id", questionnaireId)
-      .order("submitted_at", { ascending: true });
-    for (const row of (existing ?? []) as Array<{ id: string }>) await syncQuestionnaireResponse(row.id);
+    await rebuildQuestionnaireSheet(questionnaireId, userId);
     revalidatePath(`/dashboard/questionnaires/${questionnaireId}/responses`);
     return { ok: true, data: { spreadsheetUrl: integration.spreadsheet_url }, message: "Google Sheet connected and existing responses synced." };
   } catch (error) {
     return { ok: false, error: error instanceof Error ? error.message : "Could not create the response sheet." };
   }
+}
+
+export async function repairQuestionnaireSheetAction(questionnaireId: string): Promise<QResult> {
+  const userId = await requireUserId();
+  if (!userId) return { ok: false, error: "Please sign in." };
+  const parsed = z.string().uuid().safeParse(questionnaireId);
+  if (!parsed.success) return { ok: false, error: "Questionnaire not found." };
+  try {
+    const integration = await rebuildQuestionnaireSheet(parsed.data, userId);
+    if (!integration) return { ok: false, error: "Connect Google Sheets first." };
+    revalidatePath(`/dashboard/questionnaires/${parsed.data}/responses`);
+    return { ok: true, message: "Google Sheet repaired and rebuilt from current Stackivo responses." };
+  } catch (error) {
+    return { ok: false, error: error instanceof Error ? error.message : "Could not repair the response sheet." };
+  }
+}
+
+export async function deleteQuestionnaireResponseAction(responseId: string): Promise<QResult> {
+  const userId = await requireUserId();
+  if (!userId) return { ok: false, error: "Please sign in." };
+  const parsed = z.string().uuid().safeParse(responseId);
+  if (!parsed.success) return { ok: false, error: "Response not found." };
+  const supabase = await getServerSupabase();
+  const { data: responseRaw } = await supabase.from("questionnaire_responses")
+    .select("id, questionnaire_id")
+    .eq("id", parsed.data)
+    .eq("user_id", userId)
+    .maybeSingle();
+  const response = responseRaw as { id: string; questionnaire_id: string | null } | null;
+  if (!response) return { ok: false, error: "Response not found." };
+
+  if (response.questionnaire_id) {
+    try {
+      await rebuildQuestionnaireSheet(response.questionnaire_id, userId, { excludeResponseId: response.id });
+    } catch (error) {
+      return {
+        ok: false,
+        error: `The response was kept because its Google Sheet row could not be removed. ${error instanceof Error ? error.message : "Reconnect Google and try again."}`,
+      };
+    }
+  }
+  const { error } = await supabase.from("questionnaire_responses").delete()
+    .eq("id", response.id)
+    .eq("user_id", userId);
+  if (error) {
+    if (response.questionnaire_id) {
+      try { await rebuildQuestionnaireSheet(response.questionnaire_id, userId); } catch { /* best-effort rollback */ }
+    }
+    return { ok: false, error: error.message };
+  }
+  if (response.questionnaire_id) revalidatePath(`/dashboard/questionnaires/${response.questionnaire_id}/responses`);
+  return { ok: true, message: "Response deleted from Stackivo and Google Sheets." };
 }
 
 export async function retryQuestionnaireSheetSyncAction(responseId: string): Promise<QResult> {

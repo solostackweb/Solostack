@@ -39,4 +39,17 @@ describe("questionnaire lifecycle and branching", () => {
     assert.match(SHEETS, /setBasicFilter/);
     assert.match(SHEETS, /pixelSize: 280/);
   });
+
+  it("repairs legacy sheets by resolving the real tab id and rebuilding canonical rows", () => {
+    assert.match(SHEETS, /resolveSheetId/);
+    assert.match(SHEETS, /fields=sheets\.properties\(sheetId,title\)/);
+    assert.match(SHEETS, /rebuildQuestionnaireSheet/);
+    assert.match(SHEETS, /__response_id/);
+  });
+
+  it("removes a response from the sheet before deleting its database record", () => {
+    const rebuildAt = ACTIONS.indexOf("excludeResponseId: response.id");
+    const deleteAt = ACTIONS.indexOf('.from("questionnaire_responses").delete()');
+    assert.ok(rebuildAt >= 0 && deleteAt > rebuildAt);
+  });
 });

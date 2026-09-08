@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { ArrowLeft, Check, Copy, ExternalLink, FileSpreadsheet, MessageCircle, RefreshCw, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -9,7 +10,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { IvoEntryPoint } from "@/features/ai-workflows/components/ivo-entry-point";
-import { connectQuestionnaireSheetAction, retryQuestionnaireSheetSyncAction, revokeQuestionnaireLinkAction } from "../actions";
+import { connectQuestionnaireSheetAction, deleteQuestionnaireResponseAction, repairQuestionnaireSheetAction, retryQuestionnaireSheetSyncAction, revokeQuestionnaireLinkAction } from "../actions";
 import { followUpAnswerKey, OTHER_OPTION_VALUE, otherAnswerKey, type QuestionnaireResponse, type QuestionnaireSend, type QuestionnaireSheetIntegration } from "../types";
 import { SendQuestionnaireDialog, buildWhatsappHref, type SendClientOption } from "./send-questionnaire-dialog";
 
@@ -49,6 +50,7 @@ function Stat({ label, value }: { label: string; value: number }) {
 }
 
 function SheetsPanel({ questionnaireId, integration }: { questionnaireId: string; integration: QuestionnaireSheetIntegration | null }) {
+  const router = useRouter();
   const [working, setWorking] = React.useState(false);
   const connect = async () => {
     setWorking(true);
@@ -62,9 +64,17 @@ function SheetsPanel({ questionnaireId, integration }: { questionnaireId: string
     toast.success(result.message ?? "Google Sheet connected.");
     if (result.data?.spreadsheetUrl) window.open(result.data.spreadsheetUrl, "_blank", "noopener,noreferrer");
   };
+  const repair = async () => {
+    setWorking(true);
+    const result = await repairQuestionnaireSheetAction(questionnaireId);
+    setWorking(false);
+    if (!result.ok) return void toast.error(result.error);
+    toast.success(result.message);
+    router.refresh();
+  };
   return <Card><CardContent className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between">
     <div className="flex gap-3"><span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-emerald-50 text-emerald-700"><FileSpreadsheet className="h-5 w-5" /></span><div><p className="text-sm font-semibold">Google Sheets</p><p className="mt-1 max-w-xl text-sm text-muted-foreground">{integration ? "New responses are appended automatically. Stackivo remains the source of truth." : "Create a private response sheet in your Google account and sync existing and future responses."}</p>{integration?.lastError ? <p className="mt-1 text-xs text-destructive">Last sync needs attention: {integration.lastError}</p> : null}</div></div>
-    {integration ? <Button asChild variant="outline" size="sm"><a href={integration.spreadsheetUrl} target="_blank" rel="noreferrer">Open sheet <ExternalLink className="h-4 w-4" /></a></Button> : <Button type="button" size="sm" onClick={connect} disabled={working}>{working ? "Connecting…" : "Connect Google Sheets"}</Button>}
+    {integration ? <div className="flex flex-wrap gap-2"><Button type="button" variant={integration.lastError ? "default" : "outline"} size="sm" onClick={repair} disabled={working}><RefreshCw className={`h-4 w-4 ${working ? "animate-spin" : ""}`} /> {working ? "Repairing…" : "Repair sync"}</Button><Button asChild variant="outline" size="sm"><a href={integration.spreadsheetUrl} target="_blank" rel="noreferrer">Open sheet <ExternalLink className="h-4 w-4" /></a></Button></div> : <Button type="button" size="sm" onClick={connect} disabled={working}>{working ? "Connecting…" : "Connect Google Sheets"}</Button>}
   </CardContent></Card>;
 }
 
@@ -92,7 +102,9 @@ function displayAnswer(response: QuestionnaireResponse, questionId: string): str
 }
 
 function ResponseCard({ response, client, number }: { response: QuestionnaireResponse; client?: SendClientOption; number: number }) {
+  const router = useRouter();
   const [syncing, setSyncing] = React.useState(false);
+  const [deleting, setDeleting] = React.useState(false);
   const retry = async () => {
     setSyncing(true);
     const result = await retryQuestionnaireSheetSyncAction(response.id);
@@ -100,9 +112,18 @@ function ResponseCard({ response, client, number }: { response: QuestionnaireRes
     if (result.ok) toast.success(result.message);
     else toast.error(result.error);
   };
+  const remove = async () => {
+    if (!window.confirm("Delete this response? It will also be removed from the connected Google Sheet. This cannot be undone.")) return;
+    setDeleting(true);
+    const result = await deleteQuestionnaireResponseAction(response.id);
+    setDeleting(false);
+    if (!result.ok) return void toast.error(result.error);
+    toast.success(result.message);
+    router.refresh();
+  };
   const respondentName = String(response.responses.__respondent_name ?? client?.name ?? `Response ${number}`);
   const respondentEmail = typeof response.responses.__respondent_email === "string" ? response.responses.__respondent_email : null;
-  return <Card><CardContent className="space-y-3 p-4"><div className="flex flex-wrap items-center justify-between gap-2"><div><p className="text-sm font-semibold">{respondentName}</p><p className="mt-1 text-xs text-muted-foreground">{respondentEmail ? `${respondentEmail} · ` : ""}Submitted {fmtDate(response.submittedAt)}</p></div><div className="flex items-center gap-2"><span className="rounded-full bg-success-subtle px-2 py-0.5 text-micro font-semibold text-success-strong">Received</span>{response.sheetsSyncStatus === "failed" ? <Button type="button" variant="outline" size="sm" onClick={retry} disabled={syncing}><RefreshCw className={`h-3.5 w-3.5 ${syncing ? "animate-spin" : ""}`} /> Retry Sheet</Button> : null}</div></div>
+  return <Card><CardContent className="space-y-3 p-4"><div className="flex flex-wrap items-center justify-between gap-2"><div><p className="text-sm font-semibold">{respondentName}</p><p className="mt-1 text-xs text-muted-foreground">{respondentEmail ? `${respondentEmail} · ` : ""}Submitted {fmtDate(response.submittedAt)}</p></div><div className="flex items-center gap-2"><span className="rounded-full bg-success-subtle px-2 py-0.5 text-micro font-semibold text-success-strong">Received</span>{response.sheetsSyncStatus === "failed" ? <Button type="button" variant="outline" size="sm" onClick={retry} disabled={syncing}><RefreshCw className={`h-3.5 w-3.5 ${syncing ? "animate-spin" : ""}`} /> Retry Sheet</Button> : null}<Button type="button" variant="ghost" size="sm" className="text-muted-foreground hover:text-destructive" onClick={remove} disabled={deleting}><Trash2 className="h-3.5 w-3.5" /> {deleting ? "Deleting…" : "Delete"}</Button></div></div>
     <div className="flex flex-wrap gap-2"><IvoEntryPoint label="Analyze with IVo" prompt="Analyze this questionnaire response. Summarize the respondent's goals, constraints, unanswered questions, risks, and the best next actions. Stay grounded in the attached response." resources={[{ type: "questionnaire_response", id: response.id, label: "Questionnaire response", subtitle: respondentName }]} /></div>
     <details className="group"><summary className="cursor-pointer text-xs font-medium text-primary hover:underline">View answers</summary><div className="mt-3 space-y-4 border-t pt-4">{response.questions.map((question) => <div key={question.id}><p className="text-micro font-semibold uppercase tracking-wider text-muted-foreground">{question.label}</p><p className="mt-1 whitespace-pre-line text-sm text-foreground/90">{displayAnswer(response, question.id)}</p>{question.conditionalFollowUp && response.responses[followUpAnswerKey(question.id)] ? <div className="mt-2 border-l-2 border-primary/30 pl-3"><p className="text-xs font-medium text-muted-foreground">{question.conditionalFollowUp.label}</p><p className="mt-1 whitespace-pre-line text-sm">{String(response.responses[followUpAnswerKey(question.id)])}</p></div> : null}</div>)}</div></details>
   </CardContent></Card>;

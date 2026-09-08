@@ -12,43 +12,13 @@ import {
   useIsStandalone,
 } from "./hooks";
 
-/**
- * Paths where the install banner would compete with a primary CTA.
- *
- * Auth + marketing surfaces are conversion-critical — surfacing a
- * "Install Stackivo" prompt while the visitor is mid-decision is
- * pure friction. We only let the banner appear inside the authed
- * app (`/dashboard`, `/onboarding`, `/admin`) and the in-app help
- * surfaces.
- */
-const HIDE_ON_PREFIXES = [
-  "/", // exact match handled below
-  "/login",
-  "/signup",
-  "/forgot-password",
-  "/reset-password",
-  "/auth",
-  "/about",
-  "/contact",
-  "/talk",
-  "/demo",
-  "/security",
-  "/changelog",
-  "/terms",
-  "/privacy",
-  "/pricing",
-  "/blog",
-  "/tools",
-  "/i/", // public tokenised invoice
-  "/c/", // public tokenised contract
-  "/p/", // public tokenised proposal
-];
+/** Only authenticated product surfaces may interrupt users with installation. */
+const SHOW_ON_PREFIXES = ["/dashboard", "/onboarding", "/admin"];
 
 function shouldHide(pathname: string | null): boolean {
   if (!pathname) return true;
-  if (pathname === "/") return true;
-  return HIDE_ON_PREFIXES.some(
-    (p) => p !== "/" && (pathname === p || pathname.startsWith(`${p}/`)),
+  return !SHOW_ON_PREFIXES.some(
+    (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
   );
 }
 

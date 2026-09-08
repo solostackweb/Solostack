@@ -13,6 +13,7 @@ import {
 const SHEETS_API = "https://sheets.googleapis.com/v4/spreadsheets";
 const BASE_COLUMNS = [
   { key: "submitted_at", label: "Submitted at" },
+  { key: "__response_id", label: "Response ID" },
 ] as const;
 const RESPONDENT_COLUMNS = [
   { key: "__respondent_name", label: "Name" },
@@ -29,6 +30,7 @@ async function formatResponseSheet(
   spreadsheetId: string,
   sheetId: number,
   columnCount: number,
+  responseIdColumnIndex: number,
 ): Promise<void> {
   await sheetsRequest(accessToken, `${SHEETS_API}/${spreadsheetId}:batchUpdate`, {
     method: "POST",
@@ -72,16 +74,23 @@ async function formatResponseSheet(
         },
         {
           updateDimensionProperties: {
-            range: { sheetId, dimension: "COLUMNS", startIndex: 1, endIndex: Math.min(3, columnCount) },
+            range: { sheetId, dimension: "COLUMNS", startIndex: 1, endIndex: Math.min(4, columnCount) },
             properties: { pixelSize: 220 },
             fields: "pixelSize",
           },
         },
-        ...(columnCount > 3 ? [{
+        ...(columnCount > 4 ? [{
           updateDimensionProperties: {
-            range: { sheetId, dimension: "COLUMNS", startIndex: 3, endIndex: columnCount },
+            range: { sheetId, dimension: "COLUMNS", startIndex: 4, endIndex: columnCount },
             properties: { pixelSize: 280 },
             fields: "pixelSize",
+          },
+        }] : []),
+        ...(responseIdColumnIndex >= 0 ? [{
+          updateDimensionProperties: {
+            range: { sheetId, dimension: "COLUMNS", startIndex: responseIdColumnIndex, endIndex: responseIdColumnIndex + 1 },
+            properties: { hiddenByUser: true },
+            fields: "hiddenByUser",
           },
         }] : []),
         {
@@ -92,6 +101,24 @@ async function formatResponseSheet(
       ],
     }),
   });
+}
+
+async function resolveSheetId(
+  accessToken: string,
+  spreadsheetId: string,
+  sheetTitle: string,
+): Promise<number> {
+  const spreadsheet = await sheetsRequest<{
+    sheets?: Array<{ properties?: { sheetId?: number; title?: string } }>;
+  }>(accessToken, `${SHEETS_API}/${spreadsheetId}?fields=sheets.properties(sheetId,title)`, {
+    method: "GET",
+  });
+  const exact = spreadsheet.sheets?.find((sheet) => sheet.properties?.title === sheetTitle);
+  const sheetId = exact?.properties?.sheetId;
+  if (typeof sheetId !== "number") {
+    throw new Error(`The “${sheetTitle}” tab could not be found in the connected Google Sheet.`);
+  }
+  return sheetId;
 }
 
 function questionColumns(questions: Question[]): SheetColumn[] {
@@ -195,8 +222,9 @@ export async function createQuestionnaireSpreadsheet(args: {
     method: "PUT",
     body: JSON.stringify({ values: [columns.map((column) => column.label)] }),
   });
-  const sheetId = created.sheets?.[0]?.properties?.sheetId ?? 0;
-  await formatResponseSheet(accessToken, created.spreadsheetId, sheetId, columns.length);
+  const sheetId = created.sheets?.[0]?.properties?.sheetId
+    ?? await resolveSheetId(accessToken, created.spreadsheetId, sheetTitle);
+  await formatResponseSheet(accessToken, created.spreadsheetId, sheetId, columns.length, columns.findIndex((column) => column.key === "__response_id"));
   const admin = getAdminSupabase();
   const { data, error } = await admin
     .from("questionnaire_sheet_integrations")
@@ -207,7 +235,7 @@ export async function createQuestionnaireSpreadsheet(args: {
       spreadsheet_url: created.spreadsheetUrl,
       sheet_title: sheetTitle,
       sheet_id: sheetId,
-      format_version: 1,
+      format_version: 2,
       columns,
       active: true,
       last_error: null,
@@ -250,6 +278,7 @@ export async function syncQuestionnaireResponse(responseId: string): Promise<boo
   try {
     const accessToken = await accessTokenForBooking(response.user_id);
     if (!accessToken) throw new Error("Google needs to be reconnected.");
+    const sheetId = await resolveSheetId(accessToken, integration.spreadsheet_id, integration.sheet_title);
     const questions = Array.isArray(response.questions) ? (response.questions as Question[]) : [];
     const desiredColumns: SheetColumn[] = [...BASE_COLUMNS, ...questionColumns(questions)];
     const existingColumns = normalizeColumns(integration.columns);
@@ -265,11 +294,12 @@ export async function syncQuestionnaireResponse(responseId: string): Promise<boo
         body: JSON.stringify({ values: [columns.map((column) => column.label)] }),
       });
     }
-    if (headersChanged || (integration.format_version ?? 0) < 1) {
-      await formatResponseSheet(accessToken, integration.spreadsheet_id, integration.sheet_id ?? 0, columns.length);
+    if (headersChanged || (integration.format_version ?? 0) < 2 || integration.sheet_id !== sheetId) {
+      await formatResponseSheet(accessToken, integration.spreadsheet_id, sheetId, columns.length, columns.findIndex((column) => column.key === "__response_id"));
       await admin.from("questionnaire_sheet_integrations").update({
         columns,
-        format_version: 1,
+        sheet_id: sheetId,
+        format_version: 2,
         updated_at: new Date().toISOString(),
       } as never).eq("id", integration.id);
     }
@@ -278,6 +308,7 @@ export async function syncQuestionnaireResponse(responseId: string): Promise<boo
       : {};
     const meta: Record<string, unknown> = {
       submitted_at: response.submitted_at,
+      __response_id: response.id,
     };
     const row = columns.map((column) => printable(column.key in meta ? meta[column.key] : answerMap[column.key]));
     await sheetsRequest(accessToken, `${SHEETS_API}/${integration.spreadsheet_id}/values/${encodeURIComponent(`${integration.sheet_title}!A:${columnName(columns.length)}`)}:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`, {
@@ -298,4 +329,79 @@ export async function syncQuestionnaireResponse(responseId: string): Promise<boo
     ]);
     return false;
   }
+}
+
+export async function rebuildQuestionnaireSheet(
+  questionnaireId: string,
+  userId: string,
+  options: { excludeResponseId?: string } = {},
+): Promise<QuestionnaireSheetIntegrationRow | null> {
+  const admin = getAdminSupabase();
+  const [{ data: integrationRaw }, { data: questionnaireRaw }, { data: responsesRaw }] = await Promise.all([
+    admin.from("questionnaire_sheet_integrations").select("*").eq("questionnaire_id", questionnaireId).eq("user_id", userId).eq("active", true).maybeSingle(),
+    admin.from("questionnaires").select("questions").eq("id", questionnaireId).eq("user_id", userId).maybeSingle(),
+    admin.from("questionnaire_responses").select("*").eq("questionnaire_id", questionnaireId).eq("user_id", userId).order("submitted_at", { ascending: true }),
+  ]);
+  const integration = integrationRaw as QuestionnaireSheetIntegrationRow | null;
+  if (!integration) return null;
+  const accessToken = await accessTokenForBooking(userId);
+  if (!accessToken) throw new Error("Reconnect Google before repairing this response sheet.");
+  const sheetId = await resolveSheetId(accessToken, integration.spreadsheet_id, integration.sheet_title);
+  const questionnaire = questionnaireRaw as { questions: unknown } | null;
+  const responses = ((responsesRaw ?? []) as Array<{
+    id: string;
+    questions: unknown;
+    responses: unknown;
+    submitted_at: string;
+  }>).filter((response) => response.id !== options.excludeResponseId);
+
+  const responseQuestions = responses.flatMap((response) => Array.isArray(response.questions) ? response.questions as Question[] : []);
+  const allQuestions = [
+    ...(questionnaire && Array.isArray(questionnaire.questions) ? questionnaire.questions as Question[] : []),
+    ...responseQuestions,
+  ].filter((question) => !question.id.startsWith("__respondent_"));
+  const questionColumnList = questionColumns(allQuestions);
+  const uniqueQuestionColumns = questionColumnList.filter((column, index) => questionColumnList.findIndex((candidate) => candidate.key === column.key) === index);
+  const columns: SheetColumn[] = [...BASE_COLUMNS, ...RESPONDENT_COLUMNS, ...uniqueQuestionColumns];
+  const rows = responses.map((response) => {
+    const answers = response.responses && typeof response.responses === "object"
+      ? response.responses as Record<string, unknown>
+      : {};
+    const meta: Record<string, unknown> = { submitted_at: response.submitted_at, __response_id: response.id };
+    return columns.map((column) => printable(column.key in meta ? meta[column.key] : answers[column.key]));
+  });
+  const range = `${integration.sheet_title}!A1:${columnName(columns.length)}${Math.max(1, rows.length + 1)}`;
+  await sheetsRequest(accessToken, `${SHEETS_API}/${integration.spreadsheet_id}/values/${encodeURIComponent(integration.sheet_title)}:clear`, {
+    method: "POST",
+    body: JSON.stringify({}),
+  });
+  await sheetsRequest(accessToken, `${SHEETS_API}/${integration.spreadsheet_id}/values/${encodeURIComponent(range)}?valueInputOption=USER_ENTERED`, {
+    method: "PUT",
+    body: JSON.stringify({ values: [columns.map((column) => column.label), ...rows] }),
+  });
+  await formatResponseSheet(accessToken, integration.spreadsheet_id, sheetId, columns.length, columns.findIndex((column) => column.key === "__response_id"));
+  const now = new Date().toISOString();
+  await Promise.all([
+    admin.from("questionnaire_sheet_integrations").update({
+      columns,
+      sheet_id: sheetId,
+      format_version: 2,
+      last_synced_at: now,
+      last_error: null,
+      updated_at: now,
+    } as never).eq("id", integration.id),
+    admin.from("questionnaire_responses").update({
+      sheets_sync_status: "synced",
+      sheets_synced_at: now,
+      sheets_sync_error: null,
+    } as never).eq("questionnaire_id", questionnaireId).eq("user_id", userId),
+  ]);
+  return {
+    ...integration,
+    columns: columns as unknown as QuestionnaireSheetIntegrationRow["columns"],
+    sheet_id: sheetId,
+    format_version: 2,
+    last_synced_at: now,
+    last_error: null,
+  };
 }
