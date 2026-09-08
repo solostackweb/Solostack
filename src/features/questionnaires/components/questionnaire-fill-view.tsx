@@ -59,7 +59,7 @@ export function QuestionnaireFillView({ token, hostName, send }: { token: string
       return false;
     }
     const emailInput = document.getElementById("respondent-email") as HTMLInputElement | null;
-    if (!respondentEmail.trim() || !emailInput?.checkValidity()) {
+    if (!respondentEmail.trim() || (emailInput && !emailInput.checkValidity())) {
       toast.error("Please enter a valid email address.");
       emailInput?.focus();
       return false;
@@ -116,10 +116,6 @@ export function QuestionnaireFillView({ token, hostName, send }: { token: string
               <p className="text-sm leading-6 text-slate-600">Your answers were sent to {hostName}.</p>
               <button type="button" onClick={reset} className="min-h-11 rounded-lg border border-slate-300 px-4 text-sm font-semibold text-slate-800 hover:bg-slate-50">Submit another response</button>
             </div> : send.layout === "classic" ? <ClassicForm send={send} answers={answers} setAnswer={setAnswer} respondentName={respondentName} respondentEmail={respondentEmail} setRespondentName={setRespondentName} setRespondentEmail={setRespondentEmail} submitting={submitting} onSubmit={submit} /> : !detailsComplete ? <RespondentDetails title={send.title} description={send.description} name={respondentName} email={respondentEmail} setName={setRespondentName} setEmail={setRespondentEmail} onContinue={continueFromDetails} /> : current ? <div className="mx-auto max-w-xl">
-              {step === 0 ? <div className="mb-8 border-b border-slate-100 pb-6">
-                <h1 className="text-balance text-2xl font-semibold tracking-tight sm:text-3xl">{send.title}</h1>
-                {send.description ? <p className="mt-2 text-sm leading-6 text-slate-600">{send.description}</p> : null}
-              </div> : null}
               <p className="text-xs font-semibold uppercase tracking-[0.14em] text-blue-600">Question {step + 1}</p>
               <h2 className="mt-2 text-balance text-xl font-semibold leading-snug text-slate-950 sm:text-2xl">{current.label}{current.required ? <span className="ml-1 text-red-500">*</span> : null}</h2>
               {current.help ? <p className="mt-2 text-sm leading-6 text-slate-500">{current.help}</p> : null}

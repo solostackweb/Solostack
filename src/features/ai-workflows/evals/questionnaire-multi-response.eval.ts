@@ -53,4 +53,13 @@ describe("questionnaire response collections", () => {
     assert.match(FILL, /autoComplete="name"/);
     assert.match(FILL, /autoComplete="email"/);
   });
+
+  it("keeps identity validation valid after the details screen unmounts", () => {
+    assert.match(FILL, /emailInput && !emailInput\.checkValidity\(\)/);
+    assert.doesNotMatch(FILL, /!emailInput\?\.checkValidity\(\)/);
+  });
+
+  it("shows the questionnaire introduction only before the guided questions", () => {
+    assert.doesNotMatch(FILL, /step === 0 \? <div[\s\S]{0,250}\{send\.title\}/);
+  });
 });
