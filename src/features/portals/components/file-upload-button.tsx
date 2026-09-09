@@ -113,6 +113,8 @@ export function PortalFileUploadButton({
           mime_type: file.type || "application/octet-stream",
           category: "misc",
           approval_status: "none",
+          current_version: 1,
+          previous_r2_key: null,
           created_at: new Date().toISOString(),
           deleted_at: null,
         });

@@ -1354,8 +1354,23 @@ export interface PortalFileRow {
   mime_type: string;
   category: "contract" | "deliverable" | "asset" | "invoice" | "meeting_note" | "misc";
   approval_status: "none" | "submitted" | "under_review" | "approved" | "revision_requested";
+  current_version: number;
+  previous_r2_key: string | null;
   created_at: string;
   deleted_at: string | null;
+}
+
+export interface PortalFileVersionRow {
+  id: string;
+  file_id: string;
+  version_number: number;
+  r2_key: string;
+  name: string;
+  size_bytes: number;
+  mime_type: string;
+  uploaded_by: string;
+  changelog: string | null;
+  created_at: string;
 }
 
 export type PortalUpdateType =

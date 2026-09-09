@@ -37,6 +37,7 @@ import { MilestoneTimeline } from "./milestone-timeline";
 import { TypingDots } from "./typing-dots";
 import { UpdatesSection } from "./updates-section";
 import { MeetingsSection } from "./meetings-section";
+import { ClientTasksSection } from "./client-tasks-section";
 import type { ViewProps } from "./portal-view";
 import type { PortalFileRow, PortalDocumentType, ProposalStatusRow } from "@/lib/supabase/types";
 import { formatCurrencyAmount } from "@/lib/format";
@@ -186,15 +187,24 @@ export function ClientPortalShell({
                 <Link
                   key={key}
                   href={url}
-                  className={`flex min-w-0 flex-1 flex-col items-center gap-0.5 rounded-2xl px-1.5 py-2 text-micro font-semibold transition ${
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => { if ("vibrate" in navigator) navigator.vibrate(10); }}
+                  onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); if ("vibrate" in navigator) navigator.vibrate(10); window.location.href = url; } }}
+                  className={`flex min-w-0 flex-1 flex-col items-center gap-1 rounded-2xl px-2 py-3 text-micro font-semibold transition ${
                     active
                       ? "text-white shadow-sm"
                       : "text-muted-foreground hover:bg-muted hover:text-foreground"
                   }`}
                   style={active ? { background: brandColor } : undefined}
+                  aria-current={active ? "page" : undefined}
+                  aria-label={label}
                 >
-                  <Icon className="h-[18px] w-[18px]" />
-                  <span>{label}</span>
+                  <Icon className="h-5 w-5" aria-hidden="true" />
+                  <span className="text-[10px] leading-none">{label}</span>
+                  {active && (
+                    <span className="absolute top-1.5 left-1/2 -translate-x-1/2 h-1 w-1 rounded-full bg-white/30" aria-hidden="true" />
+                  )}
                 </Link>
               );
             })}
@@ -345,36 +355,6 @@ export function ClientPortalHome({ data }: { data: ClientPortalProps }) {
           </section>
         )}
 
-        {showOnboarding && (
-          <section className="rounded-2xl border bg-card p-4 shadow-sm">
-            <div className="flex items-center justify-between gap-2">
-              <h2 className="text-sm font-semibold">Getting started</h2>
-              <span className="text-micro text-muted-foreground">
-                {onboardingDone} of {onboardingItems.length} done
-              </span>
-            </div>
-            <ul className="mt-3 space-y-1.5">
-              {onboardingItems.map((item) => (
-                <li key={item.label}>
-                  <Link
-                    href={item.href}
-                    className="flex items-center gap-2.5 rounded-lg border p-2.5 text-sm transition hover:border-primary/40"
-                  >
-                    {item.done ? (
-                      <CheckCircle2 className="h-4 w-4 shrink-0 text-success-strong" />
-                    ) : (
-                      <span className="h-4 w-4 shrink-0 rounded-full border-2 border-muted-foreground/40" />
-                    )}
-                    <span className={item.done ? "text-muted-foreground line-through" : "font-medium"}>
-                      {item.label}
-                    </span>
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </section>
-        )}
-
         {whatsNew > 0 && (
           <div className="flex flex-wrap items-center gap-2.5 rounded-2xl border border-primary/30 bg-primary/5 px-4 py-3">
             <span className="h-2 w-2 shrink-0 rounded-full bg-primary" aria-hidden />
@@ -388,30 +368,8 @@ export function ClientPortalHome({ data }: { data: ClientPortalProps }) {
 
         {whatsNew === 0 && <EnablePushButton className="h-8 rounded-full" />}
 
-        {/* Things that need the client's attention — only shown when real. */}
-        {(pendingApprovals > 0 || meeting?.meet_link) && (
-          <section className="grid gap-3 md:grid-cols-2">
-            {pendingApprovals > 0 && (
-              <PortalActionCard
-                icon={CheckCircle2}
-                label="Needs your review"
-                title={`${pendingApprovals} approval${pendingApprovals > 1 ? "s" : ""} waiting`}
-                href={`/portal/${data.portalId}/updates`}
-                color={data.brandColor}
-              />
-            )}
-            {meeting?.meet_link && (
-              <PortalActionCard
-                icon={Video}
-                label="Meeting room"
-                title={`Join${meeting.proposed_time ? ` · ${meeting.proposed_time}` : ""}`}
-                href={meeting.meet_link}
-                external
-                color={data.brandColor}
-              />
-            )}
-          </section>
-        )}
+        {/* Unified Tasks & Approvals section — replaces onboarding + action cards */}
+        <ClientTasksSection data={data} brandColor={data.brandColor} />
 
         {/* At-a-glance — every tile is grounded in real data and links out. */}
         <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">

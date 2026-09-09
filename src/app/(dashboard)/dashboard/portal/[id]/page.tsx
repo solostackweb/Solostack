@@ -17,6 +17,7 @@ import { isR2Configured } from "@/lib/r2/client";
 import { portalClientHome } from "@/features/portals/routes";
 import { formatCurrencyAmount } from "@/lib/format";
 import { BRAND_PRIMARY } from "@/config/brand-colors";
+import { PortalHeaderActions } from "@/features/portals/components/portal-header-actions";
 
 export const metadata = { title: "Portal" };
 
@@ -86,16 +87,15 @@ export default async function PortalDetailPage({
               {clientName ?? "No client linked"} · {portal.status}
             </p>
           </div>
-          <div className="flex flex-wrap items-center gap-2 sm:flex-nowrap sm:justify-end">
-            <PortalMoneyStat label="Open" value={openAmount} />
-            <PortalMoneyStat label="Paid" value={paidAmount} />
-            <PortalMoneyStat label="Files" value={String(snapshot.files.length)} />
-            <Button asChild variant="outline" size="sm" className="h-9 shrink-0 gap-1.5 self-center">
-              <Link href={portalClientHome(id)} target="_blank">
-                View as client <ExternalLink className="h-3.5 w-3.5" />
-              </Link>
-            </Button>
-          </div>
+          <PortalHeaderActions
+            portalId={id}
+            portalName={portal.name}
+            portalUrl={portalClientHome(id)}
+            openAmount={openAmount}
+            paidAmount={paidAmount}
+            fileCount={snapshot.files.length}
+            brandColor={portal.brand_color ?? BRAND_PRIMARY}
+          />
         </div>
       </section>
 
@@ -187,6 +187,7 @@ export default async function PortalDetailPage({
           expires_at: i.expires_at,
         }))}
         files={snapshot.files}
+        fileVersions={snapshot.fileVersions}
         messages={snapshot.messages}
         proposals={snapshot.proposals}
         availableProposals={snapshot.availableProposals}

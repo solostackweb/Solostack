@@ -83,9 +83,11 @@ import {
 import { attachWelcomeToPortalAction } from "@/features/welcome-documents/actions";
 import { PORTAL_DASHBOARD_INDEX } from "@/features/portals/routes";
 import { UpdatesSection } from "./updates-section";
+import { PortalInsights } from "./portal-insights";
 import type {
   PortalActivityRow,
   PortalFileRow,
+  PortalFileVersionRow,
   PortalMessageRow,
   PortalRole,
   PortalUpdateRow,
@@ -114,6 +116,7 @@ export interface ViewProps {
     expires_at: string;
   }>;
   files: PortalFileRow[];
+  fileVersions: PortalFileVersionRow[];
   messages: Array<
     PortalMessageRow & {
       author: { full_name: string | null; email: string | null } | null;
@@ -351,6 +354,8 @@ export function PortalView(props: ViewProps) {
               clientId={props.clientId ?? null}
               clientEmail={props.clientEmail ?? null}
             />
+            {/* Portal Insights — engagement & health metrics */}
+            <PortalInsights data={props} brandColor={props.brandColor} />
             <PortalTimeSection items={props.timeByProject} />
             <OnboardingSettingsSection
               portalId={props.portalId}
@@ -1191,28 +1196,69 @@ function initialsFromPortalName(name: string): string {
 // ============================================================================
 
 function MobileNavBar() {
+  const [activeSection, setActiveSection] = React.useState("updates");
   const items = [
-    { href: "#portal-updates",  icon: MessageSquare, label: "Updates" },
-    { href: "#portal-files",    icon: Files,         label: "Files"    },
-    { href: "#portal-chat",     icon: Send,          label: "Chat"     },
+    { id: "updates", href: "#portal-updates", icon: MessageSquare, label: "Updates" },
+    { id: "files", href: "#portal-files", icon: Files, label: "Files" },
+    { id: "chat", href: "#portal-chat", icon: Send, label: "Chat" },
   ] as const;
+
+  // Track scroll position to update active section
+  React.useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            setActiveSection(entry.target.id.replace("portal-", ""));
+          }
+        });
+      },
+      { rootMargin: "-20% 0px -60% 0px", threshold: 0.1 }
+    );
+
+    const elements = items.map((item) => document.getElementById(`portal-${item.id}`)).filter(Boolean);
+    elements.forEach((el) => observer.observe(el!));
+    return () => elements.forEach((el) => observer.unobserve(el!));
+  }, []);
+
+  function handleHaptic() {
+    if ("vibrate" in navigator) {
+      navigator.vibrate(10);
+    }
+  }
 
   return (
     <nav
       aria-label="Portal sections"
       className="fixed bottom-0 inset-x-0 z-50 border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 sm:hidden"
+      role="navigation"
     >
       <div className="flex items-stretch justify-around">
-        {items.map(({ href, icon: Icon, label }) => (
-          <a
-            key={href}
-            href={href}
-            className="flex min-w-0 flex-1 flex-col items-center gap-0.5 px-1 py-2 text-micro font-medium text-muted-foreground transition-colors hover:text-foreground active:text-foreground"
-          >
-            <Icon className="h-[18px] w-[18px]" />
-            <span>{label}</span>
-          </a>
-        ))}
+        {items.map(({ id, href, icon: Icon, label }) => {
+          const isActive = activeSection === id;
+          return (
+            <a
+              key={id}
+              href={href}
+              role="button"
+              tabIndex={0}
+              onClick={(e) => { handleHaptic(); }}
+              onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); handleHaptic(); window.location.href = href; } }}
+              className={`flex min-w-0 flex-1 flex-col items-center gap-1 px-2 py-3 text-micro font-semibold transition-colors ${
+                isActive ? "text-primary" : "text-muted-foreground hover:text-foreground"
+              }`}
+              style={isActive ? { background: "rgba(37, 99, 235, 0.08)" } : undefined}
+              aria-current={isActive ? "page" : undefined}
+              aria-label={label}
+            >
+              <Icon className="h-5 w-5" aria-hidden="true" />
+              <span className="text-[10px] leading-none">{label}</span>
+              {isActive && (
+                <span className="absolute top-1.5 left-1/2 -translate-x-1/2 h-1 w-1 rounded-full bg-primary" aria-hidden="true" />
+              )}
+            </a>
+          );
+        })}
       </div>
     </nav>
   );

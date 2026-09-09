@@ -11,6 +11,7 @@ import {
 } from "@/features/portals/server";
 import type { ViewProps } from "./components/portal-view";
 import { BRAND_PRIMARY } from "@/config/brand-colors";
+import type { PortalFileVersionRow } from "@/lib/supabase/types";
 
 export async function getClientPortalProps(portalId: string): Promise<ViewProps> {
   let snapshot;
@@ -63,6 +64,7 @@ export async function getClientPortalProps(portalId: string): Promise<ViewProps>
     })),
     pendingInvitations: access.role === "owner" ? snapshot.pendingInvitations : [],
     files: snapshot.files,
+    fileVersions: snapshot.fileVersions,
     messages: snapshot.messages,
     proposals: snapshot.proposals,
     availableProposals: access.role === "owner" ? snapshot.availableProposals : [],

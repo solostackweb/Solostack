@@ -189,6 +189,7 @@ export interface PortalSnapshot {
     accepted_at: string | null;
   }>;
   files: Array<import("@/lib/supabase/types").PortalFileRow>;
+  fileVersions: Array<import("@/lib/supabase/types").PortalFileVersionRow>;
   storageUsage: { totalBytes: number; fileCount: number };
   messages: Array<
     import("@/lib/supabase/types").PortalMessageRow & {
@@ -369,21 +370,7 @@ export async function getPortalSnapshot(
     }
   }
 
-  const [
-    membersRes,
-    invitesRes,
-    filesRes,
-    usageRes,
-    messagesRes,
-    proposalsRes,
-    contractsRes,
-    invoicesRes,
-    welcomeDocsRes,
-    activityRes,
-    clientRes,
-    updatesRes,
-    meetingsRes,
-  ] = await Promise.all([
+  const results = await Promise.all([
     admin
       .from("portal_members")
       .select("*")
@@ -450,7 +437,7 @@ export async function getPortalSnapshot(
           .select("id, full_name, business_name, email")
           .eq("id", access.portal.client_id)
           .maybeSingle()
-      : Promise.resolve({ data: null }),
+      : Promise.resolve({ data: null, error: null }),
     admin
       .from("portal_updates")
       .select("*")
@@ -465,6 +452,47 @@ export async function getPortalSnapshot(
       .order("created_at", { ascending: false })
       .limit(50),
   ]);
+
+  const [
+    membersRes,
+    invitesRes,
+    filesRes,
+    usageRes,
+    messagesRes,
+    proposalsRes,
+    contractsRes,
+    invoicesRes,
+    welcomeDocsRes,
+    activityRes,
+    clientRes,
+    updatesRes,
+    meetingsRes,
+  ] = results as [
+    { data: import("@/lib/supabase/types").PortalMemberRow[] | null; error: unknown },
+    { data: { id: string; email: string; expires_at: string; accepted_at: string | null }[] | null; error: unknown },
+    { data: import("@/lib/supabase/types").PortalFileRow[] | null; error: unknown },
+    { data: { total_bytes?: number; file_count?: number } | null; error: unknown },
+    { data: import("@/lib/supabase/types").PortalMessageRow[] | null; error: unknown },
+    { data: Array<{ proposal_id: string; added_at: string; proposals: { id: string; title: string; status: string; total_amount: number; currency: string; public_token: string | null } | null }> | null; error: unknown },
+    { data: Array<{ contract_id: string; added_at: string; contracts: { id: string; title: string; status: string; public_token: string | null } | null }> | null; error: unknown },
+    { data: Array<{ invoice_id: string; added_at: string; invoices: { id: string; invoice_number: string; total_amount: number; currency: string; status: string; public_token: string | null } | null }> | null; error: unknown },
+    { data: Array<{ document_id: string; added_at: string; welcome_documents: { id: string; title: string; status: string; public_token: string | null; acknowledgement_required: boolean } | null }> | null; error: unknown },
+    { data: import("@/lib/supabase/types").PortalActivityRow[] | null; error: unknown },
+    { data: { id: string; full_name: string | null; business_name: string | null; email: string | null } | null; error: unknown },
+    { data: import("@/lib/supabase/types").PortalUpdateRow[] | null; error: unknown },
+    { data: import("@/lib/supabase/types").PortalMeetingRow[] | null; error: unknown },
+  ];
+
+  // Fetch file versions separately (need file IDs first)
+  const fileIds = (filesRes.data ?? []).map((f) => f.id);
+  const fileVersionsRes = fileIds.length > 0
+    ? await admin
+        .from("portal_file_versions")
+        .select("*")
+        .in("file_id", fileIds)
+        .order("version_number", { ascending: false })
+        .limit(500)
+    : { data: [] as Array<import("@/lib/supabase/types").PortalFileVersionRow>, error: null };
 
   // Hydrate member profiles in one query so the detail page can show
   // friendly names rather than UUIDs.
@@ -929,6 +957,7 @@ export async function getPortalSnapshot(
       accepted_at: string | null;
     }>,
     files: (filesRes.data ?? []) as import("@/lib/supabase/types").PortalFileRow[],
+    fileVersions: (fileVersionsRes.data ?? []) as import("@/lib/supabase/types").PortalFileVersionRow[],
     storageUsage: {
       totalBytes: usage?.total_bytes ?? 0,
       fileCount: usage?.file_count ?? 0,

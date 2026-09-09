@@ -11,6 +11,7 @@ import type { ActionResult } from "@/features/invoices/delivery";
 import type {
   PortalDocumentCommentRow,
   PortalDocumentType,
+  PortalMemberRow,
 } from "@/lib/supabase/types";
 
 const DOC_TYPES = ["contract", "invoice", "welcome", "proposal"] as const;
@@ -187,4 +188,43 @@ export async function deleteDocumentCommentAction(input: {
     .eq("portal_id", input.portalId);
   if (error) return { ok: false, error: error.message };
   return { ok: true };
+}
+
+// -----------------------------------------------------------------------------
+// GET portal members (for @mentions autocomplete)
+// -----------------------------------------------------------------------------
+
+export async function getPortalMembersAction(input: {
+  portalId: string;
+}): Promise<ActionResult<{ members: Array<PortalMemberRow & { profile: { full_name: string | null; email: string | null } | null }> }>> {
+  const access = await requirePortalAccess(input.portalId).catch(
+    (e) => e as PortalAccessError,
+  );
+  if (access instanceof PortalAccessError) {
+    return { ok: false, error: mapAccessError(access) };
+  }
+
+  const admin = getAdminSupabase();
+  const { data, error } = await admin
+    .from("portal_members")
+    .select("*, user_profiles!inner(full_name, email)")
+    .eq("portal_id", input.portalId)
+    .is("revoked_at", null)
+    .order("invited_at", { ascending: true });
+
+  if (error) return { ok: false, error: error.message };
+
+  const members = (data ?? []) as Array<PortalMemberRow & { user_profiles: { full_name: string | null; email: string | null } }>;
+
+  return {
+    ok: true,
+    data: {
+      members: members.map((m) => ({
+        ...m,
+        profile: m.user_profiles
+          ? { full_name: m.user_profiles.full_name, email: m.user_profiles.email }
+          : null,
+      })),
+    },
+  };
 }
