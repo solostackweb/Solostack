@@ -232,6 +232,51 @@ async function resolveSelectedResources(
         },
       };
     }
+    if (reference.type === "contract") {
+      const { data } = await supabase.from("contracts")
+        .select("id, title, kind, client_id, project_id, value_amount, currency, status")
+        .eq("id", reference.id).eq("user_id", userId).maybeSingle();
+      const row = data as Record<string, unknown> | null;
+      if (!row) return null;
+      const { data: clientRaw } = row.client_id
+        ? await supabase.from("clients").select("full_name, business_name").eq("id", String(row.client_id)).eq("user_id", userId).maybeSingle()
+        : { data: null };
+      const client = clientRaw as Record<string, unknown> | null;
+      return {
+        ...reference,
+        label: String(row.title || "Contract"),
+        details: {
+          title: String(row.title || "Contract"),
+          kind: String(row.kind || "agreement"),
+          clientName: String(client?.business_name || client?.full_name || "Client"),
+          valueAmount: row.value_amount == null ? null : Number(row.value_amount),
+          currency: String(row.currency || "INR"),
+          status: String(row.status),
+        },
+      };
+    }
+    if (reference.type === "proposal") {
+      const { data } = await supabase.from("proposals")
+        .select("id, title, client_id, project_id, total_amount, currency, status")
+        .eq("id", reference.id).eq("user_id", userId).maybeSingle();
+      const row = data as Record<string, unknown> | null;
+      if (!row) return null;
+      const { data: clientRaw } = row.client_id
+        ? await supabase.from("clients").select("full_name, business_name").eq("id", String(row.client_id)).eq("user_id", userId).maybeSingle()
+        : { data: null };
+      const client = clientRaw as Record<string, unknown> | null;
+      return {
+        ...reference,
+        label: String(row.title || "Proposal"),
+        details: {
+          title: String(row.title || "Proposal"),
+          clientName: String(client?.business_name || client?.full_name || "Client"),
+          totalAmount: Number(row.total_amount || 0),
+          currency: String(row.currency || "INR"),
+          status: String(row.status),
+        },
+      };
+    }
     if (reference.type === "questionnaire_response") {
       const { data } = await supabase.from("questionnaire_responses")
         .select("id, questionnaire_id, questions, responses, client_id, project_id, submitted_at")

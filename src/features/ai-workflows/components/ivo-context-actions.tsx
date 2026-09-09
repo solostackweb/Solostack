@@ -5,10 +5,12 @@ import { Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { openIvo } from "./ivo-entry-point";
+import type { IvoResourceReference } from "@/features/ai-workflows/resource-mentions";
 
 export interface IvoContextAction {
   label: string;
   prompt: string;
+  resources?: Array<IvoResourceReference & { label: string; subtitle: string }>;
 }
 
 interface IvoContextActionsProps {
@@ -52,7 +54,7 @@ export function IvoContextActions({
               size="sm"
               variant={index === 0 ? "secondary" : "outline"}
               className="h-8 max-w-full gap-1.5 text-xs"
-              onClick={() => openIvo(action.prompt)}
+              onClick={() => openIvo(action.prompt, action.resources)}
             >
               <Sparkles className="h-3.5 w-3.5 shrink-0" />
               <span className="truncate">{action.label}</span>

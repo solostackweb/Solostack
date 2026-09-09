@@ -32,6 +32,7 @@ import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { EmptyState } from "@/components/shared/empty-state";
 import { formatINR, formatMoney } from "@/lib/format";
 import { IvoContextActions } from "@/features/ai-workflows/components/ivo-context-actions";
+import type { IvoResourceReference } from "@/features/ai-workflows/resource-mentions";
 
 import type { ProjectRecord } from "../server";
 import type { ClientRecord } from "@/features/clients/server";
@@ -268,14 +269,17 @@ export function ProjectDetailView({
           {
             label: "Project summary",
             prompt: `Summarize project ${project.name}. Status: ${project.status}. Client: ${client ? getClientDisplayName(client) : "No client"}. Start: ${startDate}. Due: ${dueDate}. Billed so far: ${formatINR(billedTotal)}. Tell me what needs attention next.`,
+            resources: [{ type: "project", id: project.id, label: project.name, subtitle: client ? getClientDisplayName(client) : "No client" }],
           },
           {
             label: "Invoice next",
             prompt: `Help me decide what to invoice next for project ${project.name}. Use linked invoices and project status context.`,
+            resources: [{ type: "project", id: project.id, label: project.name, subtitle: client ? getClientDisplayName(client) : "No client" }],
           },
           {
             label: "Client update",
             prompt: `Draft a concise client update for project ${project.name}. Include current status ${project.status} and any useful next step.`,
+            resources: [{ type: "project", id: project.id, label: project.name, subtitle: client ? getClientDisplayName(client) : "No client" }],
           },
         ]}
       />

@@ -17,6 +17,7 @@ import { DuplicateInvoiceButton } from "@/features/invoices/components/duplicate
 import { CancelInvoiceButton } from "@/features/invoices/components/cancel-invoice-button";
 import { listActivity, type ActivityRecord } from "@/features/activity/server";
 import { IvoContextActions } from "@/features/ai-workflows/components/ivo-context-actions";
+import type { IvoResourceReference } from "@/features/ai-workflows/resource-mentions";
 import {
   getClientBehaviorInsights,
   type ClientInsightTone,
@@ -203,14 +204,17 @@ export default async function InvoiceDetailPage({
           {
             label: "Explain invoice",
             prompt: `Explain invoice ${invoice.invoiceNumber}. Client: ${client ? getClientDisplayName(client) : "No client"}. Status: ${invoice.status}. Total: ${formatMoney(invoice.totalAmount, cur)}. Received: ${formatMoney(paidAmount, cur)}. Balance due: ${formatMoney(balanceDue, cur)}. Tax mode: ${invoice.taxMode}. Export invoice: ${isExport ? "yes" : "no"}. Tell me what needs attention.`,
+            resources: [{ type: "invoice", id: invoice.id, label: invoice.invoiceNumber, subtitle: client ? getClientDisplayName(client) : "No client" }],
           },
           {
             label: "Follow-up draft",
             prompt: `Draft a polite payment follow-up for invoice ${invoice.invoiceNumber}. Status: ${invoice.status}. Due date: ${fmtDate(invoice.dueDate)}. Balance due: ${formatMoney(balanceDue, cur)}.`,
+            resources: [{ type: "invoice", id: invoice.id, label: invoice.invoiceNumber, subtitle: client ? getClientDisplayName(client) : "No client" }],
           },
           {
             label: "Record payment help",
             prompt: `Help me record a payment for invoice ${invoice.invoiceNumber}. Total: ${formatMoney(invoice.totalAmount, cur)}. Already received: ${formatMoney(paidAmount, cur)}. Remaining balance: ${formatMoney(balanceDue, cur)}. Explain what amount/currency/reference I should enter.`,
+            resources: [{ type: "invoice", id: invoice.id, label: invoice.invoiceNumber, subtitle: client ? getClientDisplayName(client) : "No client" }],
           },
         ]}
       />

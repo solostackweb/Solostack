@@ -44,6 +44,7 @@ import { cn } from "@/lib/utils";
 import type { ClientInsight } from "@/features/clients/insights";
 import { getStateName } from "@/features/gst/state-codes";
 import { IvoContextActions } from "@/features/ai-workflows/components/ivo-context-actions";
+import type { IvoResourceReference } from "@/features/ai-workflows/resource-mentions";
 
 import type { ClientRecord } from "../server";
 import type { InvoiceRecord } from "@/features/invoices/server";
@@ -258,14 +259,17 @@ export function ClientProfileView({
           {
             label: "Summarize client",
             prompt: `Summarize client ${display}. Paid to date: ${formatINR(metrics.paidTotal)} across ${metrics.invoiceCount} paid invoice(s). Client currency: ${client.currency}. GST registered: ${client.gstRegistered ? "yes" : "no"}. International client: ${client.isForeign ? "yes" : "no"}. Tell me the next best action.`,
+            resources: [{ type: "client", id: client.id, label: display, subtitle: client.currency }],
           },
           {
             label: "Follow-up draft",
             prompt: `Draft a short, polite follow-up message for ${display}. Use their recent invoice context if available and keep it professional.`,
+            resources: [{ type: "client", id: client.id, label: display, subtitle: client.currency }],
           },
           {
             label: "Invoice this client",
             prompt: `Help me create an invoice for client ${display}. Use their configured currency ${client.currency} and GST/export details from their profile.`,
+            resources: [{ type: "client", id: client.id, label: display, subtitle: client.currency }],
           },
         ]}
       />

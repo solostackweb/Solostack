@@ -38,6 +38,7 @@ import { formatMoney } from "@/lib/format";
 import { draftProposalFieldAction } from "@/features/proposals/ai-assist";
 import { cn } from "@/lib/utils";
 import { IvoContextActions } from "@/features/ai-workflows/components/ivo-context-actions";
+import type { IvoResourceReference } from "@/features/ai-workflows/resource-mentions";
 import { FieldProposalReview } from "@/features/ai-workflows/components/field-proposal-review";
 
 import {
@@ -498,14 +499,17 @@ export function ProposalBuilderView({
           {
             label: "Review offer",
             prompt: `Review proposal ${proposal.title}. Client: ${selectedClient?.name ?? "No client selected"}. Currency: ${currency}. Subtotal: ${formatMoney(subtotal, currency)}. Total: ${formatMoney(total, currency)}. Status: ${proposal.status}. Tax guidance: ${guidance.modeLabel} - ${guidance.summary}. Suggest improvements before I share it.`,
+            resources: [{ type: "proposal", id: proposal.id, label: proposal.title, subtitle: selectedClient?.name ?? "No client selected" }],
           },
           {
             label: "Client email",
             prompt: `Draft a warm, professional email to share proposal ${proposal.title} with ${selectedClient?.name ?? "the client"}. Mention the offer clearly and invite questions.`,
+            resources: [{ type: "proposal", id: proposal.id, label: proposal.title, subtitle: selectedClient?.name ?? "No client selected" }],
           },
           {
             label: "Next steps",
             prompt: `For proposal ${proposal.title}, recommend whether I should convert it to a project, contract, or invoice next. Use the proposal status, client, and pricing context.`,
+            resources: [{ type: "proposal", id: proposal.id, label: proposal.title, subtitle: selectedClient?.name ?? "No client selected" }],
           },
         ]}
       />

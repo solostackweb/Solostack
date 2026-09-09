@@ -40,6 +40,7 @@ import { formatMoney } from "@/lib/format";
 import { getClientInitials } from "@/features/clients/utils";
 import { shareOnWhatsApp } from "@/lib/whatsapp";
 import { IvoContextActions } from "@/features/ai-workflows/components/ivo-context-actions";
+import type { IvoResourceReference } from "@/features/ai-workflows/resource-mentions";
 
 import type { ContractRecord } from "../server";
 import type { ClientRecord } from "@/features/clients/server";
@@ -496,14 +497,17 @@ export function ContractDetailView({
           {
             label: "Review risks",
             prompt: `Review contract ${contract.title} for client ${clientName ?? "No client"}. Status: ${contract.status}. Value: ${contract.valueAmount ? formatMoney(contract.valueAmount, contract.currency) : "not set"}. Point out missing placeholders, unclear payment terms, and signing risks.`,
+            resources: [{ type: "contract", id: contract.id, label: contract.title, subtitle: clientName ?? "No client" }],
           },
           {
             label: "Summarize terms",
             prompt: `Summarize the key obligations, payment terms, and client responsibilities in contract ${contract.title}. Keep it concise and practical.`,
+            resources: [{ type: "contract", id: contract.id, label: contract.title, subtitle: clientName ?? "No client" }],
           },
           {
             label: "Share message",
             prompt: `Draft a short WhatsApp message to send contract ${contract.title} to ${clientName ?? "the client"} for review and signature.`,
+            resources: [{ type: "contract", id: contract.id, label: contract.title, subtitle: clientName ?? "No client" }],
           },
         ]}
       />
