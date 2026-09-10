@@ -208,6 +208,8 @@ export default async function PortalDetailPage({
         welcomeMessage={portal.welcome_message ?? null}
         brandLogoUrl={null}
         r2Enabled={isR2Configured()}
+        reviews={snapshot.reviews ?? []}
+        reviewableProjects={snapshot.reviewableProjects ?? []}
       />
     </div>
   );

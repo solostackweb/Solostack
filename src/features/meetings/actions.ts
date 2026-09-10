@@ -70,6 +70,12 @@ const createSchema = z.object({
   slots: z.array(z.string().trim().min(1)).max(5).optional(),
   mode: z.enum(["slots", "availability"]).optional(),
   clientId: z.string().uuid().optional().nullable(),
+  // For availability mode: optional custom date range
+  availabilityStartDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  availabilityEndDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  // Ad-hoc client creation (name/email) when no existing client selected
+  adHocClientName: z.string().trim().min(1).max(200).optional(),
+  adHocClientEmail: z.string().email().optional(),
   projectId: z.string().uuid().optional().nullable(),
   proposalId: z.string().uuid().optional().nullable(),
   contractId: z.string().uuid().optional().nullable(),
@@ -111,14 +117,42 @@ export async function createMeetingAction(
   if (mode === "availability") {
     const openSlots = await computeOpenSlots(userId, {
       durationMinutes: d.durationMinutes ?? 30,
+      startDate: d.availabilityStartDate,
+      endDate: d.availabilityEndDate,
     });
     if (openSlots.length === 0) {
+      const rangeText = d.availabilityStartDate && d.availabilityEndDate
+        ? `between ${d.availabilityStartDate} and ${d.availabilityEndDate}`
+        : "in the next 14 days";
       return {
         ok: false,
         error:
-          "No bookable times are available in the next 14 days. Connect your calendar or adjust your availability before sharing this link.",
+          `No bookable times are available ${rangeText}. Connect your calendar or adjust your availability before sharing this link.`,
       };
     }
+  }
+
+  // Handle ad-hoc client creation
+  let clientId = d.clientId ?? null;
+  if (!clientId && d.adHocClientName && d.adHocClientEmail) {
+    const admin = getAdminSupabase();
+    const { data: newClient, error: clientError } = await admin
+      .from("clients")
+      .insert({
+        user_id: userId,
+        full_name: d.adHocClientName,
+        email: d.adHocClientEmail,
+        // Default values for required fields
+        business_name: d.adHocClientName,
+        currency: "INR",
+        country: "India",
+      } as never)
+      .select("id")
+      .single();
+    if (clientError || !newClient) {
+      return { ok: false, error: clientError?.message ?? "Could not create client." };
+    }
+    clientId = (newClient as { id: string }).id;
   }
 
   const supabase = await getServerSupabase();
@@ -132,7 +166,7 @@ export async function createMeetingAction(
       timezone: d.timezone ?? "Asia/Kolkata",
       proposed_slots: slots,
       mode,
-      client_id: d.clientId ?? null,
+      client_id: clientId,
       project_id: d.projectId ?? null,
       proposal_id: d.proposalId ?? null,
       contract_id: d.contractId ?? null,
@@ -154,7 +188,7 @@ export async function createMeetingAction(
   // Best-effort: email the client the booking link. Never blocks creation.
   await notifyClientOfInvite({
     userId,
-    clientId: d.clientId ?? null,
+    clientId,
     topic: d.topic,
     durationMinutes: d.durationMinutes ?? 30,
     token: row.public_token,

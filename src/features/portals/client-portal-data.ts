@@ -86,5 +86,7 @@ export async function getClientPortalProps(portalId: string): Promise<ViewProps>
     welcomeVideoUrl: access.portal.welcome_video_url ?? null,
     welcomeMessage: access.portal.welcome_message ?? null,
     brandLogoUrl,
+    reviews: snapshot.reviews ?? [],
+    reviewableProjects: snapshot.reviewableProjects ?? [],
   };
 }

@@ -22,6 +22,7 @@ import type {
   PortalRow,
   PortalMemberRow,
   PortalRole,
+  PortalReviewRow,
 } from "@/lib/supabase/types";
 
 export class PortalAccessError extends Error {
@@ -271,6 +272,19 @@ export interface PortalSnapshot {
     }
   >;
   /**
+   * Verified reviews for projects in this portal.
+   */
+  reviews: Array<PortalReviewRow & {
+    author_name: string | null;
+    author_email: string | null;
+    project_title: string | null;
+  }>;
+  /**
+   * Completed projects in this portal that the current user (if client) can review.
+   * Only populated for client members, not for owners.
+   */
+  reviewableProjects: Array<{ id: string; name: string }>;
+  /**
    * Time tracked for the portal's client, grouped per project. Lets the
    * client see hours logged on each of their projects (handles the
    * multiple-projects-per-client case). Empty when the portal has no client.
@@ -451,6 +465,20 @@ export async function getPortalSnapshot(
       .eq("portal_id", portalId)
       .order("created_at", { ascending: false })
       .limit(50),
+    // Fetch reviews for this portal
+    admin.rpc("get_reviews_for_portal", {
+      p_portal_id: portalId,
+      p_limit: 50,
+    } as never),
+    // Fetch reviewable projects for client members
+    access.role !== "owner" && access.portal.client_id
+      ? admin
+          .from("projects")
+          .select("id, name")
+          .eq("user_id", access.portal.owner_user_id)
+          .eq("client_id", access.portal.client_id)
+          .eq("status", "completed")
+      : Promise.resolve({ data: [], error: null }),
   ]);
 
   const [
@@ -467,6 +495,8 @@ export async function getPortalSnapshot(
     clientRes,
     updatesRes,
     meetingsRes,
+    reviewsRes,
+    reviewableProjectsRes,
   ] = results as [
     { data: import("@/lib/supabase/types").PortalMemberRow[] | null; error: unknown },
     { data: { id: string; email: string; expires_at: string; accepted_at: string | null }[] | null; error: unknown },
@@ -481,6 +511,8 @@ export async function getPortalSnapshot(
     { data: { id: string; full_name: string | null; business_name: string | null; email: string | null } | null; error: unknown },
     { data: import("@/lib/supabase/types").PortalUpdateRow[] | null; error: unknown },
     { data: import("@/lib/supabase/types").PortalMeetingRow[] | null; error: unknown },
+    { data: Array<PortalReviewRow & { author_name: string | null; author_email: string | null; project_title: string | null }> | null; error: unknown },
+    { data: Array<{ id: string; name: string | null }> | null; error: unknown },
   ];
 
   // Fetch file versions separately (need file IDs first)
@@ -943,6 +975,16 @@ export async function getPortalSnapshot(
       }
     : null;
 
+  const reviews = (reviewsRes.data ?? []) as Array<PortalReviewRow & {
+    author_name: string | null;
+    author_email: string | null;
+    project_title: string | null;
+  }>;
+
+  const reviewableProjects = (reviewableProjectsRes.data ?? [])
+    .filter((p): p is { id: string; name: string } => p.name !== null)
+    .map((p) => ({ id: p.id, name: p.name }));
+
   return {
     access,
     client,
@@ -978,6 +1020,8 @@ export async function getPortalSnapshot(
     updates,
     meetings,
     timeByProject,
+    reviews,
+    reviewableProjects,
   };
 }
 

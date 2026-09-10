@@ -1441,6 +1441,18 @@ export interface PortalMessageRow {
   deleted_at: string | null;
 }
 
+export interface PortalReviewRow {
+  id: string;
+  portal_id: string;
+  project_id: string;
+  author_id: string;
+  rating: number;
+  title: string;
+  body: string;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface PortalActivityRow {
   id: number;
   portal_id: string;
@@ -2028,6 +2040,12 @@ export interface Database {
         Insert: Partial<PortalUpdateRow> &
           Pick<PortalUpdateRow, "portal_id" | "author_id" | "title">;
         Update: Partial<PortalUpdateRow>;
+      };
+      portal_reviews: {
+        Row: PortalReviewRow;
+        Insert: Partial<PortalReviewRow> &
+          Pick<PortalReviewRow, "portal_id" | "project_id" | "author_id" | "rating" | "title" | "body">;
+        Update: Partial<PortalReviewRow>;
       };
       portal_update_reactions: {
         Row: PortalUpdateReactionRow;

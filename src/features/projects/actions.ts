@@ -21,6 +21,7 @@ import {
   shouldNotifyOnEnter,
 } from "./status";
 import type { ProjectStatusRow } from "@/lib/supabase/types";
+import { getAdminSupabase } from "@/lib/supabase/admin";
 
 export type ActionResult<T = undefined> =
   | { ok: true; data?: T; message?: string }
@@ -46,6 +47,47 @@ function parse(formData: FormData) {
       hourlyRate: formData.get("hourlyRate") ?? 0,
     }),
   );
+}
+
+/**
+ * Trigger a review request when a project is completed.
+ * Finds the client's portal and records a review request activity.
+ */
+async function triggerReviewRequest(
+  projectId: string,
+  clientId: string,
+  userId: string,
+  projectName: string,
+): Promise<void> {
+  const admin = getAdminSupabase();
+
+  // Find the portal for this client
+  const { data: portal } = await admin
+    .from("portals")
+    .select("id")
+    .eq("owner_user_id", userId)
+    .eq("client_id", clientId)
+    .eq("status", "active")
+    .is("deleted_at", null)
+    .maybeSingle();
+
+  if (!portal) return;
+  const portalId: string = (portal as { id: string }).id;
+
+  // Record review request activity
+  await admin.from("portal_activity").insert({
+    portal_id: portalId,
+    actor_id: userId,
+    type: "review.requested",
+    payload: {
+      projectId,
+      projectName,
+      requestedAt: new Date().toISOString(),
+    } as never,
+  } as never);
+
+  // TODO: Send email notification to client via portal_notification_outbox
+  // This would be handled by a separate notification worker
 }
 
 export async function createProjectAction(
@@ -195,14 +237,14 @@ async function performStatusChange(
   // human-friendly notification. Also acts as a tenant-scoped existence check.
   const { data: existing } = await supabase
     .from("projects")
-    .select("id, name, status")
+    .select("id, name, status, client_id")
     .eq("id", projectId)
     .eq("user_id", userId)
     .maybeSingle();
   if (!existing) {
     return { ok: false, error: "Project not found." };
   }
-  const row = existing as { id: string; name: string; status: ProjectStatusRow };
+  const row = existing as { id: string; name: string; status: ProjectStatusRow; client_id: string | null };
   const from = row.status;
 
   // Idempotent: no-op if the chip was tapped on the current state.
@@ -244,6 +286,11 @@ async function performStatusChange(
       title: `${row.name} is now ${PROJECT_STATUS_LABEL[to]}`,
       message: note?.trim() ? note.trim() : null,
     });
+  }
+
+  // Trigger review request when project is marked as completed
+  if (to === "completed" && row.client_id) {
+    await triggerReviewRequest(projectId, row.client_id, userId, row.name);
   }
 
   revalidatePath("/dashboard/projects");

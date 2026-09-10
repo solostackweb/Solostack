@@ -3,7 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, CalendarClock, Video } from "lucide-react";
+import { ArrowLeft, CalendarClock, Video, Calendar, UserPlus, Mail } from "lucide-react";
 import { toast } from "sonner";
 
 import { PageHeader } from "@/components/shared/page-header";
@@ -43,6 +43,12 @@ export function MeetingNewView({
   const [mode, setMode] = React.useState<"slots" | "availability">("slots");
   const [saving, setSaving] = React.useState(false);
 
+  const [adHocClientName, setAdHocClientName] = React.useState("");
+  const [adHocClientEmail, setAdHocClientEmail] = React.useState("");
+
+  const [availabilityStartDate, setAvailabilityStartDate] = React.useState("");
+  const [availabilityEndDate, setAvailabilityEndDate] = React.useState("");
+
   const changeMode = (nextMode: "slots" | "availability") => setMode(nextMode);
   const router = useRouter();
 
@@ -78,6 +84,10 @@ export function MeetingNewView({
       slots: isoSlots,
       mode,
       clientId: clientId || null,
+      availabilityStartDate: mode === "availability" ? availabilityStartDate || undefined : undefined,
+      availabilityEndDate: mode === "availability" ? availabilityEndDate || undefined : undefined,
+      adHocClientName: clientId === "" ? adHocClientName : undefined,
+      adHocClientEmail: clientId === "" ? adHocClientEmail : undefined,
       projectId: prefill.projectId ?? null,
       proposalId: prefill.proposalId ?? null,
       contractId: prefill.contractId ?? null,
@@ -92,6 +102,132 @@ export function MeetingNewView({
     router.push("/dashboard/meetings");
     router.refresh();
   };
+
+  const adHocClientSection = clientId === "" ? (
+    <div className="space-y-4 rounded-lg border bg-muted/20 p-4">
+      <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
+        <UserPlus className="h-4 w-4" />
+        <span>Create new client</span>
+      </div>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Field label="Client name">
+          <Input
+            value={adHocClientName}
+            onChange={(event) => setAdHocClientName(event.target.value)}
+            placeholder="John Doe"
+            maxLength={200}
+          />
+        </Field>
+        <Field label="Client email">
+          <Input
+            type="email"
+            value={adHocClientEmail}
+            onChange={(event) => setAdHocClientEmail(event.target.value)}
+            placeholder="john@example.com"
+            maxLength={320}
+          />
+        </Field>
+      </div>
+      <p className="text-xs text-muted-foreground">
+        A new client will be created with this name and email when the call is scheduled.
+      </p>
+    </div>
+  ) : null;
+
+  const availabilityModeSection = availabilityEnabled ? (
+    <div className="space-y-2">
+      <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+        How should the client pick a time?
+      </p>
+      <div className="grid gap-2 sm:grid-cols-2">
+        <button
+          type="button"
+          onClick={() => changeMode("slots")}
+          className={
+            "rounded-lg border p-3 text-left text-sm transition " +
+            (mode === "slots"
+              ? "border-primary bg-primary/5"
+              : "hover:border-primary/40")
+          }
+        >
+          <span className="font-medium">Propose specific times</span>
+          <span className="mt-0.5 block text-xs text-muted-foreground">
+            You offer a few options.
+          </span>
+        </button>
+        <button
+          type="button"
+          onClick={() => changeMode("availability")}
+          className={
+            "rounded-lg border p-3 text-left text-sm transition " +
+            (mode === "availability"
+              ? "border-primary bg-primary/5"
+              : "hover:border-primary/40")
+          }
+        >
+          <span className="font-medium">My live availability</span>
+          <span className="mt-0.5 block text-xs text-muted-foreground">
+            Client picks from your open calendar times.
+          </span>
+        </button>
+      </div>
+    </div>
+  ) : null;
+
+  const availabilityRangeSection = mode === "availability" ? (
+    <div className="space-y-2 rounded-lg border bg-muted/20 p-4">
+      <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
+        <Calendar className="h-4 w-4" />
+        <span>Availability date range</span>
+      </div>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Field label="Start date">
+          <Input
+            type="date"
+            value={availabilityStartDate}
+            onChange={(event) => setAvailabilityStartDate(event.target.value)}
+            min={new Date().toISOString().split("T")[0]}
+          />
+        </Field>
+        <Field label="End date">
+          <Input
+            type="date"
+            value={availabilityEndDate}
+            onChange={(event) => setAvailabilityEndDate(event.target.value)}
+            min={availabilityStartDate || new Date().toISOString().split("T")[0]}
+          />
+        </Field>
+      </div>
+      <p className="text-xs text-muted-foreground">
+        Leave blank to use your default availability window (next 14 days).
+      </p>
+    </div>
+  ) : null;
+
+  const slotsSection = mode === "slots" ? (
+    <div className="space-y-2">
+      <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+        Proposed times
+      </p>
+      {slots.map((slot, index) => (
+        <Input
+          key={index}
+          type="datetime-local"
+          value={slot}
+          onChange={(event) => updateSlot(index, event.target.value)}
+        />
+      ))}
+      <p className="text-xs text-muted-foreground">
+        Offer up to three options, in your local timezone.
+      </p>
+    </div>
+  ) : (
+    <p className="rounded-lg border border-dashed bg-muted/20 p-3 text-xs text-muted-foreground">
+      The client will see your live open times (working hours minus
+      busy calendar blocks) and pick one. A Google Calendar event is
+      created automatically.
+    </p>
+  );
 
   return (
     <div className="space-y-6">
@@ -144,70 +280,10 @@ export function MeetingNewView({
             </Field>
           </div>
 
-          {availabilityEnabled ? (
-            <div className="space-y-2">
-              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                How should the client pick a time?
-              </p>
-              <div className="grid gap-2 sm:grid-cols-2">
-                <button
-                  type="button"
-                  onClick={() => changeMode("slots")}
-                  className={
-                    "rounded-lg border p-3 text-left text-sm transition " +
-                    (mode === "slots"
-                      ? "border-primary bg-primary/5"
-                      : "hover:border-primary/40")
-                  }
-                >
-                  <span className="font-medium">Propose specific times</span>
-                  <span className="mt-0.5 block text-xs text-muted-foreground">
-                    You offer a few options.
-                  </span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => changeMode("availability")}
-                  className={
-                    "rounded-lg border p-3 text-left text-sm transition " +
-                    (mode === "availability"
-                      ? "border-primary bg-primary/5"
-                      : "hover:border-primary/40")
-                  }
-                >
-                  <span className="font-medium">My live availability</span>
-                  <span className="mt-0.5 block text-xs text-muted-foreground">
-                    Client picks from your open calendar times.
-                  </span>
-                </button>
-              </div>
-            </div>
-          ) : null}
-
-          {mode === "slots" ? (
-            <div className="space-y-2">
-              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                Proposed times
-              </p>
-              {slots.map((slot, index) => (
-                <Input
-                  key={index}
-                  type="datetime-local"
-                  value={slot}
-                  onChange={(event) => updateSlot(index, event.target.value)}
-                />
-              ))}
-              <p className="text-xs text-muted-foreground">
-                Offer up to three options, in your local timezone.
-              </p>
-            </div>
-          ) : (
-            <p className="rounded-lg border border-dashed bg-muted/20 p-3 text-xs text-muted-foreground">
-              The client will see your live open times (working hours minus
-              busy calendar blocks) and pick one. A Google Calendar event is
-              created automatically.
-            </p>
-          )}
+          {adHocClientSection}
+          {availabilityModeSection}
+          {availabilityRangeSection}
+          {slotsSection}
 
           <div className="flex items-start gap-2.5 rounded-lg border border-dashed bg-muted/20 p-3">
             <Video className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
@@ -241,7 +317,6 @@ export function MeetingNewView({
     </div>
   );
 }
-
 
 function Field({
   label,

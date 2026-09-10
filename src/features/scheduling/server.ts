@@ -210,25 +210,52 @@ function zonedWallTimeToInstant(
 }
 
 /**
- * Open slots for the next `days` days: working-hours grid at the settings
+ * Open slots for the next `days` days (or custom range): working-hours grid at the settings
  * interval, minus busy blocks (with buffer), respecting minimum notice.
  * Returns ISO start times. Empty when no calendar is connected.
  */
 export async function computeOpenSlots(
   userId: string,
-  opts: { durationMinutes: number; days?: number },
+  opts: {
+    durationMinutes: number;
+    days?: number;
+    startDate?: string; // ISO date string (YYYY-MM-DD)
+    endDate?: string; // ISO date string (YYYY-MM-DD)
+  },
 ): Promise<string[]> {
   const token = await getValidAccessToken(userId);
   if (!token) return [];
 
   const settings = await getSchedulingSettings(userId);
-  const days = opts.days ?? 14;
   const now = Date.now();
   const minStart = now + settings.minNoticeHours * 3_600_000;
+
+  // Determine the date range
+  let rangeStartMs: number;
+  let rangeEndMs: number;
+  let days: number;
+
+  if (opts.startDate && opts.endDate) {
+    // Custom date range provided
+    const start = new Date(opts.startDate + "T00:00:00");
+    const end = new Date(opts.endDate + "T23:59:59");
+    rangeStartMs = start.getTime();
+    rangeEndMs = end.getTime();
+    days = Math.max(1, Math.ceil((rangeEndMs - rangeStartMs) / 86_400_000));
+  } else {
+    // Default: next N days from now
+    const daysOpt = opts.days ?? 14;
+    days = daysOpt;
+    rangeStartMs = now;
+    rangeEndMs = now + days * 86_400_000;
+  }
+
+  const minStartMs = Math.max(minStart, rangeStartMs);
+
   const busy = await getBusyBlocks(
     token,
-    new Date(now).toISOString(),
-    new Date(now + days * 86_400_000).toISOString(),
+    new Date(rangeStartMs).toISOString(),
+    new Date(rangeEndMs).toISOString(),
   );
   const busyRanges = busy.map(
     (block) =>
@@ -244,7 +271,7 @@ export async function computeOpenSlots(
   const slots: string[] = [];
 
   for (let d = 0; d < days && slots.length < 40; d += 1) {
-    const dayDate = new Date(now + d * 86_400_000);
+    const dayDate = new Date(rangeStartMs + d * 86_400_000);
     const p = partsInTz(dayDate, settings.timezone);
     const ranges = settings.workingHours[String(p.weekday)] ?? [];
     for (const [startHHMM, endHHMM] of ranges) {
@@ -269,7 +296,7 @@ export async function computeOpenSlots(
       while (cursor + durationMs <= windowEnd && slots.length < 40) {
         const slotStart = cursor;
         const slotEnd = cursor + durationMs;
-        if (slotStart >= minStart) {
+        if (slotStart >= minStartMs) {
           const overlaps = busyRanges.some(
             ([bs, be]) => slotStart < be + bufferMs && slotEnd + bufferMs > bs,
           );

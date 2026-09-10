@@ -84,6 +84,7 @@ import { attachWelcomeToPortalAction } from "@/features/welcome-documents/action
 import { PORTAL_DASHBOARD_INDEX } from "@/features/portals/routes";
 import { UpdatesSection } from "./updates-section";
 import { PortalInsights } from "./portal-insights";
+import { PortalReviewsSection } from "./reviews-section";
 import type {
   PortalActivityRow,
   PortalFileRow,
@@ -212,6 +213,14 @@ export interface ViewProps {
     currency: string;
     entryCount: number;
   }>;
+  /** Verified reviews for projects in this portal. */
+  reviews: Array<import("@/lib/supabase/types").PortalReviewRow & {
+    author_name: string | null;
+    author_email: string | null;
+    project_title: string | null;
+  }>;
+  /** Completed projects in this portal that the current user (if client) can review. */
+  reviewableProjects: Array<{ id: string; name: string }>;
 }
 
 /**
@@ -226,8 +235,8 @@ export function PortalView(props: ViewProps) {
     return <ClientPortalExperience {...props} />;
   }
 
-  // Owner: Updates → Meetings → Contracts → Invoices → Welcome → Files → Chat
-  // Client: Updates → Meetings → Invoices → Contracts → Welcome → Files → Chat
+  // Owner: Updates → Meetings → Contracts → Invoices → Welcome → Files → Chat → Reviews
+  // Client: Updates → Meetings → Invoices → Contracts → Welcome → Files → Chat → Reviews
   const mainSections = isOwner ? (
     <>
       <UpdatesSection
@@ -277,6 +286,14 @@ export function PortalView(props: ViewProps) {
         portalId={props.portalId}
         messages={props.messages}
         currentUserId={props.currentUserId}
+      />
+      <PortalReviewsSection
+        portalId={props.portalId}
+        currentUserId={props.currentUserId}
+        isOwner={isOwner}
+        reviews={props.reviews}
+        onRefresh={() => {}}
+        availableProjects={props.reviewableProjects}
       />
     </>
   ) : (
@@ -328,6 +345,14 @@ export function PortalView(props: ViewProps) {
         portalId={props.portalId}
         messages={props.messages}
         currentUserId={props.currentUserId}
+      />
+      <PortalReviewsSection
+        portalId={props.portalId}
+        currentUserId={props.currentUserId}
+        isOwner={isOwner}
+        reviews={props.reviews}
+        onRefresh={() => {}}
+        availableProjects={props.reviewableProjects}
       />
     </>
   );
