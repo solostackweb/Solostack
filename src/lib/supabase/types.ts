@@ -215,6 +215,27 @@ export interface UserProfileRow {
   referral_count: number;
   created_at: string;
   updated_at: string;
+
+  // Public Profile (added in 0094)
+  public_slug: string | null;
+  public_profile_enabled: boolean;
+  public_bio: string | null;
+  public_services: string[] | null;
+  public_industries: string[] | null;
+  public_location: string | null;
+  public_languages: string[] | null;
+  public_availability: string | null;
+  public_starting_rate: number | null;
+  public_starting_rate_currency: string | null;
+  public_show_reviews: boolean;
+  public_show_portfolio: boolean;
+  public_show_stats: boolean;
+  public_cta_text: string | null;
+  public_cta_action: string | null;
+  public_custom_domain: string | null;
+  public_seo_title: string | null;
+  public_seo_description: string | null;
+  public_og_image: string | null;
 }
 
 // --- 0027 + 0034: receipts + manual confirmations --------------------------

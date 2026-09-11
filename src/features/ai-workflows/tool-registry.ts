@@ -31,6 +31,7 @@ export const IVO_TOOL_KEYS = [
   "portal.create_invite",
   "questionnaire.send",
   "welcome_document.draft",
+  "project.completion_actions",
   // Direct creation of workspace records on explicit request.
   "client.create",
   "project.create",
@@ -139,6 +140,7 @@ export const IVO_TOOL_REGISTRY: Record<IvoToolKey, IvoToolSpec> = {
   "portal.create_invite": spec("portal.create_invite", "portal", "external_delivery", "explicit_user_external_delivery", APPROVED),
   "questionnaire.send": spec("questionnaire.send", "questionnaire", "external_delivery", "explicit_user_external_delivery", APPROVED),
   "welcome_document.draft": spec("welcome_document.draft", "welcome_document", "internal_draft", "internal_draft_review_after_creation", DRAFT),
+  "project.completion_actions": spec("project.completion_actions", "project", "internal_draft", "internal_draft_review_after_creation", DRAFT),
 
   "client.create": spec("client.create", "client", "explicit_creation", "explicit_user_creation_action", APPROVED),
   "project.create": spec("project.create", "project", "explicit_creation", "explicit_user_creation_action", APPROVED),

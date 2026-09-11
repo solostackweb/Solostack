@@ -1,11 +1,12 @@
 "use server";
-
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { getServerSupabase } from "@/lib/supabase/server";
+import { getAdminSupabase } from "@/lib/supabase/admin";
 import { AUTH_LOGIN_ROUTE } from "@/features/auth/routes";
 import { normaliseGstin } from "@/features/gst/validation";
 import { requireFeature } from "@/features/subscription/server";
+import { z } from "zod";
 import {
   addressSchema,
   brandingSchema,
@@ -14,6 +15,9 @@ import {
   notificationPreferencesSchema,
   localizationSchema,
   personalProfileSchema,
+  portfolioItemSchema,
+  publicProfileSchema,
+  slugSchema,
   signatureSchema,
   taxInfoSchema,
   type AddressInput,
@@ -23,6 +27,8 @@ import {
   type LocalizationInput,
   type NotificationPreferencesInput,
   type PersonalProfileInput,
+  type PortfolioItemInput,
+  type PublicProfileInput,
   type SignatureInput,
   type TaxInfoInput,
 } from "./schemas";
@@ -340,4 +346,211 @@ export async function updateNotificationPreferences(
   revalidatePath("/dashboard/settings", "layout");
   revalidatePath("/dashboard/notifications");
   return refreshProfileResponse("Notification preferences saved.");
+}
+
+// ============================================================================
+// Public Profile Actions
+// ============================================================================
+
+export async function updatePublicProfile(
+  input: PublicProfileInput,
+): Promise<ActionResult<{ profile: Awaited<ReturnType<typeof getProfile>> }>> {
+  const parsed = publicProfileSchema.safeParse(input);
+  if (!parsed.success) return flatErrors(parsed);
+
+  const userId = await requireUserId();
+  const supabase = await getServerSupabase();
+
+  // Check slug availability if changing
+  if (parsed.data.publicSlug) {
+    const admin = getAdminSupabase();
+    const { data: available } = await admin.rpc("check_slug_available", {
+      p_slug: parsed.data.publicSlug,
+      p_exclude_user_id: userId,
+    } as never);
+    if (!available) {
+      return { ok: false, error: "This slug is already taken or reserved." };
+    }
+  }
+
+  const updateData: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(parsed.data)) {
+    if (value !== undefined) {
+      updateData[key] = value;
+    }
+  }
+
+  const { error } = await supabase
+    .from("user_profiles")
+    .update(updateData as never)
+    .eq("id", userId);
+
+  if (error) return { ok: false, error: error.message };
+
+  revalidatePath("/dashboard", "layout");
+  revalidatePath("/dashboard/settings", "layout");
+  if (parsed.data.publicSlug) {
+    revalidatePath(`/p/${parsed.data.publicSlug}`);
+  }
+  return refreshProfileResponse("Public profile updated.");
+}
+
+export async function checkPublicSlugAction(
+  slug: string
+): Promise<{ ok: true; data: { available: boolean } } | { ok: false; error: string }> {
+  const parsed = slugSchema.safeParse(slug);
+  if (!parsed.success) {
+    return { ok: false, error: "Invalid slug format." };
+  }
+
+  const userId = await requireUserId();
+  const admin = getAdminSupabase();
+  const { data } = await admin.rpc("check_slug_available", {
+    p_slug: parsed.data,
+    p_exclude_user_id: userId,
+  } as never);
+
+  return { ok: true, data: { available: data ?? false } };
+}
+
+export async function claimPublicSlugAction(
+  slug: string
+): Promise<{ ok: true; message: string } | { ok: false; error: string }> {
+  const parsed = slugSchema.safeParse(slug);
+  if (!parsed.success) {
+    return { ok: false, error: "Invalid slug format." };
+  }
+
+  const userId = await requireUserId();
+  const admin = getAdminSupabase();
+  const { data } = await admin.rpc("claim_public_slug", {
+    p_user_id: userId,
+    p_slug: parsed.data,
+  } as never);
+
+  if (!data) {
+    return { ok: false, error: "Could not claim slug. It may be taken or reserved." };
+  }
+
+  revalidatePath("/dashboard", "layout");
+  revalidatePath("/dashboard/settings", "layout");
+  revalidatePath(`/p/${parsed.data}`);
+  return { ok: true, message: "Public profile URL claimed!" };
+}
+
+// ============================================================================
+// Portfolio Actions
+// ============================================================================
+
+export async function createPortfolioItemAction(
+  input: PortfolioItemInput,
+): Promise<ActionResult<{ id: string }>> {
+  const parsed = portfolioItemSchema.safeParse(input);
+  if (!parsed.success) return flatErrors(parsed);
+
+  const userId = await requireUserId();
+  const supabase = await getServerSupabase();
+
+  const { data, error } = await supabase
+    .from("public_portfolio_items")
+    .insert({
+      user_id: userId,
+      project_id: parsed.data.projectId ?? null,
+      title: parsed.data.title,
+      description: parsed.data.description,
+      cover_image_url: parsed.data.coverImageUrl,
+      images: parsed.data.images,
+      category: parsed.data.category,
+      industry: parsed.data.industry,
+      budget_range: parsed.data.budgetRange,
+      duration: parsed.data.duration,
+      technologies: parsed.data.technologies,
+      client_name: parsed.data.clientName,
+      client_industry: parsed.data.clientIndustry,
+      testimonial: parsed.data.testimonial,
+      featured: parsed.data.featured,
+      sort_order: parsed.data.sortOrder,
+      published: parsed.data.published,
+    } as never)
+    .select("id")
+    .single();
+
+  if (error || !data) {
+    return { ok: false, error: error?.message ?? "Could not create portfolio item." };
+  }
+
+  revalidatePath("/dashboard/settings/profile/public");
+  return { ok: true, data: { id: (data as { id: string }).id }, message: "Portfolio item created." };
+}
+
+const updatePortfolioItemSchema = portfolioItemSchema.extend({ id: z.string().uuid() });
+
+export async function updatePortfolioItemAction(
+  input: PortfolioItemInput & { id: string },
+): Promise<ActionResult> {
+  const parsed = updatePortfolioItemSchema.safeParse(input);
+  if (!parsed.success) {
+    const flat = parsed.error.flatten();
+    return {
+      ok: false,
+      error: "Please fix the highlighted fields.",
+      fieldErrors: flat.fieldErrors as Record<string, string[]>,
+    };
+  }
+
+  const userId = await requireUserId();
+  const supabase = await getServerSupabase();
+
+  const { id, ...updateData } = parsed.data;
+
+  const { error } = await supabase
+    .from("public_portfolio_items")
+    .update(updateData as never)
+    .eq("id", id)
+    .eq("user_id", userId);
+
+  if (error) return { ok: false, error: error.message };
+
+  revalidatePath("/dashboard/settings/profile/public");
+  return { ok: true, message: "Portfolio item updated." };
+}
+
+export async function deletePortfolioItemAction(
+  id: string
+): Promise<ActionResult> {
+  const parsed = z.string().uuid().safeParse(id);
+  if (!parsed.success) return { ok: false, error: "Invalid portfolio item ID." };
+
+  const userId = await requireUserId();
+  const supabase = await getServerSupabase();
+
+  const { error } = await supabase
+    .from("public_portfolio_items")
+    .delete()
+    .eq("id", parsed.data)
+    .eq("user_id", userId);
+
+  if (error) return { ok: false, error: error.message };
+
+  revalidatePath("/dashboard/settings/profile/public");
+  return { ok: true, message: "Portfolio item deleted." };
+}
+
+export async function reorderPortfolioItemsAction(
+  items: Array<{ id: string; sortOrder: number }>
+): Promise<ActionResult> {
+  const userId = await requireUserId();
+  const supabase = await getServerSupabase();
+
+  for (const item of items) {
+    const { error } = await supabase
+      .from("public_portfolio_items")
+      .update({ sort_order: item.sortOrder } as never)
+      .eq("id", item.id)
+      .eq("user_id", userId);
+    if (error) return { ok: false, error: error.message };
+  }
+
+  revalidatePath("/dashboard/settings/profile/public");
+  return { ok: true, message: "Portfolio reordered." };
 }

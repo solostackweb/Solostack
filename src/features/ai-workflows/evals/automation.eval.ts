@@ -46,7 +46,7 @@ function invoice(partial: Partial<InvoiceInput>): InvoiceInput {
 }
 
 function emptySnapshot(): EvaluatorSnapshot {
-  return { overdueInvoices: [], dueSoonInvoices: [], staleProposals: [], unbilled: null, expiringContracts: [] };
+  return { overdueInvoices: [], dueSoonInvoices: [], staleProposals: [], unbilled: null, expiringContracts: [], completedProjects: [] };
 }
 
 function keyCount(candidates: AutomationCandidate[], trigger: string): number {

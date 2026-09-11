@@ -19,6 +19,7 @@ export const AUTOMATION_TRIGGER_TOOL: Record<AutomationTriggerKey, IvoToolKey> =
   unbilled_time_invoice: "invoice.unbilled_draft",
   proposal_followup: "proposal.email",
   contract_expiry_followup: "contract.email",
+  project_completed: "project.completion_actions",
 };
 
 /**
@@ -35,4 +36,4 @@ export const AUTOMATION_EXTERNAL_TRIGGERS: ReadonlySet<AutomationTriggerKey> =
 
 /** Triggers that only create a workspace draft (nothing leaves the workspace). */
 export const AUTOMATION_DRAFT_TRIGGERS: ReadonlySet<AutomationTriggerKey> =
-  new Set<AutomationTriggerKey>(["unbilled_time_invoice"]);
+  new Set<AutomationTriggerKey>(["unbilled_time_invoice", "project_completed"]);

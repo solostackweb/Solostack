@@ -90,6 +90,51 @@ export interface BusinessProfile {
 
   // Referral
   referralCode: string | null;
+
+  // Public Profile
+  publicSlug: string | null;
+  publicProfileEnabled: boolean;
+  publicBio: string | null;
+  publicServices: string[] | null;
+  publicIndustries: string[] | null;
+  publicLocation: string | null;
+  publicLanguages: string[] | null;
+  publicAvailability: string | null;
+  publicStartingRate: number | null;
+  publicStartingRateCurrency: string | null;
+  publicShowReviews: boolean;
+  publicShowPortfolio: boolean;
+  publicShowStats: boolean;
+  publicCtaText: string | null;
+  publicCtaAction: string | null;
+  publicCustomDomain: string | null;
+  publicSeoTitle: string | null;
+  publicSeoDescription: string | null;
+  publicOgImage: string | null;
+
+  // Portfolio
+  portfolio: PortfolioItem[];
+}
+
+export interface PortfolioItem {
+  id: string;
+  projectId: string | null;
+  title: string;
+  description: string | null;
+  coverImageUrl: string | null;
+  images: string[] | null;
+  category: string | null;
+  industry: string | null;
+  budgetRange: string | null;
+  duration: string | null;
+  technologies: string[] | null;
+  clientName: string | null;
+  clientIndustry: string | null;
+  testimonial: string | null;
+  featured: boolean;
+  sortOrder: number;
+  published: boolean;
+  createdAt: string;
 }
 
 export interface NotificationPreferences {
@@ -220,6 +265,30 @@ export function mapProfileRow(row: UserProfileRow): BusinessProfile {
       (row as { onboarding_tour_done?: boolean | null }).onboarding_tour_done ?? false,
     lifetimeClientsCreated: row.lifetime_clients_created,
     referralCode: row.referral_code ?? null,
+
+    // Public Profile
+    publicSlug: row.public_slug ?? null,
+    publicProfileEnabled: row.public_profile_enabled ?? false,
+    publicBio: row.public_bio ?? null,
+    publicServices: row.public_services ?? null,
+    publicIndustries: row.public_industries ?? null,
+    publicLocation: row.public_location ?? null,
+    publicLanguages: row.public_languages ?? null,
+    publicAvailability: row.public_availability ?? null,
+    publicStartingRate: row.public_starting_rate ?? null,
+    publicStartingRateCurrency: row.public_starting_rate_currency ?? "INR",
+    publicShowReviews: row.public_show_reviews ?? true,
+    publicShowPortfolio: row.public_show_portfolio ?? true,
+    publicShowStats: row.public_show_stats ?? true,
+    publicCtaText: row.public_cta_text ?? "Start a project",
+    publicCtaAction: row.public_cta_action ?? "enquiry",
+    publicCustomDomain: row.public_custom_domain ?? null,
+    publicSeoTitle: row.public_seo_title ?? null,
+    publicSeoDescription: row.public_seo_description ?? null,
+    publicOgImage: row.public_og_image ?? null,
+
+    // Portfolio (will be populated separately via API)
+    portfolio: [],
   };
 }
 

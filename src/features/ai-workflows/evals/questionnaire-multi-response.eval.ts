@@ -47,9 +47,10 @@ describe("questionnaire response collections", () => {
     assert.doesNotMatch(SHARE_DIALOG, /Choose a client/);
   });
 
-  it("requires respondent identity and enables browser autofill", () => {
-    assert.match(ACTIONS, /respondentName:\s*z\.string\(\)\.trim\(\)\.min\(1\)/);
-    assert.match(ACTIONS, /respondentEmail:\s*z\.string\(\)\.trim\(\)\.email\(\)/);
+  it("collects respondent identity only when the questionnaire requires it", () => {
+    assert.match(ACTIONS, /respondentName:\s*z\.string\(\)\.trim\(\)\.min\(1\)\.max\(200\)\.optional\(\)/);
+    assert.match(ACTIONS, /if \(collectRespondentIdentity && \(!parsed\.data\.respondentName/);
+    assert.match(FILL, /send\.collectRespondentIdentity/);
     assert.match(FILL, /autoComplete="name"/);
     assert.match(FILL, /autoComplete="email"/);
   });

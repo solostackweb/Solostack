@@ -22,7 +22,8 @@ export type AutomationTriggerKey =
   | "invoice_due_soon_review"
   | "proposal_followup"
   | "unbilled_time_invoice"
-  | "contract_expiry_followup";
+  | "contract_expiry_followup"
+  | "project_completed";
 
 export type EvaluatorSnapshot = {
   overdueInvoices: InvoiceInput[];
@@ -30,6 +31,7 @@ export type EvaluatorSnapshot = {
   staleProposals: ProposalInput[];
   unbilled: { totalAmount: number; totalHours: number } | null;
   expiringContracts: ContractInput[];
+  completedProjects: ProjectInput[];
 };
 
 export interface InvoiceInput {
@@ -53,6 +55,16 @@ export interface ContractInput {
   id: string;
   title: string;
   expires_at: string | null;
+}
+
+export interface ProjectInput {
+  id: string;
+  name: string;
+  client_name: string | null;
+  client_id: string | null;
+  completed_at: string | null;
+  total_amount: number;
+  currency: string;
 }
 
 export interface AutomationCandidate {
@@ -202,6 +214,31 @@ function evaluateExpiringContracts(
     });
 }
 
+function evaluateCompletedProjects(
+  rows: ProjectInput[],
+  now: Date,
+): AutomationCandidate[] {
+  const threeDaysAgo = new Date(now.getTime() - 3 * 86_400_000).toISOString();
+  return rows
+    .filter((row) => row.completed_at && row.completed_at >= threeDaysAgo)
+    .sort((a, b) => (b.completed_at ?? "").localeCompare(a.completed_at ?? ""))
+    .map((row) => {
+      const completedDays = daysBetween(row.completed_at ?? now.toISOString(), now);
+      const value = formatCurrencyAmount(row.total_amount, row.currency);
+      return {
+        triggerKey: "project_completed" as const,
+        dedupeKey: `project_completed:${row.id}`,
+        entityType: "project",
+        entityId: row.id,
+        title: "Project completed — next steps",
+        description: `${row.name} completed ${completedDays}d ago. Review, request review, invoice, or add to portfolio.`,
+        prompt: `Project "${row.name}" was marked completed. Client: ${row.client_name ?? "unknown"}. Value: ${value}. Suggest next actions: request verified review, send final invoice if needed, add to portfolio, ask for referral.`,
+        href: `/dashboard/projects/${row.id}`,
+        tone: "info",
+      };
+    });
+}
+
 /**
  * Evaluate every enabled trigger against the snapshot and merge the
  * per-trigger candidates, oldest-if-present first.
@@ -219,6 +256,7 @@ export function evaluateAutomation(
   if (isOn("proposal_followup")) candidates.push(...evaluateStaleProposals(snapshot.staleProposals, now));
   if (isOn("unbilled_time_invoice")) candidates.push(...evaluateUnbilled(snapshot.unbilled));
   if (isOn("contract_expiry_followup")) candidates.push(...evaluateExpiringContracts(snapshot.expiringContracts, now));
+  if (isOn("project_completed")) candidates.push(...evaluateCompletedProjects(snapshot.completedProjects, now));
 
   const seen = new Set<string>();
   return candidates.filter((candidate) => {

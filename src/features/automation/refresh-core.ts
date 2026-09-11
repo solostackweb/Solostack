@@ -58,6 +58,11 @@ const DEFAULT_RECIPES = [
     name: "Contract expiry follow-up",
     description: "Suggest action before a sent contract expires.",
   },
+  {
+    trigger_key: "project_completed",
+    name: "Project completion actions",
+    description: "Suggest next steps when a project is marked completed (review request, final invoice, portfolio, referral).",
+  },
 ] as const;
 
 export function mapRecipeRow(row: AutomationRecipeRow): AutomationRecipeRecord {
@@ -129,6 +134,7 @@ function toSnapshot(
     proposals: Array<Record<string, unknown>>;
     contracts: Array<Record<string, unknown>>;
     unbilled: { totalAmount: number; totalSeconds: number } | null;
+    completedProjects: Array<Record<string, unknown>>;
   },
 ): EvaluatorSnapshot {
   return {
@@ -159,6 +165,15 @@ function toSnapshot(
       title: String(row.title),
       expires_at: row.expires_at ? String(row.expires_at) : null,
     })),
+    completedProjects: rows.completedProjects.map((row) => ({
+      id: String(row.id),
+      name: String(row.name),
+      client_name: row.client_name ? String(row.client_name) : null,
+      client_id: row.client_id ? String(row.client_id) : null,
+      completed_at: row.completed_at ? String(row.completed_at) : null,
+      total_amount: Number(row.total_amount ?? 0),
+      currency: String(row.currency ?? "INR"),
+    })),
     unbilled: rows.unbilled
       ? {
           totalAmount: rows.unbilled.totalAmount,
@@ -184,7 +199,7 @@ async function readSnapshot(
   const in7 = new Date(now.getTime() + 7 * 86_400_000).toISOString();
   const threeDaysAgo = new Date(now.getTime() - 3 * 86_400_000).toISOString();
 
-  const [overdueRes, dueSoonRes, proposalRes, contractRes, unbilledRes] =
+  const [overdueRes, dueSoonRes, proposalRes, contractRes, unbilledRes, completedProjectsRes] =
     await Promise.all([
       supabase
         .from("invoices")
@@ -218,6 +233,14 @@ async function readSnapshot(
         .lte("expires_at", in7)
         .order("expires_at", { ascending: true }),
       unbilled().catch(() => null),
+      supabase
+        .from("projects")
+        .select("id, name, client_id, completed_at, total_amount, currency, clients!inner(full_name)")
+        .eq("user_id", userId)
+        .eq("status", "completed")
+        .gte("completed_at", threeDaysAgo)
+        .order("completed_at", { ascending: false })
+        .limit(20),
     ]);
 
   return toSnapshot({
@@ -225,6 +248,7 @@ async function readSnapshot(
     dueSoon: (dueSoonRes.data as unknown as Array<Record<string, unknown>>) ?? [],
     proposals: (proposalRes.data as unknown as Array<Record<string, unknown>>) ?? [],
     contracts: (contractRes.data as unknown as Array<Record<string, unknown>>) ?? [],
+    completedProjects: (completedProjectsRes.data as unknown as Array<Record<string, unknown>>) ?? [],
     unbilled: unbilledRes,
   });
 }

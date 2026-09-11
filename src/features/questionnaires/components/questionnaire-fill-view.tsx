@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import { submitQuestionnaireAction } from "../actions";
 import { followUpAnswerKey, OTHER_OPTION_VALUE, otherAnswerKey, type Question } from "../types";
 
-interface PublicSend { title: string; description: string | null; layout: "guided" | "classic"; questions: Question[] }
+interface PublicSend { title: string; description: string | null; layout: "guided" | "classic"; questions: Question[]; collectRespondentIdentity: boolean }
 type Answer = string | string[];
 const newSubmissionKey = () => crypto.randomUUID();
 const isEmpty = (value: Answer | undefined) => value === undefined || value === "" || (Array.isArray(value) && value.length === 0);
@@ -25,7 +25,9 @@ export function QuestionnaireFillView({ token, hostName, send }: { token: string
   const [answers, setAnswers] = React.useState<Record<string, Answer>>({});
   const [respondentName, setRespondentName] = React.useState("");
   const [respondentEmail, setRespondentEmail] = React.useState("");
-  const [detailsComplete, setDetailsComplete] = React.useState(false);
+  const [detailsComplete, setDetailsComplete] = React.useState(
+    () => !send.collectRespondentIdentity,
+  );
   const [step, setStep] = React.useState(0);
   const [submitting, setSubmitting] = React.useState(false);
   const [done, setDone] = React.useState(false);
@@ -34,9 +36,14 @@ export function QuestionnaireFillView({ token, hostName, send }: { token: string
   const current = visibleQuestions[step];
   const answered = visibleQuestions.filter((question) => !isEmpty(answers[question.id])).length;
   const identityAnswered = Number(Boolean(respondentName.trim())) + Number(Boolean(respondentEmail.trim()));
-  const totalFields = visibleQuestions.length + 2;
+  const identityFieldCount = send.collectRespondentIdentity ? 2 : 0;
+  const totalFields = visibleQuestions.length + identityFieldCount;
   const progress = send.questions.length
-    ? Math.round(((send.layout === "classic" ? answered + identityAnswered : detailsComplete ? step + 3 : identityAnswered) / totalFields) * 100)
+    ? Math.round(((send.layout === "classic"
+      ? answered + (send.collectRespondentIdentity ? identityAnswered : 0)
+      : send.collectRespondentIdentity
+        ? detailsComplete ? step + 3 : identityAnswered
+        : step + 1) / Math.max(totalFields, 1)) * 100)
     : 100;
   const setAnswer = (id: string, value: Answer) => setAnswers((previous) => ({ ...previous, [id]: value }));
 
@@ -62,6 +69,7 @@ export function QuestionnaireFillView({ token, hostName, send }: { token: string
     setStep((value) => Math.min(visibleQuestions.length - 1, value + 1));
   };
   const validateRespondent = () => {
+    if (!send.collectRespondentIdentity) return true;
     if (!respondentName.trim()) {
       toast.error("Please enter your name.");
       document.getElementById("respondent-name")?.focus();
@@ -85,8 +93,8 @@ export function QuestionnaireFillView({ token, hostName, send }: { token: string
     const result = await submitQuestionnaireAction({
       token,
       submissionKey,
-      respondentName,
-      respondentEmail,
+      respondentName: send.collectRespondentIdentity ? respondentName : undefined,
+      respondentEmail: send.collectRespondentIdentity ? respondentEmail : undefined,
       responses: answers,
     });
     setSubmitting(false);
@@ -98,7 +106,7 @@ export function QuestionnaireFillView({ token, hostName, send }: { token: string
     setAnswers({});
     setRespondentName("");
     setRespondentEmail("");
-    setDetailsComplete(false);
+    setDetailsComplete(!send.collectRespondentIdentity);
     setStep(0);
     setSubmissionKey(newSubmissionKey());
     setDone(false);
@@ -113,7 +121,7 @@ export function QuestionnaireFillView({ token, hostName, send }: { token: string
           <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-600 text-white shadow-sm"><ClipboardList className="h-4 w-4" /></span>
           {hostName}
         </div>
-        {!done && send.questions.length > 0 ? <span className="text-xs font-medium tabular-nums text-slate-500">{send.layout === "classic" ? `${answered + identityAnswered} of ${totalFields} answered` : `${detailsComplete ? Math.min(step + 2, visibleQuestions.length + 1) : 1} / ${visibleQuestions.length + 1}`}</span> : null}
+        {!done && send.questions.length > 0 ? <span className="text-xs font-medium tabular-nums text-slate-500">{send.layout === "classic" ? `${answered + (send.collectRespondentIdentity ? identityAnswered : 0)} of ${totalFields} answered` : send.collectRespondentIdentity ? `${detailsComplete ? Math.min(step + 2, visibleQuestions.length + 1) : 1} / ${visibleQuestions.length + 1}` : `${step + 1} / ${visibleQuestions.length}`}</span> : null}
       </header>
       <section className={`flex flex-1 justify-center py-4 ${send.layout === "classic" ? "items-start" : "items-center"}`}>
         <div className="w-full overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_18px_60px_-30px_rgba(15,23,42,0.35)]">
@@ -124,13 +132,13 @@ export function QuestionnaireFillView({ token, hostName, send }: { token: string
               <div><p className="text-xs font-semibold uppercase tracking-[0.14em] text-emerald-700">Submission complete</p><h1 className="mt-2 text-3xl font-semibold tracking-tight">Thank you{respondentName.trim() ? `, ${respondentName.trim().split(/\s+/)[0]}` : ""}.</h1></div>
               <p className="text-sm leading-6 text-slate-600">Your response has been safely sent to {hostName}. You can close this page now.</p>
               <button type="button" onClick={reset} className="min-h-11 rounded-lg border border-slate-300 px-4 text-sm font-semibold text-slate-800 hover:bg-slate-50">Submit another response</button>
-            </div> : send.layout === "classic" ? <ClassicForm send={send} questions={visibleQuestions} answers={answers} setAnswer={setAnswer} respondentName={respondentName} respondentEmail={respondentEmail} setRespondentName={setRespondentName} setRespondentEmail={setRespondentEmail} submitting={submitting} onSubmit={submit} /> : !detailsComplete ? <RespondentDetails title={send.title} description={send.description} name={respondentName} email={respondentEmail} setName={setRespondentName} setEmail={setRespondentEmail} onContinue={continueFromDetails} /> : current ? <div className="mx-auto max-w-xl">
+            </div> : send.layout === "classic" ? <ClassicForm send={send} questions={visibleQuestions} answers={answers} setAnswer={setAnswer} respondentName={respondentName} respondentEmail={respondentEmail} setRespondentName={setRespondentName} setRespondentEmail={setRespondentEmail} submitting={submitting} onSubmit={submit} /> : send.collectRespondentIdentity && !detailsComplete ? <RespondentDetails title={send.title} description={send.description} name={respondentName} email={respondentEmail} setName={setRespondentName} setEmail={setRespondentEmail} onContinue={continueFromDetails} /> : current ? <div className="mx-auto max-w-xl">
               <p className="text-xs font-semibold uppercase tracking-[0.14em] text-blue-600">Question {step + 1}</p>
               <h2 className="mt-2 text-balance text-xl font-semibold leading-snug text-slate-950 sm:text-2xl">{current.label}{current.required ? <span className="ml-1 text-red-500">*</span> : null}</h2>
               {current.help ? <p className="mt-2 text-sm leading-6 text-slate-500">{current.help}</p> : null}
               <div className="mt-6"><QuestionField question={current} answers={answers} setAnswer={setAnswer} /></div>
               <div className="mt-8 flex items-center justify-between gap-3 border-t border-slate-100 pt-5">
-                <button type="button" onClick={() => step === 0 ? setDetailsComplete(false) : setStep((value) => value - 1)} className="inline-flex min-h-11 items-center gap-2 rounded-lg px-3 text-sm font-semibold text-slate-600 hover:bg-slate-50"><ArrowLeft className="h-4 w-4" /> Back</button>
+                {send.collectRespondentIdentity || step > 0 ? <button type="button" onClick={() => step === 0 ? setDetailsComplete(false) : setStep((value) => value - 1)} className="inline-flex min-h-11 items-center gap-2 rounded-lg px-3 text-sm font-semibold text-slate-600 hover:bg-slate-50"><ArrowLeft className="h-4 w-4" /> Back</button> : <span />}
                 {step === visibleQuestions.length - 1 ? <button type="button" onClick={submit} disabled={submitting} className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-blue-600 px-5 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 disabled:opacity-60">{submitting ? "Submitting…" : "Submit response"} <Check className="h-4 w-4" /></button> : <button type="button" onClick={next} className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-blue-600 px-5 text-sm font-semibold text-white shadow-sm hover:bg-blue-700">Continue <ArrowRight className="h-4 w-4" /></button>}
               </div>
             </div> : <div className="py-10 text-center"><h1 className="text-xl font-semibold">This questionnaire has no questions yet.</h1></div>}
@@ -172,7 +180,7 @@ function ClassicForm({
         {send.description ? <p className="mt-2 text-sm leading-6 text-slate-600">{send.description}</p> : null}
         <p className="mt-3 text-xs text-slate-500"><span className="text-red-500">*</span> Required</p>
       </div>
-      <div className="border-b border-slate-100 py-7">
+      {send.collectRespondentIdentity ? <div className="border-b border-slate-100 py-7">
         <p className="text-xs font-semibold uppercase tracking-[0.14em] text-blue-600">Your details</p>
         <div className="mt-4">
           <IdentityFields
@@ -182,7 +190,7 @@ function ClassicForm({
             setEmail={setRespondentEmail}
           />
         </div>
-      </div>
+      </div> : null}
       <div className="divide-y divide-slate-100">
         {questions.map((question, index) => (
           <div id={`question-${question.id}`} key={question.id} className="scroll-mt-6 py-7 first:pt-6">

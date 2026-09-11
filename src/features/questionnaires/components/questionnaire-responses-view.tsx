@@ -3,7 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Check, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Copy, ExternalLink, MessageCircle, RefreshCw, Search, Trash2 } from "lucide-react";
+import { ArrowLeft, Check, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Copy, ExternalLink, MessageCircle, Pencil, RefreshCw, Search, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 
 import { PageHeader } from "@/components/shared/page-header";
@@ -13,7 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { IvoEntryPoint } from "@/features/ai-workflows/components/ivo-entry-point";
 import { IntegrationLogoTile } from "@/components/integrations/integration-logo";
-import { connectQuestionnaireSheetAction, deleteQuestionnaireResponseAction, repairQuestionnaireSheetAction, retryQuestionnaireSheetSyncAction, revokeQuestionnaireLinkAction } from "../actions";
+import { connectQuestionnaireSheetAction, deleteQuestionnaireResponseAction, renameQuestionnaireLinkAction, repairQuestionnaireSheetAction, retryQuestionnaireSheetSyncAction, revokeQuestionnaireLinkAction } from "../actions";
 import { followUpAnswerKey, OTHER_OPTION_VALUE, otherAnswerKey, type QuestionnaireResponse, type QuestionnaireSend, type QuestionnaireSheetIntegration } from "../types";
 import { SendQuestionnaireDialog, buildWhatsappHref, type SendClientOption } from "./send-questionnaire-dialog";
 
@@ -91,8 +91,12 @@ function SheetsPanel({ questionnaireId, integration, connection, responseTotal }
 }
 
 function CollectorCard({ send, client }: { send: QuestionnaireSend; client?: SendClientOption }) {
+  const router = useRouter();
   const [copied, setCopied] = React.useState(false);
   const [deleting, setDeleting] = React.useState(false);
+  const [editing, setEditing] = React.useState(false);
+  const [savingName, setSavingName] = React.useState(false);
+  const [linkName, setLinkName] = React.useState(send.linkName);
   const shareUrl = typeof window !== "undefined" ? `${window.location.origin}/q/${send.publicToken}` : `/q/${send.publicToken}`;
   const copy = async () => { await navigator.clipboard.writeText(shareUrl); setCopied(true); setTimeout(() => setCopied(false), 1500); };
   const revoke = async () => {
@@ -103,7 +107,22 @@ function CollectorCard({ send, client }: { send: QuestionnaireSend; client?: Sen
     if (result.ok) { toast.success(result.message); window.location.reload(); }
     else toast.error(result.error);
   };
-  return <Card><CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between"><div><p className="text-sm font-semibold">{client?.name ?? "Public collection link"}</p><p className="mt-1 text-xs text-muted-foreground">Created {fmtDate(send.createdAt)} · Reusable collection link</p></div><div className="flex flex-wrap gap-2"><Button type="button" size="sm" variant="outline" onClick={copy}>{copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}{copied ? "Copied" : "Copy link"}</Button><Button asChild size="sm" className="bg-[#25D366] text-white hover:bg-[#1ebe5d]"><a href={buildWhatsappHref(shareUrl, client?.name ?? "there", client?.phone)} target="_blank" rel="noreferrer"><MessageCircle className="h-3.5 w-3.5" /> WhatsApp</a></Button><Button type="button" size="sm" variant="ghost" className="text-muted-foreground hover:text-destructive" onClick={revoke} disabled={deleting}><Trash2 className="h-3.5 w-3.5" /> {deleting ? "Deleting…" : "Delete link"}</Button></div></CardContent></Card>;
+  const saveName = async () => {
+    if (!linkName.trim()) return void toast.error("Enter a link name.");
+    setSavingName(true);
+    const result = await renameQuestionnaireLinkAction(send.id, linkName);
+    setSavingName(false);
+    if (!result.ok) return void toast.error(result.error);
+    setLinkName(linkName.trim());
+    setEditing(false);
+    toast.success(result.message);
+    router.refresh();
+  };
+  const cancelEditing = () => {
+    setLinkName(send.linkName);
+    setEditing(false);
+  };
+  return <Card><CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between"><div className="min-w-0 flex-1">{editing ? <div className="flex max-w-md items-center gap-2"><Input value={linkName} onChange={(event) => setLinkName(event.target.value)} maxLength={120} aria-label="Link name" className="h-9" /><Button type="button" size="sm" onClick={saveName} disabled={savingName || !linkName.trim()}><Check className="h-3.5 w-3.5" /> {savingName ? "Saving…" : "Save"}</Button><Button type="button" size="icon" variant="ghost" className="h-9 w-9" onClick={cancelEditing} aria-label="Cancel renaming"><X className="h-4 w-4" /></Button></div> : <div className="flex items-center gap-1"><p className="truncate text-sm font-semibold">{send.linkName}</p><Button type="button" size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground" onClick={() => setEditing(true)} aria-label={`Rename ${send.linkName}`}><Pencil className="h-3.5 w-3.5" /></Button></div>}<p className="mt-1 text-xs text-muted-foreground">Created {fmtDate(send.createdAt)} · Reusable collection link</p></div><div className="flex flex-wrap gap-2"><Button type="button" size="sm" variant="outline" onClick={copy}>{copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}{copied ? "Copied" : "Copy link"}</Button><Button asChild size="sm" className="bg-[#25D366] text-white hover:bg-[#1ebe5d]"><a href={buildWhatsappHref(shareUrl, client?.name ?? "there", client?.phone)} target="_blank" rel="noreferrer"><MessageCircle className="h-3.5 w-3.5" /> WhatsApp</a></Button><Button type="button" size="sm" variant="ghost" className="text-muted-foreground hover:text-destructive" onClick={revoke} disabled={deleting}><Trash2 className="h-3.5 w-3.5" /> {deleting ? "Deleting…" : "Delete link"}</Button></div></CardContent></Card>;
 }
 
 function displayAnswer(response: QuestionnaireResponse, questionId: string): string {

@@ -170,3 +170,61 @@ export const notificationPreferencesSchema = z.object({
 export type NotificationPreferencesInput = z.infer<
   typeof notificationPreferencesSchema
 >;
+
+// ============================================================================
+// Public Profile Schemas
+// ============================================================================
+
+export const slugSchema = z
+  .string()
+  .trim()
+  .toLowerCase()
+  .min(2, "Slug must be at least 2 characters")
+  .max(50, "Slug must be at most 50 characters")
+  .regex(/^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$/, "Slug can only contain lowercase letters, numbers, and hyphens (no leading/trailing hyphens)");
+
+export const publicProfileSchema = z.object({
+  publicSlug: slugSchema.optional(),
+  publicProfileEnabled: z.coerce.boolean().default(false),
+  publicBio: z.string().trim().max(1000).optional().or(z.literal("")).transform((v) => v || null),
+  publicServices: z.array(z.string().trim().max(60)).max(20).optional().default([]),
+  publicIndustries: z.array(z.string().trim().max(60)).max(20).optional().default([]),
+  publicLocation: z.string().trim().max(120).optional().or(z.literal("")).transform((v) => v || null),
+  publicLanguages: z.array(z.string().trim().max(40)).max(10).optional().default([]),
+  publicAvailability: z.string().trim().max(200).optional().or(z.literal("")).transform((v) => v || null),
+  publicStartingRate: z.coerce.number().min(0).max(10000000).optional().nullable(),
+  publicStartingRateCurrency: z.string().trim().min(3).max(3).default("INR"),
+  publicShowReviews: z.coerce.boolean().default(true),
+  publicShowPortfolio: z.coerce.boolean().default(true),
+  publicShowStats: z.coerce.boolean().default(true),
+  publicCtaText: z.string().trim().max(60).default("Start a project"),
+  publicCtaAction: z.enum(["enquiry", "calendly", "custom_url"]).default("enquiry"),
+  publicCustomDomain: z.string().trim().max(200).optional().or(z.literal("")).transform((v) => v || null),
+  publicSeoTitle: z.string().trim().max(60).optional().or(z.literal("")).transform((v) => v || null),
+  publicSeoDescription: z.string().trim().max(160).optional().or(z.literal("")).transform((v) => v || null),
+  publicOgImage: z.string().trim().max(500).optional().or(z.literal("")).transform((v) => v || null),
+});
+
+export type PublicProfileInput = z.infer<typeof publicProfileSchema>;
+
+export const portfolioItemSchema = z.object({
+  id: z.string().uuid().optional(),
+  projectId: z.string().uuid().optional().nullable(),
+  title: z.string().trim().min(1).max(200),
+  description: z.string().trim().max(5000).optional().or(z.literal("")).transform((v) => v || null),
+  coverImageUrl: z.string().trim().max(2000).optional().or(z.literal("")).transform((v) => v || null),
+  images: z.array(z.string().trim().max(2000)).max(20).optional().default([]),
+  category: z.string().trim().max(80).optional().or(z.literal("")).transform((v) => v || null),
+  industry: z.string().trim().max(80).optional().or(z.literal("")).transform((v) => v || null),
+  budgetRange: z.string().trim().max(60).optional().or(z.literal("")).transform((v) => v || null),
+  duration: z.string().trim().max(60).optional().or(z.literal("")).transform((v) => v || null),
+  technologies: z.array(z.string().trim().max(40)).max(30).optional().default([]),
+  clientName: z.string().trim().max(120).optional().or(z.literal("")).transform((v) => v || null),
+  clientIndustry: z.string().trim().max(80).optional().or(z.literal("")).transform((v) => v || null),
+  testimonial: z.string().trim().max(2000).optional().or(z.literal("")).transform((v) => v || null),
+  featured: z.coerce.boolean().default(false),
+  sortOrder: z.coerce.number().int().min(0).default(0),
+  published: z.coerce.boolean().default(false),
+});
+
+export type PortfolioItemInput = z.infer<typeof portfolioItemSchema>;

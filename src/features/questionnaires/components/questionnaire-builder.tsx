@@ -90,6 +90,9 @@ export function QuestionnaireBuilder({
   const [publicLayout, setPublicLayout] = React.useState<QuestionnairePublicLayout>(
     initial?.publicLayout ?? "guided",
   );
+  const [collectRespondentIdentity, setCollectRespondentIdentity] = React.useState(
+    initial?.collectRespondentIdentity ?? true,
+  );
   const [saving, setSaving] = React.useState(false);
   const [savingTemplate, setSavingTemplate] = React.useState(false);
 
@@ -155,6 +158,7 @@ export function QuestionnaireBuilder({
       title: title.trim(),
       description: description.trim() || undefined,
       publicLayout,
+      collectRespondentIdentity,
       questions: cleaned.map((question) => ({
         ...question,
         options: questionNeedsOptions(question.type)
@@ -187,6 +191,7 @@ export function QuestionnaireBuilder({
       title: title.trim(),
       description: description.trim() || undefined,
       publicLayout,
+      collectRespondentIdentity,
       questions: cleaned.map((q) => ({
         ...q,
         options: questionNeedsOptions(q.type)
@@ -270,6 +275,22 @@ export function QuestionnaireBuilder({
                 onSelect={() => setPublicLayout("classic")}
               />
             </div>
+          </div>
+          <div className="border-t pt-4">
+            <label className="flex min-h-11 cursor-pointer items-start gap-3 rounded-lg border bg-muted/20 p-4">
+              <input
+                type="checkbox"
+                checked={collectRespondentIdentity}
+                onChange={(event) => setCollectRespondentIdentity(event.target.checked)}
+                className="mt-0.5 h-4 w-4"
+              />
+              <span>
+                <span className="block text-sm font-semibold">Collect respondent name and email</span>
+                <span className="mt-1 block text-xs leading-5 text-muted-foreground">
+                  Adds a required details step before the questionnaire. Turn this off for anonymous responses.
+                </span>
+              </span>
+            </label>
           </div>
         </CardContent>
       </Card>

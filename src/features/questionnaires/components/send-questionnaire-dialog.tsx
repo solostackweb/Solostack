@@ -48,6 +48,7 @@ export function SendQuestionnaireDialog({
   const [sending, setSending] = React.useState(false);
   const [link, setLink] = React.useState<string | null>(null);
   const [copied, setCopied] = React.useState(false);
+  const [linkName, setLinkName] = React.useState("Public collection link");
   const requestKeyRef = React.useRef<string | null>(null);
 
   const reset = () => {
@@ -61,6 +62,7 @@ export function SendQuestionnaireDialog({
     requestKeyRef.current ??= crypto.randomUUID();
     const res = await sendQuestionnaireAction({
       questionnaireId,
+      linkName: linkName.trim(),
       idempotencyKey: requestKeyRef.current,
     });
     setSending(false);
@@ -103,7 +105,7 @@ export function SendQuestionnaireDialog({
         {link ? (
           <div className="space-y-4">
             <p className="text-sm text-muted-foreground">
-              Anyone with this link can submit a response. Name and email are required.
+              Anyone with this link can submit a response. The questionnaire&apos;s response settings apply.
             </p>
             <div className="flex items-center gap-2">
               <Input readOnly value={link} className="font-mono text-xs" />
@@ -139,10 +141,19 @@ export function SendQuestionnaireDialog({
         ) : (
           <div className="space-y-4">
             <p className="text-sm leading-6 text-muted-foreground">
-              Create one reusable public link for this questionnaire. Responses stay separate and identify the respondent by name and email.
+              Create one reusable public link for this questionnaire. Responses stay separate and the link name is only visible inside your workspace.
             </p>
+            <label className="grid gap-2 text-sm font-medium">
+              Link name
+              <Input
+                value={linkName}
+                onChange={(event) => setLinkName(event.target.value)}
+                maxLength={120}
+                placeholder="Public collection link"
+              />
+            </label>
             <DialogFooter>
-              <Button type="button" onClick={send} disabled={sending}>
+              <Button type="button" onClick={send} disabled={sending || !linkName.trim()}>
                 <Send className="h-4 w-4" /> {sending ? "Creating…" : "Create link"}
               </Button>
             </DialogFooter>

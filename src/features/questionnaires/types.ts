@@ -210,10 +210,15 @@ export interface Questionnaire {
   questions: Question[];
   active: boolean;
   publicLayout: QuestionnairePublicLayout;
+  collectRespondentIdentity: boolean;
   updatedAt: string;
 }
 
-export function mapQuestionnaireRow(row: QuestionnaireRow): Questionnaire {
+type QuestionnaireWithSettingsRow = QuestionnaireRow & {
+  collect_respondent_identity?: boolean | null;
+};
+
+export function mapQuestionnaireRow(row: QuestionnaireWithSettingsRow): Questionnaire {
   return {
     id: row.id,
     title: row.title,
@@ -221,6 +226,7 @@ export function mapQuestionnaireRow(row: QuestionnaireRow): Questionnaire {
     questions: normalizeQuestions(row.questions),
     active: row.active,
     publicLayout: row.public_layout ?? "guided",
+    collectRespondentIdentity: row.collect_respondent_identity ?? true,
     updatedAt: row.updated_at,
   };
 }
@@ -232,6 +238,8 @@ export interface QuestionnaireSend {
   responses: Record<string, unknown>;
   status: string;
   publicLayout: QuestionnairePublicLayout;
+  linkName: string;
+  collectRespondentIdentity: boolean;
   publicToken: string;
   clientId: string | null;
   projectId: string | null;
@@ -240,8 +248,13 @@ export interface QuestionnaireSend {
   revokedAt: string | null;
 }
 
+type QuestionnaireSendWithSettingsRow = QuestionnaireSendRow & {
+  link_name?: string | null;
+  collect_respondent_identity?: boolean | null;
+};
+
 export function mapQuestionnaireSendRow(
-  row: QuestionnaireSendRow,
+  row: QuestionnaireSendWithSettingsRow,
 ): QuestionnaireSend {
   const responses =
     row.responses &&
@@ -256,6 +269,8 @@ export function mapQuestionnaireSendRow(
     responses,
     status: row.status,
     publicLayout: row.public_layout ?? "guided",
+    linkName: row.link_name?.trim() || "Public collection link",
+    collectRespondentIdentity: row.collect_respondent_identity ?? true,
     publicToken: row.public_token,
     clientId: row.client_id,
     projectId: row.project_id,

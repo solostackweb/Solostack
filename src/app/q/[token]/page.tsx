@@ -29,6 +29,7 @@ export default async function PublicQuestionnairePage({ params }: PageProps) {
         title: result.send.title,
         description: result.description,
         layout: result.send.publicLayout,
+        collectRespondentIdentity: result.send.collectRespondentIdentity,
         questions: result.send.questions,
       }}
     />

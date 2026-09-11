@@ -1467,7 +1467,7 @@ function ProposalsSection({
                   ) : (
                     p.public_token && (
                       <Button asChild size="sm" variant="default" className="h-8 shrink-0">
-                        <Link href={`/p/${p.public_token}`} target="_blank">
+                        <Link href={`/proposal/${p.public_token}`} target="_blank">
                           Review
                           <ExternalLink className="h-3.5 w-3.5" />
                         </Link>

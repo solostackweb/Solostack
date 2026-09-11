@@ -6,7 +6,7 @@ import { getServerSupabase } from "@/lib/supabase/server";
 import { getCurrentUser } from "@/features/auth/server";
 import { AUTH_LOGIN_ROUTE } from "@/features/auth/routes";
 import type { UserProfileRow } from "@/lib/supabase/types";
-import { mapProfileRow, type BusinessProfile } from "@/features/onboarding/types";
+import { mapProfileRow, type BusinessProfile, type PortfolioItem } from "@/features/onboarding/types";
 import { createSignedStorageUrl } from "./storage";
 
 const fetchProfileRow = cache(async (): Promise<UserProfileRow | null> => {
@@ -19,6 +19,17 @@ const fetchProfileRow = cache(async (): Promise<UserProfileRow | null> => {
     .eq("id", user.id)
     .maybeSingle();
   return (data as unknown as UserProfileRow | null) ?? null;
+});
+
+const fetchPortfolio = cache(async (userId: string): Promise<PortfolioItem[]> => {
+  const supabase = await getServerSupabase();
+  const { data } = await supabase
+    .from("public_portfolio_items")
+    .select("*")
+    .eq("user_id", userId)
+    .order("sort_order", { ascending: true })
+    .order("created_at", { ascending: false });
+  return (data ?? []) as PortfolioItem[];
 });
 
 /**
@@ -34,16 +45,18 @@ export const getProfile = cache(
     if (!row) return null;
     const base = mapProfileRow(row);
     const supabase = await getServerSupabase();
-    const [avatarUrl, logoUrl, brandIconUrl] = await Promise.all([
+    const [avatarUrl, logoUrl, brandIconUrl, portfolio] = await Promise.all([
       createSignedStorageUrl("profile-images", base.avatarPath, supabase),
       createSignedStorageUrl("branding-assets", base.logoPath, supabase),
       createSignedStorageUrl("branding-assets", base.brandIconPath, supabase),
+      fetchPortfolio(base.userId),
     ]);
     return {
       ...base,
       avatarUrl,
       logoUrl,
       brandIconUrl,
+      portfolio,
     };
   },
 );

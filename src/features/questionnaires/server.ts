@@ -135,7 +135,7 @@ export async function getQuestionnaireSendByToken(
   if (row.questionnaire_id) {
     const { data: questionnaireRaw } = await admin
       .from("questionnaires")
-      .select("title, description, questions, active, public_layout")
+      .select("title, description, questions, active, public_layout, collect_respondent_identity")
       .eq("id", row.questionnaire_id)
       .maybeSingle();
     const questionnaire = questionnaireRaw as {
@@ -144,6 +144,7 @@ export async function getQuestionnaireSendByToken(
       questions: unknown;
       active: boolean;
       public_layout: "guided" | "classic";
+      collect_respondent_identity: boolean;
     } | null;
     if (questionnaire && !questionnaire.active) return null;
     if (questionnaire?.active) {
@@ -152,6 +153,7 @@ export async function getQuestionnaireSendByToken(
         title: questionnaire.title,
         questions: normalizeQuestions(questionnaire.questions),
         publicLayout: questionnaire.public_layout ?? "guided",
+        collectRespondentIdentity: questionnaire.collect_respondent_identity ?? true,
       };
       description = questionnaire.description;
     }

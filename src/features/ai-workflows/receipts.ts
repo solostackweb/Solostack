@@ -109,6 +109,7 @@ const TOOL_SUMMARIES: Record<IvoToolKey, string> = {
   "invoice.whatsapp_prepare": "Prepared an invoice WhatsApp share",
   "contract.whatsapp_prepare": "Prepared a contract WhatsApp share",
   "welcome_document.whatsapp_prepare": "Prepared a welcome document WhatsApp share",
+  "project.completion_actions": "Suggested next steps for a completed project",
 };
 
 /** Maps a ledger status to the receipt vocabulary shown to the user. */

@@ -76,6 +76,7 @@ const upsertSchema = z.object({
   title: z.string().trim().min(1).max(200),
   description: z.string().trim().max(1000).optional(),
   publicLayout: z.enum(["guided", "classic"]).optional(),
+  collectRespondentIdentity: z.boolean().optional(),
   questions: z.array(questionSchema).max(60),
   idempotencyKey: z.string().trim().min(8).max(200).optional(),
 });
@@ -112,6 +113,7 @@ export async function createQuestionnaireAction(
       title: parsed.data.title,
       description: parsed.data.description ?? null,
       public_layout: parsed.data.publicLayout ?? "guided",
+      collect_respondent_identity: parsed.data.collectRespondentIdentity ?? true,
       questions: normalizeQuestions(parsed.data.questions),
       idempotency_key: parsed.data.idempotencyKey ?? null,
       updated_at: new Date().toISOString(),
@@ -160,6 +162,7 @@ export async function updateQuestionnaireAction(
       title: parsed.data.title,
       description: parsed.data.description ?? null,
       public_layout: parsed.data.publicLayout ?? "guided",
+      collect_respondent_identity: parsed.data.collectRespondentIdentity ?? true,
       questions: normalizeQuestions(parsed.data.questions),
       updated_at: new Date().toISOString(),
     } as never)
@@ -173,6 +176,7 @@ export async function updateQuestionnaireAction(
     .update({
       title: parsed.data.title,
       public_layout: parsed.data.publicLayout ?? "guided",
+      collect_respondent_identity: parsed.data.collectRespondentIdentity ?? true,
       questions: normalizeQuestions(parsed.data.questions),
       updated_at: new Date().toISOString(),
     } as never)
@@ -291,6 +295,7 @@ export async function deleteQuestionnaireTemplateAction(formData: FormData): Pro
 
 const sendSchema = z.object({
   questionnaireId: z.string().uuid(),
+  linkName: z.string().trim().min(1).max(120).optional(),
   // Accepted temporarily for compatibility with older clients. New links are
   // always audience-neutral and these values are intentionally not persisted.
   clientId: z.string().uuid().optional(),
@@ -311,15 +316,16 @@ export async function sendQuestionnaireAction(
   const supabase = await getServerSupabase();
   const { data: qData } = await supabase
     .from("questionnaires")
-    .select("id, title, questions, public_layout")
+    .select("id, title, questions, public_layout, collect_respondent_identity")
     .eq("id", parsed.data.questionnaireId)
     .eq("user_id", userId)
     .maybeSingle();
   const questionnaire = qData as
-    | { id: string; title: string; questions: unknown; public_layout: "guided" | "classic" }
+    | { id: string; title: string; questions: unknown; public_layout: "guided" | "classic"; collect_respondent_identity: boolean }
     | null;
   if (!questionnaire) return { ok: false, error: "Questionnaire not found." };
 
+  const linkName = parsed.data.linkName ?? "Public collection link";
   const linked = (sendId: string, publicToken: string) => ({
     ok: true as const,
     data: { id: sendId, publicToken, emailSent: false },
@@ -335,7 +341,17 @@ export async function sendQuestionnaireAction(
       .is("revoked_at", null)
       .maybeSingle();
     const existing = existingRaw as { id: string; public_token: string } | null;
-    if (existing) return linked(existing.id, existing.public_token);
+    if (existing) {
+      if (parsed.data.linkName) {
+        const { error: renameError } = await supabase
+          .from("questionnaire_sends")
+          .update({ link_name: linkName } as never)
+          .eq("id", existing.id)
+          .eq("user_id", userId);
+        if (renameError) return { ok: false, error: renameError.message };
+      }
+      return linked(existing.id, existing.public_token);
+    }
   }
 
   const { data: reusableRaw } = await supabase
@@ -350,7 +366,17 @@ export async function sendQuestionnaireAction(
     .limit(1)
     .maybeSingle();
   const reusable = reusableRaw as { id: string; public_token: string } | null;
-  if (reusable) return linked(reusable.id, reusable.public_token);
+  if (reusable) {
+    if (parsed.data.linkName) {
+      const { error: renameError } = await supabase
+        .from("questionnaire_sends")
+        .update({ link_name: linkName } as never)
+        .eq("id", reusable.id)
+        .eq("user_id", userId);
+      if (renameError) return { ok: false, error: renameError.message };
+    }
+    return linked(reusable.id, reusable.public_token);
+  }
 
   const token = makeToken();
   const { data, error } = await supabase
@@ -363,6 +389,8 @@ export async function sendQuestionnaireAction(
       title: questionnaire.title,
       questions: normalizeQuestions(questionnaire.questions),
       public_layout: questionnaire.public_layout,
+      collect_respondent_identity: questionnaire.collect_respondent_identity ?? true,
+      link_name: linkName,
       responses: {},
       status: "sent",
       public_token: token,
@@ -405,6 +433,27 @@ export async function revokeQuestionnaireLinkAction(sendId: string): Promise<QRe
   return { ok: true, message: "Collection link deleted. Existing responses were preserved." };
 }
 
+export async function renameQuestionnaireLinkAction(
+  sendId: string,
+  linkName: string,
+): Promise<QResult> {
+  const userId = await requireUserId();
+  if (!userId) return { ok: false, error: "Please sign in." };
+  const parsed = z.object({
+    sendId: z.string().uuid(),
+    linkName: z.string().trim().min(1, "Enter a link name.").max(120),
+  }).safeParse({ sendId, linkName });
+  if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid link name." };
+  const supabase = await getServerSupabase();
+  const { error } = await supabase.from("questionnaire_sends").update({
+    link_name: parsed.data.linkName,
+    updated_at: new Date().toISOString(),
+  } as never).eq("id", parsed.data.sendId).eq("user_id", userId).is("revoked_at", null);
+  if (error) return { ok: false, error: error.message };
+  revalidatePath("/dashboard/questionnaires");
+  return { ok: true, message: "Link renamed." };
+}
+
 // ---------------------------------------------------------------------------
 // SUBMIT — client fills the form (public, by token)
 // ---------------------------------------------------------------------------
@@ -412,8 +461,8 @@ export async function revokeQuestionnaireLinkAction(sendId: string): Promise<QRe
 const submitSchema = z.object({
   token: z.string().trim().min(10).max(200),
   submissionKey: z.string().uuid(),
-  respondentName: z.string().trim().min(1).max(200),
-  respondentEmail: z.string().trim().email().max(320),
+  respondentName: z.string().trim().min(1).max(200).optional(),
+  respondentEmail: z.string().trim().email().max(320).optional(),
   responses: z.record(z.string(), z.union([
     z.string().max(10_000),
     z.array(z.string().max(1_000)).max(50),
@@ -459,7 +508,7 @@ export async function submitQuestionnaireAction(
   const admin = getAdminSupabase();
   const { data: found } = await admin
     .from("questionnaire_sends")
-    .select("id, user_id, questionnaire_id, client_id, project_id, questions")
+    .select("id, user_id, questionnaire_id, client_id, project_id, questions, collect_respondent_identity")
     .eq("public_token", parsed.data.token)
     .is("revoked_at", null)
     .maybeSingle();
@@ -470,29 +519,39 @@ export async function submitQuestionnaireAction(
     client_id: string | null;
     project_id: string | null;
     questions: unknown;
+    collect_respondent_identity: boolean;
   } | null;
   if (!send) return { ok: false, error: "This form link is no longer valid." };
   let questions = normalizeQuestions(send.questions);
+  let collectRespondentIdentity = send.collect_respondent_identity ?? true;
   if (send.questionnaire_id) {
     const { data: current } = await admin
       .from("questionnaires")
-      .select("questions, active")
+      .select("questions, active, collect_respondent_identity")
       .eq("id", send.questionnaire_id)
       .maybeSingle();
-    const live = current as { questions: unknown; active: boolean } | null;
+    const live = current as { questions: unknown; active: boolean; collect_respondent_identity: boolean } | null;
     if (live && !live.active) return { ok: false, error: "This questionnaire is not accepting responses." };
-    if (live) questions = normalizeQuestions(live.questions);
+    if (live) {
+      questions = normalizeQuestions(live.questions);
+      collectRespondentIdentity = live.collect_respondent_identity ?? true;
+    }
+  }
+  if (collectRespondentIdentity && (!parsed.data.respondentName || !parsed.data.respondentEmail)) {
+    return { ok: false, error: "Please enter your name and a valid email address." };
   }
   const sanitized = sanitizeResponses(questions, parsed.data.responses);
   if (!sanitized.ok) return { ok: false, error: sanitized.error };
   if (!sanitized.data) return { ok: false, error: "Invalid submission." };
-  const respondentQuestions: Question[] = [
+  const respondentQuestions: Question[] = collectRespondentIdentity ? [
     { id: "__respondent_name", type: "short_text", label: "Name", required: true },
     { id: "__respondent_email", type: "email", label: "Email", required: true },
-  ];
+  ] : [];
   const respondentResponses = {
-    __respondent_name: parsed.data.respondentName.trim(),
-    __respondent_email: parsed.data.respondentEmail.trim().toLowerCase(),
+    ...(collectRespondentIdentity ? {
+      __respondent_name: parsed.data.respondentName!.trim(),
+      __respondent_email: parsed.data.respondentEmail!.trim().toLowerCase(),
+    } : {}),
     ...sanitized.data.responses,
   };
   const { data, error } = await admin

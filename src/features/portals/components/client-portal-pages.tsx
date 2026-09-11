@@ -676,7 +676,7 @@ export function ClientPortalProposals({ data }: { data: ClientPortalProps }) {
                   icon={BookOpen}
                   title={proposal.title}
                   meta={`${formatPortalCurrency(proposal.currency, proposal.total_amount)} - ${clientFacingProposalStatus(proposal.status)}`}
-                  href={proposal.public_token ? `/p/${proposal.public_token}` : null}
+                  href={proposal.public_token ? `/proposal/${proposal.public_token}` : null}
                   comments={{
                     portalId: data.portalId,
                     docType: "proposal",
@@ -740,7 +740,7 @@ export function ClientPortalFiles({ data }: { data: ClientPortalProps }) {
                   icon={BookOpen}
                   title={proposal.title}
                   meta={`${formatPortalCurrency(proposal.currency, proposal.total_amount)} - ${clientFacingProposalStatus(proposal.status)}`}
-                  href={proposal.public_token ? `/p/${proposal.public_token}` : null}
+                  href={proposal.public_token ? `/proposal/${proposal.public_token}` : null}
                   comments={{
                     portalId: data.portalId,
                     docType: "proposal",
