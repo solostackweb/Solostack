@@ -670,6 +670,7 @@ export type DeliveryKind =
   | "portal_file"
   | "questionnaire_sent"
   | "meeting_reminder"
+  | "review_request"
   | "custom";
 
 export type DeliveryChannel = "email" | "sms" | "inapp";
@@ -989,6 +990,8 @@ export interface MeetingRow {
   private_notes: string | null;
   /** Google Calendar event id, so the event can be updated or removed later. */
   google_event_id: string | null;
+  /** Video provider choice (0079). Only google_meet is produced today. */
+  video_provider: string | null;
   location: string | null;
   status: MeetingStatus;
   mode: string;

@@ -23,6 +23,7 @@ import {
 import {
   createCalendarEvent,
   deleteCalendarEvent,
+  patchCalendarEvent,
 } from "@/features/scheduling/google";
 import { buildMeetingIcs } from "./calendar";
 
@@ -536,6 +537,197 @@ export async function completeMeetingAction(input: {
 }
 
 // ---------------------------------------------------------------------------
+// OWNER edits — topic + reschedule, propagated to Google Calendar
+// ---------------------------------------------------------------------------
+
+const detailsSchema = z.object({
+  id: z.string().uuid(),
+  topic: z.string().trim().min(1).max(200),
+});
+
+/**
+ * Rename a meeting. Propagates to the Google event summary when one exists —
+ * best-effort, the rename itself never fails because Google is unreachable.
+ */
+export async function updateMeetingDetailsAction(
+  input: z.infer<typeof detailsSchema>,
+): Promise<MeetingActionResult> {
+  const userId = await requireUserId();
+  if (!userId) return { ok: false, error: "Please sign in." };
+
+  const parsed = detailsSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: "Enter a meeting title." };
+
+  const supabase = await getServerSupabase();
+  const { data } = await supabase
+    .from("meetings")
+    .select("id, google_event_id")
+    .eq("id", parsed.data.id)
+    .eq("user_id", userId)
+    .maybeSingle();
+  const row = data as { id: string; google_event_id: string | null } | null;
+  if (!row) return { ok: false, error: "Meeting not found." };
+
+  const { error } = await supabase
+    .from("meetings")
+    .update({
+      topic: parsed.data.topic,
+      updated_at: new Date().toISOString(),
+    } as never)
+    .eq("id", parsed.data.id)
+    .eq("user_id", userId);
+  if (error) return { ok: false, error: error.message };
+
+  let calendarUpdated = false;
+  if (row.google_event_id) {
+    const token = await accessTokenForBooking(userId);
+    if (token) {
+      calendarUpdated = await patchCalendarEvent(token, row.google_event_id, {
+        summary: parsed.data.topic,
+      });
+    }
+  }
+
+  revalidatePath("/dashboard/meetings");
+  revalidatePath(`/dashboard/meetings/${parsed.data.id}`);
+  return {
+    ok: true,
+    message: calendarUpdated
+      ? "Title updated on your calendar too."
+      : "Title updated.",
+  };
+}
+
+const rescheduleSchema = z.object({
+  id: z.string().uuid(),
+  newStartIso: z.string().trim().min(1),
+});
+
+/**
+ * Move a confirmed meeting to a new time. The new slot must be inside the
+ * freelancer's working hours and free on their calendar (same check as
+ * booking). The Google event is patched in place so the Meet link survives
+ * and attendees are notified; if the event is gone, it is recreated.
+ */
+export async function rescheduleMeetingAction(
+  input: z.infer<typeof rescheduleSchema>,
+): Promise<MeetingActionResult> {
+  const userId = await requireUserId();
+  if (!userId) return { ok: false, error: "Please sign in." };
+
+  const parsed = rescheduleSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: "Pick a new time." };
+
+  const start = new Date(parsed.data.newStartIso);
+  if (Number.isNaN(start.getTime())) {
+    return { ok: false, error: "That time isn't valid." };
+  }
+  if (start.getTime() <= Date.now()) {
+    return { ok: false, error: "Pick a time in the future." };
+  }
+
+  const supabase = await getServerSupabase();
+  const { data } = await supabase
+    .from("meetings")
+    .select(
+      "id, status, topic, notes, scheduled_at, duration_minutes, timezone, client_id, meet_link, google_event_id",
+    )
+    .eq("id", parsed.data.id)
+    .eq("user_id", userId)
+    .maybeSingle();
+  const meeting = data as
+    | {
+        id: string;
+        status: string;
+        topic: string;
+        notes: string | null;
+        scheduled_at: string | null;
+        duration_minutes: number;
+        timezone: string;
+        client_id: string | null;
+        meet_link: string | null;
+        google_event_id: string | null;
+      }
+    | null;
+  if (!meeting) return { ok: false, error: "Meeting not found." };
+  if (meeting.status !== "confirmed" || !meeting.scheduled_at) {
+    return { ok: false, error: "Only confirmed meetings can be rescheduled." };
+  }
+  if (new Date(meeting.scheduled_at).getTime() === start.getTime()) {
+    return { ok: true, message: "Time unchanged." };
+  }
+
+  // Same availability check as booking: the slot must be open that day.
+  const day = start.toISOString().slice(0, 10);
+  const open = await computeOpenSlots(userId, {
+    durationMinutes: meeting.duration_minutes,
+    startDate: day,
+    endDate: day,
+  });
+  if (!open.includes(start.toISOString())) {
+    return {
+      ok: false,
+      error: "That time isn't free on your calendar. Pick an open slot.",
+    };
+  }
+
+  const newStartIso = start.toISOString();
+  const newEndIso = new Date(
+    start.getTime() + meeting.duration_minutes * 60_000,
+  ).toISOString();
+
+  const { error } = await supabase
+    .from("meetings")
+    .update({
+      scheduled_at: newStartIso,
+      updated_at: new Date().toISOString(),
+    } as never)
+    .eq("id", parsed.data.id)
+    .eq("user_id", userId);
+  if (error) return { ok: false, error: error.message };
+
+  // Calendar follows the DB: patch in place, recreate if the event is gone.
+  const token = await accessTokenForBooking(userId);
+  if (token && meeting.google_event_id) {
+    const patched = await patchCalendarEvent(token, meeting.google_event_id, {
+      startIso: newStartIso,
+      endIso: newEndIso,
+      timezone: meeting.timezone,
+    });
+    if (!patched) {
+      await deleteCalendarEvent(token, meeting.google_event_id).catch(
+        () => false,
+      );
+      const clientEmail = await lookupClientEmail(meeting.client_id);
+      const event = await createCalendarEvent(token, {
+        summary: meeting.topic,
+        description: meeting.notes ?? undefined,
+        startIso: newStartIso,
+        endIso: newEndIso,
+        attendeeEmail: clientEmail,
+        timezone: meeting.timezone,
+        withMeet: true,
+      });
+      if (event?.eventId) {
+        await supabase
+          .from("meetings")
+          .update({
+            google_event_id: event.eventId,
+            meet_link: event.meetLink ?? meeting.meet_link,
+            updated_at: new Date().toISOString(),
+          } as never)
+          .eq("id", parsed.data.id)
+          .eq("user_id", userId);
+      }
+    }
+  }
+
+  revalidatePath("/dashboard/meetings");
+  revalidatePath(`/dashboard/meetings/${parsed.data.id}`);
+  return { ok: true, message: "Meeting rescheduled — your client is notified via the calendar update." };
+}
+
+// ---------------------------------------------------------------------------
 // Email comms (best-effort — never block or fail the primary action)
 // ---------------------------------------------------------------------------
 
@@ -770,6 +962,26 @@ export async function updateMeetingNotesAction(
     .eq("user_id", userId);
 
   if (error) return { ok: false, error: error.message };
+
+  // The client brief is the calendar event description — keep it in step.
+  if (d.notes !== undefined) {
+    const { data: row } = await supabase
+      .from("meetings")
+      .select("google_event_id")
+      .eq("id", d.id)
+      .eq("user_id", userId)
+      .maybeSingle();
+    const eventId = (row as { google_event_id: string | null } | null)
+      ?.google_event_id;
+    if (eventId) {
+      const token = await accessTokenForBooking(userId);
+      if (token) {
+        await patchCalendarEvent(token, eventId, {
+          description: d.notes || undefined,
+        }).catch(() => false);
+      }
+    }
+  }
 
   revalidatePath(`/dashboard/meetings/${d.id}`);
   revalidatePath("/dashboard/meetings");

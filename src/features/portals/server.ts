@@ -470,15 +470,14 @@ export async function getPortalSnapshot(
       p_portal_id: portalId,
       p_limit: 50,
     } as never),
-    // Fetch reviewable projects for client members
-    access.role !== "owner" && access.portal.client_id
-      ? admin
-          .from("projects")
-          .select("id, name")
-          .eq("user_id", access.portal.owner_user_id)
-          .eq("client_id", access.portal.client_id)
-          .eq("status", "completed")
-      : Promise.resolve({ data: [], error: null }),
+    // Reviewable projects — linked via portal_projects + completed.
+    // Sent for both roles so owners can (re)send review requests; clients
+    // use the same list to pick what to review (gated per-project by RPC).
+    admin
+      .from("portal_projects")
+      .select("project_id, projects!inner(id, name, status)")
+      .eq("portal_id", portalId)
+      .eq("projects.status", "completed"),
   ]);
 
   const [
@@ -512,7 +511,7 @@ export async function getPortalSnapshot(
     { data: import("@/lib/supabase/types").PortalUpdateRow[] | null; error: unknown },
     { data: import("@/lib/supabase/types").PortalMeetingRow[] | null; error: unknown },
     { data: Array<PortalReviewRow & { author_name: string | null; author_email: string | null; project_title: string | null }> | null; error: unknown },
-    { data: Array<{ id: string; name: string | null }> | null; error: unknown },
+    { data: Array<{ project_id: string; projects: { id: string; name: string | null } | { id: string; name: string | null }[] | null }> | null; error: unknown },
   ];
 
   // Fetch file versions separately (need file IDs first)
@@ -982,7 +981,8 @@ export async function getPortalSnapshot(
   }>;
 
   const reviewableProjects = (reviewableProjectsRes.data ?? [])
-    .filter((p): p is { id: string; name: string } => p.name !== null)
+    .map((row) => (Array.isArray(row.projects) ? row.projects[0] : row.projects))
+    .filter((p): p is { id: string; name: string } => !!p && p.name !== null)
     .map((p) => ({ id: p.id, name: p.name }));
 
   return {

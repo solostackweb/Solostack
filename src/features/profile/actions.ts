@@ -6,6 +6,10 @@ import { getAdminSupabase } from "@/lib/supabase/admin";
 import { AUTH_LOGIN_ROUTE } from "@/features/auth/routes";
 import { normaliseGstin } from "@/features/gst/validation";
 import { requireFeature } from "@/features/subscription/server";
+import { getClientIp, leadSubmitLimit } from "@/lib/rate-limit";
+import { sendEmail } from "@/features/email/service";
+import { renderLeadCapturedEmail } from "@/features/email/templates";
+import { env } from "@/config/env";
 import { z } from "zod";
 import {
   addressSchema,
@@ -352,6 +356,19 @@ export async function updateNotificationPreferences(
 // Public Profile Actions
 // ============================================================================
 
+async function revalidatePublicPage(userId: string): Promise<void> {
+  const supabase = await getServerSupabase();
+  const { data } = await supabase
+    .from("user_profiles")
+    .select("public_slug, public_profile_enabled")
+    .eq("id", userId)
+    .maybeSingle();
+  const row = data as { public_slug: string | null; public_profile_enabled: boolean | null } | null;
+  if (row?.public_slug && row.public_profile_enabled) {
+    revalidatePath(`/p/${row.public_slug}`);
+  }
+}
+
 export async function updatePublicProfile(
   input: PublicProfileInput,
 ): Promise<ActionResult<{ profile: Awaited<ReturnType<typeof getProfile>> }>> {
@@ -374,11 +391,26 @@ export async function updatePublicProfile(
   }
 
   const updateData: Record<string, unknown> = {};
-  for (const [key, value] of Object.entries(parsed.data)) {
-    if (value !== undefined) {
-      updateData[key] = value;
-    }
-  }
+  const d = parsed.data;
+  if (d.publicSlug !== undefined) updateData.public_slug = d.publicSlug || null;
+  if (d.publicProfileEnabled !== undefined) updateData.public_profile_enabled = d.publicProfileEnabled;
+  if (d.publicBio !== undefined) updateData.public_bio = d.publicBio;
+  if (d.publicServices !== undefined) updateData.public_services = d.publicServices;
+  if (d.publicIndustries !== undefined) updateData.public_industries = d.publicIndustries;
+  if (d.publicLocation !== undefined) updateData.public_location = d.publicLocation;
+  if (d.publicLanguages !== undefined) updateData.public_languages = d.publicLanguages;
+  if (d.publicAvailability !== undefined) updateData.public_availability = d.publicAvailability;
+  if (d.publicStartingRate !== undefined) updateData.public_starting_rate = d.publicStartingRate ?? null;
+  if (d.publicStartingRateCurrency !== undefined) updateData.public_starting_rate_currency = d.publicStartingRateCurrency;
+  if (d.publicShowReviews !== undefined) updateData.public_show_reviews = d.publicShowReviews;
+  if (d.publicShowPortfolio !== undefined) updateData.public_show_portfolio = d.publicShowPortfolio;
+  if (d.publicShowStats !== undefined) updateData.public_show_stats = d.publicShowStats;
+  if (d.publicCtaText !== undefined) updateData.public_cta_text = d.publicCtaText;
+  if (d.publicCtaAction !== undefined) updateData.public_cta_action = d.publicCtaAction;
+  if (d.publicCustomDomain !== undefined) updateData.public_custom_domain = d.publicCustomDomain;
+  if (d.publicSeoTitle !== undefined) updateData.public_seo_title = d.publicSeoTitle;
+  if (d.publicSeoDescription !== undefined) updateData.public_seo_description = d.publicSeoDescription;
+  if (d.publicOgImage !== undefined) updateData.public_og_image = d.publicOgImage;
 
   const { error } = await supabase
     .from("user_profiles")
@@ -392,6 +424,7 @@ export async function updatePublicProfile(
   if (parsed.data.publicSlug) {
     revalidatePath(`/p/${parsed.data.publicSlug}`);
   }
+  await revalidatePublicPage(userId);
   return refreshProfileResponse("Public profile updated.");
 }
 
@@ -480,6 +513,7 @@ export async function createPortfolioItemAction(
   }
 
   revalidatePath("/dashboard/settings/profile/public");
+  await revalidatePublicPage(userId);
   return { ok: true, data: { id: (data as { id: string }).id }, message: "Portfolio item created." };
 }
 
@@ -501,7 +535,25 @@ export async function updatePortfolioItemAction(
   const userId = await requireUserId();
   const supabase = await getServerSupabase();
 
-  const { id, ...updateData } = parsed.data;
+  const { id, ...rest } = parsed.data;
+
+  const updateData: Record<string, unknown> = {};
+  if (rest.projectId !== undefined) updateData.project_id = rest.projectId ?? null;
+  if (rest.title !== undefined) updateData.title = rest.title;
+  if (rest.description !== undefined) updateData.description = rest.description;
+  if (rest.coverImageUrl !== undefined) updateData.cover_image_url = rest.coverImageUrl;
+  if (rest.images !== undefined) updateData.images = rest.images;
+  if (rest.category !== undefined) updateData.category = rest.category;
+  if (rest.industry !== undefined) updateData.industry = rest.industry;
+  if (rest.budgetRange !== undefined) updateData.budget_range = rest.budgetRange;
+  if (rest.duration !== undefined) updateData.duration = rest.duration;
+  if (rest.technologies !== undefined) updateData.technologies = rest.technologies;
+  if (rest.clientName !== undefined) updateData.client_name = rest.clientName;
+  if (rest.clientIndustry !== undefined) updateData.client_industry = rest.clientIndustry;
+  if (rest.testimonial !== undefined) updateData.testimonial = rest.testimonial;
+  if (rest.featured !== undefined) updateData.featured = rest.featured;
+  if (rest.sortOrder !== undefined) updateData.sort_order = rest.sortOrder;
+  if (rest.published !== undefined) updateData.published = rest.published;
 
   const { error } = await supabase
     .from("public_portfolio_items")
@@ -512,6 +564,7 @@ export async function updatePortfolioItemAction(
   if (error) return { ok: false, error: error.message };
 
   revalidatePath("/dashboard/settings/profile/public");
+  await revalidatePublicPage(userId);
   return { ok: true, message: "Portfolio item updated." };
 }
 
@@ -533,6 +586,7 @@ export async function deletePortfolioItemAction(
   if (error) return { ok: false, error: error.message };
 
   revalidatePath("/dashboard/settings/profile/public");
+  await revalidatePublicPage(userId);
   return { ok: true, message: "Portfolio item deleted." };
 }
 
@@ -552,5 +606,215 @@ export async function reorderPortfolioItemsAction(
   }
 
   revalidatePath("/dashboard/settings/profile/public");
+  await revalidatePublicPage(userId);
   return { ok: true, message: "Portfolio reordered." };
+}
+
+// ============================================================================
+// Public Enquiry → Lead (no login required)
+// ============================================================================
+
+const profileEnquirySchema = z.object({
+  slug: slugSchema,
+  name: z.string().trim().min(1, "Name is required").max(120),
+  email: z.string().trim().email("Enter a valid email").max(180),
+  company: z.string().trim().max(160).optional().or(z.literal("")),
+  phone: z.string().trim().max(40).optional().or(z.literal("")),
+  project: z.string().trim().min(10, "Tell us a little more about the project").max(3000),
+  budget: z.string().trim().max(120).optional().or(z.literal("")),
+  timeline: z.string().trim().max(160).optional().or(z.literal("")),
+  website: z.string().trim().max(200).optional().or(z.literal("")),
+});
+
+export type ProfileEnquiryInput = z.infer<typeof profileEnquirySchema>;
+
+/**
+ * Public "Start a project" enquiry on /p/[slug]. Creates a lead the same way
+ * a lead-form submission does (client flagged needs_review + lead project +
+ * owner email + in-app notification) but without requiring a lead_forms row —
+ * lead_submissions.form_id is NOT NULL, so no submission row is written.
+ */
+export async function submitProfileEnquiryAction(
+  input: ProfileEnquiryInput,
+): Promise<ActionResult<{ projectId: string }>> {
+  // Honeypot — bots fill it, real users never see it. Pretend success.
+  if (input.website?.trim()) {
+    return { ok: true, message: "Thanks. Your enquiry has been sent." };
+  }
+
+  const rl = await leadSubmitLimit(await getClientIp());
+  if (!rl.ok) {
+    return { ok: false, error: rl.message };
+  }
+
+  const parsed = profileEnquirySchema.safeParse(input);
+  if (!parsed.success) {
+    const flat = parsed.error.flatten();
+    return {
+      ok: false,
+      error: "Please fix the highlighted fields.",
+      fieldErrors: flat.fieldErrors as Record<string, string[]>,
+    };
+  }
+
+  const admin = getAdminSupabase();
+  const { data: profile } = await admin
+    .from("user_profiles")
+    .select("id, public_profile_enabled")
+    .eq("public_slug", parsed.data.slug)
+    .maybeSingle();
+  const owner = profile as { id: string; public_profile_enabled: boolean | null } | null;
+  if (!owner || !owner.public_profile_enabled) {
+    return { ok: false, error: "This profile is not accepting enquiries right now." };
+  }
+  const ownerId = owner.id;
+
+  const { data: existingClient } = await admin
+    .from("clients")
+    .select("id")
+    .eq("user_id", ownerId)
+    .ilike("email", parsed.data.email)
+    .limit(1)
+    .maybeSingle();
+
+  let clientId: string;
+  let clientIsNew = false;
+
+  if (existingClient) {
+    clientId = (existingClient as { id: string }).id;
+  } else {
+    const { data: client, error: clientError } = await admin
+      .from("clients")
+      .insert({
+        user_id: ownerId,
+        full_name: parsed.data.name,
+        business_name: parsed.data.company || null,
+        email: parsed.data.email,
+        phone: parsed.data.phone || null,
+        country: "IN",
+        currency: "INR",
+        is_foreign: false,
+        gst_registered: false,
+        state_code: null,
+        billing_address: null,
+        needs_review: true,
+        notes: [
+          `Created from public profile enquiry (/p/${parsed.data.slug}).`,
+          "Verify billing address, GST status, state, and document details before sending proposals, contracts, or invoices.",
+        ].join("\n"),
+      } as never)
+      .select("id")
+      .single();
+
+    if (clientError || !client) {
+      return { ok: false, error: clientError?.message ?? "Could not send your enquiry." };
+    }
+    clientId = (client as { id: string }).id;
+    clientIsNew = true;
+  }
+
+  const projectName = parsed.data.company
+    ? `${parsed.data.company} inquiry`
+    : `${parsed.data.name} inquiry`;
+  const description = [
+    parsed.data.project,
+    parsed.data.budget ? `Budget: ${parsed.data.budget}` : null,
+    parsed.data.timeline ? `Timeline: ${parsed.data.timeline}` : null,
+  ]
+    .filter(Boolean)
+    .join("\n\n");
+
+  const { data: project, error: projectError } = await admin
+    .from("projects")
+    .insert({
+      user_id: ownerId,
+      client_id: clientId,
+      name: projectName,
+      description,
+      status: "lead",
+      billing_enabled: false,
+      hourly_rate: 0,
+    } as never)
+    .select("id")
+    .single();
+
+  if (projectError || !project) {
+    return { ok: false, error: projectError?.message ?? "Could not send your enquiry." };
+  }
+  const projectId = (project as { id: string }).id;
+
+  await admin.from("project_status_history").insert({
+    project_id: projectId,
+    user_id: ownerId,
+    from_status: null,
+    to_status: "lead",
+    note: "Created from public profile enquiry",
+    changed_by: ownerId,
+  } as never);
+
+  try {
+    const { data: ownerProfile } = await admin
+      .from("user_profiles")
+      .select("email, business_email, business_name, full_name")
+      .eq("id", ownerId)
+      .maybeSingle();
+    const ownerRow = ownerProfile as
+      | {
+          email: string | null;
+          business_email: string | null;
+          business_name: string | null;
+          full_name: string | null;
+        }
+      | null;
+    const ownerEmail = ownerRow?.business_email || ownerRow?.email;
+    if (ownerEmail) {
+      const appUrl = env.appUrl.replace(/\/$/, "");
+      const rendered = renderLeadCapturedEmail({
+        formTitle: "Public profile enquiry",
+        leadName: parsed.data.name,
+        leadEmail: parsed.data.email,
+        company: parsed.data.company || null,
+        projectSummary: parsed.data.project,
+        budget: parsed.data.budget || null,
+        timeline: parsed.data.timeline || null,
+        dashboardUrl: `${appUrl}/dashboard/clients/${clientId}`,
+      });
+      await sendEmail({
+        type: "share",
+        to: {
+          email: ownerEmail,
+          name: ownerRow?.business_name || ownerRow?.full_name || undefined,
+        },
+        replyTo: { email: parsed.data.email, name: parsed.data.name },
+        subject: rendered.subject,
+        html: rendered.html,
+        text: rendered.text,
+        tags: ["lead-captured", "public-profile"],
+      });
+    }
+  } catch {
+    /* in-app notification below still lands */
+  }
+
+  await admin.from("notifications").insert({
+    user_id: ownerId,
+    title: clientIsNew
+      ? "New enquiry from your public profile"
+      : "New enquiry from an existing client",
+    body: clientIsNew
+      ? `${parsed.data.name} enquired via your public profile. Stackivo created a client and a lead project — verify details before sending documents.`
+      : `${parsed.data.name} (${parsed.data.email}) enquired via your public profile. A new lead project was added under their existing client record.`,
+    type: "lead",
+    entity_type: "client",
+    entity_id: clientId,
+    href: `/dashboard/clients/${clientId}`,
+  } as never);
+
+  revalidatePath("/dashboard/projects");
+  revalidatePath("/dashboard/clients");
+  return {
+    ok: true,
+    data: { projectId },
+    message: "Thanks. Your enquiry has been sent.",
+  };
 }

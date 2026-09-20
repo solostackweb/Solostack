@@ -5,6 +5,7 @@ import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Star, Clock } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -19,12 +20,14 @@ import {
 } from "@/features/settings/components/settings-section";
 import { LogoUploader } from "@/features/settings/components/logo-uploader";
 import { useProfile } from "@/features/profile/context";
+import type { BusinessProfile } from "@/features/onboarding/types";
 import { getBrowserSupabase } from "@/lib/supabase/client";
 import {
   updateLocalization,
   updatePersonalProfile,
   updateSignature,
 } from "@/features/profile/actions";
+import { getPublicProfileStats, PublicProfileStats } from "@/features/profile/public-profile-server";
 import { FreelancerSignatureCard } from "@/features/profile/components/freelancer-signature-card";
 import { AccountSecurityCard } from "@/features/settings/components/account-security-card";
 import type {
@@ -275,7 +278,89 @@ export default function ProfileSettingsPage() {
         </SettingsSection>
       </div>
 
-      <AccountSecurityCard />
+<AccountSecurityCard />
+
+      {/* Reputation analytics */}
+      <ReputationAnalyticsCard profile={profile} />
     </>
+  );
+}
+
+/** Reputation analytics dashboard — shows review velocity, rating trends, and delivery performance. */
+function ReputationAnalyticsCard({ profile }: { profile: BusinessProfile | null }) {
+  const [stats, setStats] = React.useState<PublicProfileStats | null>(null);
+
+  React.useEffect(() => {
+    if (!profile?.userId) return;
+    ;(async () => {
+      const data = await getPublicProfileStats(profile.userId);
+      if (data) setStats(data);
+    })();
+  }, [profile?.userId]);
+
+  if (!stats) return <p className="text-muted-foreground">Loading reputation data...</p>;
+
+  const ratingStars = Math.round(stats.average_rating ?? 0);
+  return (
+    <SettingsSection
+      title="Reputation analytics"
+      description="Your verified performance metrics across Stackivo."
+    >
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div>
+          <div className="rounded-lg bg-card p-4 flex items-start gap-3">
+            <div className="flex-shrink-0 rounded-lg bg-violet-500/10 p-2">
+              <Star className="h-4 w-4 text-warning" />
+            </div>
+            <div className="flex-1">
+              <p className="text-sm text-muted-foreground">Completed projects</p>
+              <p className="text-lg font-medium">{stats.completed_projects}</p>
+            </div>
+          </div>
+        </div>
+        <div>
+          <div className="rounded-lg bg-card p-4 flex items-start gap-3">
+            <div className="flex-shrink-0 rounded-lg bg-violet-500/10 p-2">
+              <Star className="h-4 w-4 fill-warning text-warning" />
+            </div>
+            <div className="flex-1">
+              <p className="text-sm text-muted-foreground">Verified reviews</p>
+              <p className="text-lg font-medium">{stats.verified_reviews}</p>
+            </div>
+          </div>
+        </div>
+        <div>
+          <div className="rounded-lg bg-card p-4 flex items-start gap-3">
+            <div className="flex-shrink-0 rounded-lg bg-violet-500/10 p-2">
+              <Star className="h-4 w-4 fill-warning text-warning" />
+            </div>
+            <div className="flex-1">
+              <p className="text-sm text-muted-foreground">Average rating</p>
+              <p className="text-lg font-medium">{stats.average_rating ? ratingStars.toFixed(1) : "—"}</p>
+            </div>
+          </div>
+        </div>
+        <div>
+          <div className="rounded-lg bg-card p-4 flex items-start gap-3">
+            <div className="flex-shrink-0 rounded-lg bg-violet-500/10 p-2">
+              <Clock className="h-4 w-4" />
+            </div>
+            <div className="flex-1">
+              <p className="text-sm text-muted-foreground">On-time delivery</p>
+              <p className="text-lg font-medium">
+                {stats.on_time_delivery_rate ? `${stats.on_time_delivery_rate}%` : "—"}
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-6 pt-6 border-t">
+        <p className="text-sm text-muted-foreground">Repeat clients</p>
+        <p className="text-lg font-medium">{stats.repeat_clients}</p>
+        <p className="text-xs text-muted-foreground">Total project value</p>
+        <p className="text-lg font-medium">₹{stats.total_project_value.toLocaleString("en-IN")}</p>
+      </div>
+    </SettingsSection>
   );
 }

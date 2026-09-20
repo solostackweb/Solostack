@@ -35,7 +35,7 @@ import { dispatchDelivery } from "@/features/email/send";
 import { getEmailSender } from "@/features/email/senders";
 import { env } from "@/config/env";
 import { deleteObject } from "@/lib/r2/client";
-import { renderPortalInviteEmail } from "@/features/email/templates";
+import { renderPortalInviteEmail, renderReviewRequestEmail } from "@/features/email/templates";
 import type { ActionResult } from "@/features/invoices/delivery";
 import { acceptPortalInvitation } from "./invitations";
 import { BRAND_PRIMARY } from "@/config/brand-colors";
@@ -927,4 +927,222 @@ async function createAndSendPortalInvitation(input: {
     data: { invitationId },
     message: `Invitation sent to ${input.email}.`,
   };
+}
+
+// =============================================================================
+// REVIEW REQUEST EMAIL
+// =============================================================================
+
+export interface SendReviewRequestEmailInput {
+  portalId: string;
+  projectId: string;
+  projectName: string;
+}
+
+export async function sendReviewRequestEmailAction(
+  input: SendReviewRequestEmailInput,
+): Promise<ActionResult<{ sent: boolean }>> {
+  const parsed = z
+    .object({
+      portalId: z.string().uuid(),
+      projectId: z.string().uuid(),
+      projectName: z.string().trim().min(1).max(200),
+    })
+    .safeParse(input);
+  if (!parsed.success) {
+    return { ok: false, error: "Invalid input." };
+  }
+
+  const access = await requirePortalAccess(parsed.data.portalId, {
+    requireRole: "owner",
+  }).catch((e) => e as PortalAccessError);
+  if (access instanceof PortalAccessError) {
+    return { ok: false, error: "Only the freelancer can request reviews." };
+  }
+
+  const admin = getAdminSupabase();
+
+  // Project must be completed and owned by this freelancer.
+  const { data: project } = await admin
+    .from("projects")
+    .select("id, name, status, user_id")
+    .eq("id", parsed.data.projectId)
+    .maybeSingle();
+  const projectRow = project as {
+    id: string;
+    name: string;
+    status: string;
+    user_id: string;
+  } | null;
+  if (!projectRow || projectRow.user_id !== access.userId) {
+    return { ok: false, error: "Project not found." };
+  }
+  if (projectRow.status !== "completed") {
+    return { ok: false, error: "Only completed projects can be reviewed." };
+  }
+
+  // Throttle: one request per project per 24h (reads review_invited_at).
+  const { data: link } = await admin
+    .from("portal_projects")
+    .select("review_invited_at")
+    .eq("portal_id", parsed.data.portalId)
+    .eq("project_id", parsed.data.projectId)
+    .maybeSingle();
+  const invitedAt = (link as { review_invited_at: string | null } | null)
+    ?.review_invited_at;
+  if (invitedAt && Date.now() - new Date(invitedAt).getTime() < 24 * 60 * 60 * 1000) {
+    return {
+      ok: false,
+      error: "A review request was already sent in the last 24 hours.",
+    };
+  }
+
+  // Get portal details
+  const { data: portal } = await admin
+    .from("portals")
+    .select("id, name, owner_user_id, client_id")
+    .eq("id", parsed.data.portalId)
+    .is("deleted_at", null)
+    .maybeSingle();
+
+  if (!portal) {
+    return { ok: false, error: "Portal not found." };
+  }
+
+  const portalRow = portal as { id: string; name: string; owner_user_id: string; client_id: string | null };
+  const ownerId = portalRow.owner_user_id;
+  const clientId = portalRow.client_id;
+
+  if (ownerId !== access.userId) {
+    return { ok: false, error: "Only the freelancer can request reviews." };
+  }
+
+  if (!clientId) {
+    return { ok: false, error: "Portal has no linked client." };
+  }
+
+  // Get client user from portal_members
+  const { data: member } = await admin
+    .from("portal_members")
+    .select("user_id")
+    .eq("portal_id", parsed.data.portalId)
+    .neq("user_id", ownerId)
+    .is("revoked_at", null)
+    .maybeSingle();
+
+  if (!member) {
+    return { ok: false, error: "No client member found in portal." };
+  }
+
+  const clientUserId = (member as { user_id: string }).user_id;
+
+  // Get client profile for email
+  const { data: clientProfile } = await admin
+    .from("user_profiles")
+    .select("email, full_name")
+    .eq("id", clientUserId)
+    .maybeSingle();
+
+  type ClientProfile = { email: string | null; full_name: string | null } | null;
+  const profile = clientProfile as ClientProfile;
+
+  if (!profile?.email) {
+    return { ok: false, error: "Client has no email address." };
+  }
+
+  const clientEmail = profile.email;
+  const clientName = profile.full_name;
+
+  // Get freelancer profile for sender info
+  const { data: freelancerProfile } = await admin
+    .from("user_profiles")
+    .select("business_name, legal_name, full_name, email, brand_color, logo_url")
+    .eq("id", ownerId)
+    .maybeSingle();
+
+  const freelancer = freelancerProfile as {
+    business_name?: string | null;
+    legal_name?: string | null;
+    full_name?: string | null;
+    email?: string | null;
+    brand_color?: string | null;
+    logo_url?: string | null;
+  } | null;
+
+  const senderName = freelancer?.business_name ?? freelancer?.legal_name ?? freelancer?.full_name ?? "Your freelancer";
+  const senderEmail = freelancer?.email ?? undefined;
+
+  // Build review URL - points to client's portal reviews section
+  const reviewUrl = `${env.appUrl.replace(/\/$/, "")}/portal/${parsed.data.portalId}?section=reviews`;
+
+  const emailBrand = {
+    businessName: senderName,
+    logoUrl: freelancer?.logo_url ?? null,
+    accent: freelancer?.brand_color ?? null,
+    contact: {
+      email: freelancer?.email ?? null,
+    },
+  };
+
+  const rendered = renderReviewRequestEmail({
+    portalName: portalRow.name,
+    clientName,
+    senderName,
+    senderEmail,
+    projectName: parsed.data.projectName,
+    reviewUrl,
+    brand: emailBrand,
+  });
+
+  const delivery = await dispatchDelivery({
+    userId: ownerId,
+    kind: "review_request",
+    entityType: "portal",
+    senderType: "share",
+    entityId: parsed.data.portalId,
+    to: { email: clientEmail, name: clientName ?? undefined },
+    replyTo: senderEmail ? { email: senderEmail, name: senderName } : undefined,
+    subject: rendered.subject,
+    html: rendered.html,
+    text: rendered.text,
+    metadata: { portalId: parsed.data.portalId, projectId: parsed.data.projectId, projectName: parsed.data.projectName },
+    tags: ["portal", "review_request"],
+    idempotencyKey: `review-request:${parsed.data.portalId}:${parsed.data.projectId}`,
+  });
+
+  if (!delivery.ok) {
+    await recordPortalActivity({
+      portalId: parsed.data.portalId,
+      actorId: ownerId,
+      type: "review.request_failed",
+      payload: {
+        projectId: parsed.data.projectId,
+        projectName: parsed.data.projectName,
+        deliveryError: delivery.error,
+      },
+    });
+    return { ok: false, error: `Could not send review request: ${delivery.error}` };
+  }
+
+  await admin
+    .from("portal_projects")
+    .upsert({
+      portal_id: parsed.data.portalId,
+      project_id: parsed.data.projectId,
+      added_by: ownerId,
+      review_invited_at: new Date().toISOString(),
+    } as never, { onConflict: "portal_id,project_id" });
+
+  await recordPortalActivity({
+    portalId: parsed.data.portalId,
+    actorId: ownerId,
+    type: "review.request_sent",
+    payload: {
+      projectId: parsed.data.projectId,
+      projectName: parsed.data.projectName,
+      deliveryStatus: "sent",
+    },
+  });
+
+  return { ok: true, data: { sent: true }, message: "Review request email sent." };
 }

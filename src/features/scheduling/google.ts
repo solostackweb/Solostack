@@ -255,6 +255,53 @@ export async function createCalendarEvent(
 }
 
 /**
+ * Patch an event on the freelancer's calendar (title, description, time).
+ * Used for reschedules and detail edits so the same event — and the same
+ * Meet link — survives, with attendees notified via sendUpdates.
+ *
+ * Returns false when the event is gone (404/410) so the caller can fall back
+ * to delete + recreate, or when the update genuinely failed.
+ */
+export async function patchCalendarEvent(
+  accessToken: string,
+  eventId: string,
+  input: {
+    summary?: string;
+    description?: string;
+    startIso?: string;
+    endIso?: string;
+    timezone?: string;
+  },
+): Promise<boolean> {
+  if (!eventId) return false;
+  const body: Record<string, unknown> = {};
+  if (input.summary !== undefined) body.summary = input.summary;
+  if (input.description !== undefined) body.description = input.description;
+  if (input.startIso !== undefined) {
+    body.start = { dateTime: input.startIso, timeZone: input.timezone };
+  }
+  if (input.endIso !== undefined) {
+    body.end = { dateTime: input.endIso, timeZone: input.timezone };
+  }
+  try {
+    const res = await fetch(
+      `${GOOGLE_EVENTS}/${encodeURIComponent(eventId)}?sendUpdates=all`,
+      {
+        method: "PATCH",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(body),
+      },
+    );
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
+/**
  * Remove an event from the freelancer's calendar, cancelling the invite for
  * any attendee too.
  *
@@ -278,5 +325,149 @@ export async function deleteCalendarEvent(
     return res.ok || res.status === 404 || res.status === 410;
   } catch {
     return false;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Push-notification channels (sync-back): Google tells us when the calendar
+// changes outside Stackivo, and we pull the diff with a sync token.
+// ---------------------------------------------------------------------------
+
+export interface WatchChannel {
+  channelId: string;
+  resourceId: string | null;
+  expirationMs: number | null;
+}
+
+/**
+ * Open a push channel on the primary calendar. Google POSTs to `address`
+ * (must be public HTTPS on a verified domain) whenever anything changes —
+ * with headers only, no payload. `token` is echoed back on every delivery so
+ * the webhook can prove the call came from this watch.
+ */
+export async function watchCalendarChannel(
+  accessToken: string,
+  input: { address: string; token: string; expirationMs: number },
+): Promise<WatchChannel | null> {
+  try {
+    const res = await fetch(`${GOOGLE_EVENTS}/watch`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        id: crypto.randomUUID(),
+        type: "web_hook",
+        address: input.address,
+        token: input.token,
+        expiration: String(input.expirationMs),
+      }),
+    });
+    if (!res.ok) return null;
+    const data = (await res.json()) as {
+      id?: string;
+      resourceId?: string;
+      expiration?: string;
+    };
+    if (!data.id) return null;
+    return {
+      channelId: data.id,
+      resourceId: data.resourceId ?? null,
+      expirationMs: data.expiration ? Number(data.expiration) : null,
+    };
+  } catch {
+    return null;
+  }
+}
+
+/** Close a push channel. 404 = already gone, treated as success. */
+export async function stopCalendarChannel(
+  accessToken: string,
+  input: { channelId: string; resourceId: string | null },
+): Promise<boolean> {
+  try {
+    const res = await fetch("https://www.googleapis.com/calendar/v3/channels/stop", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        id: input.channelId,
+        resourceId: input.resourceId,
+      }),
+    });
+    return res.ok || res.status === 404;
+  } catch {
+    return false;
+  }
+}
+
+export interface ChangedEvent {
+  id: string;
+  status: string;
+  summary: string | null;
+  startIso: string | null;
+}
+
+export type ChangedEventsResult =
+  | { ok: true; expired: false; items: ChangedEvent[]; nextSyncToken: string | null }
+  | { ok: true; expired: true }
+  | { ok: false };
+
+/**
+ * Incremental diff of the primary calendar. With a sync token this returns
+ * only what changed since the last call (deleted events arrive with
+ * status === "cancelled"). Without one it seeds: pass a timeMin so the first
+ * call only returns recent history, and store nextSyncToken without applying.
+ *
+ * A 410 means Google expired the token — the caller must reseed.
+ */
+export async function listChangedEvents(
+  accessToken: string,
+  input: { syncToken?: string | null; timeMin?: string },
+): Promise<ChangedEventsResult> {
+  const params = new URLSearchParams({
+    calendarId: "primary",
+    singleEvents: "true",
+    showDeleted: "true",
+    maxResults: "250",
+  });
+  if (input.syncToken) {
+    params.set("syncToken", input.syncToken);
+  } else {
+    params.set("timeMin", input.timeMin ?? new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString());
+  }
+  try {
+    const res = await fetch(`${GOOGLE_EVENTS}?${params.toString()}`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    if (res.status === 410) return { ok: true, expired: true };
+    if (!res.ok) return { ok: false };
+    const data = (await res.json()) as {
+      items?: Array<{
+        id?: string;
+        status?: string;
+        summary?: string;
+        start?: { dateTime?: string; date?: string };
+      }>;
+      nextSyncToken?: string;
+    };
+    return {
+      ok: true,
+      expired: false,
+      items: (data.items ?? [])
+        .filter((item) => Boolean(item.id))
+        .map((item) => ({
+          id: item.id as string,
+          status: item.status ?? "",
+          summary: item.summary ?? null,
+          startIso: item.start?.dateTime ?? null,
+        })),
+      nextSyncToken: data.nextSyncToken ?? null,
+    };
+  } catch {
+    return { ok: false };
   }
 }

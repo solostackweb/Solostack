@@ -107,8 +107,6 @@ export function requireServerEnv() {
       "SUPABASE_SERVICE_ROLE_KEY",
       process.env.SUPABASE_SERVICE_ROLE_KEY,
     ),
-    googleOAuthClientId: optional(process.env.GOOGLE_OAUTH_CLIENT_ID),
-    googleOAuthClientSecret: optional(process.env.GOOGLE_OAUTH_CLIENT_SECRET),
     razorpayKeyId: optional(process.env.RAZORPAY_KEY_ID),
     razorpayKeySecret: optional(process.env.RAZORPAY_KEY_SECRET),
     razorpayWebhookSecret: optional(process.env.RAZORPAY_WEBHOOK_SECRET),

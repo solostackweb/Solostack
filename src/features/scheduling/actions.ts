@@ -67,6 +67,15 @@ export async function disconnectCalendarAction(): Promise<SchedulingActionResult
   const userId = await requireUserId();
   if (!userId) return { ok: false, error: "Please sign in." };
 
+  // Close the sync-back push channel first so Google stops delivering for
+  // this calendar (best-effort — the delete below still runs).
+  try {
+    const { stopWatchForUser } = await import("./sync");
+    await stopWatchForUser(userId);
+  } catch {
+    /* fall through to the delete */
+  }
+
   const supabase = await getServerSupabase();
   const { error } = await supabase
     .from("calendar_connections")

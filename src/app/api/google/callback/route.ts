@@ -97,5 +97,17 @@ export async function GET(request: Request) {
   if (error) {
     return NextResponse.redirect(back({ error: "save" }));
   }
+
+  // Open the sync-back push channel so edits made directly in Google
+  // Calendar flow into meetings. Best-effort: the connection itself is
+  // already stored, and the daily cron also ensures a channel exists.
+  try {
+    const { ensureWatchForUser } = await import(
+      "@/features/scheduling/sync"
+    );
+    await ensureWatchForUser(user.id);
+  } catch {
+    /* cron will pick it up */
+  }
   return NextResponse.redirect(back({ connected: "1" }));
 }

@@ -1,7 +1,8 @@
 "use client";
 
 import * as React from "react";
-import { Star, MessageSquare, CheckCircle2, X, Loader2 } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Star, MessageSquare, CheckCircle2, X, Loader2, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
@@ -14,6 +15,7 @@ import {
   deletePortalReviewAction,
   canClientReviewProjectAction,
 } from "../actions-reviews";
+import { sendReviewRequestEmailAction } from "../actions";
 import type { PortalReviewRow } from "@/lib/supabase/types";
 
 interface ReviewStarProps {
@@ -255,6 +257,7 @@ export function PortalReviewsSection({
   onRefresh,
   availableProjects = [],
 }: ReviewsSectionProps) {
+  const router = useRouter();
   const [creating, setCreating] = React.useState(false);
   const [selectedProjectId, setSelectedProjectId] = React.useState<string>("");
   const [rating, setRating] = React.useState(5);
@@ -264,6 +267,32 @@ export function PortalReviewsSection({
   const [error, setError] = React.useState<string | null>(null);
   const [canReview, setCanReview] = React.useState<Record<string, boolean>>({});
   const [checking, setChecking] = React.useState<Record<string, boolean>>({});
+  const [resendProjectId, setResendProjectId] = React.useState<string>("");
+  const [resending, setResending] = React.useState(false);
+
+  function refresh() {
+    onRefresh();
+    router.refresh();
+  }
+
+  async function handleResend() {
+    if (!resendProjectId) return;
+    const project = availableProjects.find((p) => p.id === resendProjectId);
+    if (!project) return;
+    setResending(true);
+    const res = await sendReviewRequestEmailAction({
+      portalId,
+      projectId: project.id,
+      projectName: project.name,
+    });
+    setResending(false);
+    if (!res.ok) {
+      toast.error(res.error);
+      return;
+    }
+    toast.success("Review request sent.");
+    refresh();
+  }
 
   React.useEffect(() => {
     if (!isOwner && availableProjects.length > 0) {
@@ -318,7 +347,7 @@ export function PortalReviewsSection({
     setTitle("");
     setBody("");
     setSelectedProjectId("");
-    onRefresh();
+    refresh();
     toast.success("Review submitted!");
   }
 
@@ -344,6 +373,31 @@ export function PortalReviewsSection({
         )}
       </CardHeader>
       <CardContent className="space-y-4">
+        {isOwner && availableProjects.length > 0 && (
+          <div className="flex flex-col gap-2 rounded-lg border bg-muted/20 p-3 sm:flex-row sm:items-center">
+            <select
+              value={resendProjectId}
+              onChange={(e) => setResendProjectId(e.target.value)}
+              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm sm:flex-1"
+              aria-label="Project to request a review for"
+            >
+              <option value="">Request a review for…</option>
+              {availableProjects.map((p) => (
+                <option key={p.id} value={p.id}>{p.name}</option>
+              ))}
+            </select>
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-8"
+              disabled={!resendProjectId || resending}
+              onClick={handleResend}
+            >
+              {resending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
+              Send request
+            </Button>
+          </div>
+        )}
         {reviews.length === 0 ? (
           <div className="flex flex-col items-center gap-2 rounded-lg border border-dashed px-4 py-8 text-center">
             <MessageSquare className="h-7 w-7 text-muted-foreground/30" />
@@ -368,7 +422,7 @@ export function PortalReviewsSection({
                 isOwner={isOwner}
                 currentUserId={currentUserId}
                 portalId={portalId}
-                onUpdate={onRefresh}
+                onUpdate={refresh}
               />
             ))}
           </ul>

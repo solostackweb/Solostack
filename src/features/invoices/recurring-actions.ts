@@ -15,6 +15,7 @@ import { revalidatePath } from "next/cache";
 import { getServerSupabase } from "@/lib/supabase/server";
 import { coerceFormValues } from "@/lib/form";
 import { AUTH_LOGIN_ROUTE } from "@/features/auth/routes";
+import { hasFeature, type CurrentSubscription } from "@/features/subscription/features";
 import {
   recurringInvoiceFormSchema,
   type RecurringInvoiceFormValues,
@@ -100,6 +101,21 @@ export async function createRecurringInvoiceAction(
 
   const userId = await requireUserId();
   const supabase = await getServerSupabase();
+
+  // Feature gate: only Pro and Business plans can create recurring invoices
+  const { data: sub } = await supabase
+    .from("subscriptions")
+    .select("plan, status")
+    .eq("user_id", userId)
+    .maybeSingle();
+  const plan = sub?.plan ?? "free";
+  const hasRecurring = hasFeature(
+    { plan, status: sub?.status ?? "active" } as const,
+    "invoices.recurring",
+  );
+  if (!hasRecurring) {
+    return { ok: false, error: "Recurring invoices are available on Pro and Business plans only." };
+  }
 
   // Compute next_generation_at from start_date
   const data = parsed.data;

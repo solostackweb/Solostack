@@ -32,7 +32,7 @@ function formatSlot(iso: string): string {
 /**
  * Client-portal section that mirrors the standalone booking experience: the
  * client picks a proposed time and joins the call — reusing the same confirm
- * action and Daily embed as the public /m/[token] page.
+ * action and Google Meet link as the public /m/[token] page.
  */
 export function PortalScheduledCalls({
   meetings,

@@ -6,10 +6,12 @@ import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
   CalendarClock,
+  CalendarPlus,
   Check,
   Copy,
   Link2,
   Lock,
+  Pencil,
   RefreshCw,
   Users,
   Video,
@@ -28,6 +30,8 @@ import {
   cancelMeetingAction,
   completeMeetingAction,
   regenerateMeetingLinkAction,
+  rescheduleMeetingAction,
+  updateMeetingDetailsAction,
   updateMeetingNotesAction,
 } from "../actions";
 
@@ -78,6 +82,9 @@ export function MeetingDetailView({
   const [busy, setBusy] = React.useState(false);
   const [copied, setCopied] = React.useState(false);
   const [now, setNow] = React.useState(() => Date.now());
+  const [editingTopic, setEditingTopic] = React.useState(false);
+  const [topicDraft, setTopicDraft] = React.useState(meeting.topic);
+  const [newStart, setNewStart] = React.useState("");
 
   React.useEffect(() => {
     const timer = setInterval(() => setNow(Date.now()), 30_000);
@@ -160,6 +167,58 @@ export function MeetingDetailView({
                     <Users className="h-3.5 w-3.5" /> {clientName}
                   </span>
                 ) : null}
+                <span className="flex-1" />
+                {editingTopic ? (
+                  <span className="flex items-center gap-1.5">
+                    <Input
+                      value={topicDraft}
+                      onChange={(e) => setTopicDraft(e.target.value)}
+                      maxLength={200}
+                      className="h-8 w-48"
+                      aria-label="Meeting title"
+                    />
+                    <Button
+                      type="button"
+                      size="sm"
+                      className="h-8"
+                      disabled={busy || !topicDraft.trim() || topicDraft.trim() === meeting.topic}
+                      onClick={() =>
+                        run(async () => {
+                          const res = await updateMeetingDetailsAction({
+                            id: meeting.id,
+                            topic: topicDraft.trim(),
+                          });
+                          if (res.ok) setEditingTopic(false);
+                          return res;
+                        })
+                      }
+                    >
+                      Save
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="ghost"
+                      className="h-8"
+                      onClick={() => {
+                        setTopicDraft(meeting.topic);
+                        setEditingTopic(false);
+                      }}
+                    >
+                      Cancel
+                    </Button>
+                  </span>
+                ) : (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 text-xs"
+                    onClick={() => setEditingTopic(true)}
+                  >
+                    <Pencil className="h-3.5 w-3.5" /> Rename
+                  </Button>
+                )}
               </div>
 
               {meeting.status === "confirmed" && meeting.scheduledAt ? (
@@ -264,6 +323,52 @@ export function MeetingDetailView({
                       </Button>
                     </div>
                   )}
+                </div>
+              ) : null}
+
+              {/* Reschedule + calendar file */}
+              {meeting.status === "confirmed" && meeting.scheduledAt ? (
+                <div className="space-y-3 border-t pt-4">
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                    <Input
+                      type="datetime-local"
+                      value={newStart}
+                      onChange={(e) => setNewStart(e.target.value)}
+                      className="sm:max-w-xs"
+                      aria-label="New meeting time"
+                    />
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      disabled={busy || !newStart}
+                      onClick={() =>
+                        run(async () => {
+                          const iso = new Date(newStart).toISOString();
+                          const res = await rescheduleMeetingAction({
+                            id: meeting.id,
+                            newStartIso: iso,
+                          });
+                          if (res.ok) setNewStart("");
+                          return res;
+                        })
+                      }
+                    >
+                      <CalendarClock className="h-3.5 w-3.5" /> Reschedule
+                    </Button>
+                    <Button asChild type="button" size="sm" variant="ghost">
+                      <a
+                        href={`/api/meetings/${meeting.id}/calendar.ics`}
+                        download
+                      >
+                        <CalendarPlus className="h-3.5 w-3.5" /> Add to calendar
+                      </a>
+                    </Button>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Must be free on your calendar. Your client is notified
+                    through the calendar update.
+                  </p>
                 </div>
               ) : null}
             </CardContent>

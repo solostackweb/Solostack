@@ -51,7 +51,7 @@ function parse(formData: FormData) {
 
 /**
  * Trigger a review request when a project is completed.
- * Finds the client's portal and records a review request activity.
+ * Finds the client's portal, links the project, and sends email notification.
  */
 async function triggerReviewRequest(
   projectId: string,
@@ -64,7 +64,7 @@ async function triggerReviewRequest(
   // Find the portal for this client
   const { data: portal } = await admin
     .from("portals")
-    .select("id")
+    .select("id, name")
     .eq("owner_user_id", userId)
     .eq("client_id", clientId)
     .eq("status", "active")
@@ -72,7 +72,18 @@ async function triggerReviewRequest(
     .maybeSingle();
 
   if (!portal) return;
-  const portalId: string = (portal as { id: string }).id;
+  const portalId: string = (portal as { id: string; name: string }).id;
+  const portalName: string = (portal as { id: string; name: string }).name;
+
+  // Link project to portal (upsert) and set review_invited_at
+  await admin
+    .from("portal_projects")
+    .upsert({
+      portal_id: portalId,
+      project_id: projectId,
+      added_by: userId,
+      review_invited_at: new Date().toISOString(),
+    } as never, { onConflict: "portal_id,project_id" });
 
   // Record review request activity
   await admin.from("portal_activity").insert({
@@ -86,8 +97,242 @@ async function triggerReviewRequest(
     } as never,
   } as never);
 
-  // TODO: Send email notification to client via portal_notification_outbox
-  // This would be handled by a separate notification worker
+  // Get client user_id from portal_members to send notification
+  const { data: member } = await admin
+    .from("portal_members")
+    .select("user_id")
+    .eq("portal_id", portalId)
+    .neq("user_id", userId)
+    .is("revoked_at", null)
+    .maybeSingle();
+
+  if (!member) return;
+  const clientUserId = (member as { user_id: string }).user_id;
+
+  // Get client profile for email
+  const { data: clientProfile } = await admin
+    .from("user_profiles")
+    .select("email, full_name")
+    .eq("id", clientUserId)
+    .maybeSingle();
+
+  type ClientProfile = { email: string | null; full_name: string | null } | null;
+  const profile = clientProfile as ClientProfile;
+
+  if (!profile?.email) return;
+  const clientEmail = profile.email;
+  const clientName = profile.full_name;
+
+  // Get freelancer profile for sender info
+  const { data: freelancerProfile } = await admin
+    .from("user_profiles")
+    .select("business_name, legal_name, full_name, email, brand_color, logo_url")
+    .eq("id", userId)
+    .maybeSingle();
+
+  const freelancer = freelancerProfile as {
+    business_name?: string | null;
+    legal_name?: string | null;
+    full_name?: string | null;
+    email?: string | null;
+    brand_color?: string | null;
+    logo_url?: string | null;
+  } | null;
+
+  const senderName = freelancer?.business_name ?? freelancer?.legal_name ?? freelancer?.full_name ?? "Your freelancer";
+  const senderEmail = freelancer?.email ?? undefined;
+
+  // Import the email template and send function dynamically to avoid circular deps
+  const { renderReviewRequestEmail } = await import("@/features/email/templates");
+  const { dispatchDelivery } = await import("@/features/email/send");
+  const { getEmailSender } = await import("@/features/email/senders");
+  const { env } = await import("@/config/env");
+
+  // Build review URL
+  const reviewUrl = `${env.appUrl.replace(/\/$/, "")}/portal/${portalId}?section=reviews`;
+
+  const emailBrand = {
+    businessName: senderName,
+    logoUrl: freelancer?.logo_url ?? null,
+    accent: freelancer?.brand_color ?? null,
+    contact: {
+      email: freelancer?.email ?? null,
+    },
+  };
+
+  const rendered = renderReviewRequestEmail({
+    portalName,
+    clientName,
+    senderName,
+    senderEmail,
+    projectName,
+    reviewUrl,
+    brand: emailBrand,
+  });
+
+  const delivery = await dispatchDelivery({
+    userId,
+    kind: "review_request",
+    entityType: "portal",
+    senderType: "share",
+    entityId: portalId,
+    to: { email: clientEmail, name: clientName ?? undefined },
+    replyTo: senderEmail ? { email: senderEmail, name: senderName } : undefined,
+    subject: rendered.subject,
+    html: rendered.html,
+    text: rendered.text,
+    metadata: { portalId, projectId, projectName },
+    tags: ["portal", "review_request"],
+    idempotencyKey: `review-request:${portalId}:${projectId}`,
+  });
+
+  if (!delivery.ok) {
+    await admin.from("portal_activity").insert({
+      portal_id: portalId,
+      actor_id: userId,
+      type: "review.request_failed",
+      payload: {
+        projectId,
+        projectName,
+        deliveryError: delivery.error,
+      } as never,
+    } as never);
+    return;
+  }
+
+  await admin.from("portal_activity").insert({
+    portal_id: portalId,
+    actor_id: userId,
+    type: "review.request_sent",
+    payload: {
+      projectId,
+      projectName,
+      deliveryStatus: "sent",
+    } as never,
+  } as never);
+
+  // Also queue in portal_notification_outbox for any future worker
+  await admin.from("portal_notification_outbox").insert({
+    recipient_id: clientUserId,
+    portal_id: portalId,
+    event_type: "review.requested",
+    payload: {
+      projectId,
+      projectName,
+      portalName,
+      portalUrl: `/portal/${portalId}`,
+    } as never,
+    scheduled_for: new Date().toISOString(),
+  } as never);
+}
+
+/**
+ * Project-completion follow-ups (§30 of the PRD direction).
+ *
+ * Runs after the review request on `project.completed`:
+ *   1. Outstanding invoices → nudge to send final invoice / collect payment.
+ *   2. No portfolio item for this project → suggest showcasing it.
+ *   3. Referral prompt → invite the freelancer to share their referral link.
+ *
+ * Best-effort: every step is guarded so a failure never blocks completion.
+ */
+async function runCompletionFollowUps(
+  supabase: Awaited<ReturnType<typeof getServerSupabase>>,
+  userId: string,
+  projectId: string,
+  projectName: string,
+): Promise<void> {
+  try {
+    const { data: invoices } = await supabase
+      .from("invoices")
+      .select("id, total_amount")
+      .eq("project_id", projectId)
+      .in("status", ["sent", "viewed", "overdue", "partially_paid"])
+      .limit(50);
+    const outstanding = (invoices ?? []) as Array<{ id: string; total_amount: number | string | null }>;
+    if (outstanding.length > 0) {
+      const amount = outstanding.reduce(
+        (sum, inv) => sum + Number(inv.total_amount ?? 0),
+        0,
+      );
+      await createNotification({
+        type: "project_completion_invoice",
+        title: `${projectName}: ${outstanding.length} invoice${outstanding.length === 1 ? "" : "s"} still due`,
+        message: `₹${amount.toLocaleString("en-IN")} remains unpaid on this project. Send a final reminder or mark paid from /dashboard/invoices.`,
+      });
+    }
+  } catch {
+    /* never block completion */
+  }
+
+  try {
+    const { data: projectRows } = await supabase
+      .from("projects")
+      .select("name, description, start_date, due_date, client_id")
+      .eq("id", projectId)
+      .maybeSingle();
+    const project = projectRows as { name: string; description: string | null; client_id: string | null; start_date: string | null; due_date: string | null } | null;
+    const { data: clientRows } = await supabase
+      .from("clients")
+      .select("company_name")
+      .eq("id", project?.client_id ?? projectId)
+      .maybeSingle();
+    const client = clientRows as { company_name: string } | null;
+
+    // Auto-draft a portfolio item from the completed project data.
+    const { data: existing } = await supabase
+      .from("public_portfolio_items")
+      .select("id")
+      .eq("project_id", projectId)
+      .limit(1)
+      .maybeSingle();
+    if (!existing && project) {
+      const techTags: string[] = [];
+      await supabase
+        .from("public_portfolio_items")
+        .insert({
+          project_id: projectId,
+          title: project.name,
+          description: project.description ?? null,
+          coverImageUrl: null,
+          images: [],
+          category: null,
+          industry: null,
+          budgetRange: null,
+          duration: null,
+          technologies: techTags,
+          clientName: client?.company_name ?? null,
+          clientIndustry: null,
+          testimonial: null,
+          featured: false,
+          sortOrder: 0,
+          published: false,
+        } as never);
+      await createNotification({
+        type: "project_completion_portfolio",
+        title: `Portfolio auto-drafted: ${projectName}`,
+        message: "A portfolio item has been created from this project. Edit it from /dashboard/settings/profile/public.",
+      });
+    } else if (existing) {
+      await createNotification({
+        type: "project_completion_portfolio",
+        title: `Portfolio already exists for ${projectName}`,
+        message: "A portfolio item for this project is already in your settings. Edit it from /dashboard/settings/profile/public.",
+      });
+    }
+  } catch {
+    /* never block completion */
+  }
+
+  try {
+    await createNotification({
+      type: "project_completion_referral",
+      title: "Happy client? Ask for an intro",
+      message: `If ${projectName} went well, share your referral link from /dashboard/settings/referral — you earn +1 month Pro for every referral who joins.`,
+    });
+  } catch {
+    /* never block completion */
+  }
 }
 
 export async function createProjectAction(
@@ -291,6 +536,12 @@ async function performStatusChange(
   // Trigger review request when project is marked as completed
   if (to === "completed" && row.client_id) {
     await triggerReviewRequest(projectId, row.client_id, userId, row.name);
+  }
+
+  // Completion follow-ups: final-invoice nudge, portfolio suggestion,
+  // referral prompt. Best-effort — never blocks the status change.
+  if (to === "completed") {
+    await runCompletionFollowUps(supabase, userId, projectId, row.name);
   }
 
   revalidatePath("/dashboard/projects");

@@ -14,6 +14,7 @@ import {
   getPublicPortfolio,
   getPublicProfileReviews,
 } from "@/features/profile/public-profile-server";
+import { PublicEnquiryForm } from "./enquiry-form";
 
 function getDisplayName(profile: { display_name: string | null; full_name: string | null } | null): string {
   if (!profile) return "";
@@ -84,6 +85,20 @@ export default async function PublicProfilePage({ params }: PageProps) {
 
   const averageRating = stats?.average_rating ?? 0;
   const stars = Math.round(averageRating * 10) / 10;
+
+  const showReviews = profile.public_show_reviews !== false;
+  const showPortfolio = profile.public_show_portfolio !== false;
+  const showStats = profile.public_show_stats !== false;
+
+  const ctaAction = profile.public_cta_action || "enquiry";
+  const ctaUrl =
+    (ctaAction === "custom_url" || ctaAction === "calendly") && profile.public_custom_domain
+      ? profile.public_custom_domain.startsWith("http")
+        ? profile.public_custom_domain
+        : `https://${profile.public_custom_domain}`
+      : "#contact";
+  const isExternalCta = ctaUrl !== "#contact";
+  const contactEmail = profile.business_email || profile.email;
 
   return (
     <div className="min-h-screen bg-background">
@@ -179,22 +194,25 @@ export default async function PublicProfilePage({ params }: PageProps) {
                     <Button
                       className="w-full mt-2 h-12 text-lg"
                       style={{ backgroundColor: profile.brand_color || "#0066CC" }}
-                      onClick={() => handleCtaClick(profile)}
+                      asChild
                     >
-                      {profile.public_cta_text || "Start a project"}
-                      <ArrowRight className="ml-2 h-4 w-4" />
+                      <a
+                        href={ctaUrl}
+                        {...(isExternalCta
+                          ? { target: "_blank", rel: "noopener noreferrer" }
+                          : {})}
+                      >
+                        {profile.public_cta_text || "Start a project"}
+                        <ArrowRight className="ml-2 h-4 w-4" />
+                      </a>
                     </Button>
                   </div>
                   <Separator />
                   <div className="space-y-3 text-sm">
-                    <div className="flex items-center gap-3 text-muted-foreground">
-                      <Mail className="h-4 w-4 shrink-0" />
-                      <a href={`mailto:${profile.email}`} className="hover:underline">{profile.email}</a>
-                    </div>
-                    {profile.business_email && profile.business_email !== profile.email && (
+                    {contactEmail && (
                       <div className="flex items-center gap-3 text-muted-foreground">
                         <Mail className="h-4 w-4 shrink-0" />
-                        <a href={`mailto:${profile.business_email}`} className="hover:underline">{profile.business_email}</a>
+                        <a href={`mailto:${contactEmail}`} className="hover:underline">{contactEmail}</a>
                       </div>
                     )}
                     {profile.business_phone && (
@@ -258,7 +276,7 @@ export default async function PublicProfilePage({ params }: PageProps) {
       ) : null}
 
       {/* Portfolio */}
-      {portfolio && portfolio.length > 0 && (
+      {showPortfolio && portfolio && portfolio.length > 0 && (
         <section className="max-w-6xl mx-auto px-4 py-16 sm:px-6 lg:px-8 bg-muted/30">
           <div className="space-y-8">
             <h2 className="text-2xl font-bold">Selected Work</h2>
@@ -293,7 +311,7 @@ export default async function PublicProfilePage({ params }: PageProps) {
                     {item.client_name && (
                       <p className="text-xs text-muted-foreground">
                         Client: {item.client_name}
-                        {item.client_industry && ` · {item.client_industry}`}
+                        {item.client_industry && ` · ${item.client_industry}`}
                       </p>
                     )}
                     {item.testimonial && (
@@ -310,7 +328,7 @@ export default async function PublicProfilePage({ params }: PageProps) {
       )}
 
       {/* Reviews */}
-      {reviews && reviews.length > 0 && (
+      {showReviews && reviews && reviews.length > 0 && (
         <section className="max-w-6xl mx-auto px-4 py-16 sm:px-6 lg:px-8">
           <div className="space-y-8">
             <div className="flex items-center justify-between">
@@ -365,7 +383,7 @@ export default async function PublicProfilePage({ params }: PageProps) {
       )}
 
       {/* Stats */}
-      {stats && (stats.completed_projects > 0 || stats.verified_reviews > 0) && (
+      {showStats && stats && (stats.completed_projects > 0 || stats.verified_reviews > 0) && (
         <section className="max-w-6xl mx-auto px-4 py-16 sm:px-6 lg:px-8 bg-muted/30">
           <h2 className="text-2xl font-bold mb-8 text-center">At a Glance</h2>
           <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-6">
@@ -379,6 +397,21 @@ export default async function PublicProfilePage({ params }: PageProps) {
         </section>
       )}
 
+      {/* Enquiry */}
+      {ctaAction === "enquiry" && (
+        <section id="contact" className="max-w-6xl mx-auto px-4 py-16 sm:px-6 lg:px-8 scroll-mt-24">
+          <div className="max-w-2xl mx-auto space-y-6">
+            <div className="text-center space-y-2">
+              <h2 className="text-2xl font-bold">Start a project</h2>
+              <p className="text-sm text-muted-foreground">
+                Tell us about your project and we&apos;ll get back to you.
+              </p>
+            </div>
+            <PublicEnquiryForm slug={profile.public_slug} />
+          </div>
+        </section>
+      )}
+
       {/* Footer CTA */}
       <section className="max-w-6xl mx-auto px-4 py-16 sm:px-6 lg:px-8 text-center">
         <p className="text-lg text-muted-foreground mb-6">Ready to start your project?</p>
@@ -386,10 +419,17 @@ export default async function PublicProfilePage({ params }: PageProps) {
           size="lg"
           className="w-full sm:w-auto"
           style={{ backgroundColor: profile.brand_color || "#0066CC" }}
-          onClick={() => handleCtaClick(profile)}
+          asChild
         >
-          {profile.public_cta_text || "Start a project"}
-          <ArrowRight className="ml-2 h-4 w-4" />
+          <a
+            href={ctaUrl}
+            {...(isExternalCta
+              ? { target: "_blank", rel: "noopener noreferrer" }
+              : {})}
+          >
+            {profile.public_cta_text || "Start a project"}
+            <ArrowRight className="ml-2 h-4 w-4" />
+          </a>
         </Button>
         <p className="mt-4 text-sm text-muted-foreground">
           Powered by <a href="https://stackivo.com" target="_blank" rel="noopener noreferrer" className="underline">Stackivo</a>
@@ -409,23 +449,4 @@ function StatCard({ icon, label, value }: { icon: React.ReactNode; label: string
       </CardContent>
     </Card>
   );
-}
-
-function handleCtaClick(profile: Awaited<ReturnType<typeof getPublicProfileBySlug>>) {
-  const action = profile?.public_cta_action || "enquiry";
-  switch (action) {
-    case "calendly":
-      // TODO: Open Calendly link from profile
-      break;
-    case "custom_url":
-      if (profile?.public_custom_domain) {
-        window.open(profile.public_custom_domain, "_blank", "noopener,noreferrer");
-      }
-      break;
-    case "enquiry":
-    default:
-      // Scroll to contact or open enquiry modal
-      document.getElementById("contact")?.scrollIntoView({ behavior: "smooth" });
-      break;
-  }
 }

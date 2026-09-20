@@ -1411,6 +1411,50 @@ export function renderPortalRevisionRequestedEmail(
   };
 }
 
+// --- Review request (freelancer → client) ---------------------------------
+
+export interface ReviewRequestInput {
+  portalName: string;
+  clientName: string | null;
+  senderName: string;
+  senderEmail?: string;
+  projectName: string;
+  reviewUrl: string;
+  brand?: EmailBrand;
+}
+
+export function renderReviewRequestEmail(input: ReviewRequestInput): EmailRender {
+  const greeting = input.clientName ? `Hi ${input.clientName},` : "Hello,";
+  const paragraphs = [
+    greeting,
+    `${input.senderName} has completed the project "${input.projectName}" and would love your feedback.`,
+    "Your verified review helps future clients understand what it's like to work together — and it only takes a minute.",
+  ];
+
+  return {
+    subject: `How was your experience with ${input.projectName}?`,
+    html: envelope({
+      preheader: `Review request · ${input.projectName} · ${input.portalName}`,
+      eyebrow: "Review Request",
+      heading: `How was "${input.projectName}"?`,
+      subheading: `A quick review from ${input.senderName}`,
+      paragraphs,
+      cta: { label: "Leave a review", href: input.reviewUrl },
+      secondaryParagraphs: [
+        "This review will be verified and may appear on your freelancer's public profile.",
+        "You can always edit or remove it later from the portal.",
+      ],
+      signature: formatSenderSignature(input.senderName, input.senderEmail),
+      brand: input.brand,
+    }),
+    text: plain(
+      paragraphs,
+      { label: "Leave a review", href: input.reviewUrl },
+      formatSenderSignature(input.senderName, input.senderEmail),
+    ),
+  };
+}
+
 // --- Portal file uploaded (owner → client) --------------------------------
 
 export interface PortalFileUploadedInput {

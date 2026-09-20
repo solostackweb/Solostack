@@ -13,6 +13,8 @@ name: Cron jobs
 
 on:
   schedule:
+    # ── Calendar watch renewal (daily 1:30 UTC = 7:00 AM IST) ──────────────
+    - cron: "30 1 * * *"
     # ── Recurring invoice generation (daily at 2:30 UTC = 8:00 AM IST) ──────
     - cron: "30 2 * * *"
     # ── Daily invoice reminders ─────────────────────────────────────────
@@ -40,17 +42,18 @@ on:
         required: true
         default: "invoices-overdue"
         type: choice
-        options:
-          - recurring-invoices
-          - invoices-overdue
-          - invoices-due-soon
-          - subscription-renewals
-          - admin-export
-          - meeting-reminders
-          - monitor
-          - portal-digest
-          - retention
-          - account-purge
+         options:
+           - recurring-invoices
+           - invoices-overdue
+           - invoices-due-soon
+           - subscription-renewals
+           - admin-export
+           - meeting-reminders
+           - calendar-watch-renew
+           - monitor
+           - portal-digest
+           - retention
+           - account-purge
 
 # Shared curl helper — defined once, reused by every job via env
 env:
@@ -168,6 +171,31 @@ jobs:
           HTTP_CODE=$(curl -s -L --location-trusted -o /tmp/body.txt -w "%{http_code}" \
             -H "Authorization: Bearer $SECRET" \
             "$BASE_URL/api/cron/meeting-reminders")
+          BODY=$(cat /tmp/body.txt)
+          echo "HTTP status : $HTTP_CODE"
+          echo "Response    : $BODY"
+          if [ "$HTTP_CODE" -lt 200 ] || [ "$HTTP_CODE" -ge 300 ]; then
+            echo "::error::Endpoint returned HTTP $HTTP_CODE — $BODY"
+            exit 1
+          fi
+
+  # ── Calendar watch renewal (daily 1:30 UTC) ─────────────────────────────
+  # Re-opens Google push channels before they expire so calendar sync-back
+  # (external edits → meetings) keeps working. Idempotent: fresh channels
+  # are skipped.
+  calendar-watch-renew:
+    name: Calendar watch renewal
+    runs-on: ubuntu-latest
+    if: >-
+      (github.event_name == 'workflow_dispatch' && github.event.inputs.job == 'calendar-watch-renew') ||
+      (github.event_name == 'schedule' && github.event.schedule == '30 1 * * *')
+    steps:
+      - name: Call /api/cron/calendar-watch-renew
+        run: |
+          echo "Calling: $BASE_URL/api/cron/calendar-watch-renew"
+          HTTP_CODE=$(curl -s -L --location-trusted -o /tmp/body.txt -w "%{http_code}" \
+            -H "Authorization: Bearer $SECRET" \
+            "$BASE_URL/api/cron/calendar-watch-renew")
           BODY=$(cat /tmp/body.txt)
           echo "HTTP status : $HTTP_CODE"
           echo "Response    : $BODY"

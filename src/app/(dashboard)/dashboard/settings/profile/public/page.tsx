@@ -179,8 +179,12 @@ export default function PublicProfileSettingsPage() {
     document.getElementById("portfolio-form")?.scrollIntoView({ behavior: "smooth" });
   };
 
-  const handleReorderPortfolio = (items: Array<{ id: string; sortOrder: number }>) => {
-    reorderPortfolioItemsAction(items);
+  const handleReorderPortfolio = async (items: Array<{ id: string; sortOrder: number }>) => {
+    const res = await reorderPortfolioItemsAction(items);
+    if (!res.ok) {
+      toast.error(res.error);
+      return;
+    }
     void refreshProfile();
   };
 
@@ -188,7 +192,7 @@ export default function PublicProfileSettingsPage() {
     <>
       <SettingsPageHeader
         title="Public Profile"
-        description="Your public-facing profile at stackivo.me/@yourname — showcase reviews, portfolio, and win new clients."
+        description="Your public-facing profile at stackivo.me/p/yourslug — showcase reviews, portfolio, and win new clients."
       />
 
       {/* Public URL Display */}
@@ -232,12 +236,12 @@ export default function PublicProfileSettingsPage() {
         <div className="grid gap-5 sm:grid-cols-2">
           <SettingsField
             label="Public slug"
-            hint="Your profile will be at stackivo.me/@slug (2-50 chars, lowercase, numbers, hyphens)"
+            hint="Your profile will be at stackivo.me/p/slug (2-50 chars, lowercase, numbers, hyphens)"
             error={publicForm.formState.errors.publicSlug?.message}
           >
             <div className="flex items-center gap-2">
               <span className="px-3 py-2 text-sm text-muted-foreground bg-muted rounded-md">
-                stackivo.me/@
+                stackivo.me/p/
               </span>
               <Input
                 {...publicForm.register("publicSlug")}
@@ -257,7 +261,7 @@ export default function PublicProfileSettingsPage() {
                 onCheckedChange={(value) =>
                   publicForm.setValue("publicProfileEnabled", value, { shouldDirty: true })
                 }
-                disabled={!slugAvailable}
+                disabled={checkingSlug}
               />
               <span className="text-sm">
                 {publicForm.watch("publicProfileEnabled") ? "Public" : "Private"}
@@ -450,6 +454,52 @@ export default function PublicProfileSettingsPage() {
           </SettingsField>
         </div>
       </SettingsSection>
+
+      {/* Review Badge */}
+      {profile?.publicSlug && profile?.publicProfileEnabled && (
+        <SettingsSection
+          title="Review Badge"
+          description="Embed your verified rating on your website. Updates automatically."
+        >
+          <div className="space-y-4">
+            {publicForm.watch("publicShowReviews") === false ? (
+              <p className="text-sm text-muted-foreground">
+                Enable “Show verified reviews” above to activate your badge.
+              </p>
+            ) : (
+              <>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={`/api/p/${profile.publicSlug}/badge`}
+                  alt="Verified reviews badge preview"
+                  width={320}
+                  height={96}
+                  className="rounded-lg border"
+                />
+                <SettingsField label="Embed code" hint="Paste this HTML where you want the badge to appear.">
+                  <div className="flex items-start gap-2">
+                    <code className="flex-1 break-all rounded-md bg-muted p-3 font-mono text-xs">
+                      {`<a href="${publicUrl}" target="_blank" rel="noopener"><img src="${typeof window !== "undefined" ? window.location.origin : ""}/api/p/${profile.publicSlug}/badge" alt="Verified reviews on Stackivo" /></a>`}
+                    </code>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      aria-label="Copy embed code"
+                      onClick={() =>
+                        navigator.clipboard.writeText(
+                          `<a href="${publicUrl}" target="_blank" rel="noopener"><img src="${window.location.origin}/api/p/${profile?.publicSlug}/badge" alt="Verified reviews on Stackivo" /></a>`,
+                        )
+                      }
+                    >
+                      <Copy className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </SettingsField>
+              </>
+            )}
+          </div>
+        </SettingsSection>
+      )}
 
       {/* SEO */}
       <SettingsSection

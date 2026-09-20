@@ -8,13 +8,12 @@ import {
 } from "@/features/portals/server";
 import type { ActionResult } from "@/features/invoices/delivery";
 import type { PortalReviewRow } from "@/lib/supabase/types";
-
-const REVIEW_RATING = z.number().int().min(1).max(5);
+import { createNotification } from "@/features/notifications/server";
 
 const reviewSchema = z.object({
   portalId: z.string().uuid(),
   projectId: z.string().uuid(),
-  rating: REVIEW_RATING,
+  rating: z.number().int().min(1).max(5),
   title: z.string().trim().min(1).max(200),
   body: z.string().trim().min(1).max(4000),
 });
@@ -97,6 +96,21 @@ export async function createPortalReviewAction(
     };
   }
 
+  // Fetch project title for the referral prompt context.
+  const { data: project } = await admin
+    .from("projects")
+    .select("name")
+    .eq("id", d.projectId)
+    .maybeSingle();
+
+  // Post-review referral prompt — invite the freelancer to refer other
+  // freelancers to Stackivo and earn 1 month Pro free per completed referral.
+  await createNotification({
+    type: "project_completion_referral",
+    title: `Review submitted for ${project && "name" in project ? (project as { name: string })?.name ?? "this project" : "this project"}`,
+    message: "Happy client? Share your referral link from /dashboard/settings/referral — earn 1 month Pro free for every freelancer who joins and completes setup.",
+  });
+
   return {
     ok: true,
     data: { reviewId: (row as { id: string }).id },
@@ -168,7 +182,7 @@ export async function getPublicProfileReviewsAction(
   }
 
   const admin = getAdminSupabase();
-  const { data, error } = await admin.rpc("get_reviews_for_public_profile", {
+  const { data, error } = await admin.rpc("get_public_profile_reviews", {
     p_user_id: parsed.data.userId,
     p_limit: parsed.data.limit ?? 20,
   } as never);
@@ -266,16 +280,15 @@ export async function updatePortalReviewAction(
 
   const review = existing as { author_id: string; portal_id: string } | null;
   if (!review) return { ok: false, error: "Review not found." };
-  const { data: { user } } = await getAdminSupabase().auth.getUser();
-  if (review.author_id !== user?.id) {
-    return { ok: false, error: "You can only edit your own reviews." };
-  }
 
   const access = await requirePortalAccess(review.portal_id).catch(
     (e) => e as PortalAccessError,
   );
   if (access instanceof PortalAccessError) {
     return { ok: false, error: mapAccessError(access) };
+  }
+  if (review.author_id !== access.userId) {
+    return { ok: false, error: "You can only edit your own reviews." };
   }
 
   const patch: Record<string, unknown> = {
