@@ -3,8 +3,9 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { getAdminSupabase } from "@/lib/supabase/admin";
-import { getServerSupabase } from "@/lib/supabase/server";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import { getAdminSupabase as getBaseAdminSupabase } from "@/lib/supabase/admin";
+import { getServerSupabase as getBaseServerSupabase } from "@/lib/supabase/server";
 import { AUTH_LOGIN_ROUTE } from "@/features/auth/routes";
 import {
   createOrganization,
@@ -16,9 +17,48 @@ import {
   type OrgAccessError,
 } from "./server";
 import { recordActivity } from "@/features/activity/server";
+import type { OrganizationDatabase, OrgRole, ProjectCostRow } from "@/lib/supabase/types";
+import type { OrganizationMemberRow, OrganizationRow } from "./types";
+
+type OrganizationMemberListItem = OrganizationMemberRow & {
+  user_email: string;
+  user_name: string;
+};
+
+type ProjectCollaboratorListItem = {
+  id: string;
+  user_id: string;
+  role: string;
+  joined_at: string | null;
+  user_email: string;
+  user_name: string;
+};
+
+type UserOrganizationListItem = {
+  id: string;
+  name: string;
+  slug: string;
+  role: OrgRole;
+  is_owner: boolean;
+  member_count: number;
+};
+
+type OrganizationSupabaseClient = SupabaseClient<OrganizationDatabase>;
+
+function getAdminSupabase(): OrganizationSupabaseClient {
+  return getBaseAdminSupabase() as unknown as OrganizationSupabaseClient;
+}
+
+async function getServerSupabase(): Promise<OrganizationSupabaseClient> {
+  return (await getBaseServerSupabase()) as unknown as OrganizationSupabaseClient;
+}
+
+type ActionSuccess<T> = [T] extends [undefined]
+  ? { ok: true; message?: string }
+  : { ok: true; data: T; message?: string };
 
 export type ActionResult<T = undefined> =
-  | { ok: true; data?: T; message?: string }
+  | ActionSuccess<T>
   | { ok: false; error: string; fieldErrors?: Record<string, string[]> };
 
 async function requireUserId(): Promise<string> {
@@ -43,6 +83,10 @@ function mapAccessError(err: OrgAccessError): string {
     default:
       return "An unexpected error occurred.";
   }
+}
+
+function isOrgAccessError(error: unknown): error is OrgAccessError {
+  return error instanceof Error && "code" in error;
 }
 
 // --- Create Organization -----------------------------------------------------
@@ -84,8 +128,8 @@ export async function createOrgAction(
     });
     return { ok: true, data: { id: result.org.id }, message: "Organization created." };
   } catch (e) {
-    if (e instanceof Error && "code" in e) {
-      return { ok: false, error: mapAccessError(e as any) };
+    if (isOrgAccessError(e)) {
+      return { ok: false, error: mapAccessError(e) };
     }
     return { ok: false, error: e instanceof Error ? e.message : "Could not create organization." };
   }
@@ -126,7 +170,7 @@ export async function updateOrgAction(
 
   try {
     const { requireOrgAccess } = await import("./server");
-    const supabase = await import("@/lib/supabase/server").then((m) => m.getServerSupabase());
+    const supabase = await getServerSupabase();
     await requireOrgAccess(await supabase, parsed.data.id, ["owner", "admin"]);
 
     const admin = getAdminSupabase();
@@ -136,8 +180,8 @@ export async function updateOrgAction(
     revalidatePath(`/dashboard/organizations/${parsed.data.id}`);
     return { ok: true, message: "Organization updated." };
   } catch (e) {
-    if (e instanceof Error && "code" in e) {
-      return { ok: false, error: mapAccessError(e as any) };
+    if (isOrgAccessError(e)) {
+      return { ok: false, error: mapAccessError(e) };
     }
     return { ok: false, error: e instanceof Error ? e.message : "Could not update organization." };
   }
@@ -161,7 +205,7 @@ export async function deleteOrgAction(
 
   try {
     const { requireOrgAccess } = await import("./server");
-    const supabase = await import("@/lib/supabase/server").then((m) => m.getServerSupabase());
+    const supabase = await getServerSupabase();
     await requireOrgAccess(await supabase, parsed.data.id, ["owner"]);
 
     const admin = getAdminSupabase();
@@ -170,20 +214,20 @@ export async function deleteOrgAction(
     revalidatePath("/dashboard/organizations");
     return { ok: true, message: "Organization deleted." };
   } catch (e) {
-    if (e instanceof Error && "code" in e) return { ok: false, error: mapAccessError(e as any) };
+    if (isOrgAccessError(e)) return { ok: false, error: mapAccessError(e) };
     return { ok: false, error: e instanceof Error ? e.message : "Could not delete organization." };
   }
 }
 
 // --- List Members ------------------------------------------------------------
 
-export async function listOrgMembersAction(orgId: string): Promise<ActionResult<{ members: any[] }>> {
+export async function listOrgMembersAction(orgId: string): Promise<ActionResult<{ members: OrganizationMemberListItem[] }>> {
   const userId = await requireUserId();
   const admin = getAdminSupabase();
 
   try {
     const { requireOrgAccess } = await import("./server");
-    const supabase = await import("@/lib/supabase/server").then((m) => m.getServerSupabase());
+    const supabase = await getServerSupabase();
     await requireOrgAccess(await supabase, orgId, ["owner", "admin", "member", "viewer"]);
 
     const admin = getAdminSupabase();
@@ -191,7 +235,7 @@ export async function listOrgMembersAction(orgId: string): Promise<ActionResult<
     const members = await listOrgMembers(admin, orgId);
     return { ok: true, data: { members } };
   } catch (e) {
-    if (e instanceof Error && "code" in e) return { ok: false, error: mapAccessError(e as any) };
+    if (isOrgAccessError(e)) return { ok: false, error: mapAccessError(e) };
     return { ok: false, error: e instanceof Error ? e.message : "Could not load members." };
   }
 }
@@ -223,7 +267,7 @@ export async function inviteOrgMemberAction(
 
   try {
     const { requireOrgAccess } = await import("./server");
-    const supabase = await import("@/lib/supabase/server").then((m) => m.getServerSupabase());
+    const supabase = await getServerSupabase();
     await requireOrgAccess(await supabase, parsed.data.orgId, ["owner", "admin"]);
 
     const admin = getAdminSupabase();
@@ -236,7 +280,7 @@ export async function inviteOrgMemberAction(
     revalidatePath(`/dashboard/organizations/${parsed.data.orgId}/members`);
     return { ok: true, data: { invitationId: invitation.id, token }, message: "Invitation sent." };
   } catch (e) {
-    if (e instanceof Error && "code" in e) return { ok: false, error: mapAccessError(e as any) };
+    if (isOrgAccessError(e)) return { ok: false, error: mapAccessError(e) };
     return { ok: false, error: e instanceof Error ? e.message : "Could not send invitation." };
   }
 }
@@ -264,7 +308,7 @@ export async function removeOrgMemberAction(
 
   try {
     const { requireOrgAccess } = await import("./server");
-    const supabase = await import("@/lib/supabase/server").then((m) => m.getServerSupabase());
+    const supabase = await getServerSupabase();
     await requireOrgAccess(await supabase, parsed.data.orgId, ["owner", "admin"]);
 
     const admin = getAdminSupabase();
@@ -273,7 +317,7 @@ export async function removeOrgMemberAction(
     revalidatePath(`/dashboard/organizations/${parsed.data.orgId}/members`);
     return { ok: true, message: "Member removed." };
   } catch (e) {
-    if (e instanceof Error && "code" in e) return { ok: false, error: mapAccessError(e as any) };
+    if (isOrgAccessError(e)) return { ok: false, error: mapAccessError(e) };
     return { ok: false, error: e instanceof Error ? e.message : "Could not remove member." };
   }
 }
@@ -301,7 +345,7 @@ export async function transferOwnershipAction(
 
   try {
     const { requireOrgAccess } = await import("./server");
-    const supabase = await import("@/lib/supabase/server").then((m) => m.getServerSupabase());
+    const supabase = await getServerSupabase();
     await requireOrgAccess(await supabase, parsed.data.orgId, ["owner"]);
 
     const admin = getAdminSupabase();
@@ -311,7 +355,7 @@ export async function transferOwnershipAction(
     revalidatePath(`/dashboard/organizations/${parsed.data.orgId}/members`);
     return { ok: true, message: "Ownership transferred." };
   } catch (e) {
-    if (e instanceof Error && "code" in e) return { ok: false, error: mapAccessError(e as any) };
+    if (isOrgAccessError(e)) return { ok: false, error: mapAccessError(e) };
     return { ok: false, error: e instanceof Error ? e.message : "Could not transfer ownership." };
   }
 }
@@ -351,7 +395,7 @@ export async function addProjectCollaboratorAction(
     revalidatePath(`/dashboard/projects/${parsed.data.projectId}/collaborators`);
     return { ok: true, message: "Collaborator added." };
   } catch (e) {
-    if (e instanceof Error && "code" in e) return { ok: false, error: mapAccessError(e as any) };
+    if (isOrgAccessError(e)) return { ok: false, error: mapAccessError(e) };
     return { ok: false, error: e instanceof Error ? e.message : "Could not add collaborator." };
   }
 }
@@ -376,12 +420,12 @@ export async function removeProjectCollaboratorAction(
     revalidatePath(`/dashboard/projects/${parsed.data.projectId}/collaborators`);
     return { ok: true, message: "Collaborator removed." };
   } catch (e) {
-    if (e instanceof Error && "code" in e) return { ok: false, error: mapAccessError(e as any) };
+    if (isOrgAccessError(e)) return { ok: false, error: mapAccessError(e) };
     return { ok: false, error: e instanceof Error ? e.message : "Could not remove collaborator." };
   }
 }
 
-export async function listProjectCollaboratorsAction(projectId: string): Promise<ActionResult<{ collaborators: any[] }>> {
+export async function listProjectCollaboratorsAction(projectId: string): Promise<ActionResult<{ collaborators: ProjectCollaboratorListItem[] }>> {
   const userId = await requireUserId();
   const admin = getAdminSupabase();
 
@@ -451,19 +495,20 @@ export async function addProjectCostAction(
       .select("id")
       .single();
 
-    if (error || !data) {
-      return { ok: false, error: error?.message ?? "Could not add cost." };
+    if (compErr || !compData) {
+      return { ok: false, error: compErr?.message ?? "Could not add cost." };
     }
 
     revalidatePath(`/dashboard/projects/${parsed.data.projectId}/profitability`);
-    return { ok: true, data: { id: (data as { id: string }).id }, message: "Cost added." };
+    return { ok: true, data: { id: compData.id }, message: "Cost added." };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : "Could not add cost." };
   }
 }
 
-export async function listProjectCostsAction(projectId: string): Promise<ActionResult<{ costs: any[] }>> {
+export async function listProjectCostsAction(projectId: string): Promise<ActionResult<{ costs: ProjectCostRow[] }>> {
   const userId = await requireUserId();
+  const admin = getAdminSupabase();
   // Verify user owns the project
   const { data: project } = await admin
     .from("projects")
@@ -484,7 +529,7 @@ export async function listProjectCostsAction(projectId: string): Promise<ActionR
 
     if (error) return { ok: false, error: error.message };
 
-    return { ok: true, data: { costs: (data ?? []) as any[] } };
+    return { ok: true, data: { costs: data ?? [] } };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : "Could not load costs." };
   }
@@ -588,7 +633,7 @@ export async function getOrgProfitabilityAction(orgId: string): Promise<ActionRe
 
   try {
     const { requireOrgAccess } = await import("./server");
-    const supabase = await import("@/lib/supabase/server").then((m) => m.getServerSupabase());
+    const supabase = await getServerSupabase();
     await requireOrgAccess(await supabase, orgId, ["owner", "admin"]);
 
     const { getOrgProfitability } = await import("./server");
@@ -601,7 +646,7 @@ export async function getOrgProfitabilityAction(orgId: string): Promise<ActionRe
 
 // --- List User's Organizations -----------------------------------------------
 
-export async function listUserOrganizationsAction(): Promise<ActionResult<{ organizations: any[] }>> {
+export async function listUserOrganizationsAction(): Promise<ActionResult<{ organizations: UserOrganizationListItem[] }>> {
   const userId = await requireUserId();
   const admin = getAdminSupabase();
 
@@ -616,14 +661,23 @@ export async function listUserOrganizationsAction(): Promise<ActionResult<{ orga
 
 // --- Get Org Details ---------------------------------------------------------
 
-export async function getOrgDetailsAction(orgId: string): Promise<ActionResult<{ org: any; member_count: number; user_role: string; is_owner: boolean }>> {
+export async function getOrgDetailsAction(orgId: string): Promise<ActionResult<{
+  org: OrganizationRow;
+  member_count: number;
+  user_role: OrgRole;
+  is_owner: boolean;
+}>> {
   const userId = await requireUserId();
   const admin = getAdminSupabase();
 
   try {
+    const { requireOrgAccess } = await import("./server");
+    const supabase = await getServerSupabase();
+    await requireOrgAccess(supabase, orgId, ["owner", "admin", "member", "viewer"]);
+
     const { getOrgWithDetails } = await import("./server");
     const details = await getOrgWithDetails(admin, orgId, userId);
-    if (!details) return { ok: false, error: "Organization not found." };
+    if (!details?.user_role) return { ok: false, error: "Organization not found." };
     return { ok: true, data: { org: details.org, member_count: details.member_count, user_role: details.user_role, is_owner: details.is_owner } };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : "Could not load organization." };

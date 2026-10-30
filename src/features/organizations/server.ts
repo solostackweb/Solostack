@@ -1,23 +1,9 @@
 import "server-only";
 
-import { createClient, type SupabaseClient } from "@supabase/supabase-js";
-import { env } from "@/config/env";
-import type { Database } from "@/lib/supabase/types";
-import type { OrgRole, OrganizationRow, OrganizationMemberRow, OrganizationInvitationRow, ProjectMemberRole } from "./types";
-
-let adminClient: SupabaseClient<Database> | null = null;
-
-function getAdmin(): SupabaseClient<Database> {
-  if (adminClient) return adminClient;
-  adminClient = createClient<Database>(
-    env.supabaseUrl,
-    env.supabaseServiceRoleKey,
-    {
-      auth: { autoRefreshToken: false, persistSession: false },
-    },
-  );
-  return adminClient;
-}
+import { randomBytes } from "node:crypto";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { OrganizationDatabase, OrgRole, ProjectMemberRole } from "@/lib/supabase/types";
+import type { OrganizationRow, OrganizationMemberRow, OrganizationInvitationRow } from "./types";
 
 const ORG_SLUG_REGEX = /^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$/;
 
@@ -33,7 +19,7 @@ export class OrgAccessError extends Error {
 
 /** Verify the caller has the required org role. */
 export async function requireOrgAccess(
-  supabase: SupabaseClient<Database>,
+  supabase: SupabaseClient<OrganizationDatabase>,
   organizationId: string,
   requiredRoles: OrgRole[] = ["owner", "admin", "member"],
 ): Promise<{ userId: string; role: OrgRole }> {
@@ -59,7 +45,7 @@ export async function requireOrgAccess(
 
 /** Check if user is org member (active). */
 export async function isOrgMember(
-  admin: SupabaseClient<Database>,
+  admin: SupabaseClient<OrganizationDatabase>,
   orgId: string,
   userId: string,
 ): Promise<boolean> {
@@ -69,7 +55,7 @@ export async function isOrgMember(
 
 /** Check if user has org role. */
 export async function hasOrgRole(
-  admin: SupabaseClient<Database>,
+  admin: SupabaseClient<OrganizationDatabase>,
   orgId: string,
   userId: string,
   roles: OrgRole[],
@@ -90,7 +76,7 @@ export function validateSlug(slug: string): { valid: boolean; error?: string } {
 }
 
 /** Generate a unique slug from a name. */
-export async function generateUniqueSlug(admin: SupabaseClient<Database>, base: string): Promise<string> {
+export async function generateUniqueSlug(admin: SupabaseClient<OrganizationDatabase>, base: string): Promise<string> {
   const baseSlug = base
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
@@ -102,41 +88,38 @@ export async function generateUniqueSlug(admin: SupabaseClient<Database>, base: 
 
 /** Get user's organizations (active). */
 export async function getUserOrganizations(
-  admin: SupabaseClient<Database>,
+  admin: SupabaseClient<OrganizationDatabase>,
   userId: string,
 ): Promise<Array<{ id: string; name: string; slug: string; role: OrgRole; is_owner: boolean; member_count: number }>> {
-  const { data } = await admin
+  const { data: memberships } = await admin
     .from("organization_members")
-    .select(`
-      role,
-      organization_id,
-      organizations!inner (
-        id,
-        name,
-        slug,
-        owner_user_id,
-        created_at
-      )
-    `)
+    .select("role, organization_id")
     .eq("user_id", userId)
     .not("joined_at", "is", null)
-    .is("revoked_at", null)
+    .is("revoked_at", null);
+
+  if (!memberships?.length) return [];
+
+  const roleByOrgId = new Map(memberships.map((membership) => [membership.organization_id, membership.role]));
+  const { data: organizations } = await admin
+    .from("organizations")
+    .select("id, name, slug, owner_user_id, created_at")
+    .in("id", memberships.map((membership) => membership.organization_id))
+    .is("deleted_at", null)
     .order("created_at", { ascending: false });
 
-  if (!data) return [];
-
-  return data.map((row) => ({
-    id: row.organizations.id,
-    name: row.organizations.name,
-    slug: row.organizations.slug,
-    role: row.role as OrgRole,
-    is_owner: row.organizations.owner_user_id === userId,
+  return (organizations ?? []).map((organization) => ({
+    id: organization.id,
+    name: organization.name,
+    slug: organization.slug,
+    role: roleByOrgId.get(organization.id) as OrgRole,
+    is_owner: organization.owner_user_id === userId,
     member_count: 0, // populated separately if needed
   }));
 }
 
 /** Get organization by slug. */
-export async function getOrgBySlug(admin: SupabaseClient<Database>, slug: string): Promise<OrganizationRow | null> {
+export async function getOrgBySlug(admin: SupabaseClient<OrganizationDatabase>, slug: string): Promise<OrganizationRow | null> {
   const { data } = await admin
     .from("organizations")
     .select("*")
@@ -147,7 +130,7 @@ export async function getOrgBySlug(admin: SupabaseClient<Database>, slug: string
 }
 
 /** Get organization by id. */
-export async function getOrgById(admin: SupabaseClient<Database>, id: string): Promise<OrganizationRow | null> {
+export async function getOrgById(admin: SupabaseClient<OrganizationDatabase>, id: string): Promise<OrganizationRow | null> {
   const { data } = await admin
     .from("organizations")
     .select("*")
@@ -159,7 +142,7 @@ export async function getOrgById(admin: SupabaseClient<Database>, id: string): P
 
 /** Get organization with member count and user's role. */
 export async function getOrgWithDetails(
-  admin: SupabaseClient<Database>,
+  admin: SupabaseClient<OrganizationDatabase>,
   orgId: string,
   userId: string,
 ): Promise<{ org: OrganizationRow; member_count: number; user_role: OrgRole | null; is_owner: boolean } | null> {
@@ -196,7 +179,7 @@ export async function getOrgWithDetails(
 
 /** Create a new organization. */
 export async function createOrganization(
-  admin: SupabaseClient<Database>,
+  admin: SupabaseClient<OrganizationDatabase>,
   userId: string,
   input: { name: string; slug?: string },
 ): Promise<{ org: OrganizationRow; member: { id: string; role: OrgRole } }> {
@@ -248,13 +231,15 @@ export async function createOrganization(
 
 /** Update organization. */
 export async function updateOrganization(
-  admin: SupabaseClient<Database>,
+  admin: SupabaseClient<OrganizationDatabase>,
   orgId: string,
   patch: Partial<Pick<OrganizationRow, "name" | "brand_color" | "brand_tagline" | "logo_url" | "settings">>,
 ): Promise<OrganizationRow> {
   const { data, error } = await admin
     .from("organizations")
-    .update(patch)
+    .update(
+      patch as unknown as OrganizationDatabase["public"]["Tables"]["organizations"]["Update"],
+    )
     .eq("id", orgId)
     .is("deleted_at", null)
     .select("*")
@@ -265,7 +250,7 @@ export async function updateOrganization(
 }
 
 /** Soft-delete organization. */
-export async function deleteOrganization(admin: SupabaseClient<Database>, orgId: string): Promise<void> {
+export async function deleteOrganization(admin: SupabaseClient<OrganizationDatabase>, orgId: string): Promise<void> {
   const { error } = await admin
     .from("organizations")
     .update({ deleted_at: new Date().toISOString() })
@@ -275,29 +260,35 @@ export async function deleteOrganization(admin: SupabaseClient<Database>, orgId:
 
 /** List organization members. */
 export async function listOrgMembers(
-  admin: SupabaseClient<Database>,
+  admin: SupabaseClient<OrganizationDatabase>,
   orgId: string,
 ): Promise<Array<OrganizationMemberRow & { user_email: string; user_name: string }>> {
   const { data } = await admin
     .from("organization_members")
-    .select(`
-      *,
-      user:auth.users!inner (email, raw_user_meta_data)
-    `)
+    .select("*")
     .eq("organization_id", orgId)
     .order("role", { ascending: true })
     .order("joined_at", { ascending: true });
 
-  return (data ?? []).map((row) => ({
+  const members = data ?? [];
+  const { data: profiles } = members.length
+    ? await admin
+        .from("user_profiles")
+        .select("id, email, full_name")
+        .in("id", members.map((member) => member.user_id))
+    : { data: [] };
+  const profileById = new Map((profiles ?? []).map((profile) => [profile.id, profile]));
+
+  return members.map((row) => ({
     ...row,
-    user_email: (row as any).user?.email ?? "",
-    user_name: (row as any).user?.raw_user_meta_data?.full_name ?? (row as any).user?.raw_user_meta_data?.display_name ?? "",
+    user_email: profileById.get(row.user_id)?.email ?? "",
+    user_name: profileById.get(row.user_id)?.full_name ?? "",
   })) as Array<OrganizationMemberRow & { user_email: string; user_name: string }>;
 }
 
 /** Invite user to organization. */
 export async function inviteOrgMember(
-  admin: SupabaseClient<Database>,
+  admin: SupabaseClient<OrganizationDatabase>,
   orgId: string,
   invitedBy: string,
   input: { email: string; role: OrgRole },
@@ -317,7 +308,7 @@ export async function inviteOrgMember(
   }
 
   // Generate token
-  const token = crypto.randomBytes(32).toString("hex");
+  const token = randomBytes(32).toString("hex");
   const tokenHash = await hashToken(token);
 
   const { data: invitation, error } = await admin
@@ -343,7 +334,7 @@ export async function inviteOrgMember(
 
 /** Accept organization invitation. */
 export async function acceptOrgInvitation(
-  admin: SupabaseClient<Database>,
+  admin: SupabaseClient<OrganizationDatabase>,
   userId: string,
   token: string,
 ): Promise<{ alreadyMember: boolean; organization_id: string }> {
@@ -409,7 +400,7 @@ const { data: invitation, error: invitationError } = await admin
 
 /** Remove member from organization. */
 export async function removeOrgMember(
-  admin: SupabaseClient<Database>,
+  admin: SupabaseClient<OrganizationDatabase>,
   orgId: string,
   targetUserId: string,
   actorId: string,
@@ -426,12 +417,13 @@ export async function removeOrgMember(
   }
 
   if (actorId === targetUserId) {
-    const { data: ownerCount } = await admin
+    const { count: ownerCount } = await admin
       .from("organization_members")
       .select("id", { count: "exact", head: true })
       .eq("organization_id", orgId)
       .eq("role", "owner")
-      .not("revoked_at", "is", null);
+      .not("joined_at", "is", null)
+      .is("revoked_at", null);
 
     if ((ownerCount ?? 0) <= 1) {
       throw new OrgAccessError("forbidden", "Cannot remove the last owner. Transfer ownership first.");
@@ -447,7 +439,7 @@ export async function removeOrgMember(
 
 /** Transfer ownership. */
 export async function transferOwnership(
-  admin: SupabaseClient<Database>,
+  admin: SupabaseClient<OrganizationDatabase>,
   orgId: string,
   newOwnerId: string,
   actorId: string,
@@ -513,7 +505,7 @@ async function hashToken(token: string): Promise<string> {
 // =============================================================================
 
 export async function addProjectMember(
-  admin: SupabaseClient<Database>,
+  admin: SupabaseClient<OrganizationDatabase>,
   projectId: string,
   actorId: string,
   input: { userId: string; role: ProjectMemberRole },
@@ -544,7 +536,7 @@ export async function addProjectMember(
 }
 
 export async function removeProjectMember(
-  admin: SupabaseClient<Database>,
+  admin: SupabaseClient<OrganizationDatabase>,
   projectId: string,
   actorId: string,
   targetUserId: string,
@@ -567,31 +559,37 @@ export async function removeProjectMember(
 }
 
 export async function listProjectMembers(
-  admin: SupabaseClient<Database>,
+  admin: SupabaseClient<OrganizationDatabase>,
   projectId: string,
 ): Promise<Array<{ id: string; user_id: string; role: string; joined_at: string | null; user_email: string; user_name: string }>> {
   const { data } = await admin
     .from("project_members")
-    .select(`
-      id, user_id, role, joined_at,
-      user:auth.users!inner (email, raw_user_meta_data)
-    `)
+    .select("id, user_id, role, joined_at")
     .eq("project_id", projectId)
     .is("revoked_at", null);
 
-  return (data ?? []).map((row) => ({
+  const members = data ?? [];
+  const { data: profiles } = members.length
+    ? await admin
+        .from("user_profiles")
+        .select("id, email, full_name")
+        .in("id", members.map((member) => member.user_id))
+    : { data: [] };
+  const profileById = new Map((profiles ?? []).map((profile) => [profile.id, profile]));
+
+  return members.map((row) => ({
     id: row.id,
     user_id: row.user_id,
     role: row.role,
     joined_at: row.joined_at,
-    user_email: (row as any).user?.email ?? "",
-    user_name: (row as any).user?.raw_user_meta_data?.full_name ?? (row as any).user?.raw_user_meta_data?.display_name ?? "",
+    user_email: profileById.get(row.user_id)?.email ?? "",
+    user_name: profileById.get(row.user_id)?.full_name ?? "",
   }));
 }
 
 /** Calculate project profitability: revenue - costs. */
 export async function calculateProjectProfitability(
-  admin: SupabaseClient<Database>,
+  admin: SupabaseClient<OrganizationDatabase>,
   projectId: string,
 ): Promise<{
   revenue: number;
@@ -660,7 +658,7 @@ export async function calculateProjectProfitability(
 
 /** Get org-level profitability across all projects. */
 export async function getOrgProfitability(
-  admin: SupabaseClient<Database>,
+  admin: SupabaseClient<OrganizationDatabase>,
   orgId: string,
 ): Promise<{
   totalRevenue: number;
@@ -713,6 +711,7 @@ export async function getOrgProfitability(
 
   const revenueByProject: Record<string, number> = {};
   for (const inv of invoices ?? []) {
+    if (!inv.project_id) continue;
     revenueByProject[inv.project_id] = (revenueByProject[inv.project_id] ?? 0) + Number(inv.total_amount ?? 0);
   }
 

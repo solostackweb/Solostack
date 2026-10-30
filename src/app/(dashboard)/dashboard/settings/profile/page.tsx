@@ -23,11 +23,11 @@ import { useProfile } from "@/features/profile/context";
 import type { BusinessProfile } from "@/features/onboarding/types";
 import { getBrowserSupabase } from "@/lib/supabase/client";
 import {
+  getCurrentPublicProfileStats,
   updateLocalization,
   updatePersonalProfile,
   updateSignature,
 } from "@/features/profile/actions";
-import { getPublicProfileStats, PublicProfileStats } from "@/features/profile/public-profile-server";
 import { FreelancerSignatureCard } from "@/features/profile/components/freelancer-signature-card";
 import { AccountSecurityCard } from "@/features/settings/components/account-security-card";
 import type {
@@ -278,7 +278,7 @@ export default function ProfileSettingsPage() {
         </SettingsSection>
       </div>
 
-<AccountSecurityCard />
+      <AccountSecurityCard />
 
       {/* Reputation analytics */}
       <ReputationAnalyticsCard profile={profile} />
@@ -288,12 +288,14 @@ export default function ProfileSettingsPage() {
 
 /** Reputation analytics dashboard — shows review velocity, rating trends, and delivery performance. */
 function ReputationAnalyticsCard({ profile }: { profile: BusinessProfile | null }) {
-  const [stats, setStats] = React.useState<PublicProfileStats | null>(null);
+  const [stats, setStats] = React.useState<
+    Awaited<ReturnType<typeof getCurrentPublicProfileStats>>
+  >(null);
 
   React.useEffect(() => {
     if (!profile?.userId) return;
     ;(async () => {
-      const data = await getPublicProfileStats(profile.userId);
+      const data = await getCurrentPublicProfileStats();
       if (data) setStats(data);
     })();
   }, [profile?.userId]);

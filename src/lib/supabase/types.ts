@@ -89,7 +89,8 @@ export type ActivityEntityType =
   | "time_entry"
   | "file"
   | "system"
-  | "recurring_invoice";
+  | "recurring_invoice"
+  | "organization";
 
 export type SubscriptionStatusRow =
   | "trialing"
@@ -1602,6 +1603,14 @@ export interface PortalWelcomeDocumentRow {
   added_at: string;
 }
 
+export interface PortalProjectRow {
+  portal_id: string;
+  project_id: string;
+  added_at: string;
+  added_by: string;
+  review_invited_at: string | null;
+}
+
 // --- Referral system (0035) -------------------------------------------------
 
 export type ReferralStatus = "pending" | "completed" | "cancelled";
@@ -1694,6 +1703,7 @@ export interface Database {
         Row: UserProfileRow;
         Insert: Partial<UserProfileRow> & Pick<UserProfileRow, "id" | "full_name" | "email">;
         Update: Partial<UserProfileRow>;
+        Relationships: [];
       };
       clients: {
         Row: ClientRow;
@@ -1706,6 +1716,7 @@ export interface Database {
         Insert: Partial<ProjectRow> &
           Pick<ProjectRow, "user_id" | "name">;
         Update: Partial<ProjectRow>;
+        Relationships: [];
       };
       lead_forms: {
         Row: LeadFormRow;
@@ -1742,6 +1753,7 @@ export interface Database {
             | "total_amount"
           >;
         Update: Partial<InvoiceRow>;
+        Relationships: [];
       };
       invoice_items: {
         Row: InvoiceItemRow;
@@ -2065,6 +2077,14 @@ export interface Database {
         Insert: Partial<PortalRow> &
           Pick<PortalRow, "owner_user_id" | "name" | "organization_id">;
         Update: Partial<PortalRow>;
+        Relationships: [];
+      };
+      portal_projects: {
+        Row: PortalProjectRow;
+        Insert: Partial<PortalProjectRow> &
+          Pick<PortalProjectRow, "portal_id" | "project_id" | "added_by">;
+        Update: Partial<PortalProjectRow>;
+        Relationships: [];
       };
       portal_members: {
         Row: PortalMemberRow;
@@ -2217,36 +2237,42 @@ recurring_invoices: {
     Insert: Partial<RecurringInvoiceRow> &
       Pick<RecurringInvoiceRow, "user_id" | "client_id" | "frequency" | "start_date" | "items">;
     Update: Partial<RecurringInvoiceRow>;
+    Relationships: [];
   };
   organizations: {
     Row: OrganizationRow;
     Insert: Partial<OrganizationRow> &
       Pick<OrganizationRow, "name" | "slug" | "owner_user_id">;
     Update: Partial<OrganizationRow>;
+    Relationships: [];
   };
   organization_members: {
     Row: OrganizationMemberRow;
     Insert: Partial<OrganizationMemberRow> &
-      Pick<OrganizationMemberRow, "organization_id" | "user_id" | "role" | "cost_rate">;
+      Pick<OrganizationMemberRow, "organization_id" | "user_id" | "role">;
     Update: Partial<OrganizationMemberRow>;
+    Relationships: [];
   };
   organization_invitations: {
     Row: OrganizationInvitationRow;
     Insert: Partial<OrganizationInvitationRow> &
       Pick<OrganizationInvitationRow, "organization_id" | "email" | "role" | "token_hash" | "invited_by" | "expires_at">;
     Update: Partial<OrganizationInvitationRow>;
+    Relationships: [];
   };
   project_members: {
     Row: ProjectMemberRow;
     Insert: Partial<ProjectMemberRow> &
       Pick<ProjectMemberRow, "project_id" | "user_id" | "role">;
     Update: Partial<ProjectMemberRow>;
+    Relationships: [];
   };
   project_costs: {
     Row: ProjectCostRow;
     Insert: Partial<ProjectCostRow> &
       Pick<ProjectCostRow, "project_id" | "user_id" | "amount" | "currency">;
     Update: Partial<ProjectCostRow>;
+    Relationships: [];
   };
 };
 Views: {
@@ -2281,8 +2307,91 @@ Functions: {
       };
       Returns: string;
     };
+    is_org_member: {
+      Args: {
+        p_org_id: string;
+        p_user_id: string;
+      };
+      Returns: boolean;
+    };
+    has_org_role: {
+      Args: {
+        p_org_id: string;
+        p_user_id: string;
+        p_roles: OrgRole[];
+      };
+      Returns: boolean;
+    };
+    is_project_member: {
+      Args: {
+        p_project_id: string;
+        p_user_id: string;
+      };
+      Returns: boolean;
+    };
   };
   Enums: Record<string, never>;
   CompositeTypes: Record<string, never>;
 };
 }
+
+type TypedTables<Tables> = {
+  [Name in keyof Tables]: Tables[Name] extends {
+    Row: infer Row;
+    Insert: infer Insert;
+    Update: infer Update;
+  }
+    ? Omit<Tables[Name], "Row" | "Insert" | "Update" | "Relationships"> & {
+        Row: Row & Record<string, unknown>;
+        Insert: Insert & Record<string, unknown>;
+        Update: Update & Record<string, unknown>;
+        Relationships: [];
+      }
+    : Tables[Name] extends { Row: infer Row }
+      ? Omit<Tables[Name], "Row" | "Relationships"> & {
+          Row: Row & Record<string, unknown>;
+          Relationships: [];
+        }
+      : never;
+};
+
+type TypedFunctions<Functions> = {
+  [Name in keyof Functions]: Functions[Name] extends {
+    Args: infer Args;
+    Returns: infer Returns;
+  }
+    ? Omit<Functions[Name], "Args" | "Returns"> & {
+        Args: Args & Record<string, unknown>;
+        Returns: Returns;
+      }
+    : never;
+};
+
+export type OrganizationDatabase = {
+  public: {
+    Tables: TypedTables<
+      Pick<
+        Database["public"]["Tables"],
+        | "organization_members"
+        | "organizations"
+        | "organization_invitations"
+        | "projects"
+        | "project_members"
+        | "invoices"
+        | "project_costs"
+        | "user_profiles"
+        | "portals"
+        | "portal_projects"
+      >
+    >;
+    Views: Record<string, never>;
+    Functions: TypedFunctions<
+      Pick<
+        Database["public"]["Functions"],
+        "is_org_member" | "has_org_role" | "is_project_member"
+      >
+    >;
+    Enums: Record<string, never>;
+    CompositeTypes: Record<string, never>;
+  };
+};

@@ -15,7 +15,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { UserPlus, Users, Building2, DollarSign, Trash2, Settings, Loader2, Save } from "lucide-react";
 import { toast } from "sonner";
-import { listOrgMembersAction, inviteOrgMemberAction, removeOrgMemberAction, getProjectProfitabilityAction, listProjectCostsAction, addProjectCostAction, deleteProjectCostAction } from "@/features/organizations/actions";
+import { listOrgMembersAction, inviteOrgMemberAction, removeOrgMemberAction, getOrgProfitabilityAction, listProjectCostsAction, addProjectCostAction, deleteProjectCostAction } from "@/features/organizations/actions";
 
 interface MemberType {
   id: string;
@@ -99,7 +99,7 @@ export function OrganizationDetailClient({ initialData, orgId }: OrganizationDet
 
   const loadProfitability = useCallback(async () => {
     setProfitabilityLoading(true);
-    const result = await getProjectProfitabilityAction(orgId);
+    const result = await getOrgProfitabilityAction(orgId);
     if (result.ok && result.data) setProfitability(result.data);
     setProfitabilityLoading(false);
   }, [orgId]);

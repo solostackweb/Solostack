@@ -1,3 +1,5 @@
+import "server-only";
+
 import { getAdminSupabase } from "@/lib/supabase/admin";
 
 export interface PublicProfileData {

@@ -402,6 +402,26 @@ as $$
   );
 $$;
 
+-- Keep activity tracking aligned with the entity types emitted by the app.
+alter table public.activity_events
+  drop constraint if exists activity_events_entity_type_check;
+
+alter table public.activity_events
+  add constraint activity_events_entity_type_check
+  check (entity_type in (
+    'project',
+    'client',
+    'proposal',
+    'invoice',
+    'contract',
+    'welcome_document',
+    'time_entry',
+    'file',
+    'system',
+    'recurring_invoice',
+    'organization'
+  ));
+
 -- =============================================================================
 -- Auto-create personal org on user signup (via trigger)
 -- =============================================================================

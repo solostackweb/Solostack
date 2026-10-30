@@ -37,6 +37,7 @@ import {
   type TaxInfoInput,
 } from "./schemas";
 import { getProfile } from "./server";
+import { getPublicProfileStats } from "./public-profile-server";
 
 export type ActionResult<T = undefined> =
   | { ok: true; data?: T; message?: string }
@@ -52,6 +53,11 @@ async function requireUserId(): Promise<string> {
   } = await supabase.auth.getUser();
   if (!user) redirect(AUTH_LOGIN_ROUTE);
   return user.id;
+}
+
+export async function getCurrentPublicProfileStats() {
+  const userId = await requireUserId();
+  return getPublicProfileStats(userId);
 }
 
 function flatErrors<T>(result: { error: { flatten(): { fieldErrors: Record<string, string[]> } } }): ActionResult<T> {
