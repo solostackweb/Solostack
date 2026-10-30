@@ -66,6 +66,18 @@ const nextConfig: NextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
   outputFileTracingRoot: process.cwd(),
+  turbopack: {
+    resolveAlias: {
+      zod: "zod/v3",
+    },
+  },
+  webpack(config) {
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      "zod$": "zod/v3",
+    };
+    return config;
+  },
 
   /**
    * Ship the marketing knowledge pages (docs / privacy / terms) into the

@@ -33,6 +33,13 @@ async function tryCandidates(base, context, nextResolve) {
 export async function resolve(specifier, context, nextResolve) {
   const hasExtension = /\.[a-z]+$/.test(specifier);
 
+  // Zod 4 contains a maintained v3 compatibility entry point. The app can
+  // receive Zod 4 security fixes without changing its existing validation
+  // semantics until the full v4 migration is scheduled.
+  if (specifier === "zod") {
+    return nextResolve("zod/v3", context);
+  }
+
   // `@/foo/bar` -> `<repo>/src/foo/bar`, matching tsconfig `paths`.
   if (specifier.startsWith("@/")) {
     const target = pathToFileURL(path.join(SRC, specifier.slice(2))).href;
