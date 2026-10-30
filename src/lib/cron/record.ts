@@ -18,6 +18,7 @@ export type CronJob =
   | "invoices-due-soon"
   | "invoices-overdue"
   | "meeting-reminders"
+  | "ivo-digest"
   | "calendar-watch-renew"
   | "subscription-renewals"
   | "admin-export"

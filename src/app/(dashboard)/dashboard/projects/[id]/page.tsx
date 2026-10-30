@@ -11,6 +11,7 @@ import { listInvoices } from "@/features/invoices/server";
 import { listProposals } from "@/features/proposals/server";
 import { listContracts } from "@/features/contracts/server";
 import { listWelcomeDocuments } from "@/features/welcome-documents/server";
+import { listProjectCostsAction, getProjectProfitabilityAction } from "@/features/organizations/actions";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -37,6 +38,8 @@ export default async function ProjectDetailPage({ params }: PageProps) {
     welcomeDocs,
     clients,
     statusHistory,
+    costsResult,
+    profitabilityResult,
   ] = await Promise.all([
     project.clientId ? getClient(project.clientId) : Promise.resolve(null),
     listInvoices({ projectId: project.id, limit: 50 }),
@@ -45,7 +48,12 @@ export default async function ProjectDetailPage({ params }: PageProps) {
     listWelcomeDocuments({ projectId: project.id }),
     listClients({ limit: 200 }),
     listProjectStatusHistory(project.id, 50),
+    listProjectCostsAction(project.id),
+    getProjectProfitabilityAction(project.id),
   ]);
+
+  const costs = costsResult.ok && costsResult.data ? costsResult.data.costs : [];
+  const profitability = profitabilityResult.ok && profitabilityResult.data ? profitabilityResult.data : null;
 
   return (
     <ProjectDetailView
@@ -85,6 +93,8 @@ export default async function ProjectDetailPage({ params }: PageProps) {
         currency: c.currency,
       }))}
       statusHistory={statusHistory}
+      costs={costsResult.ok ? costsResult.data.costs : []}
+      profitability={profitabilityResult.ok ? profitabilityResult.data : null}
     />
   );
 }

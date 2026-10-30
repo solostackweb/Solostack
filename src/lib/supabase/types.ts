@@ -101,6 +101,11 @@ export type SubscriptionStatusRow =
 
 export type SubscriptionPlanRow = "free" | "pro" | "business";
 
+// --- Organization / Team enums ----------------------------------------------
+
+export type OrgRole = "owner" | "admin" | "member" | "viewer";
+export type ProjectMemberRole = "lead" | "member" | "viewer";
+
 // --- Table row types --------------------------------------------------------
 
 export type BusinessType =
@@ -1312,6 +1317,7 @@ export interface PortalRow {
   owner_user_id: string;
   name: string;
   client_id: string | null;
+  organization_id: string | null;
   brand_color: string | null;
   status: PortalStatus;
   welcome_video_url: string | null;
@@ -1608,6 +1614,75 @@ export interface ReferralEventRow {
   reward_months: number;
   created_at: string;
   completed_at: string | null;
+}
+
+// --- Organizations / Teams (0098) --------------------------------------------
+
+export interface OrganizationRow {
+  id: string;
+  name: string;
+  slug: string;
+  owner_user_id: string;
+  brand_color: string | null;
+  brand_tagline: string | null;
+  logo_url: string | null;
+  settings: Json;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
+}
+
+export interface OrganizationMemberRow {
+  id: string;
+  organization_id: string;
+  user_id: string;
+  role: OrgRole;
+  cost_rate: number;
+  invited_by: string | null;
+  invited_at: string;
+  joined_at: string | null;
+  revoked_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface OrganizationInvitationRow {
+  id: string;
+  organization_id: string;
+  email: string;
+  role: OrgRole;
+  token_hash: string;
+  invited_by: string;
+  expires_at: string;
+  accepted_at: string | null;
+  accepted_by: string | null;
+  created_at: string;
+}
+
+export interface ProjectMemberRow {
+  id: string;
+  project_id: string;
+  user_id: string;
+  role: ProjectMemberRole;
+  invited_by: string | null;
+  invited_at: string;
+  joined_at: string | null;
+  revoked_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ProjectCostRow {
+  id: string;
+  project_id: string;
+  user_id: string;
+  description: string | null;
+  amount: number;
+  currency: string;
+  cost_date: string;
+  category: string | null;
+  created_at: string;
+  updated_at: string;
 }
 
 // --- `Database` shape matching what `createClient<Database>()` expects ------
@@ -1988,7 +2063,7 @@ export interface Database {
       portals: {
         Row: PortalRow;
         Insert: Partial<PortalRow> &
-          Pick<PortalRow, "owner_user_id" | "name">;
+          Pick<PortalRow, "owner_user_id" | "name" | "organization_id">;
         Update: Partial<PortalRow>;
       };
       portal_members: {
@@ -2142,6 +2217,36 @@ recurring_invoices: {
     Insert: Partial<RecurringInvoiceRow> &
       Pick<RecurringInvoiceRow, "user_id" | "client_id" | "frequency" | "start_date" | "items">;
     Update: Partial<RecurringInvoiceRow>;
+  };
+  organizations: {
+    Row: OrganizationRow;
+    Insert: Partial<OrganizationRow> &
+      Pick<OrganizationRow, "name" | "slug" | "owner_user_id">;
+    Update: Partial<OrganizationRow>;
+  };
+  organization_members: {
+    Row: OrganizationMemberRow;
+    Insert: Partial<OrganizationMemberRow> &
+      Pick<OrganizationMemberRow, "organization_id" | "user_id" | "role" | "cost_rate">;
+    Update: Partial<OrganizationMemberRow>;
+  };
+  organization_invitations: {
+    Row: OrganizationInvitationRow;
+    Insert: Partial<OrganizationInvitationRow> &
+      Pick<OrganizationInvitationRow, "organization_id" | "email" | "role" | "token_hash" | "invited_by" | "expires_at">;
+    Update: Partial<OrganizationInvitationRow>;
+  };
+  project_members: {
+    Row: ProjectMemberRow;
+    Insert: Partial<ProjectMemberRow> &
+      Pick<ProjectMemberRow, "project_id" | "user_id" | "role">;
+    Update: Partial<ProjectMemberRow>;
+  };
+  project_costs: {
+    Row: ProjectCostRow;
+    Insert: Partial<ProjectCostRow> &
+      Pick<ProjectCostRow, "project_id" | "user_id" | "amount" | "currency">;
+    Update: Partial<ProjectCostRow>;
   };
 };
 Views: {

@@ -48,6 +48,12 @@ import {
   deleteProjectAction,
   setProjectStatusAction,
 } from "../actions";
+import {
+  listProjectCostsAction,
+  addProjectCostAction,
+  deleteProjectCostAction,
+  getProjectProfitabilityAction,
+} from "@/features/organizations/actions";
 import { createProposalFromTemplateRedirectAction } from "@/features/proposals/actions";
 
 export interface LinkedInvoice {
@@ -82,6 +88,28 @@ export interface LinkedWelcome {
   status: string;
 }
 
+interface ProjectCost {
+  id: string;
+  project_id: string;
+  user_id: string;
+  description: string | null;
+  amount: number;
+  currency: string;
+  cost_date: string;
+  category: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+interface ProjectProfitability {
+  revenue: number;
+  costs: number;
+  profit: number;
+  margin: number;
+  costsByCategory: Record<string, number>;
+  costsByMember: Record<string, { name: string; email: string; total: number }>;
+}
+
 interface ProjectDetailViewProps {
   project: ProjectRecord;
   client: ClientRecord | null;
@@ -90,8 +118,20 @@ interface ProjectDetailViewProps {
   contracts: LinkedContract[];
   welcomeDocs: LinkedWelcome[];
   clients: Array<{ id: string; name: string; currency?: string | null }>;
-  /** Newest-first list of status changes for this project. */
   statusHistory: ProjectStatusHistoryEntry[];
+  costs: Array<{
+    id: string;
+    project_id: string;
+    user_id: string;
+    description: string | null;
+    amount: number;
+    currency: string;
+    cost_date: string;
+    category: string | null;
+    created_at: string;
+    updated_at: string;
+  }>;
+  profitability: ProjectProfitability | null;
 }
 
 /**
@@ -108,6 +148,8 @@ export function ProjectDetailView({
   welcomeDocs,
   clients,
   statusHistory,
+  costs,
+  profitability,
 }: ProjectDetailViewProps) {
   const router = useRouter();
   const welcomeNewHref = `/dashboard/welcome/new?projectId=${project.id}${
@@ -286,304 +328,336 @@ export function ProjectDetailView({
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,320px)]">
         <div className="space-y-6">
-        <Card>
-          <CardContent className="space-y-4 p-6">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <h2 className="text-base font-semibold">
-                  Proposals · {proposals.length}
-                </h2>
-                <p className="text-xs text-muted-foreground">
-                  Package scope and pricing before a contract.
-                </p>
+          <Card>
+            <CardContent className="space-y-4 p-6">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <h2 className="text-base font-semibold">
+                    Proposals · {proposals.length}
+                  </h2>
+                  <p className="text-xs text-muted-foreground">
+                    Package scope and pricing before a contract.
+                  </p>
+                </div>
+                <NewProposalButton
+                  projectId={project.id}
+                  clientId={project.clientId}
+                  currency={client?.currency}
+                  projectName={project.name}
+                  label="New"
+                />
               </div>
-              <NewProposalButton
-                projectId={project.id}
-                clientId={project.clientId}
-                currency={client?.currency}
-                projectName={project.name}
-                label="New"
-              />
-            </div>
 
-            {proposals.length === 0 ? (
-              <EmptyState
-                icon={FileText}
-                title="No proposals yet"
-                description="Send a proposal to move this engagement forward."
-                className="min-h-[140px]"
-              />
-            ) : (
-              <ul className="divide-y">
-                {proposals.map((p) => (
-                  <li
-                    key={p.id}
-                    className="flex items-center justify-between gap-3 py-3"
-                  >
-                    <div className="flex min-w-0 items-center gap-3">
-                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                        <FileText className="h-4 w-4" />
+              {proposals.length === 0 ? (
+                <EmptyState
+                  icon={FileText}
+                  title="No proposals yet"
+                  description="Send a proposal to move this engagement forward."
+                  className="min-h-[140px]"
+                />
+              ) : (
+                <ul className="divide-y">
+                  {proposals.map((p) => (
+                    <li
+                      key={p.id}
+                      className="flex items-center justify-between gap-3 py-3"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                          <FileText className="h-4 w-4" />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-medium">{p.title}</p>
+                          <p className="text-xs capitalize text-muted-foreground">
+                            {p.status.replace(/_/g, " ")}
+                          </p>
+                        </div>
                       </div>
-                      <div className="min-w-0">
-                        <p className="truncate text-sm font-medium">{p.title}</p>
-                        <p className="text-xs capitalize text-muted-foreground">
-                          {p.status.replace(/_/g, " ")}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex shrink-0 items-center gap-3">
-                      <span className="text-sm tabular-nums">
-                        {formatMoney(p.totalAmount, p.currency)}
-                      </span>
-                      <Button asChild variant="ghost" size="sm">
-                        <Link href={`/dashboard/proposals/${p.id}`}>View</Link>
-                      </Button>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="space-y-4 p-6">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <h2 className="text-base font-semibold">
-                  Contracts · {contracts.length}
-                </h2>
-                <p className="text-xs text-muted-foreground">
-                  Agreements ready for signature.
-                </p>
-              </div>
-              <Button asChild size="sm" variant="outline">
-                <Link href="/dashboard/contracts/new">
-                  <Plus /> New
-                </Link>
-              </Button>
-            </div>
-
-            {contracts.length === 0 ? (
-              <EmptyState
-                icon={FileSignature}
-                title="No contracts yet"
-                description="Convert an accepted proposal, or create one from scratch."
-                className="min-h-[140px]"
-              />
-            ) : (
-              <ul className="divide-y">
-                {contracts.map((c) => (
-                  <li
-                    key={c.id}
-                    className="flex items-center justify-between gap-3 py-3"
-                  >
-                    <div className="flex min-w-0 items-center gap-3">
-                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                        <FileSignature className="h-4 w-4" />
-                      </div>
-                      <div className="min-w-0">
-                        <p className="truncate text-sm font-medium">{c.title}</p>
-                        <p className="text-xs capitalize text-muted-foreground">
-                          {c.status.replace(/_/g, " ")}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex shrink-0 items-center gap-3">
-                      {c.valueAmount != null ? (
+                      <div className="flex shrink-0 items-center gap-3">
                         <span className="text-sm tabular-nums">
-                          {formatMoney(c.valueAmount, c.currency)}
+                          {formatMoney(p.totalAmount, p.currency)}
                         </span>
-                      ) : null}
-                      <Button asChild variant="ghost" size="sm">
-                        <Link href={`/dashboard/contracts/${c.id}`}>View</Link>
-                      </Button>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </CardContent>
-        </Card>
+                        <Button asChild variant="ghost" size="sm">
+                          <Link href={`/dashboard/proposals/${p.id}`}>View</Link>
+                        </Button>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </CardContent>
+          </Card>
 
-        <Card>
-          <CardContent className="space-y-4 p-6">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <h2 className="text-base font-semibold">
-                  Welcome docs · {welcomeDocs.length}
-                </h2>
-                <p className="text-xs text-muted-foreground">
-                  A branded greeting to kick off the engagement.
-                </p>
+          <Card>
+            <CardContent className="space-y-4 p-6">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <h2 className="text-base font-semibold">
+                    Contracts · {contracts.length}
+                  </h2>
+                  <p className="text-xs text-muted-foreground">
+                    Agreements ready for signature.
+                  </p>
+                </div>
+                <Button asChild size="sm" variant="outline">
+                  <Link href="/dashboard/contracts/new">
+                    <Plus /> New
+                  </Link>
+                </Button>
               </div>
-              <Button asChild size="sm" variant="outline">
-                <Link href={welcomeNewHref}>
-                  <Plus /> New
-                </Link>
-              </Button>
-            </div>
 
-            {welcomeDocs.length === 0 ? (
-              <EmptyState
-                icon={BookOpen}
-                title="No welcome docs yet"
-                description="Send a warm, branded onboarding guide to your client."
-                className="min-h-[140px]"
-              />
-            ) : (
-              <ul className="divide-y">
-                {welcomeDocs.map((w) => (
-                  <li
-                    key={w.id}
-                    className="flex items-center justify-between gap-3 py-3"
-                  >
-                    <div className="flex min-w-0 items-center gap-3">
-                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                        <BookOpen className="h-4 w-4" />
+              {contracts.length === 0 ? (
+                <EmptyState
+                  icon={FileSignature}
+                  title="No contracts yet"
+                  description="Convert an accepted proposal, or create one from scratch."
+                  className="min-h-[140px]"
+                />
+              ) : (
+                <ul className="divide-y">
+                  {contracts.map((c) => (
+                    <li
+                      key={c.id}
+                      className="flex items-center justify-between gap-3 py-3"
+                    >
+                      <div className="flex min-w-0 items-center gap-3">
+                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                          <FileSignature className="h-4 w-4" />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-medium">{c.title}</p>
+                          <p className="text-xs capitalize text-muted-foreground">
+                            {c.status.replace(/_/g, " ")}
+                          </p>
+                        </div>
                       </div>
-                      <div className="min-w-0">
-                        <p className="truncate text-sm font-medium">{w.title}</p>
-                        <p className="text-xs capitalize text-muted-foreground">
-                          {w.status.replace(/_/g, " ")}
-                        </p>
+                      <div className="flex shrink-0 items-center gap-3">
+                        {c.valueAmount != null ? (
+                          <span className="text-sm tabular-nums">
+                            {formatMoney(c.valueAmount, c.currency)}
+                          </span>
+                        ) : null}
+                        <Button asChild variant="ghost" size="sm">
+                          <Link href={`/dashboard/contracts/${c.id}`}>View</Link>
+                        </Button>
                       </div>
-                    </div>
-                    <Button asChild variant="ghost" size="sm">
-                      <Link href={`/dashboard/welcome/${w.id}`}>View</Link>
-                    </Button>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </CardContent>
-        </Card>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </CardContent>
+          </Card>
 
-        <Card>
-          <CardContent className="space-y-4 p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-base font-semibold">
-                  Invoices · {invoices.length}
-                </h2>
-                <p className="text-xs text-muted-foreground">
-                  Billed to date:{" "}
-                  <span className="font-medium text-foreground tabular-nums">
-                    {formatINR(billedTotal)}
-                  </span>
-                </p>
+          <Card>
+            <CardContent className="space-y-4 p-6">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <h2 className="text-base font-semibold">
+                    Welcome docs · {welcomeDocs.length}
+                  </h2>
+                  <p className="text-xs text-muted-foreground">
+                    A branded greeting to kick off the engagement.
+                  </p>
+                </div>
+                <Button asChild size="sm" variant="outline">
+                  <Link href={welcomeNewHref}>
+                    <Plus /> New
+                  </Link>
+                </Button>
               </div>
-              <Button asChild size="sm" variant="outline">
-                <Link href="/dashboard/invoices/new">
-                  <Plus /> New
-                </Link>
-              </Button>
-            </div>
 
-            {invoices.length === 0 ? (
-              <EmptyState
-                icon={FileText}
-                title="No invoices linked yet"
-                description="Create an invoice and tag it with this project to see it here."
-                action={{
-                  label: "New invoice",
-                  href: "/dashboard/invoices/new",
-                }}
-                className="min-h-[180px]"
-              />
-            ) : (
-              <ul className="divide-y">
-                {invoices.map((inv) => (
-                  <li
-                    key={inv.id}
-                    className="flex items-center justify-between py-3"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                        <FileText className="h-4 w-4" />
+              {welcomeDocs.length === 0 ? (
+                <EmptyState
+                  icon={BookOpen}
+                  title="No welcome docs yet"
+                  description="Send a warm, branded onboarding guide to your client."
+                  className="min-h-[140px]"
+                />
+              ) : (
+                <ul className="divide-y">
+                  {welcomeDocs.map((w) => (
+                    <li
+                      key={w.id}
+                      className="flex items-center justify-between gap-3 py-3"
+                    >
+                      <div className="flex min-w-0 items-center gap-3">
+                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                          <BookOpen className="h-4 w-4" />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-medium">{w.title}</p>
+                          <p className="text-xs capitalize text-muted-foreground">
+                            {w.status.replace(/_/g, " ")}
+                          </p>
+                        </div>
                       </div>
-                      <div>
-                        <p className="text-sm font-medium">
-                          {inv.number ?? inv.id.slice(0, 8).toUpperCase()}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {inv.status ?? "draft"}
-                          {inv.issueDate
-                            ? ` · ${new Date(inv.issueDate).toLocaleDateString(
-                                "en-IN",
-                                {
-                                  day: "2-digit",
-                                  month: "short",
-                                  year: "numeric",
-                                },
-                              )}`
-                            : ""}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <span className="text-sm tabular-nums">
-                        {formatMoney(inv.totalAmount, inv.currency)}
-                      </span>
                       <Button asChild variant="ghost" size="sm">
-                        <Link href={`/dashboard/invoices/${inv.id}`}>View</Link>
+                        <Link href={`/dashboard/welcome/${w.id}`}>View</Link>
                       </Button>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </CardContent>
-        </Card>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="space-y-4 p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-base font-semibold">
+                    Invoices · {invoices.length}
+                  </h2>
+                  <p className="text-xs text-muted-foreground">
+                    Billed to date:{" "}
+                    <span className="font-medium text-foreground tabular-nums">
+                      {formatINR(billedTotal)}
+                    </span>
+                  </p>
+                </div>
+                <Button asChild size="sm" variant="outline">
+                  <Link href="/dashboard/invoices/new">
+                    <Plus /> New
+                  </Link>
+                </Button>
+              </div>
+
+              {invoices.length === 0 ? (
+                <EmptyState
+                  icon={FileText}
+                  title="No invoices linked yet"
+                  description="Create an invoice and tag it with this project to see it here."
+                  action={{
+                    label: "New invoice",
+                    href: "/dashboard/invoices/new",
+                  }}
+                  className="min-h-[180px]"
+                />
+              ) : (
+                <ul className="divide-y">
+                  {invoices.map((inv) => (
+                    <li
+                      key={inv.id}
+                      className="flex items-center justify-between py-3"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                          <FileText className="h-4 w-4" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium">
+                            {inv.number ?? inv.id.slice(0, 8).toUpperCase()}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {inv.status ?? "draft"}
+                            {inv.issueDate
+                              ? ` · ${new Date(inv.issueDate).toLocaleDateString(
+                                  "en-IN",
+                                  {
+                                    day: "2-digit",
+                                    month: "short",
+                                    year: "numeric",
+                                  },
+                                )}`
+                              : ""}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span className="text-sm tabular-nums">
+                          {formatMoney(inv.totalAmount, inv.currency)}
+                        </span>
+                        <Button asChild variant="ghost" size="sm">
+                          <Link href={`/dashboard/invoices/${inv.id}`}>View</Link>
+                        </Button>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </CardContent>
+          </Card>
         </div>
 
         <aside className="space-y-4">
           <Card>
-            <CardContent className="space-y-3 p-5">
-              <h2 className="text-micro font-semibold uppercase tracking-wider text-muted-foreground">
-                Status history
-              </h2>
-              <ProjectStatusHistory entries={statusHistory} />
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="space-y-4 p-5 text-sm">
-              <MetaRow label="Client" icon={Users}>
-                {client ? (
-                  <Link
-                    href={`/dashboard/clients/${client.id}`}
-                    className="inline-flex items-center gap-2 hover:underline"
-                  >
-                    <Avatar className="h-5 w-5">
-                      <AvatarFallback className="text-xs">
-                        {getClientInitials(getClientDisplayName(client))}
-                      </AvatarFallback>
-                    </Avatar>
-                    <span className="truncate">
-                      {getClientDisplayName(client)}
-                    </span>
-                  </Link>
-                ) : (
-                  <span className="text-muted-foreground">None</span>
-                )}
-              </MetaRow>
-              <MetaRow label="Start" icon={Calendar}>
-                <span className="tabular-nums">{startDate}</span>
-              </MetaRow>
-              <MetaRow label="Due" icon={Calendar}>
-                <span className="tabular-nums">{dueDate}</span>
-              </MetaRow>
-              <MetaRow label="Created" icon={Calendar}>
-                <span className="tabular-nums">
-                  {new Date(project.createdAt).toLocaleDateString("en-IN", {
-                    day: "2-digit",
-                    month: "short",
-                    year: "numeric",
-                  })}
-                </span>
-              </MetaRow>
-            </CardContent>
-          </Card>
+            <CardContent className="space-y-4 p-6">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <h2 className="text-base font-semibold">
+                    Costs & Profitability
+                  </h2>
+                  <p className="text-xs text-muted-foreground">
+                    Track project costs and see profitability at a glance.
+                  </p>
+                </div>
+                <Button asChild size="sm">
+                  <a href={`/dashboard/projects/${project.id}/costs/new`}>
+                    <Plus /> Add Cost
+                  </a>
+                </Button>
+              </div>
+
+              {profitability && (
+                <div className="grid gap-4 md:grid-cols-4">
+                  <div className="rounded-lg border p-4">
+                    <p className="text-sm text-muted-foreground">Revenue</p>
+                    <p className="text-2xl font-bold">{formatMoney(profitability.revenue, "INR")}</p>
+                  </div>
+                  <div className="rounded-lg border p-4">
+                    <p className="text-sm text-muted-foreground">Costs</p>
+                    <p className="text-2xl font-bold text-destructive">{formatMoney(profitability.costs, "INR")}</p>
+                  </div>
+                  <div className="rounded-lg border p-4">
+                    <p className="text-sm text-muted-foreground">Profit</p>
+                    <p className={`text-2xl font-bold ${profitability.profit >= 0 ? "text-success" : "text-destructive"}`}>
+                      {formatMoney(profitability.profit, "INR")}
+                  </p>
+                </div>
+                <div className="rounded-lg border p-4">
+                  <p className="text-sm text-muted-foreground">Margin</p>
+                  <p className="text-2xl font-bold">{profitability.margin.toFixed(1)}%</p>
+                </div>
+              </div>
+            )}
+
+            {costs.length === 0 && !profitability ? (
+              <div className="text-center py-8">
+                <p className="text-muted-foreground mb-4">No costs tracked yet</p>
+                <Button asChild size="sm">
+                  <a href={`/dashboard/projects/${project.id}/costs/new`}>
+                    <Plus /> Add your first cost
+                  </a>
+                </Button>
+              </div>
+            ) : costs.length > 0 && (
+              <ul className="divide-y">
+                {costs.map((cost) => (
+                  <li key={cost.id} className="flex items-center justify-between py-3">
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                        <FileText className="h-4 w-4" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium">{cost.description || "Uncategorized cost"}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {cost.category || "Uncategorized"} · {formatMoney(cost.amount, cost.currency)} · {new Date(cost.cost_date).toLocaleDateString("en-IN")}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className="text-sm tabular-nums">{formatMoney(cost.amount, cost.currency)}</span>
+                      <Button asChild variant="ghost" size="sm">
+                        <a href={`/dashboard/projects/${project.id}/costs/${cost.id}/edit`}>Edit</a>
+                      </Button>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </CardContent>
+        </Card>
+
         </aside>
       </div>
 
@@ -645,27 +719,5 @@ function NewProposalButton({
         <Plus /> {label}
       </Button>
     </form>
-  );
-}
-
-function MetaRow({
-  label,
-  icon: Icon,
-  children,
-}: {
-  label: string;
-  icon: typeof Calendar;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="flex items-center justify-between gap-4">
-      <span className="inline-flex items-center gap-2 text-muted-foreground">
-        <Icon className="h-3.5 w-3.5" />
-        <span className="text-micro font-semibold uppercase tracking-wider">
-          {label}
-        </span>
-      </span>
-      <span className="min-w-0 text-right">{children}</span>
-    </div>
   );
 }

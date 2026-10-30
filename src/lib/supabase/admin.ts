@@ -6,11 +6,9 @@
  *   - Cron / scheduled jobs
  *   - Trusted admin routes
  *
- * NEVER expose the service-role key to the browser. This module imports
- * `server-only` so it is a build-time error if you try.
+ * NEVER expose the service-role key to the browser.
  */
 
-import "server-only";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { requireServerEnv } from "@/config/env";
 import type { Database } from "./types";
