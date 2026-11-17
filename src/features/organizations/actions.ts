@@ -360,6 +360,45 @@ export async function transferOwnershipAction(
   }
 }
 
+// --- Update Member Role ------------------------------------------------------
+
+const updateMemberRoleSchema = z.object({
+  orgId: z.string().uuid(),
+  userId: z.string().uuid(),
+  role: z.enum(["admin", "member", "viewer"]),
+});
+
+export async function updateOrgMemberRoleAction(
+  _prev: ActionResult | undefined,
+  formData: FormData,
+): Promise<ActionResult> {
+  const userId = await requireUserId();
+  const admin = getAdminSupabase();
+
+  const parsed = updateMemberRoleSchema.safeParse({
+    orgId: formData.get("orgId"),
+    userId: formData.get("userId"),
+    role: formData.get("role"),
+  });
+
+  if (!parsed.success) return { ok: false, error: "Invalid input." };
+
+  try {
+    const { requireOrgAccess } = await import("./server");
+    const supabase = await getServerSupabase();
+    await requireOrgAccess(await supabase, parsed.data.orgId, ["owner", "admin"]);
+
+    const admin = getAdminSupabase();
+    await updateOrgMemberRole(admin, parsed.data.orgId, parsed.data.userId, parsed.data.role, userId);
+
+    revalidatePath(`/dashboard/organizations/${parsed.data.orgId}`);
+    return { ok: true, message: "Member role updated." };
+  } catch (e) {
+    if (isOrgAccessError(e)) return { ok: false, error: mapAccessError(e) };
+    return { ok: false, error: e instanceof Error ? e.message : "Could not update member role." };
+  }
+}
+
 // --- Project Collaborators ---------------------------------------------------
 
 const addCollaboratorSchema = z.object({

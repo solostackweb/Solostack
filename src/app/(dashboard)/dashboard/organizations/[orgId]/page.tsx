@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { getOrgDetailsAction } from "@/features/organizations/actions";
-import { OrganizationDetailClient } from "./OrganizationDetailClient";
+import { OrganizationDetail } from "@/features/organizations/components/organization-detail";
 
 export const metadata = { title: "Organization" };
 
@@ -16,5 +16,5 @@ export default async function OrganizationPage({
     redirect("/dashboard/organizations");
   }
 
-  return <OrganizationDetailClient initialData={result.data} orgId={orgId} />;
+  return <OrganizationDetail initialData={result.data} orgId={orgId} />;
 }

@@ -490,6 +490,55 @@ export async function transferOwnership(
     .eq("id", orgId);
 }
 
+/** Update organization member role. */
+export async function updateOrgMemberRole(
+  admin: SupabaseClient<OrganizationDatabase>,
+  orgId: string,
+  targetUserId: string,
+  newRole: OrgRole,
+  actorId: string,
+): Promise<void> {
+  const { data: actorMember } = await admin
+    .from("organization_members")
+    .select("role")
+    .eq("organization_id", orgId)
+    .eq("user_id", actorId)
+    .maybeSingle();
+
+  if (!actorMember || !["owner", "admin"].includes(actorMember.role)) {
+    throw new OrgAccessError("forbidden", "Only owners and admins can change member roles.");
+  }
+
+  if (actorId === targetUserId) {
+    throw new OrgAccessError("forbidden", "Cannot change your own role.");
+  }
+
+  const { data: targetMember } = await admin
+    .from("organization_members")
+    .select("role")
+    .eq("organization_id", orgId)
+    .eq("user_id", targetUserId)
+    .maybeSingle();
+
+  if (!targetMember) {
+    throw new OrgAccessError("not_found", "Member not found.");
+  }
+
+  if (targetMember.role === "owner") {
+    throw new OrgAccessError("forbidden", "Cannot change the owner's role. Transfer ownership first.");
+  }
+
+  if (newRole === "owner") {
+    throw new OrgAccessError("forbidden", "Use ownership transfer to make someone an owner.");
+  }
+
+  await admin
+    .from("organization_members")
+    .update({ role: newRole })
+    .eq("organization_id", orgId)
+    .eq("user_id", targetUserId);
+}
+
 /** Hash token using SHA-256. */
 async function hashToken(token: string): Promise<string> {
   const encoder = new TextEncoder();

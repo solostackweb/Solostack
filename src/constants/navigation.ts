@@ -15,6 +15,7 @@ import {
   Activity,
   Settings,
   LifeBuoy,
+  Building2,
   type LucideIcon,
 } from "lucide-react";
 
@@ -36,6 +37,7 @@ export const primaryNav: NavItem[] = [
   { title: "Clients",      href: "/dashboard/clients",  icon: Users },
   { title: "Lead Forms",   href: "/dashboard/lead-forms", icon: ClipboardList },
   { title: "Projects",     href: "/dashboard/projects", icon: FolderKanban },
+  { title: "Organizations",href: "/dashboard/organizations", icon: Building2 },
   { title: "Documents",    href: "/dashboard/documents", icon: Files },
   { title: "Proposals",    href: "/dashboard/proposals",icon: FilePlus2 },
   { title: "Templates",    href: "/dashboard/templates", icon: BookTemplate },

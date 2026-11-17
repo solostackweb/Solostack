@@ -12,6 +12,7 @@ import { NotificationsMenu } from "@/components/shared/notifications-menu";
 import { Separator } from "@/components/ui/separator";
 import { StackivoAiAssistant } from "@/features/ai-workflows/components/stackivo-ai-assistant";
 import { Button } from "@/components/ui/button";
+import { OrgSwitcher } from "@/features/organizations/components/org-switcher";
 
 interface TopNavProps {
   aiUser?: {
@@ -82,6 +83,8 @@ export function TopNav({ aiUser }: TopNavProps) {
         <span className="hidden md:inline-flex">
           <ThemeToggle />
         </span>
+        <Separator orientation="vertical" className="mx-1 hidden h-5 md:block" />
+        <OrgSwitcher />
         <Separator orientation="vertical" className="mx-1 hidden h-5 md:block" />
         <UserNav />
       </div>

@@ -3,6 +3,7 @@
 import * as React from "react";
 import { ProfileProvider } from "@/features/profile/context";
 import { MobileNavProvider } from "./mobile-nav-context";
+import { OrgProvider } from "@/features/organizations/context";
 import type { BusinessProfile } from "@/features/onboarding/types";
 import type { CurrentSubscription } from "@/features/subscription/types";
 
@@ -26,7 +27,9 @@ export function DashboardShellProviders({
 }) {
   return (
     <ProfileProvider initialProfile={profile} initialSubscription={subscription}>
-      <MobileNavProvider>{children}</MobileNavProvider>
+      <MobileNavProvider>
+        <OrgProvider>{children}</OrgProvider>
+      </MobileNavProvider>
     </ProfileProvider>
   );
 }
