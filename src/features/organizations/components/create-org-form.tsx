@@ -96,7 +96,7 @@ export function CreateOrgForm() {
 
     const result = await createOrgAction(undefined, formData);
 
-    if (result.ok && result.data?.id) {
+    if (result.ok) {
       toast.success("Organization created");
       router.push(`/dashboard/organizations/${result.data.id}`);
       router.refresh();

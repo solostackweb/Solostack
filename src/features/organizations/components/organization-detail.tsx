@@ -14,7 +14,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { UserPlus, Users, Building2, DollarSign, Trash2, Save, Loader2, ArrowRight, Shield, BarChart3, CreditCard, Key } from "lucide-react";
+import { UserPlus, Users, Building2, DollarSign, Trash2, Save, Loader2, ArrowRight, Shield, BarChart3, CreditCard, Key, Settings } from "lucide-react";
 import { toast } from "sonner";
 import { listOrgMembersAction, inviteOrgMemberAction, removeOrgMemberAction, transferOwnershipAction, updateOrgMemberRoleAction, getOrgProfitabilityAction, updateOrgAction } from "../actions";
 import { formatCurrency } from "@/lib/utils";
@@ -355,7 +355,7 @@ export function OrganizationDetail({ initialData, orgId }: OrganizationDetailPro
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="invite-role">Role</Label>
-                    <Select value={inviteRole} onValueChange={setInviteRole}>
+                    <Select value={inviteRole} onValueChange={(v) => setInviteRole(v as "admin" | "member" | "viewer")}>
                       <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>

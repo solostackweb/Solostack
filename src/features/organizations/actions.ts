@@ -14,6 +14,7 @@ import {
   inviteOrgMember,
   removeOrgMember,
   transferOwnership,
+  updateOrgMemberRole,
   type OrgAccessError,
 } from "./server";
 import { recordActivity } from "@/features/activity/server";
