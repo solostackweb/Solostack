@@ -2,724 +2,606 @@
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
+import { cookies } from "next/headers";
 import { z } from "zod";
-import type { SupabaseClient } from "@supabase/supabase-js";
-import { getAdminSupabase as getBaseAdminSupabase } from "@/lib/supabase/admin";
-import { getServerSupabase as getBaseServerSupabase } from "@/lib/supabase/server";
-import { AUTH_LOGIN_ROUTE } from "@/features/auth/routes";
-import {
-  createOrganization,
-  updateOrganization,
-  deleteOrganization,
-  inviteOrgMember,
-  removeOrgMember,
-  transferOwnership,
-  updateOrgMemberRole,
-  type OrgAccessError,
-} from "./server";
-import { recordActivity } from "@/features/activity/server";
-import type { OrganizationDatabase, OrgRole, ProjectCostRow } from "@/lib/supabase/types";
-import type { OrganizationMemberRow, OrganizationRow } from "./types";
+import { getServerSupabase } from "@/lib/supabase/server";
+import { isOrgAccessError, requireOrgAccess } from "./server";
+import { getOrgSubscription, listOrgInvitations, cancelOrgInvitation, resendOrgInvitation, updateOrgSettings, listOrgApiKeys, createOrgApiKey, deleteOrgApiKey, listOrgWebhooks, createOrgWebhook, updateOrgWebhook, deleteOrgWebhook, listOrgActivity, revokeAllOrgSessions, deleteOrg } from "./subscription";
 
-type OrganizationMemberListItem = OrganizationMemberRow & {
-  user_email: string;
-  user_name: string;
-};
-
-type ProjectCollaboratorListItem = {
-  id: string;
-  user_id: string;
-  role: string;
-  joined_at: string | null;
-  user_email: string;
-  user_name: string;
-};
-
-type UserOrganizationListItem = {
-  id: string;
-  name: string;
-  slug: string;
-  role: OrgRole;
-  is_owner: boolean;
-  member_count: number;
-};
-
-type OrganizationSupabaseClient = SupabaseClient<OrganizationDatabase>;
-
-function getAdminSupabase(): OrganizationSupabaseClient {
-  return getBaseAdminSupabase() as unknown as OrganizationSupabaseClient;
-}
-
-async function getServerSupabase(): Promise<OrganizationSupabaseClient> {
-  return (await getBaseServerSupabase()) as unknown as OrganizationSupabaseClient;
-}
-
-type ActionSuccess<T> = [T] extends [undefined]
-  ? { ok: true; message?: string }
-  : { ok: true; data: T; message?: string };
-
-export type ActionResult<T = undefined> =
-  | ActionSuccess<T>
-  | { ok: false; error: string; fieldErrors?: Record<string, string[]> };
-
-async function requireUserId(): Promise<string> {
+/**
+ * Switch the current organization for the user.
+ * Sets the organization cookie and verifies the user is a member.
+ */
+export async function switchOrganizationAction(orgId: string): Promise<{ ok: boolean; error?: string }> {
   const supabase = await getServerSupabase();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect(AUTH_LOGIN_ROUTE);
-  return user.id;
-}
-
-function mapAccessError(err: OrgAccessError): string {
-  switch (err.code) {
-    case "unauthenticated":
-      return "Please sign in.";
-    case "forbidden":
-      return err.message;
-    case "not_found":
-      return "Organization not found.";
-    case "invalid_slug":
-      return "Invalid slug format.";
-    case "slug_taken":
-      return "That slug is already taken.";
-    default:
-      return "An unexpected error occurred.";
-  }
-}
-
-function isOrgAccessError(error: unknown): error is OrgAccessError {
-  return error instanceof Error && "code" in error;
-}
-
-// --- Create Organization -----------------------------------------------------
-
-const createOrgSchema = z.object({
-  name: z.string().trim().min(1, "Name is required").max(100, "Name is too long"),
-  slug: z.string().trim().min(2, "Slug must be at least 2 characters").max(50, "Slug is too long").optional().or(z.literal("")),
-});
-
-export async function createOrgAction(
-  _prev: ActionResult | undefined,
-  formData: FormData,
-): Promise<ActionResult<{ id: string }>> {
-  const userId = await requireUserId();
-  const supabase = await getServerSupabase();
-
-  const parsed = createOrgSchema.safeParse({
-    name: formData.get("name"),
-    slug: formData.get("slug") || undefined,
-  });
-
-  if (!parsed.success) {
-    return {
-      ok: false,
-      error: "Please fix the highlighted fields.",
-      fieldErrors: parsed.error.flatten().fieldErrors,
-    };
+  
+  if (!user) {
+    return { ok: false, error: "Not authenticated" };
   }
 
-  const admin = getAdminSupabase();
   try {
-    const result = await createOrganization(admin, userId, parsed.data);
-    revalidatePath("/dashboard/organizations");
-    await recordActivity({
-      kind: "organization_created",
-      entityType: "organization",
-      entityId: result.org.id,
-      title: `Created organization ${result.org.name}`,
+    await requireOrgAccess(supabase, orgId, ["owner", "admin", "member", "viewer"]);
+    
+    // Set the cookie
+    const cookieStore = await cookies();
+    cookieStore.set("stackivo_current_org_id", orgId, {
+      path: "/",
+      maxAge: 60 * 60 * 24 * 365, // 1 year
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
     });
-    return { ok: true, data: { id: result.org.id }, message: "Organization created." };
+    
+    revalidatePath("/dashboard");
+    return { ok: true };
   } catch (e) {
     if (isOrgAccessError(e)) {
-      return { ok: false, error: mapAccessError(e) };
+      return { ok: false, error: e.message };
     }
-    return { ok: false, error: e instanceof Error ? e.message : "Could not create organization." };
+    return { ok: false, error: "Failed to switch organization" };
   }
 }
 
-// --- Update Organization -----------------------------------------------------
+/**
+ * Get the current organization ID from cookie.
+ */
+export async function getCurrentOrganizationIdAction(): Promise<{ ok: boolean; orgId?: string }> {
+  const cookieStore = await cookies();
+  const orgId = cookieStore.get("stackivo_current_org_id")?.value;
+  return { ok: true, orgId };
+}
 
-const updateOrgSchema = z.object({
-  id: z.string().uuid(),
-  name: z.string().trim().min(1).max(100).optional(),
-  brand_color: z.string().max(7).optional().nullable(),
-  brand_tagline: z.string().max(120).optional().nullable(),
-  logo_url: z.string().url().optional().nullable(),
-  settings: z.record(z.unknown()).optional(),
-});
+/**
+ * Get the organization's subscription.
+ */
+export async function getOrgSubscriptionAction(orgId: string): Promise<{
+  ok: boolean;
+  subscription?: {
+    plan: string;
+    status: string;
+    trialEndsAt: string | null;
+    currentPeriodEnd: string | null;
+    razorpaySubscriptionId: string | null;
+  } | null;
+  error?: string;
+}> {
+  const supabase = await getServerSupabase();
+  const { data: { user } } = await supabase.auth.getUser();
+  
+  if (!user) {
+    return { ok: false, error: "Not authenticated" };
+  }
 
-export async function updateOrgAction(
+  try {
+    await requireOrgAccess(supabase, orgId, ["owner", "admin", "member", "viewer"]);
+    
+    const subscription = await getOrgSubscription(orgId);
+    return { ok: true, subscription };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Failed to load subscription" };
+  }
+}
+
+/**
+ * List pending organization invitations.
+ */
+export async function listOrgInvitationsAction(orgId: string): Promise<{
+  ok: boolean;
+  invitations?: Array<{
+    id: string;
+    email: string;
+    role: string;
+    expires_at: string;
+    invited_by_name: string;
+    invited_by_email: string;
+    created_at: string;
+  }>;
+  error?: string;
+}> {
+  const supabase = await getServerSupabase();
+  const { data: { user } } = await supabase.auth.getUser();
+  
+  if (!user) {
+    return { ok: false, error: "Not authenticated" };
+  }
+
+  try {
+    await requireOrgAccess(supabase, orgId, ["owner", "admin"]);
+    
+    const admin = getAdminSupabase();
+    const invitations = await listOrgInvitations(admin, orgId);
+    return { ok: true, invitations };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Failed to load invitations" };
+  }
+}
+/**
+ * Cancel a pending organization invitation.
+ */
+export async function cancelOrgInvitationAction(
   _prev: ActionResult | undefined,
   formData: FormData,
 ): Promise<ActionResult> {
-  const userId = await requireUserId();
-  const admin = getAdminSupabase();
-
-  const parsed = updateOrgSchema.safeParse({
-    id: formData.get("id"),
-    name: formData.get("name") || undefined,
-    brand_color: formData.get("brand_color") || undefined,
-    brand_tagline: formData.get("brand_tagline") || undefined,
-    logo_url: formData.get("logo_url") || undefined,
-    settings: formData.get("settings") ? JSON.parse(formData.get("settings") as string) : undefined,
-  });
-
-  if (!parsed.success) {
-    return { ok: false, error: "Please fix the highlighted fields." };
+  const supabase = await getServerSupabase();
+  const { data: { user } } = await supabase.auth.getUser();
+  
+  if (!user) {
+    return { ok: false, error: "Not authenticated" };
   }
 
-  const { id, ...patch } = parsed.data;
+  const parsed = z.object({
+    orgId: z.string().uuid(),
+    invitationId: z.string().uuid(),
+  }).safeParse({
+    orgId: formData.get("orgId"),
+    invitationId: formData.get("invitationId"),
+  });
+
+  if (!parsed.success) return { ok: false, error: "Invalid input." };
 
   try {
-    const { requireOrgAccess } = await import("./server");
-    const supabase = await getServerSupabase();
-    await requireOrgAccess(await supabase, parsed.data.id, ["owner", "admin"]);
-
+    await requireOrgAccess(supabase, parsed.data.orgId, ["owner", "admin"]);
+    
     const admin = getAdminSupabase();
-    await updateOrganization(admin, parsed.data.id, patch);
+    await cancelOrgInvitation(admin, parsed.data.orgId, parsed.data.invitationId, user.id);
 
-    revalidatePath("/dashboard/organizations");
-    revalidatePath(`/dashboard/organizations/${parsed.data.id}`);
-    return { ok: true, message: "Organization updated." };
+    revalidatePath(`/dashboard/organizations/${parsed.data.orgId}`);
+    return { ok: true, message: "Invitation cancelled." };
   } catch (e) {
-    if (isOrgAccessError(e)) {
-      return { ok: false, error: mapAccessError(e) };
-    }
-    return { ok: false, error: e instanceof Error ? e.message : "Could not update organization." };
+    if (isOrgAccessError(e)) return { ok: false, error: e.message };
+    return { ok: false, error: e instanceof Error ? e.message : "Failed to cancel invitation" };
   }
 }
 
-// --- Delete Organization -----------------------------------------------------
+/**
+ * Resend a pending organization invitation.
+ */
+export async function resendOrgInvitationAction(
+  _prev: ActionResult | undefined,
+  formData: FormData,
+): Promise<ActionResult<{ token: string }>> {
+  const supabase = await getServerSupabase();
+  const { data: { user } } = await supabase.auth.getUser();
+  
+  if (!user) {
+    return { ok: false, error: "Not authenticated" };
+  }
 
-const deleteOrgSchema = z.object({
-  id: z.string().uuid(),
-});
+  const parsed = z.object({
+    orgId: z.string().uuid(),
+    invitationId: z.string().uuid(),
+  }).safeParse({
+    orgId: formData.get("orgId"),
+    invitationId: formData.get("invitationId"),
+  });
 
+  if (!parsed.success) return { ok: false, error: "Invalid input." };
+
+  try {
+    await requireOrgAccess(supabase, parsed.data.orgId, ["owner", "admin"]);
+    
+    const admin = getAdminSupabase();
+    const { token } = await resendOrgInvitation(admin, parsed.data.orgId, parsed.data.invitationId, user.id);
+
+    revalidatePath(`/dashboard/organizations/${parsed.data.orgId}`);
+    return { ok: true, data: { token }, message: "Invitation resent." };
+  } catch (e) {
+    if (isOrgAccessError(e)) return { ok: false, error: e.message };
+    return { ok: false, error: e instanceof Error ? e.message : "Failed to resend invitation" };
+  }
+}
+
+/**
+ * Update organization settings.
+ */
+export async function updateOrgSettingsAction(
+  _prev: ActionResult | undefined,
+  formData: FormData,
+): Promise<ActionResult> {
+  const supabase = await getServerSupabase();
+  const { data: { user } } = await supabase.auth.getUser();
+  
+  if (!user) {
+    return { ok: false, error: "Not authenticated" };
+  }
+
+  const parsed = z.object({
+    orgId: z.string().uuid(),
+    settings: z.record(z.unknown()),
+  }).safeParse({
+    orgId: formData.get("orgId"),
+    settings: formData.get("settings") ? JSON.parse(formData.get("settings") as string) : {},
+  });
+
+  if (!parsed.success) return { ok: false, error: "Invalid input." };
+
+  try {
+    await requireOrgAccess(supabase, parsed.data.orgId, ["owner", "admin"]);
+    
+    const admin = getAdminSupabase();
+    await updateOrgSettings(admin, parsed.data.orgId, parsed.data.settings, user.id);
+
+    revalidatePath(`/dashboard/organizations/${parsed.data.orgId}/settings`);
+    return { ok: true, message: "Settings saved." };
+  } catch (e) {
+    if (isOrgAccessError(e)) return { ok: false, error: e.message };
+    return { ok: false, error: e instanceof Error ? e.message : "Failed to save settings" };
+  }
+}
+
+/**
+ * List organization API keys.
+ */
+export async function listOrgApiKeysAction(orgId: string): Promise<ActionResult<{ apiKeys: Array<{
+  id: string;
+  name: string;
+  key_prefix: string;
+  created_at: string;
+  last_used_at: string | null;
+  scopes: string[];
+}> }>> {
+  const supabase = await getServerSupabase();
+  const { data: { user } } = await supabase.auth.getUser();
+  
+  if (!user) {
+    return { ok: false, error: "Not authenticated" };
+  }
+
+  try {
+    await requireOrgAccess(supabase, orgId, ["owner", "admin"]);
+    
+    const admin = getAdminSupabase();
+    const apiKeys = await listOrgApiKeys(admin, orgId);
+    return { ok: true, data: { apiKeys } };
+  } catch (e) {
+    if (isOrgAccessError(e)) return { ok: false, error: e.message };
+    return { ok: false, error: e instanceof Error ? e.message : "Failed to load API keys" };
+  }
+}
+
+/**
+ * Create organization API key.
+ */
+export async function createOrgApiKeyAction(
+  _prev: ActionResult | undefined,
+  formData: FormData,
+): Promise<ActionResult<{ id: string; name: string; key_prefix: string; key: string; scopes: string[] }>> {
+  const supabase = await getServerSupabase();
+  const { data: { user } } = await supabase.auth.getUser();
+  
+  if (!user) {
+    return { ok: false, error: "Not authenticated" };
+  }
+
+  const parsed = z.object({
+    orgId: z.string().uuid(),
+    name: z.string().min(1).max(100),
+    scopes: z.array(z.string()).min(1),
+  }).safeParse({
+    orgId: formData.get("orgId"),
+    name: formData.get("name"),
+    scopes: formData.get("scopes") ? JSON.parse(formData.get("scopes") as string) : [],
+  });
+
+  if (!parsed.success) return { ok: false, error: "Invalid input.", fieldErrors: parsed.error.flatten().fieldErrors };
+
+  try {
+    await requireOrgAccess(supabase, parsed.data.orgId, ["owner", "admin"]);
+    
+    const admin = getAdminSupabase();
+    const apiKey = await createOrgApiKey(admin, parsed.data.orgId, user.id, {
+      name: parsed.data.name,
+      scopes: parsed.data.scopes,
+    });
+
+    revalidatePath(`/dashboard/organizations/${parsed.data.orgId}/settings`);
+    return { ok: true, data: apiKey, message: "API key created." };
+  } catch (e) {
+    if (isOrgAccessError(e)) return { ok: false, error: e.message };
+    return { ok: false, error: e instanceof Error ? e.message : "Failed to create API key" };
+  }
+}
+
+/**
+ * Delete organization API key.
+ */
+export async function deleteOrgApiKeyAction(
+  _prev: ActionResult | undefined,
+  formData: FormData,
+): Promise<ActionResult> {
+  const supabase = await getServerSupabase();
+  const { data: { user } } = await supabase.auth.getUser();
+  
+  if (!user) {
+    return { ok: false, error: "Not authenticated" };
+  }
+
+  const parsed = z.object({
+    orgId: z.string().uuid(),
+    keyId: z.string().uuid(),
+  }).safeParse({
+    orgId: formData.get("orgId"),
+    keyId: formData.get("keyId"),
+  });
+
+  if (!parsed.success) return { ok: false, error: "Invalid input." };
+
+  try {
+    await requireOrgAccess(supabase, parsed.data.orgId, ["owner", "admin"]);
+    
+    const admin = getAdminSupabase();
+    await deleteOrgApiKey(admin, parsed.data.orgId, parsed.data.keyId, user.id);
+
+    revalidatePath(`/dashboard/organizations/${parsed.data.orgId}/settings`);
+    return { ok: true, message: "API key deleted." };
+  } catch (e) {
+    if (isOrgAccessError(e)) return { ok: false, error: e.message };
+    return { ok: false, error: e instanceof Error ? e.message : "Failed to delete API key" };
+  }
+}
+
+/**
+ * List organization webhooks.
+ */
+export async function listOrgWebhooksAction(orgId: string): Promise<ActionResult<{ webhooks: Array<{
+  id: string;
+  url: string;
+  events: string[];
+  status: string;
+  created_at: string;
+  secret_prefix: string;
+}> }>> {
+  const supabase = await getServerSupabase();
+  const { data: { user } } = await supabase.auth.getUser();
+  
+  if (!user) {
+    return { ok: false, error: "Not authenticated" };
+  }
+
+  try {
+    await requireOrgAccess(supabase, orgId, ["owner", "admin"]);
+    
+    const admin = getAdminSupabase();
+    const webhooks = await listOrgWebhooks(admin, orgId);
+    return { ok: true, data: { webhooks } };
+  } catch (e) {
+    if (isOrgAccessError(e)) return { ok: false, error: e.message };
+    return { ok: false, error: e instanceof Error ? e.message : "Failed to load webhooks" };
+  }
+}
+
+/**
+ * Create organization webhook.
+ */
+export async function createOrgWebhookAction(
+  _prev: ActionResult | undefined,
+  formData: FormData,
+): Promise<ActionResult<{ id: string; url: string; events: string[]; status: string; secret: string }>> {
+  const supabase = await getServerSupabase();
+  const { data: { user } } = await supabase.auth.getUser();
+  
+  if (!user) {
+    return { ok: false, error: "Not authenticated" };
+  }
+
+  const parsed = z.object({
+    orgId: z.string().uuid(),
+    url: z.string().url(),
+    events: z.array(z.string()).min(1),
+  }).safeParse({
+    orgId: formData.get("orgId"),
+    url: formData.get("url"),
+    events: formData.get("events") ? JSON.parse(formData.get("events") as string) : [],
+  });
+
+  if (!parsed.success) return { ok: false, error: "Invalid input.", fieldErrors: parsed.error.flatten().fieldErrors };
+
+  try {
+    await requireOrgAccess(supabase, parsed.data.orgId, ["owner", "admin"]);
+    
+    const admin = getAdminSupabase();
+    const webhook = await createOrgWebhook(admin, parsed.data.orgId, user.id, {
+      url: parsed.data.url,
+      events: parsed.data.events,
+    });
+
+    revalidatePath(`/dashboard/organizations/${parsed.data.orgId}/settings`);
+    return { ok: true, data: webhook, message: "Webhook created." };
+  } catch (e) {
+    if (isOrgAccessError(e)) return { ok: false, error: e.message };
+    return { ok: false, error: e instanceof Error ? e.message : "Failed to create webhook" };
+  }
+}
+
+/**
+ * Update organization webhook.
+ */
+export async function updateOrgWebhookAction(
+  _prev: ActionResult | undefined,
+  formData: FormData,
+): Promise<ActionResult> {
+  const supabase = await getServerSupabase();
+  const { data: { user } } = await supabase.auth.getUser();
+  
+  if (!user) {
+    return { ok: false, error: "Not authenticated" };
+  }
+
+  const parsed = z.object({
+    orgId: z.string().uuid(),
+    webhookId: z.string().uuid(),
+    url: z.string().url().optional(),
+    events: z.array(z.string()).optional(),
+    status: z.enum(["active", "inactive"]).optional(),
+  }).safeParse({
+    orgId: formData.get("orgId"),
+    webhookId: formData.get("webhookId"),
+    url: formData.get("url") || undefined,
+    events: formData.get("events") ? JSON.parse(formData.get("events") as string) : undefined,
+    status: formData.get("status") || undefined,
+  });
+
+  if (!parsed.success) return { ok: false, error: "Invalid input." };
+
+  try {
+    await requireOrgAccess(supabase, parsed.data.orgId, ["owner", "admin"]);
+    
+    const admin = getAdminSupabase();
+    await updateOrgWebhook(admin, parsed.data.orgId, parsed.data.webhookId, user.id, {
+      url: parsed.data.url,
+      events: parsed.data.events,
+      status: parsed.data.status,
+    });
+
+    revalidatePath(`/dashboard/organizations/${parsed.data.orgId}/settings`);
+    return { ok: true, message: "Webhook updated." };
+  } catch (e) {
+    if (isOrgAccessError(e)) return { ok: false, error: e.message };
+    return { ok: false, error: e instanceof Error ? e.message : "Failed to update webhook" };
+  }
+}
+
+/**
+ * Delete organization webhook.
+ */
+export async function deleteOrgWebhookAction(
+  _prev: ActionResult | undefined,
+  formData: FormData,
+): Promise<ActionResult> {
+  const supabase = await getServerSupabase();
+  const { data: { user } } = await supabase.auth.getUser();
+  
+  if (!user) {
+    return { ok: false, error: "Not authenticated" };
+  }
+
+  const parsed = z.object({
+    orgId: z.string().uuid(),
+    webhookId: z.string().uuid(),
+  }).safeParse({
+    orgId: formData.get("orgId"),
+    webhookId: formData.get("webhookId"),
+  });
+
+  if (!parsed.success) return { ok: false, error: "Invalid input." };
+
+  try {
+    await requireOrgAccess(supabase, parsed.data.orgId, ["owner", "admin"]);
+    
+    const admin = getAdminSupabase();
+    await deleteOrgWebhook(admin, parsed.data.orgId, parsed.data.webhookId, user.id);
+
+    revalidatePath(`/dashboard/organizations/${parsed.data.orgId}/settings`);
+    return { ok: true, message: "Webhook deleted." };
+  } catch (e) {
+    if (isOrgAccessError(e)) return { ok: false, error: e.message };
+    return { ok: false, error: e instanceof Error ? e.message : "Failed to delete webhook" };
+  }
+}
+
+/**
+ * List organization activity.
+ */
+export async function listOrgActivityAction(
+  orgId: string,
+  options: { page?: number; limit?: number; actor?: string; action?: string; dateFrom?: string; dateTo?: string } = {}
+): Promise<ActionResult<{ items: Array<{
+  id: string;
+  action: string;
+  actor_name: string;
+  actor_email: string;
+  target_type: string;
+  target_name: string;
+  metadata: Record<string, unknown>;
+  created_at: string;
+}>; total: number }>> {
+  const supabase = await getServerSupabase();
+  const { data: { user } } = await supabase.auth.getUser();
+  
+  if (!user) {
+    return { ok: false, error: "Not authenticated" };
+  }
+
+  try {
+    await requireOrgAccess(supabase, orgId, ["owner", "admin"]);
+    
+    const admin = getAdminSupabase();
+    const result = await listOrgActivity(admin, orgId, options);
+    return { ok: true, data: result };
+  } catch (e) {
+    if (isOrgAccessError(e)) return { ok: false, error: e.message };
+    return { ok: false, error: e instanceof Error ? e.message : "Failed to load activity" };
+  }
+}
+
+/**
+ * Revoke all sessions for organization members.
+ */
+export async function revokeAllOrgSessionsAction(
+  _prev: ActionResult | undefined,
+  formData: FormData,
+): Promise<ActionResult> {
+  const supabase = await getServerSupabase();
+  const { data: { user } } = await supabase.auth.getUser();
+  
+  if (!user) {
+    return { ok: false, error: "Not authenticated" };
+  }
+
+  const parsed = z.object({
+    orgId: z.string().uuid(),
+  }).safeParse({
+    orgId: formData.get("orgId"),
+  });
+
+  if (!parsed.success) return { ok: false, error: "Invalid input." };
+
+  try {
+    await requireOrgAccess(supabase, parsed.data.orgId, ["owner"]);
+    
+    const admin = getAdminSupabase();
+    await revokeAllOrgSessions(admin, parsed.data.orgId, user.id);
+
+    revalidatePath(`/dashboard/organizations/${parsed.data.orgId}/settings`);
+    return { ok: true, message: "All sessions revoked." };
+  } catch (e) {
+    if (isOrgAccessError(e)) return { ok: false, error: e.message };
+    return { ok: false, error: e instanceof Error ? e.message : "Failed to revoke sessions" };
+  }
+}
+
+/**
+ * Delete organization.
+ */
 export async function deleteOrgAction(
   _prev: ActionResult | undefined,
   formData: FormData,
 ): Promise<ActionResult> {
-  const userId = await requireUserId();
-  const admin = getAdminSupabase();
+  const supabase = await getServerSupabase();
+  const { data: { user } } = await supabase.auth.getUser();
+  
+  if (!user) {
+    return { ok: false, error: "Not authenticated" };
+  }
 
-  const parsed = deleteOrgSchema.safeParse({ id: formData.get("id") });
-  if (!parsed.success) return { ok: false, error: "Invalid organization ID." };
+  const parsed = z.object({
+    orgId: z.string().uuid(),
+  }).safeParse({
+    orgId: formData.get("orgId"),
+  });
+
+  if (!parsed.success) return { ok: false, error: "Invalid input." };
 
   try {
-    const { requireOrgAccess } = await import("./server");
-    const supabase = await getServerSupabase();
-    await requireOrgAccess(await supabase, parsed.data.id, ["owner"]);
-
+    await requireOrgAccess(supabase, parsed.data.orgId, ["owner"]);
+    
     const admin = getAdminSupabase();
-    await deleteOrganization(admin, parsed.data.id);
+    await deleteOrg(admin, parsed.data.orgId, user.id);
 
     revalidatePath("/dashboard/organizations");
     return { ok: true, message: "Organization deleted." };
   } catch (e) {
-    if (isOrgAccessError(e)) return { ok: false, error: mapAccessError(e) };
-    return { ok: false, error: e instanceof Error ? e.message : "Could not delete organization." };
-  }
-}
-
-// --- List Members ------------------------------------------------------------
-
-export async function listOrgMembersAction(orgId: string): Promise<ActionResult<{ members: OrganizationMemberListItem[] }>> {
-  const userId = await requireUserId();
-  const admin = getAdminSupabase();
-
-  try {
-    const { requireOrgAccess } = await import("./server");
-    const supabase = await getServerSupabase();
-    await requireOrgAccess(await supabase, orgId, ["owner", "admin", "member", "viewer"]);
-
-    const admin = getAdminSupabase();
-    const { listOrgMembers } = await import("./server");
-    const members = await listOrgMembers(admin, orgId);
-    return { ok: true, data: { members } };
-  } catch (e) {
-    if (isOrgAccessError(e)) return { ok: false, error: mapAccessError(e) };
-    return { ok: false, error: e instanceof Error ? e.message : "Could not load members." };
-  }
-}
-
-// --- Invite Member -----------------------------------------------------------
-
-const inviteMemberSchema = z.object({
-  orgId: z.string().uuid(),
-  email: z.string().email("Enter a valid email"),
-  role: z.enum(["admin", "member", "viewer"]).default("member"),
-});
-
-export async function inviteOrgMemberAction(
-  _prev: ActionResult | undefined,
-  formData: FormData,
-): Promise<ActionResult<{ invitationId: string; token: string }>> {
-  const userId = await requireUserId();
-  const admin = getAdminSupabase();
-
-  const parsed = inviteMemberSchema.safeParse({
-    orgId: formData.get("orgId"),
-    email: formData.get("email"),
-    role: formData.get("role") || "member",
-  });
-
-  if (!parsed.success) {
-    return { ok: false, error: "Please fix the highlighted fields.", fieldErrors: parsed.error.flatten().fieldErrors };
-  }
-
-  try {
-    const { requireOrgAccess } = await import("./server");
-    const supabase = await getServerSupabase();
-    await requireOrgAccess(await supabase, parsed.data.orgId, ["owner", "admin"]);
-
-    const admin = getAdminSupabase();
-    const { inviteOrgMember } = await import("./server");
-    const { invitation, token } = await inviteOrgMember(admin, parsed.data.orgId, userId, {
-      email: parsed.data.email,
-      role: parsed.data.role,
-    });
-
-    revalidatePath(`/dashboard/organizations/${parsed.data.orgId}/members`);
-    return { ok: true, data: { invitationId: invitation.id, token }, message: "Invitation sent." };
-  } catch (e) {
-    if (isOrgAccessError(e)) return { ok: false, error: mapAccessError(e) };
-    return { ok: false, error: e instanceof Error ? e.message : "Could not send invitation." };
-  }
-}
-
-// --- Remove Member -----------------------------------------------------------
-
-const removeMemberSchema = z.object({
-  orgId: z.string().uuid(),
-  userId: z.string().uuid(),
-});
-
-export async function removeOrgMemberAction(
-  _prev: ActionResult | undefined,
-  formData: FormData,
-): Promise<ActionResult> {
-  const userId = await requireUserId();
-  const admin = getAdminSupabase();
-
-  const parsed = removeMemberSchema.safeParse({
-    orgId: formData.get("orgId"),
-    userId: formData.get("userId"),
-  });
-
-  if (!parsed.success) return { ok: false, error: "Invalid input." };
-
-  try {
-    const { requireOrgAccess } = await import("./server");
-    const supabase = await getServerSupabase();
-    await requireOrgAccess(await supabase, parsed.data.orgId, ["owner", "admin"]);
-
-    const admin = getAdminSupabase();
-    await removeOrgMember(admin, parsed.data.orgId, parsed.data.userId, userId);
-
-    revalidatePath(`/dashboard/organizations/${parsed.data.orgId}/members`);
-    return { ok: true, message: "Member removed." };
-  } catch (e) {
-    if (isOrgAccessError(e)) return { ok: false, error: mapAccessError(e) };
-    return { ok: false, error: e instanceof Error ? e.message : "Could not remove member." };
-  }
-}
-
-// --- Transfer Ownership ------------------------------------------------------
-
-const transferSchema = z.object({
-  orgId: z.string().uuid(),
-  newOwnerId: z.string().uuid(),
-});
-
-export async function transferOwnershipAction(
-  _prev: ActionResult | undefined,
-  formData: FormData,
-): Promise<ActionResult> {
-  const userId = await requireUserId();
-  const admin = getAdminSupabase();
-
-  const parsed = transferSchema.safeParse({
-    orgId: formData.get("orgId"),
-    newOwnerId: formData.get("newOwnerId"),
-  });
-
-  if (!parsed.success) return { ok: false, error: "Invalid input." };
-
-  try {
-    const { requireOrgAccess } = await import("./server");
-    const supabase = await getServerSupabase();
-    await requireOrgAccess(await supabase, parsed.data.orgId, ["owner"]);
-
-    const admin = getAdminSupabase();
-    await transferOwnership(admin, parsed.data.orgId, parsed.data.newOwnerId, userId);
-
-    revalidatePath(`/dashboard/organizations/${parsed.data.orgId}`);
-    revalidatePath(`/dashboard/organizations/${parsed.data.orgId}/members`);
-    return { ok: true, message: "Ownership transferred." };
-  } catch (e) {
-    if (isOrgAccessError(e)) return { ok: false, error: mapAccessError(e) };
-    return { ok: false, error: e instanceof Error ? e.message : "Could not transfer ownership." };
-  }
-}
-
-// --- Update Member Role ------------------------------------------------------
-
-const updateMemberRoleSchema = z.object({
-  orgId: z.string().uuid(),
-  userId: z.string().uuid(),
-  role: z.enum(["admin", "member", "viewer"]),
-});
-
-export async function updateOrgMemberRoleAction(
-  _prev: ActionResult | undefined,
-  formData: FormData,
-): Promise<ActionResult> {
-  const userId = await requireUserId();
-  const admin = getAdminSupabase();
-
-  const parsed = updateMemberRoleSchema.safeParse({
-    orgId: formData.get("orgId"),
-    userId: formData.get("userId"),
-    role: formData.get("role"),
-  });
-
-  if (!parsed.success) return { ok: false, error: "Invalid input." };
-
-  try {
-    const { requireOrgAccess } = await import("./server");
-    const supabase = await getServerSupabase();
-    await requireOrgAccess(await supabase, parsed.data.orgId, ["owner", "admin"]);
-
-    const admin = getAdminSupabase();
-    await updateOrgMemberRole(admin, parsed.data.orgId, parsed.data.userId, parsed.data.role, userId);
-
-    revalidatePath(`/dashboard/organizations/${parsed.data.orgId}`);
-    return { ok: true, message: "Member role updated." };
-  } catch (e) {
-    if (isOrgAccessError(e)) return { ok: false, error: mapAccessError(e) };
-    return { ok: false, error: e instanceof Error ? e.message : "Could not update member role." };
-  }
-}
-
-// --- Project Collaborators ---------------------------------------------------
-
-const addCollaboratorSchema = z.object({
-  projectId: z.string().uuid(),
-  userId: z.string().uuid(),
-  role: z.enum(["lead", "member", "viewer"]).default("member"),
-});
-
-export async function addProjectCollaboratorAction(
-  _prev: ActionResult | undefined,
-  formData: FormData,
-): Promise<ActionResult> {
-  const userId = await requireUserId();
-  const admin = getAdminSupabase();
-
-  const parsed = addCollaboratorSchema.safeParse({
-    projectId: formData.get("projectId"),
-    userId: formData.get("userId"),
-    role: formData.get("role") || "member",
-  });
-
-  if (!parsed.success) {
-    return { ok: false, error: "Please fix the highlighted fields.", fieldErrors: parsed.error.flatten().fieldErrors };
-  }
-
-  try {
-    const { addProjectMember } = await import("./server");
-    await addProjectMember(admin, parsed.data.projectId, userId, {
-      userId: parsed.data.userId,
-      role: parsed.data.role,
-    });
-
-    revalidatePath(`/dashboard/projects/${parsed.data.projectId}/collaborators`);
-    return { ok: true, message: "Collaborator added." };
-  } catch (e) {
-    if (isOrgAccessError(e)) return { ok: false, error: mapAccessError(e) };
-    return { ok: false, error: e instanceof Error ? e.message : "Could not add collaborator." };
-  }
-}
-
-export async function removeProjectCollaboratorAction(
-  _prev: ActionResult | undefined,
-  formData: FormData,
-): Promise<ActionResult> {
-  const userId = await requireUserId();
-  const admin = getAdminSupabase();
-
-  const parsed = z
-    .object({ projectId: z.string().uuid(), userId: z.string().uuid() })
-    .safeParse({ projectId: formData.get("projectId"), userId: formData.get("userId") });
-
-  if (!parsed.success) return { ok: false, error: "Invalid input." };
-
-  try {
-    const { removeProjectMember } = await import("./server");
-    await removeProjectMember(admin, parsed.data.projectId, userId, parsed.data.userId);
-
-    revalidatePath(`/dashboard/projects/${parsed.data.projectId}/collaborators`);
-    return { ok: true, message: "Collaborator removed." };
-  } catch (e) {
-    if (isOrgAccessError(e)) return { ok: false, error: mapAccessError(e) };
-    return { ok: false, error: e instanceof Error ? e.message : "Could not remove collaborator." };
-  }
-}
-
-export async function listProjectCollaboratorsAction(projectId: string): Promise<ActionResult<{ collaborators: ProjectCollaboratorListItem[] }>> {
-  const userId = await requireUserId();
-  const admin = getAdminSupabase();
-
-  try {
-    const { listProjectMembers } = await import("./server");
-    const collaborators = await listProjectMembers(admin, projectId);
-    return { ok: true, data: { collaborators } };
-  } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : "Could not load collaborators." };
-  }
-}
-
-// --- Project Costs (for profitability) ---------------------------------------
-
-const addCostSchema = z.object({
-  projectId: z.string().uuid(),
-  description: z.string().trim().min(1).max(500).optional(),
-  amount: z.coerce.number().positive("Amount must be positive"),
-  currency: z.string().length(3).default("INR"),
-  costDate: z.string().optional(),
-  category: z.string().max(50).optional(),
-});
-
-export async function addProjectCostAction(
-  _prev: ActionResult | undefined,
-  formData: FormData,
-): Promise<ActionResult<{ id: string }>> {
-  const userId = await requireUserId();
-  const admin = getAdminSupabase();
-
-  const parsed = addCostSchema.safeParse({
-    projectId: formData.get("projectId"),
-    description: formData.get("description") || undefined,
-    amount: formData.get("amount"),
-    currency: formData.get("currency") || "INR",
-    costDate: formData.get("costDate") || undefined,
-    category: formData.get("category") || undefined,
-  });
-
-  if (!parsed.success) {
-    return { ok: false, error: "Please fix the highlighted fields.", fieldErrors: parsed.error.flatten().fieldErrors };
-  }
-
-  // Verify user owns the project
-  const { data: project } = await admin
-    .from("projects")
-    .select("user_id")
-    .eq("id", parsed.data.projectId)
-    .maybeSingle();
-
-  if (!project || project.user_id !== userId) {
-    return { ok: false, error: "Only the project owner can add costs." };
-  }
-
-  try {
-    const { data: compData, error: compErr } = await admin
-      .from("project_costs")
-      .insert({
-        project_id: parsed.data.projectId,
-        user_id: userId,
-        description: parsed.data.description ?? null,
-        amount: parsed.data.amount,
-        currency: parsed.data.currency,
-        cost_date: parsed.data.costDate ?? new Date().toISOString(),
-        category: parsed.data.category ?? null,
-      })
-      .select("id")
-      .single();
-
-    if (compErr || !compData) {
-      return { ok: false, error: compErr?.message ?? "Could not add cost." };
-    }
-
-    revalidatePath(`/dashboard/projects/${parsed.data.projectId}/profitability`);
-    return { ok: true, data: { id: compData.id }, message: "Cost added." };
-  } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : "Could not add cost." };
-  }
-}
-
-export async function listProjectCostsAction(projectId: string): Promise<ActionResult<{ costs: ProjectCostRow[] }>> {
-  const userId = await requireUserId();
-  const admin = getAdminSupabase();
-  // Verify user owns the project
-  const { data: project } = await admin
-    .from("projects")
-    .select("user_id")
-    .eq("id", projectId)
-    .maybeSingle();
-
-  if (!project || project.user_id !== userId) {
-    return { ok: false, error: "Project not found or access denied." };
-  }
-
-  try {
-    const { data, error } = await admin
-      .from("project_costs")
-      .select("*")
-      .eq("project_id", projectId)
-      .order("cost_date", { ascending: false });
-
-    if (error) return { ok: false, error: error.message };
-
-    return { ok: true, data: { costs: data ?? [] } };
-  } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : "Could not load costs." };
-  }
-}
-
-export async function deleteProjectCostAction(
-  _prev: ActionResult | undefined,
-  formData: FormData,
-): Promise<ActionResult> {
-  const userId = await requireUserId();
-  const admin = getAdminSupabase();
-
-  const parsed = z
-    .object({ id: z.string().uuid() })
-    .safeParse({ id: formData.get("id") });
-
-  if (!parsed.success) return { ok: false, error: "Invalid cost ID." };
-
-  try {
-    // Verify ownership via project
-    const { data: cost } = await admin
-      .from("project_costs")
-      .select("project_id")
-      .eq("id", parsed.data.id)
-      .maybeSingle();
-
-    if (!cost) return { ok: false, error: "Cost not found." };
-
-    const { data: project } = await admin
-      .from("projects")
-      .select("user_id")
-      .eq("id", cost.project_id)
-      .maybeSingle();
-
-    if (!project || project.user_id !== userId) {
-      return { ok: false, error: "Access denied." };
-    }
-
-    const { error } = await admin
-      .from("project_costs")
-      .delete()
-      .eq("id", parsed.data.id);
-
-    if (error) return { ok: false, error: error.message };
-
-    return { ok: true, message: "Cost deleted." };
-  } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : "Could not delete cost." };
-  }
-}
-
-// --- Project Profitability ---------------------------------------------------
-
-export async function getProjectProfitabilityAction(projectId: string): Promise<ActionResult<{
-  revenue: number;
-  costs: number;
-  profit: number;
-  margin: number;
-  costsByCategory: Record<string, number>;
-  costsByMember: Record<string, { name: string; email: string; total: number }>;
-}>> {
-  const userId = await requireUserId();
-  const admin = getAdminSupabase();
-
-  try {
-    // Verify user owns the project
-    const { data: project } = await admin
-      .from("projects")
-      .select("user_id")
-      .eq("id", projectId)
-      .maybeSingle();
-
-    if (!project || project.user_id !== userId) {
-      return { ok: false, error: "Project not found or access denied." };
-    }
-
-    const { calculateProjectProfitability } = await import("./server");
-    const profitability = await calculateProjectProfitability(admin, projectId);
-    return { ok: true, data: profitability };
-  } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : "Could not calculate profitability." };
-  }
-}
-
-export async function getOrgProfitabilityAction(orgId: string): Promise<ActionResult<{
-  totalRevenue: number;
-  totalCosts: number;
-  totalProfit: number;
-  overallMargin: number;
-  projects: Array<{
-    project_id: string;
-    project_name: string;
-    revenue: number;
-    costs: number;
-    profit: number;
-    margin: number;
-  }>;
-}>> {
-  const userId = await requireUserId();
-  const admin = getAdminSupabase();
-
-  try {
-    const { requireOrgAccess } = await import("./server");
-    const supabase = await getServerSupabase();
-    await requireOrgAccess(await supabase, orgId, ["owner", "admin"]);
-
-    const { getOrgProfitability } = await import("./server");
-    const profitability = await getOrgProfitability(admin, orgId);
-    return { ok: true, data: profitability };
-  } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : "Could not calculate org profitability." };
-  }
-}
-
-// --- List User's Organizations -----------------------------------------------
-
-export async function listUserOrganizationsAction(): Promise<ActionResult<{ organizations: UserOrganizationListItem[] }>> {
-  const userId = await requireUserId();
-  const admin = getAdminSupabase();
-
-  try {
-    const { getUserOrganizations } = await import("./server");
-    const orgs = await getUserOrganizations(admin, userId);
-    return { ok: true, data: { organizations: orgs } };
-  } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : "Could not load organizations." };
-  }
-}
-
-// --- Get Org Details ---------------------------------------------------------
-
-export async function getOrgDetailsAction(orgId: string): Promise<ActionResult<{
-  org: OrganizationRow;
-  member_count: number;
-  user_role: OrgRole;
-  is_owner: boolean;
-}>> {
-  const userId = await requireUserId();
-  const admin = getAdminSupabase();
-
-  try {
-    const { requireOrgAccess } = await import("./server");
-    const supabase = await getServerSupabase();
-    await requireOrgAccess(supabase, orgId, ["owner", "admin", "member", "viewer"]);
-
-    const { getOrgWithDetails } = await import("./server");
-    const details = await getOrgWithDetails(admin, orgId, userId);
-    if (!details?.user_role) return { ok: false, error: "Organization not found." };
-    return { ok: true, data: { org: details.org, member_count: details.member_count, user_role: details.user_role, is_owner: details.is_owner } };
-  } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : "Could not load organization." };
+    if (isOrgAccessError(e)) return { ok: false, error: e.message };
+    return { ok: false, error: e instanceof Error ? e.message : "Failed to delete organization" };
   }
 }

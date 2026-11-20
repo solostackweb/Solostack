@@ -14,9 +14,9 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { UserPlus, Users, Building2, DollarSign, Trash2, Save, Loader2, ArrowRight, Shield, BarChart3, CreditCard, Key, Settings } from "lucide-react";
+import { UserPlus, Users, Building2, DollarSign, Trash2, Save, Loader2, ArrowRight, Shield, BarChart3, CreditCard, Key, Settings, Clock, Mail, X } from "lucide-react";
 import { toast } from "sonner";
-import { listOrgMembersAction, inviteOrgMemberAction, removeOrgMemberAction, transferOwnershipAction, updateOrgMemberRoleAction, getOrgProfitabilityAction, updateOrgAction } from "../actions";
+import { listOrgMembersAction, inviteOrgMemberAction, removeOrgMemberAction, transferOwnershipAction, updateOrgMemberRoleAction, getOrgProfitabilityAction, updateOrgAction, getOrgSubscriptionAction, listOrgInvitationsAction, cancelOrgInvitationAction, resendOrgInvitationAction } from "../actions";
 import { formatCurrency } from "@/lib/utils";
 
 interface Member {
@@ -43,6 +43,14 @@ interface Profitability {
   }>;
 }
 
+interface OrgSubscription {
+  plan: string;
+  status: string;
+  trialEndsAt: string | null;
+  currentPeriodEnd: string | null;
+  razorpaySubscriptionId: string | null;
+}
+
 interface OrganizationDetailProps {
   initialData: {
     org: {
@@ -59,6 +67,7 @@ interface OrganizationDetailProps {
     is_owner: boolean;
   };
   orgId: string;
+  initialSubscription: OrgSubscription | null;
 }
 
 export function OrganizationDetail({ initialData, orgId }: OrganizationDetailProps) {
@@ -79,6 +88,17 @@ export function OrganizationDetail({ initialData, orgId }: OrganizationDetailPro
     brand_tagline: "",
     logo_url: "",
   });
+  const [subscription, setSubscription] = React.useState<OrgSubscription | null>(initialSubscription);
+  const [invitations, setInvitations] = React.useState<Array<{
+    id: string;
+    email: string;
+    role: string;
+    expires_at: string;
+    invited_by_name: string;
+    invited_by_email: string;
+    created_at: string;
+  }>>([]);
+  const [loadingInvitations, setLoadingInvitations] = useState(false);
 
   const { org, member_count, user_role, is_owner } = initialData;
   const isAdmin = user_role === "owner" || user_role === "admin";
@@ -90,11 +110,23 @@ export function OrganizationDetail({ initialData, orgId }: OrganizationDetailPro
     setLoadingMembers(false);
   }, [orgId]);
 
+  const loadInvitations = useCallback(async () => {
+    setLoadingInvitations(true);
+    const result = await listOrgInvitationsAction(orgId);
+    if (result.ok && result.invitations) setInvitations(result.invitations);
+    setLoadingInvitations(false);
+  }, [orgId]);
+
   const loadProfitability = useCallback(async () => {
     setProfitabilityLoading(true);
     const result = await getOrgProfitabilityAction(orgId);
     if (result.ok && result.data) setProfitability(result.data);
     setProfitabilityLoading(false);
+  }, [orgId]);
+
+  const loadSubscription = useCallback(async () => {
+    const result = await getOrgSubscriptionAction(orgId);
+    if (result.ok && result.subscription) setSubscription(result.subscription);
   }, [orgId]);
 
   useEffect(() => {
@@ -106,7 +138,9 @@ export function OrganizationDetail({ initialData, orgId }: OrganizationDetailPro
     });
     loadMembers();
     loadProfitability();
-  }, [orgId, loadMembers, loadProfitability, initialData]);
+    loadSubscription();
+    loadInvitations();
+  }, [orgId, loadMembers, loadProfitability, loadSubscription, loadInvitations, initialData]);
 
   async function handleInvite() {
     const formData = new FormData();
@@ -119,6 +153,7 @@ export function OrganizationDetail({ initialData, orgId }: OrganizationDetailPro
       setInviteDialogOpen(false);
       setInviteEmail("");
       loadMembers();
+      loadInvitations();
     } else {
       toast.error(result.error);
     }
@@ -215,9 +250,10 @@ export function OrganizationDetail({ initialData, orgId }: OrganizationDetailPro
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-6">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="members">Members</TabsTrigger>
+          <TabsTrigger value="invitations">Invitations</TabsTrigger>
           <TabsTrigger value="branding">Branding</TabsTrigger>
           <TabsTrigger value="billing">Billing</TabsTrigger>
           <TabsTrigger value="advanced">Advanced</TabsTrigger>
@@ -526,7 +562,96 @@ export function OrganizationDetail({ initialData, orgId }: OrganizationDetailPro
               </div>
             </CardContent>
           </Card>
-        </TabsContent>
+
+          {/* Pending Invitations */}
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle className="flex items-center gap-2">
+                  <Mail className="h-5 w-5" />
+                  Pending Invitations
+                </CardTitle>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {loadingInvitations ? (
+                <div className="text-center py-4">
+                  <Loader2 className="mx-auto h-6 w-6 animate-spin text-primary" />
+                </div>
+              ) : invitations.length === 0 ? (
+                <div className="text-center py-8">
+                  <Mail className="mx-auto h-10 w-10 text-muted-foreground" />
+                  <h4 className="mt-2 text-lg font-medium">No pending invitations</h4>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    Invitations will appear here once sent.
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {invitations.map((inv) => (
+                    <div
+                      key={inv.id}
+                      className="flex items-center justify-between p-3 rounded-lg border bg-muted/30"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                          <Mail className="h-4 w-4" />
+                        </div>
+                        <div>
+                          <p className="font-medium">{inv.email}</p>
+                          <p className="text-sm text-muted-foreground">
+                            Role: {inv.role} · Invited by {inv.invited_by_name} ({inv.invited_by_email})
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            Expires {formatDate(inv.expires_at)}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={async () => {
+                            const formData = new FormData();
+                            formData.append("orgId", orgId);
+                            formData.append("invitationId", inv.id);
+                            const result = await resendOrgInvitationAction(undefined, formData);
+                            if (result.ok) {
+                              toast.success("Invitation resent");
+                              loadInvitations();
+                            } else {
+                              toast.error(result.error);
+                            }
+                          }}
+                        >
+                          Resend
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="text-destructive hover:bg-destructive/10"
+                          onClick={async () => {
+                            const formData = new FormData();
+                            formData.append("orgId", orgId);
+                            formData.append("invitationId", inv.id);
+                            const result = await cancelOrgInvitationAction(undefined, formData);
+                            if (result.ok) {
+                              toast.success("Invitation cancelled");
+                              loadInvitations();
+                            } else {
+                              toast.error(result.error);
+                            }
+                          }}
+                        >
+                          <X className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
 
         {/* BRANDING TAB */}
         <TabsContent value="branding" className="space-y-6">
@@ -648,12 +773,15 @@ export function OrganizationDetail({ initialData, orgId }: OrganizationDetailPro
               <div className="rounded-lg border border-border/50 bg-muted/30 p-6">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-4">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                    <div className={`flex h-12 w-12 items-center justify-center rounded-lg ${getPlanBadgeStyles(subscription?.plan)}`}>
                       <Shield className="h-6 w-6" />
                     </div>
                     <div>
-                      <h4 className="font-semibold">Pro Plan</h4>
-                      <p className="text-sm text-muted-foreground">Active · Renews monthly</p>
+                      <h4 className="font-semibold">{formatPlanName(subscription?.plan)}</h4>
+                      <p className="text-sm text-muted-foreground">
+                        {subscription?.status === "active" ? "Active" : subscription?.status}
+                        {subscription?.currentPeriodEnd && ` · Renews ${formatDate(subscription.currentPeriodEnd)}`}
+                      </p>
                     </div>
                   </div>
                   <Button variant="outline" size="sm" asChild>
@@ -668,7 +796,7 @@ export function OrganizationDetail({ initialData, orgId }: OrganizationDetailPro
                   <CardContent className="space-y-2">
                     <div className="flex items-center justify-between">
                       <h4 className="font-medium">Seats Used</h4>
-                      <Badge variant="secondary">{member_count} / Unlimited</Badge>
+                      <Badge variant="secondary">{member_count} / {getSeatLimit(subscription?.plan)}</Badge>
                     </div>
                     <p className="text-sm text-muted-foreground">All members count toward seats</p>
                   </CardContent>
@@ -677,28 +805,66 @@ export function OrganizationDetail({ initialData, orgId }: OrganizationDetailPro
                   <CardContent className="space-y-2">
                     <div className="flex items-center justify-between">
                       <h4 className="font-medium">Billing Cycle</h4>
-                      <Badge variant="outline">Monthly</Badge>
+                      <Badge variant="outline">{subscription?.currentPeriodEnd ? "Monthly" : "—"}</Badge>
                     </div>
-                    <p className="text-sm text-muted-foreground">Next renewal: 1st of next month</p>
+                    <p className="text-sm text-muted-foreground">
+                      {subscription?.currentPeriodEnd 
+                        ? `Next renewal: ${formatDate(subscription.currentPeriodEnd)}`
+                        : "No active subscription"}
+                    </p>
                   </CardContent>
                 </Card>
               </div>
 
-              {/* Payment Method Placeholder */}
+              {/* Trial Status */}
+              {subscription?.trialEndsAt && new Date(subscription.trialEndsAt) > new Date() && (
+                <div className="rounded-lg border border-primary/30 bg-primary/5 p-4">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                      <Clock className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <h4 className="font-medium">Trial Active</h4>
+                      <p className="text-sm text-muted-foreground">
+                        Trial ends on {formatDate(subscription.trialEndsAt)}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Payment Method */}
               <div className="rounded-lg border border-border/50 bg-background p-6">
                 <h4 className="font-medium mb-4">Payment Method</h4>
-                <div className="flex items-center gap-4 p-4 rounded-lg border bg-muted/30">
-                  <div className="flex h-10 w-16 items-center justify-center rounded bg-white border">
-                    <span className="text-xs font-mono text-muted-foreground">•••• 4242</span>
+                {subscription?.razorpaySubscriptionId ? (
+                  <div className="flex items-center gap-4 p-4 rounded-lg border bg-muted/30">
+                    <div className="flex h-10 w-16 items-center justify-center rounded bg-white border">
+                      <span className="text-xs font-mono text-muted-foreground">Razorpay</span>
+                    </div>
+                    <div>
+                      <p className="font-medium">Razorpay Subscription</p>
+                      <p className="text-sm text-muted-foreground">
+                        ID: {subscription.razorpaySubscriptionId.slice(0, 12)}...
+                      </p>
+                    </div>
+                    <Button variant="outline" size="sm" asChild className="ml-auto">
+                      <a href="/dashboard/settings?tab=billing">Manage</a>
+                    </Button>
                   </div>
-                  <div>
-                    <p className="font-medium">Visa ending in 4242</p>
-                    <p className="text-sm text-muted-foreground">Expires 12/28</p>
+                ) : (
+                  <div className="flex items-center gap-4 p-4 rounded-lg border bg-muted/30">
+                    <div className="flex h-10 w-16 items-center justify-center rounded bg-white border">
+                      <span className="text-xs font-mono text-muted-foreground">Not set</span>
+                    </div>
+                    <div>
+                      <p className="font-medium">No payment method</p>
+                      <p className="text-sm text-muted-foreground">Add a payment method to enable auto-renewal</p>
+                    </div>
+                    <Button variant="outline" size="sm" asChild className="ml-auto">
+                      <a href="/dashboard/settings?tab=billing">Add Payment Method</a>
+                    </Button>
                   </div>
-                  <Button variant="outline" size="sm" asChild className="ml-auto">
-                    <a href="/dashboard/settings?tab=billing">Update</a>
-                  </Button>
-                </div>
+                )}
               </div>
 
               {/* Invoice History */}
@@ -769,4 +935,53 @@ export function OrganizationDetail({ initialData, orgId }: OrganizationDetailPro
       </Tabs>
     </div>
   );
+}
+
+// Helper functions for billing tab
+function formatPlanName(plan?: string | null): string {
+  if (!plan) return "Free";
+  return plan.charAt(0).toUpperCase() + plan.slice(1);
+}
+
+function getPlanBadgeStyles(plan?: string | null): string {
+  switch (plan) {
+    case "free":
+      return "bg-muted text-muted-foreground";
+    case "pro":
+      return "bg-primary/10 text-primary";
+    case "business":
+      return "bg-purple/10 text-purple";
+    case "enterprise":
+      return "bg-amber/10 text-amber";
+    default:
+      return "bg-muted text-muted-foreground";
+  }
+}
+
+function getSeatLimit(plan?: string | null): string {
+  switch (plan) {
+    case "free":
+      return "3";
+    case "pro":
+      return "10";
+    case "business":
+      return "50";
+    case "enterprise":
+      return "Unlimited";
+    default:
+      return "3";
+  }
+}
+
+function formatDate(dateString?: string | null): string {
+  if (!dateString) return "—";
+  try {
+    return new Date(dateString).toLocaleDateString("en-IN", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    });
+  } catch {
+    return dateString;
+  }
 }

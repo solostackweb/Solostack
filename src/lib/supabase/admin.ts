@@ -32,3 +32,17 @@ export function getAdminSupabase(): SupabaseClient<Database> {
   );
   return adminClient;
 }
+
+/**
+ * Get admin client with organization context set.
+ * For admin operations that need to filter by organization.
+ */
+export async function getAdminSupabaseWithOrg(orgId: string): Promise<SupabaseClient<Database>> {
+  const client = getAdminSupabase();
+  await client.rpc("set_config", {
+    setting: "app.current_organization_id",
+    value: orgId,
+    is_local: true,
+  });
+  return client;
+}

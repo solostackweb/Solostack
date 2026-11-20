@@ -65,6 +65,21 @@ export async function middleware(request: NextRequest) {
 
   const pathname = request.nextUrl.pathname;
 
+  // --- Organization switch route: /org/switch/:orgId -------------------------
+  // Allows client-side org switcher to set cookie via middleware (Edge runtime)
+  const orgSwitchMatch = pathname.match(/^\/org\/switch\/([a-f0-9-]{36})$/);
+  if (orgSwitchMatch) {
+    const orgId = orgSwitchMatch[1];
+    const response = NextResponse.redirect(new URL("/dashboard", request.url));
+    response.cookies.set("stackivo_current_org_id", orgId, {
+      path: "/",
+      maxAge: 60 * 60 * 24 * 365,
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+    });
+    return response;
+  }
+
   // Every request gets a correlation id. Honour an incoming value so
   // upstream load balancers / tests can force a known id.
   const requestId =

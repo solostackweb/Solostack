@@ -15,9 +15,12 @@ import { cookies } from "next/headers";
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { env } from "@/config/env";
 import type { Database } from "./types";
+import { getCurrentOrganizationId } from "@/features/organizations/server-context";
 
 /**
  * Build a request-scoped Supabase client bound to the current cookie store.
+ * Automatically sets the Postgres session variable `app.current_organization_id`
+ * so triggers and RLS policies can access the organization context.
  *
  * Usage:
  * ```ts
@@ -27,16 +30,14 @@ import type { Database } from "./types";
  */
 export async function getServerSupabase() {
   const cookieStore = await cookies();
+  const orgId = await getCurrentOrganizationId();
 
-  return createServerClient<Database>(env.supabaseUrl, env.supabaseAnonKey, {
+  const client = createServerClient<Database>(env.supabaseUrl, env.supabaseAnonKey, {
     cookies: {
       getAll() {
         return cookieStore.getAll();
       },
       setAll(cookiesToSet) {
-        // In Server Components `cookies()` is read-only. The setAll call will
-        // throw there, which is fine — session refreshes happen in the
-        // middleware (`updateSession()`), not in RSC.
         try {
           for (const { name, value, options } of cookiesToSet) {
             cookieStore.set(name, value, options as CookieOptions);
@@ -46,5 +47,24 @@ export async function getServerSupabase() {
         }
       },
     },
+    global: {
+      headers: {
+        // Pass organization ID via header so PostgREST can set session variable
+        "x-organization-id": orgId ?? "",
+      },
+    },
   });
+
+  // Set the Postgres session variable for triggers/RLS
+  if (orgId) {
+    // Use a lightweight RPC to set the session variable
+    // This runs in the same transaction as subsequent queries
+    await client.rpc("set_config", {
+      setting: "app.current_organization_id",
+      value: orgId,
+      is_local: true,
+    });
+  }
+
+  return client;
 }

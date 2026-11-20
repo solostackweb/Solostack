@@ -19,16 +19,18 @@ import type { CurrentSubscription } from "@/features/subscription/types";
 export function DashboardShellProviders({
   profile,
   subscription,
+  currentOrgId,
   children,
 }: {
   profile: BusinessProfile;
   subscription: CurrentSubscription | null;
+  currentOrgId: string;
   children: React.ReactNode;
 }) {
   return (
     <ProfileProvider initialProfile={profile} initialSubscription={subscription}>
       <MobileNavProvider>
-        <OrgProvider>{children}</OrgProvider>
+        <OrgProvider initialOrgId={currentOrgId}>{children}</OrgProvider>
       </MobileNavProvider>
     </ProfileProvider>
   );

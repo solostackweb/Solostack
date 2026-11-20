@@ -2,8 +2,8 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { Building2, Plus, ChevronDown, Check } from "lucide-react";
+import { usePathname, useRouter } from "next/navigation";
+import { Building2, Plus, ChevronDown, Check, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -14,9 +14,11 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { listUserOrganizationsAction } from "../actions";
+import { toast } from "sonner";
 
 export function OrgSwitcher() {
   const pathname = usePathname();
+  const router = useRouter();
   const [orgs, setOrgs] = React.useState<Array<{
     id: string;
     name: string;
@@ -25,6 +27,7 @@ export function OrgSwitcher() {
     is_owner: boolean;
   }>>([]);
   const [loading, setLoading] = React.useState(true);
+  const [switching, setSwitching] = React.useState<string | null>(null);
 
   // Extract org ID from pathname like /dashboard/organizations/:orgId/...
   const currentOrgId = React.useMemo(() => {
@@ -42,6 +45,13 @@ export function OrgSwitcher() {
       setOrgs(result.data.organizations);
     }
     setLoading(false);
+  }
+
+  async function handleSwitch(orgId: string) {
+    if (switching) return;
+    setSwitching(orgId);
+    // Use middleware route to set cookie and redirect
+    window.location.href = `/org/switch/${orgId}`;
   }
 
   if (orgs.length <= 1 && !loading) return null;
@@ -96,17 +106,17 @@ export function OrgSwitcher() {
                 {otherOrgs.map((org) => (
                   <DropdownMenuItem
                     key={org.id}
-                    asChild
                     className="relative flex cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
+                    onClick={() => handleSwitch(org.id)}
+                    disabled={switching === org.id}
                   >
-                    <Link
-                      href={`/dashboard/organizations/${org.id}`}
-                      className="flex w-full items-center gap-2"
-                    >
+                    {switching === org.id ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
                       <Building2 className="h-4 w-4" />
-                      <span className="truncate font-medium">{org.name}</span>
-                      <span className="ml-auto text-xs text-muted-foreground">{org.role}</span>
-                    </Link>
+                    )}
+                    <span className="truncate font-medium">{org.name}</span>
+                    <span className="ml-auto text-xs text-muted-foreground">{org.role}</span>
                   </DropdownMenuItem>
                 ))}
               </>

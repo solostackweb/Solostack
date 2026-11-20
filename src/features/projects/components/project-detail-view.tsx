@@ -53,6 +53,9 @@ import {
   addProjectCostAction,
   deleteProjectCostAction,
   getProjectProfitabilityAction,
+  listProjectCollaboratorsAction,
+  addProjectCollaboratorAction,
+  removeProjectCollaboratorAction,
 } from "@/features/organizations/actions";
 import { createProposalFromTemplateRedirectAction } from "@/features/proposals/actions";
 
@@ -159,6 +162,18 @@ export function ProjectDetailView({
   const [archiveOpen, setArchiveOpen] = React.useState(false);
   const [deleteOpen, setDeleteOpen] = React.useState(false);
   const [pending, startTransition] = React.useTransition();
+  const [collaborators, setCollaborators] = React.useState<Array<{
+    id: string;
+    user_id: string;
+    role: string;
+    joined_at: string | null;
+    user_email: string;
+    user_name: string;
+  }>>([]);
+  const [loadingCollaborators, setLoadingCollaborators] = React.useState(false);
+  const [addCollaboratorDialogOpen, setAddCollaboratorDialogOpen] = React.useState(false);
+  const [addCollaboratorEmail, setAddCollaboratorEmail] = React.useState("");
+  const [addCollaboratorRole, setAddCollaboratorRole] = React.useState<"lead" | "member" | "viewer">("member");
 
   const dueDate = project.dueDate
     ? new Date(project.dueDate).toLocaleDateString("en-IN", {
@@ -205,6 +220,19 @@ export function ProjectDetailView({
       router.push("/dashboard/projects");
     });
   };
+
+  const loadCollaborators = React.useCallback(async () => {
+    setLoadingCollaborators(true);
+    const result = await listProjectCollaboratorsAction(project.id);
+    if (result.ok && result.data) {
+      setCollaborators(result.data.collaborators);
+    }
+    setLoadingCollaborators(false);
+  }, [project.id]);
+
+  React.useEffect(() => {
+    loadCollaborators();
+  }, [loadCollaborators]);
 
   const billedTotal = invoices.reduce(
     (s, i) => s + (i.inrEquivalent ?? i.totalAmount ?? 0),
@@ -649,6 +677,99 @@ export function ProjectDetailView({
                       <span className="text-sm tabular-nums">{formatMoney(cost.amount, cost.currency)}</span>
                       <Button asChild variant="ghost" size="sm">
                         <a href={`/dashboard/projects/${project.id}/costs/${cost.id}/edit`}>Edit</a>
+                      </Button>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Collaborators */}
+        <Card>
+          <CardContent className="space-y-4 p-6">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <h2 className="text-base font-semibold">
+                  Collaborators
+                </h2>
+                <p className="text-xs text-muted-foreground">
+                  Team members with access to this project.
+                </p>
+              </div>
+              <Button asChild size="sm" onClick={() => setAddCollaboratorDialogOpen(true)}>
+                <Plus /> Add
+              </Button>
+            </div>
+
+            {loadingCollaborators ? (
+              <div className="text-center py-4">
+                <div className="mx-auto h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+              </div>
+            ) : collaborators.length === 0 ? (
+              <div className="text-center py-4">
+                <Users className="mx-auto h-8 w-8 text-muted-foreground" />
+                <p className="mt-2 text-sm text-muted-foreground">No collaborators yet</p>
+                <p className="text-xs text-muted-foreground">Add team members to collaborate on this project</p>
+              </div>
+            ) : (
+              <ul className="divide-y">
+                {collaborators.map((collab) => (
+                  <li key={collab.id} className="flex items-center justify-between py-3">
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary text-sm font-medium">
+                        {collab.user_name?.charAt(0)?.toUpperCase() || "U"}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium truncate">{collab.user_name || "Unknown"}</p>
+                        <p className="text-xs text-muted-foreground truncate">{collab.user_email}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <select
+                        value={collab.role}
+                        onChange={(e) => {
+                          const formData = new FormData();
+                          formData.append("projectId", project.id);
+                          formData.append("userId", collab.user_id);
+                          formData.append("role", e.target.value);
+                          startTransition(async () => {
+                            const res = await addProjectCollaboratorAction(undefined, formData);
+                            if (res.ok) {
+                              toast.success("Role updated");
+                              loadCollaborators();
+                            } else {
+                              toast.error(res.error);
+                            }
+                          });
+                        }}
+                        className="text-xs px-2 py-1 rounded border bg-background"
+                      >
+                        <option value="lead">Lead</option>
+                        <option value="member">Member</option>
+                        <option value="viewer">Viewer</option>
+                      </select>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="text-destructive hover:bg-destructive/10"
+                        onClick={() => {
+                          const fd = new FormData();
+                          fd.set("projectId", project.id);
+                          fd.set("userId", collab.user_id);
+                          startTransition(async () => {
+                            const res = await removeProjectCollaboratorAction(undefined, fd);
+                            if (res.ok) {
+                              toast.success("Collaborator removed");
+                              loadCollaborators();
+                            } else {
+                              toast.error(res.error);
+                            }
+                          });
+                        }}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
                       </Button>
                     </div>
                   </li>

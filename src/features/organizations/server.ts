@@ -286,6 +286,35 @@ export async function listOrgMembers(
   })) as Array<OrganizationMemberRow & { user_email: string; user_name: string }>;
 }
 
+/** List pending organization invitations. */
+export async function listOrgInvitations(
+  admin: SupabaseClient<OrganizationDatabase>,
+  orgId: string,
+): Promise<Array<OrganizationInvitationRow & { invited_by_name: string; invited_by_email: string }>> {
+  const { data } = await admin
+    .from("organization_invitations")
+    .select("*")
+    .eq("organization_id", orgId)
+    .is("accepted_at", null)
+    .gt("expires_at", new Date().toISOString())
+    .order("created_at", { ascending: false });
+
+  const invitations = data ?? [];
+  const { data: profiles } = invitations.length
+    ? await admin
+        .from("user_profiles")
+        .select("id, email, full_name")
+        .in("id", invitations.map((inv) => inv.invited_by))
+    : { data: [] };
+  const profileById = new Map((profiles ?? []).map((profile) => [profile.id, profile]));
+
+  return invitations.map((row) => ({
+    ...row,
+    invited_by_name: profileById.get(row.invited_by)?.full_name ?? "",
+    invited_by_email: profileById.get(row.invited_by)?.email ?? "",
+  })) as Array<OrganizationInvitationRow & { invited_by_name: string; invited_by_email: string }>;
+}
+
 /** Invite user to organization. */
 export async function inviteOrgMember(
   admin: SupabaseClient<OrganizationDatabase>,
@@ -396,6 +425,106 @@ const { data: invitation, error: invitationError } = await admin
     .eq("id", invitation.id);
 
   return { alreadyMember: false, organization_id: invitation.organization_id };
+}
+
+/** Cancel a pending organization invitation. */
+export async function cancelOrgInvitation(
+  admin: SupabaseClient<OrganizationDatabase>,
+  orgId: string,
+  invitationId: string,
+  actorId: string,
+): Promise<void> {
+  // Verify actor has admin access
+  const { data: actorMember } = await admin
+    .from("organization_members")
+    .select("role")
+    .eq("organization_id", orgId)
+    .eq("user_id", actorId)
+    .maybeSingle();
+
+  if (!actorMember || !["owner", "admin"].includes(actorMember.role)) {
+    throw new OrgAccessError("forbidden", "Only owners and admins can cancel invitations.");
+  }
+
+  // Verify invitation belongs to org and is pending
+  const { data: invitation } = await admin
+    .from("organization_invitations")
+    .select("id")
+    .eq("id", invitationId)
+    .eq("organization_id", orgId)
+    .is("accepted_at", null)
+    .maybeSingle();
+
+  if (!invitation) {
+    throw new OrgAccessError("not_found", "Invitation not found or already accepted.");
+  }
+
+  await admin
+    .from("organization_invitations")
+    .delete()
+    .eq("id", invitationId);
+}
+
+/** Resend a pending organization invitation (extends expiry). */
+export async function resendOrgInvitation(
+  admin: SupabaseClient<OrganizationDatabase>,
+  orgId: string,
+  invitationId: string,
+  actorId: string,
+): Promise<{ invitation: OrganizationInvitationRow; token: string }> {
+  // Verify actor has admin access
+  const { data: actorMember } = await admin
+    .from("organization_members")
+    .select("role")
+    .eq("organization_id", orgId)
+    .eq("user_id", actorId)
+    .maybeSingle();
+
+  if (!actorMember || !["owner", "admin"].includes(actorMember.role)) {
+    throw new OrgAccessError("forbidden", "Only owners and admins can resend invitations.");
+  }
+
+  // Get the existing invitation
+  const { data: invitation } = await admin
+    .from("organization_invitations")
+    .select("*")
+    .eq("id", invitationId)
+    .eq("organization_id", orgId)
+    .is("accepted_at", null)
+    .maybeSingle();
+
+  if (!invitation) {
+    throw new OrgAccessError("not_found", "Invitation not found or already accepted.");
+  }
+
+  // Generate new token
+  const { randomBytes } = await import("node:crypto");
+  const token = randomBytes(32).toString("hex");
+  const crypto = await import("node:crypto");
+  const encoder = new TextEncoder();
+  const data = encoder.encode(token);
+  const hashBuffer = await crypto.subtle.digest("SHA-256", data);
+  const tokenHash = Array.from(new Uint8Array(hashBuffer))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+
+  // Update invitation with new token and extended expiry
+  const { data: updated, error } = await admin
+    .from("organization_invitations")
+    .update({
+      token_hash: tokenHash,
+      expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+      invited_by: actorId,
+    })
+    .eq("id", invitationId)
+    .select("*")
+    .single();
+
+  if (error || !updated) {
+    throw new OrgAccessError("forbidden", error?.message ?? "Could not resend invitation.");
+  }
+
+  return { invitation: updated as OrganizationInvitationRow, token };
 }
 
 /** Remove member from organization. */
@@ -805,4 +934,387 @@ export async function getOrgProfitability(
     overallMargin,
     projects: projectDetails,
   };
+}
+
+/** Update organization settings. */
+export async function updateOrgSettings(
+  admin: SupabaseClient<OrganizationDatabase>,
+  orgId: string,
+  settings: Record<string, unknown>,
+  actorId: string,
+): Promise<void> {
+  const { data: actorMember } = await admin
+    .from("organization_members")
+    .select("role")
+    .eq("organization_id", orgId)
+    .eq("user_id", actorId)
+    .maybeSingle();
+
+  if (!actorMember || !["owner", "admin"].includes(actorMember.role)) {
+    throw new OrgAccessError("forbidden", "Only owners and admins can update settings.");
+  }
+
+  const { error } = await admin
+    .from("organizations")
+    .update({ settings })
+    .eq("id", orgId);
+
+  if (error) throw new OrgAccessError("forbidden", error.message);
+}
+
+/** List API keys for organization. */
+export async function listOrgApiKeys(
+  admin: SupabaseClient<OrganizationDatabase>,
+  orgId: string,
+): Promise<Array<{
+  id: string;
+  name: string;
+  key_prefix: string;
+  created_at: string;
+  last_used_at: string | null;
+  scopes: string[];
+}>> {
+  const { data } = await admin
+    .from("api_keys")
+    .select("*")
+    .eq("organization_id", orgId)
+    .order("created_at", { ascending: false });
+
+  return (data ?? []) as Array<{
+    id: string;
+    name: string;
+    key_prefix: string;
+    created_at: string;
+    last_used_at: string | null;
+    scopes: string[];
+  }>;
+}
+
+/** Create API key for organization. */
+export async function createOrgApiKey(
+  admin: SupabaseClient<OrganizationDatabase>,
+  orgId: string,
+  actorId: string,
+  input: { name: string; scopes: string[] },
+): Promise<{ id: string; name: string; key_prefix: string; key: string; scopes: string[] }> {
+  const { data: actorMember } = await admin
+    .from("organization_members")
+    .select("role")
+    .eq("organization_id", orgId)
+    .eq("user_id", actorId)
+    .maybeSingle();
+
+  if (!actorMember || !["owner", "admin"].includes(actorMember.role)) {
+    throw new OrgAccessError("forbidden", "Only owners and admins can create API keys.");
+  }
+
+  const { randomBytes } = await import("node:crypto");
+  const key = `sk_${randomBytes(24).toString("base64url")}`;
+  const keyPrefix = `sk_${key.slice(4, 12)}`;
+
+  const crypto = await import("node:crypto");
+  const encoder = new TextEncoder();
+  const data = encoder.encode(key);
+  const hashBuffer = await crypto.subtle.digest("SHA-256", data);
+  const keyHash = Array.from(new Uint8Array(hashBuffer))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+
+  const { data: apiKey, error } = await admin
+    .from("api_keys")
+    .insert({
+      organization_id: orgId,
+      name: input.name,
+      key_prefix: keyPrefix,
+      key_hash: keyHash,
+      scopes: input.scopes,
+      created_by: actorId,
+    })
+    .select("*")
+    .single();
+
+  if (error || !apiKey) {
+    throw new OrgAccessError("forbidden", error?.message ?? "Could not create API key.");
+  }
+
+  return {
+    id: apiKey.id,
+    name: apiKey.name,
+    key_prefix: apiKey.key_prefix,
+    key: key,
+    scopes: apiKey.scopes,
+  };
+}
+
+/** Delete API key. */
+export async function deleteOrgApiKey(
+  admin: SupabaseClient<OrganizationDatabase>,
+  orgId: string,
+  keyId: string,
+  actorId: string,
+): Promise<void> {
+  const { data: actorMember } = await admin
+    .from("organization_members")
+    .select("role")
+    .eq("organization_id", orgId)
+    .eq("user_id", actorId)
+    .maybeSingle();
+
+  if (!actorMember || !["owner", "admin"].includes(actorMember.role)) {
+    throw new OrgAccessError("forbidden", "Only owners and admins can delete API keys.");
+  }
+
+  const { error } = await admin
+    .from("api_keys")
+    .delete()
+    .eq("id", keyId)
+    .eq("organization_id", orgId);
+
+  if (error) throw new OrgAccessError("forbidden", error.message);
+}
+
+/** List webhooks for organization. */
+export async function listOrgWebhooks(
+  admin: SupabaseClient<OrganizationDatabase>,
+  orgId: string,
+): Promise<Array<{
+  id: string;
+  url: string;
+  events: string[];
+  status: string;
+  created_at: string;
+  secret_prefix: string;
+}>> {
+  const { data } = await admin
+    .from("webhooks")
+    .select("*")
+    .eq("organization_id", orgId)
+    .order("created_at", { ascending: false });
+
+  return (data ?? []) as Array<{
+    id: string;
+    url: string;
+    events: string[];
+    status: string;
+    created_at: string;
+    secret_prefix: string;
+  }>;
+}
+
+/** Create webhook for organization. */
+export async function createOrgWebhook(
+  admin: SupabaseClient<OrganizationDatabase>,
+  orgId: string,
+  actorId: string,
+  input: { url: string; events: string[] },
+): Promise<{ id: string; url: string; events: string[]; status: string; secret: string }> {
+  const { data: actorMember } = await admin
+    .from("organization_members")
+    .select("role")
+    .eq("organization_id", orgId)
+    .eq("user_id", actorId)
+    .maybeSingle();
+
+  if (!actorMember || !["owner", "admin"].includes(actorMember.role)) {
+    throw new OrgAccessError("forbidden", "Only owners and admins can create webhooks.");
+  }
+
+  const { randomBytes } = await import("node:crypto");
+  const secret = `whsec_${randomBytes(32).toString("hex")}`;
+
+  const { data: webhook, error } = await admin
+    .from("webhooks")
+    .insert({
+      organization_id: orgId,
+      url: input.url,
+      events: input.events,
+      status: "active",
+      secret: secret,
+      created_by: actorId,
+    })
+    .select("*")
+    .single();
+
+  if (error || !webhook) {
+    throw new OrgAccessError("forbidden", error?.message ?? "Could not create webhook.");
+  }
+
+  return {
+    id: webhook.id,
+    url: webhook.url,
+    events: webhook.events,
+    status: webhook.status,
+    secret: secret,
+  };
+}
+
+/** Update webhook. */
+export async function updateOrgWebhook(
+  admin: SupabaseClient<OrganizationDatabase>,
+  orgId: string,
+  webhookId: string,
+  actorId: string,
+  patch: { url?: string; events?: string[]; status?: string },
+): Promise<void> {
+  const { data: actorMember } = await admin
+    .from("organization_members")
+    .select("role")
+    .eq("organization_id", orgId)
+    .eq("user_id", actorId)
+    .maybeSingle();
+
+  if (!actorMember || !["owner", "admin"].includes(actorMember.role)) {
+    throw new OrgAccessError("forbidden", "Only owners and admins can update webhooks.");
+  }
+
+  const { error } = await admin
+    .from("webhooks")
+    .update(patch as unknown as { url?: string; events?: string[]; status?: string })
+    .eq("id", webhookId)
+    .eq("organization_id", orgId);
+
+  if (error) throw new OrgAccessError("forbidden", error.message);
+}
+
+/** Delete webhook. */
+export async function deleteOrgWebhook(
+  admin: SupabaseClient<OrganizationDatabase>,
+  orgId: string,
+  webhookId: string,
+  actorId: string,
+): Promise<void> {
+  const { data: actorMember } = await admin
+    .from("organization_members")
+    .select("role")
+    .eq("organization_id", orgId)
+    .eq("user_id", actorId)
+    .maybeSingle();
+
+  if (!actorMember || !["owner", "admin"].includes(actorMember.role)) {
+    throw new OrgAccessError("forbidden", "Only owners and admins can delete webhooks.");
+  }
+
+  const { error } = await admin
+    .from("webhooks")
+    .delete()
+    .eq("id", webhookId)
+    .eq("organization_id", orgId);
+
+  if (error) throw new OrgAccessError("forbidden", error.message);
+}
+
+/** List organization activity/audit log. */
+export async function listOrgActivity(
+  admin: SupabaseClient<OrganizationDatabase>,
+  orgId: string,
+  options: { page?: number; limit?: number; actor?: string; action?: string; dateFrom?: string; dateTo?: string } = {},
+): Promise<{ items: Array<{
+  id: string;
+  action: string;
+  actor_name: string;
+  actor_email: string;
+  target_type: string;
+  target_name: string;
+  metadata: Record<string, unknown>;
+  created_at: string;
+}>; total: number }> {
+  const page = options.page ?? 1;
+  const limit = options.limit ?? 20;
+  const from = (page - 1) * limit;
+
+  let query = admin
+    .from("activity_events")
+    .select("*", { count: "exact" })
+    .eq("organization_id", orgId)
+    .order("created_at", { ascending: false })
+    .range(from, from + limit - 1);
+
+  if (options.actor) {
+    query = query.ilike("actor_name", `%${options.actor}%`);
+  }
+  if (options.action) {
+    query = query.ilike("action", `%${options.action}%`);
+  }
+  if (options.dateFrom) {
+    query = query.gte("created_at", options.dateFrom);
+  }
+  if (options.dateTo) {
+    query = query.lte("created_at", options.dateTo);
+  }
+
+  const { data, count, error } = await query;
+
+  if (error) throw new OrgAccessError("forbidden", error.message);
+
+  return {
+    items: (data ?? []) as Array<{
+      id: string;
+      action: string;
+      actor_name: string;
+      actor_email: string;
+      target_type: string;
+      target_name: string;
+      metadata: Record<string, unknown>;
+      created_at: string;
+    }>,
+    total: count ?? 0,
+  };
+}
+
+/** Revoke all sessions for organization members. */
+export async function revokeAllOrgSessions(
+  admin: SupabaseClient<OrganizationDatabase>,
+  orgId: string,
+  actorId: string,
+): Promise<void> {
+  const { data: actorMember } = await admin
+    .from("organization_members")
+    .select("role")
+    .eq("organization_id", orgId)
+    .eq("user_id", actorId)
+    .maybeSingle();
+
+  if (!actorMember || actorMember.role !== "owner") {
+    throw new OrgAccessError("forbidden", "Only the owner can revoke all sessions.");
+  }
+
+  // Get all member user IDs
+  const { data: members } = await admin
+    .from("organization_members")
+    .select("user_id")
+    .eq("organization_id", orgId)
+    .not("joined_at", "is", null)
+    .is("revoked_at", null);
+
+  const userIds = (members ?? []).map((m) => m.user_id);
+
+  if (userIds.length > 0) {
+    // Revoke all refresh tokens for these users
+    await admin.auth.admin.revokeRefreshTokens(userIds);
+  }
+}
+
+/** Delete organization (soft delete). */
+export async function deleteOrg(
+  admin: SupabaseClient<OrganizationDatabase>,
+  orgId: string,
+  actorId: string,
+): Promise<void> {
+  const { data: actorMember } = await admin
+    .from("organization_members")
+    .select("role")
+    .eq("organization_id", orgId)
+    .eq("user_id", actorId)
+    .maybeSingle();
+
+  if (!actorMember || actorMember.role !== "owner") {
+    throw new OrgAccessError("forbidden", "Only the owner can delete the organization.");
+  }
+
+  const { error } = await admin
+    .from("organizations")
+    .update({ deleted_at: new Date().toISOString() })
+    .eq("id", orgId);
+
+  if (error) throw new OrgAccessError("forbidden", error.message);
 }

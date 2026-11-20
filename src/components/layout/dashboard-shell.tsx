@@ -15,7 +15,7 @@ import type { CurrentSubscription } from "@/features/subscription/types";
  * structure are all server-rendered. Interactive concerns are isolated to
  * small client islands:
  *
- *   - `DashboardShellProviders` — owns `ProfileProvider` + `MobileNavProvider`.
+ *   - `DashboardShellProviders` — owns `ProfileProvider` + `MobileNavProvider` + `OrgProvider`.
  *   - `AppSidebar` — self-manages its collapsed state.
  *   - `TopNav`, `MobileNav`, `MobileBottomNav` — independent client components.
  *
@@ -27,13 +27,15 @@ export function DashboardShell({
   children,
   profile,
   subscription,
+  currentOrgId,
 }: {
   children: React.ReactNode;
   profile: BusinessProfile;
   subscription: CurrentSubscription | null;
+  currentOrgId: string;
 }) {
   return (
-    <DashboardShellProviders profile={profile} subscription={subscription}>
+    <DashboardShellProviders profile={profile} subscription={subscription} currentOrgId={currentOrgId}>
       <div className="flex min-h-[100dvh] w-full bg-background">
         <AppSidebar />
         <MobileNav />

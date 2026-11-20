@@ -9,8 +9,13 @@ interface OrgContextValue {
 
 const OrgContext = React.createContext<OrgContextValue | null>(null);
 
-export function OrgProvider({ children }: { children: React.ReactNode }) {
-  const [currentOrgId, setCurrentOrgId] = React.useState<string | null>(null);
+interface OrgProviderProps {
+  children: React.ReactNode;
+  initialOrgId: string;
+}
+
+export function OrgProvider({ children, initialOrgId }: OrgProviderProps) {
+  const [currentOrgId, setCurrentOrgId] = React.useState<string | null>(initialOrgId);
 
   return (
     <OrgContext.Provider value={{ currentOrgId, setCurrentOrgId }}>

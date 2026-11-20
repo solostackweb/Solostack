@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { getOrgDetailsAction } from "@/features/organizations/actions";
+import { getOrgDetailsAction, getOrgSubscriptionAction } from "@/features/organizations/actions";
 import { OrganizationDetail } from "@/features/organizations/components/organization-detail";
 
 export const metadata = { title: "Organization" };
@@ -10,11 +10,18 @@ export default async function OrganizationPage({
   params: Promise<{ orgId: string }>;
 }) {
   const { orgId } = await params;
-  const result = await getOrgDetailsAction(orgId);
+  const [orgResult, subResult] = await Promise.all([
+    getOrgDetailsAction(orgId),
+    getOrgSubscriptionAction(orgId),
+  ]);
 
-  if (!result.ok || !result.data) {
+  if (!orgResult.ok || !orgResult.data) {
     redirect("/dashboard/organizations");
   }
 
-  return <OrganizationDetail initialData={result.data} orgId={orgId} />;
+  return <OrganizationDetail 
+    initialData={orgResult.data} 
+    orgId={orgId}
+    initialSubscription={subResult.ok ? subResult.subscription : null}
+  />;
 }

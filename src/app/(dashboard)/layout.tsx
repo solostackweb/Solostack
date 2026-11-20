@@ -12,6 +12,8 @@ import { OnboardingTour } from "@/features/onboarding/components/onboarding-tour
  *   - Authenticated but mid-onboarding → redirected to the persisted step.
  *   - Authenticated + onboarded → rendered through the dashboard shell.
  *
+ * Now requires an active organization context (currentOrgId).
+ *
  * Mounts the first-party live chat widget once for the whole authenticated
  * surface (see DashboardSupportLayer).
  */
@@ -20,13 +22,15 @@ export default async function DashboardGroupLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const [profile, subscription] = await Promise.all([
+  const [onboarded, subscription] = await Promise.all([
     requireOnboarded(),
     getCurrentSubscription(),
   ]);
 
+  const { currentOrgId, ...profile } = onboarded;
+
   return (
-    <DashboardShell profile={profile} subscription={subscription}>
+    <DashboardShell profile={profile} subscription={subscription} currentOrgId={currentOrgId}>
       {children}
       <DashboardSupportLayer identity={{ plan: subscription?.plan ?? "free" }} />
       <OnboardingTour done={profile.tourCompleted} />
